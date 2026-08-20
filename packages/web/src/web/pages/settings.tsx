@@ -36,6 +36,16 @@ export default function SettingsPage() {
   const codeLang = usePreferencesStore((s) => s.codeLang);
   const setCodeLang = usePreferencesStore((s) => s.setCodeLang);
 
+  return (
+    <div className="border-2 border-red-500 min-h-screen bg-background p-8 max-w-4xl mx-auto w-full">
+      <h1 className="text-2xl font-bold mb-4">Paramètres TRED</h1>
+      <p>Si tu vois ce texte entouré d'une bordure rouge, la page s'affiche enfin !</p>
+      <p>... tout le reste de tes composants de paramètres ici ...</p>
+    </div>
+  );
+}
+  
+
   function exportData() {
     const blob = new Blob(
       [JSON.stringify({ locale, theme, plan, germanMode, termStates }, null, 2)],
