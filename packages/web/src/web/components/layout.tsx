@@ -1,4 +1,4 @@
-[20.08.2026 14:49] Edwin Takam: import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { SidebarContent } from "@/components/sidebar";
 import { Link, useLocation } from "wouter";
