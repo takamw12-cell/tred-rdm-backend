@@ -51,9 +51,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="bg-background flex min-h-screen">
-      <aside
+            <aside
         className={cn(
-          "bg-sidebar border-sidebar-border fixed inset-y-0 left-0 z-30 hidden overflow-hidden border-r transition-[width] duration-200",
+          "bg-sidebar border-sidebar-border fixed inset-y-0 left-0 z-30 hidden overflow-hidden border-r transition-[width] duration-200 lg:block",
           navOpen ? "w-64" : "w-0 border-r-0"
         )}
         aria-hidden={!navOpen}
