@@ -1,22 +1,15 @@
-import { useThemeStore } from "@/stores/preferences";
-import { useUserStore } from "@/stores/user";
-import { useLearningStore } from "@/stores/learning";
-import { usePreferencesStore } from "@/stores/preferences";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Moon, Sun, Laptop, Globe, CreditCard } from "lucide-react";
 
 export default function SettingsPage() {
-  const theme = useThemeStore((s) => s.theme);
-  const setTheme = useThemeStore((s) => s.setTheme);
-  const germanMode = useUserStore((s) => s.germanMode);
-  const setGermanMode = useUserStore((s) => s.setGermanMode);
-  const plan = useUserStore((s) => s.plan);
-  const codeLang = usePreferencesStore((s) => s.codeLang);
-  const setCodeLang = usePreferencesStore((s) => s.setCodeLang);
+  // Version simplifiée : on utilise useState localement
+  const [theme, setTheme] = useState<"light" | "dark" | "system">("system");
+  const [germanMode, setGermanMode] = useState(true);
+  const [codeLang, setCodeLang] = useState<"matlab" | "python">("python");
 
   return (
     <div className="min-h-screen w-full bg-background p-6 md:p-8 max-w-4xl mx-auto space-y-8">
@@ -68,13 +61,6 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>Langue principale</Label>
-              <p className="text-sm text-muted-foreground">Affichage du menu et du chat</p>
-            </div>
-            {/* Note : Le LanguageSwitcher gère ça globalement, on laisse donc la sélection visuelle */}
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
               <Label>Mode allemand technique</Label>
               <p className="text-sm text-muted-foreground">Conserve les termes techniques en allemand (ex: Flächenträgheitsmoment)</p>
             </div>
@@ -115,7 +101,7 @@ export default function SettingsPage() {
             <CreditCard className="size-4" /> Abonnement
           </CardTitle>
           <CardDescription>
-            Vous êtes actuellement sur le forfait <span className="font-bold text-green-600 dark:text-green-400">{plan || "Premium"}</span>.
+            Vous êtes actuellement sur le forfait <span className="font-bold text-green-600 dark:text-green-400">Premium</span>.
           </CardDescription>
         </CardHeader>
         <CardContent>
