@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "icon": "./assets/icon.png",
+    "android": {
+      "package": "de.tred.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F8F8F8"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "extra": {
+      "apiUrl": "https://TON-APP.up.railway.app",
+      "applicationId": "aerostu-53skcll",
+      "runableAuthIssuer": "https://api.runable.com/api/auth",
+      "scheme": "tred"
+    },
+    "ios": {
+      "bundleIdentifier": "de.tred.app",
+      "supportsTablet": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F8F8F8"
+    },
+    "name": "TRED",
+    "slug": "tred",
+    "version": "1.0.0",
+    "scheme": "tred",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-localization",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/adaptive-icon.png",
+          "color": "#EAB308"
+        }
+      ]
+    ]
+  }
+}

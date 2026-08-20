@@ -1,0 +1,1866 @@
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useChat } from "@ai-sdk/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { DefaultChatTransport, type UIMessage } from "ai";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Send,
+  Sparkles,
+  X,
+  Library,
+  FileText,
+  HelpCircle,
+  RefreshCw,
+  Cog,
+  Plus,
+  MessageSquare,
+  Trash2,
+  History,
+  RotateCcw,
+  ArrowLeft,
+  CheckSquare,
+  Square,
+  ListChecks,
+  Paperclip,
+  Calculator,
+  NotebookPen,
+  Camera,
+  FolderOpen,
+  Image as ImageIcon,
+  File as FileIcon,
+  Clapperboard,
+  Youtube,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from "lucide-react";
+import { AiAnswer, SourceViewContext } from "@/components/ai-answer";
+import { CodeExplainContext } from "@/components/code-block";
+import { DocumentViewer } from "@/components/document-viewer";
+import { ImageFrame } from "@/components/diagram-frame";
+import { CameraCapture } from "@/components/camera-capture";
+import { Scratchpad } from "@/components/scratchpad";
+import { downscaleImageToDataUrl, downscaleDataUrl, isUsableDataUrl } from "@/lib/image";
+import { VideoExplainer, type VideoScript } from "@/components/video-explainer";
+import {
+  VideoSearch,
+  type YoutubeHit,
+  type VideoSearchError,
+} from "@/components/video-search";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { usePreferencesStore } from "@/stores/preferences";
+import { DocumentLibrary } from "@/components/document-library";
+import { Button } from "@/components/ui/button";
+import { LogoMark } from "@/components/logo";
+import { client } from "@/lib/api";
+import { useSemesterStore } from "@/stores/semester";
+import { semestersListOptions } from "@/queries/semesters";
+import { documentsListOptions } from "@/queries/documents";
+import {
+  chatsListOptions,
+  chatsListKey,
+  chatSaveOptions,
+  chatRemoveOptions,
+  chatsTrashListOptions,
+  chatsTrashListKey,
+  chatRestoreOptions,
+  chatPurgeOptions,
+  chatEmptyTrashOptions,
+  chatRemoveManyOptions,
+  chatRestoreManyOptions,
+  chatPurgeManyOptions,
+} from "@/queries/chats";
+import { useT } from "@/i18n";
+import { cn } from "@/lib/utils";
+
+// Pull rendered text out of a UI message's parts.
+function messageText(m: UIMessage): string {
+  return m.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
+}
+
+export default function ChatPage() {
+  const { t, locale } = useT();
+  // A single selected document (null = whole scope: semester or all courses).
+  const [activeDoc, setActiveDoc] = useState<{ id: string; title: string } | null>(null);
+  const [input, setInput] = useState("");
+  const [libOpen, setLibOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // ── Mode Calcul (MATLAB / Python) ─────────────────────────────────────
+  const [calcMode, setCalcMode] = useState(false);
+  const codeLang = usePreferencesStore((s) => s.codeLang);
+
+  // ── Scratchpad / brouillon panel ──────────────────────────────────────
+  const [scratchOpen, setScratchOpen] = useState(false);
+
+  // ── Attachments (photos, scans, PDFs or text of coursework) ───────────
+  type Attachment = {
+    id: string;
+    name: string;
+    url: string; // data URL
+    mediaType: string;
+    kind: "image" | "doc"; // image → thumbnail + vision; doc → file chip
+    text?: string; // extracted plain text for .txt files
+  };
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [attachError, setAttachError] = useState<string | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  // Three separate inputs so the "📎" menu can target files, gallery or camera.
+  const filesInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+
+  const MAX_FILE_BYTES = 20 * 1024 * 1024; // 20 MB per file
+  const ACCEPTED_TYPES = [
+    "application/pdf",
+    "image/png",
+    "image/jpeg",
+    "image/webp",
+    "text/plain",
+  ];
+  function isAccepted(f: File): boolean {
+    if (ACCEPTED_TYPES.includes(f.type)) return true;
+    // Some browsers report an empty type for .txt — fall back to the extension.
+    return /\.(pdf|png|jpe?g|webp|txt)$/i.test(f.name);
+  }
+
+  function fileToDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function fileToText(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result ?? ""));
+      reader.onerror = reject;
+      reader.readAsText(file);
+    });
+  }
+
+  // Validate against type + size, then read each accepted file into an
+  // attachment. `imagesOnly` restricts to images (used by the gallery option).
+  async function addFiles(files: FileList | null, imagesOnly = false) {
+    if (!files || files.length === 0) return;
+    setAttachError(null);
+    const accepted: File[] = [];
+    for (const f of Array.from(files)) {
+      const isImage = f.type.startsWith("image/");
+      if (imagesOnly && !isImage) continue;
+      if (!isAccepted(f)) {
+        setAttachError(t("chat.fileType", { name: f.name }));
+        continue;
+      }
+      if (f.size > MAX_FILE_BYTES) {
+        setAttachError(t("chat.fileTooLarge", { name: f.name }));
+        continue;
+      }
+      accepted.push(f);
+    }
+    const built = await Promise.all(
+      accepted.map(async (f): Promise<Attachment | null> => {
+        const isImage = f.type.startsWith("image/");
+        const isText = f.type === "text/plain" || /\.txt$/i.test(f.name);
+        const url = isImage
+          ? await downscaleImageToDataUrl(f)
+          : await fileToDataUrl(f);
+        // An image the browser could not encode would be rejected by the model
+        // ("Input should be a valid string") and break the whole request.
+        if (isImage && !isUsableDataUrl(url)) {
+          setAttachError(t("chat.imageFailed", { name: f.name }));
+          return null;
+        }
+        return {
+          id: crypto.randomUUID(),
+          name: f.name,
+          url: url as string,
+          // Downscaled photos are re-encoded as JPEG.
+          mediaType: isImage
+            ? "image/jpeg"
+            : f.type || (isText ? "text/plain" : "application/octet-stream"),
+          kind: isImage ? "image" : "doc",
+          text: isText ? await fileToText(f) : undefined,
+        };
+      }),
+    );
+    const next = built.filter((a): a is Attachment => a !== null);
+    if (next.length > 0) setAttachments((prev) => [...prev, ...next]);
+  }
+
+  // A confirmed camera photo arrives as a JPEG data URL.
+  async function addCameraPhoto(dataUrl: string, name: string) {
+    const url = await downscaleDataUrl(dataUrl);
+    if (!isUsableDataUrl(url)) {
+      setAttachError(t("chat.imageFailed", { name }));
+      return;
+    }
+    setAttachments((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), name, url, mediaType: "image/jpeg", kind: "image" },
+    ]);
+  }
+
+  function removeAttachment(id: string) {
+    setAttachments((prev) => prev.filter((a) => a.id !== id));
+  }
+
+  const semesterId = useSemesterStore((s) => s.activeId);
+  const setActiveSemester = useSemesterStore((s) => s.setActive);
+  const { data: sems = [] } = useQuery(semestersListOptions());
+  const activeSem = sems.find((s) => s.id === semesterId) ?? null;
+
+  // Documents in the current scope — used to resolve a chat citation's document
+  // by title when the chat isn't pinned to a single document.
+  const { data: scopeDocs = [] } = useQuery(documentsListOptions(semesterId));
+
+  // Source viewer: opened from an [[OFFICIAL]] citation to show the exact
+  // passage the tutor quoted, highlighted in the course document.
+  const [sourceView, setSourceView] = useState<
+    { docId: string; highlight: string } | null
+  >(null);
+
+  const showSource = useMemo(
+    () =>
+      ({ excerpt, docTitle }: { excerpt: string; docTitle?: string | null }) => {
+        let id = activeDoc?.id ?? null;
+        if (!id && docTitle) {
+          const q = docTitle.toLowerCase();
+          const found =
+            scopeDocs.find((d) => d.title === docTitle) ??
+            scopeDocs.find(
+              (d) =>
+                d.title.toLowerCase().includes(q) ||
+                q.includes(d.title.toLowerCase()),
+            );
+          id = found?.id ?? null;
+        }
+        if (!id && scopeDocs.length > 0) id = scopeDocs[0].id;
+        if (id) setSourceView({ docId: id, highlight: excerpt });
+      },
+    [activeDoc?.id, scopeDocs],
+  );
+
+  // ── Persistent conversation history ──────────────────────────────────
+  const qc = useQueryClient();
+  const convQuery = useQuery(chatsListOptions());
+  const convList = convQuery.data ?? [];
+  const saveMut = useMutation(chatSaveOptions());
+  const removeMut = useMutation(chatRemoveOptions());
+
+  // ── Trash (soft-deleted conversations) ────────────────────────────────
+  const [showTrash, setShowTrash] = useState(false);
+  const trashQuery = useQuery({
+    ...chatsTrashListOptions(),
+    enabled: showTrash,
+  });
+  const trashList = trashQuery.data ?? [];
+  const restoreMut = useMutation(chatRestoreOptions());
+  const purgeMut = useMutation(chatPurgeOptions());
+  const emptyTrashMut = useMutation(chatEmptyTrashOptions());
+
+  // ── Multi-select mode (bulk delete / restore) ─────────────────────────
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const removeManyMut = useMutation(chatRemoveManyOptions());
+  const restoreManyMut = useMutation(chatRestoreManyOptions());
+  const purgeManyMut = useMutation(chatPurgeManyOptions());
+
+  function exitSelect() {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  }
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function toggleSelectAll(ids: string[]) {
+    setSelectedIds((prev) =>
+      prev.size === ids.length ? new Set() : new Set(ids),
+    );
+  }
+
+  // The client owns the conversation id so saves are idempotent upserts.
+  const [convId, setConvId] = useState<string>(() => crypto.randomUUID());
+  // Suppresses the scope-reset + auto-save side effects while we programmatically
+  // restore a saved conversation.
+  const restoringRef = useRef(false);
+  const bootRef = useRef(false);
+  const scopeInitRef = useRef(false);
+  const savedSigRef = useRef("");
+
+  // ── Live translation of the displayed exchange ───────────────────────
+  // Messages are stored/generated in their native language; when the user
+  // flips the language toggle we translate the visible conversation on the
+  // fly (formulas, diagrams and German Fachbegriffe are preserved server-side)
+  // without altering what's persisted.
+  const sourceRef = useRef<Record<string, string>>({}); // native text per message
+  const transCache = useRef<Record<string, string>>({}); // `${id}::${locale}` -> text
+  const convLangRef = useRef<string>(locale); // native language of this conversation
+  const displayLangRef = useRef<string>(locale); // language currently rendered
+  const localeInitRef = useRef(false);
+  const [overrides, setOverrides] = useState<Record<string, string>>({});
+  const [translating, setTranslating] = useState(false);
+
+  // Refs let the transport read the latest values without rebuilding.
+  const docIdRef = useRef<string | null>(null);
+  const semIdRef = useRef<string | null>(null);
+  const localeRef = useRef(locale);
+  const calcModeRef = useRef(calcMode);
+  const codeLangRef = useRef(codeLang);
+  docIdRef.current = activeDoc?.id ?? null;
+  semIdRef.current = semesterId;
+  localeRef.current = locale;
+  calcModeRef.current = calcMode;
+  codeLangRef.current = codeLang;
+
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "/api/agent/messages",
+        body: () => ({
+          documentId: docIdRef.current,
+          // Only scope by semester when no single document is selected.
+          semesterId: docIdRef.current ? null : semIdRef.current,
+          locale: localeRef.current,
+          calcMode: calcModeRef.current,
+          codeLang: codeLangRef.current,
+        }),
+      }),
+    [],
+  );
+
+  const { messages, sendMessage, status, setMessages, error, regenerate, clearError } =
+    useChat({ transport });
+  const busy = status === "submitted" || status === "streaming";
+
+  // Latest messages, readable from callbacks/effects without stale closures.
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
+
+  // Show a message in the language currently selected — falling back to its
+  // native text when no translation overlay exists (new/streaming messages).
+  function displayText(m: UIMessage): string {
+    return overrides[m.id] ?? messageText(m);
+  }
+
+  // Pull image attachments out of a UI message's file parts for rendering.
+  function messageImages(m: UIMessage): { url: string; name?: string }[] {
+    const out: { url: string; name?: string }[] = [];
+    for (const p of m.parts) {
+      if (p.type !== "file") continue;
+      const fp = p as { url?: unknown; mediaType?: unknown; filename?: unknown };
+      if (
+        typeof fp.url === "string" &&
+        String(fp.mediaType ?? "").startsWith("image/")
+      ) {
+        out.push({
+          url: fp.url,
+          name: typeof fp.filename === "string" ? fp.filename : undefined,
+        });
+      }
+    }
+    return out;
+  }
+
+  // A code block can ask the tutor to explain itself line by line.
+  function explainCode(code: string, codeLangName: string) {
+    if (busy) return;
+    send(`${t("calc.explainPrompt")}\n\n\`\`\`${codeLangName}\n${code}\n\`\`\``);
+  }
+
+  // Send the scratchpad's working-out to the tutor for feedback.
+  function sendScratchToAi(text: string) {
+    if (busy || !text.trim()) return;
+    send(`${t("scratchpad.sendToAiPrompt")}\n\n${text}`);
+  }
+
+  // Translate every visible message into `target`, using a per-message cache
+  // so toggling back and forth is instant and never re-hits the model. The
+  // underlying messages state stays native — only the overlay changes.
+  async function translateTo(target: string, msgs: UIMessage[]) {
+    const relevant = msgs.filter((m) => m.role === "user" || m.role === "assistant");
+    const next: Record<string, string> = {};
+    const need: { id: string; content: string }[] = [];
+    for (const m of relevant) {
+      const source = sourceRef.current[m.id] ?? messageText(m);
+      if (!source.trim()) continue;
+      const cached = transCache.current[`${m.id}::${target}`];
+      if (cached !== undefined) next[m.id] = cached;
+      else need.push({ id: m.id, content: source });
+    }
+    if (need.length > 0) {
+      setTranslating(true);
+      try {
+        const res = await fetch("/api/agent/translate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ target, texts: need }),
+        });
+        if (res.ok) {
+          const data = (await res.json()) as {
+            results: { id: string; content: string }[];
+          };
+          for (const r of data.results) {
+            transCache.current[`${r.id}::${target}`] = r.content;
+            next[r.id] = r.content;
+          }
+        } else {
+          for (const n of need) next[n.id] = n.content;
+        }
+      } catch {
+        for (const n of need) next[n.id] = n.content;
+      } finally {
+        setTranslating(false);
+      }
+    }
+    displayLangRef.current = target;
+    setOverrides(next);
+  }
+
+  // Build a stable snapshot signature so we save each completed turn once.
+  function snapshotOf(msgs: UIMessage[]) {
+    return msgs
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .map((m) => ({ role: m.role as "user" | "assistant", content: messageText(m) }))
+      .filter((m) => m.content.trim());
+  }
+
+  // Start a fresh conversation without touching the current scope.
+  function newChat() {
+    restoringRef.current = true;
+    setMessages([]);
+    setConvId(crypto.randomUUID());
+    explainAttempts.current = {};
+    savedSigRef.current = "";
+    sourceRef.current = {};
+    transCache.current = {};
+    setOverrides({});
+    convLangRef.current = locale;
+    displayLangRef.current = locale;
+    setHistoryOpen(false);
+    requestAnimationFrame(() => {
+      restoringRef.current = false;
+    });
+  }
+
+  // Load a saved conversation: restore its scope and messages.
+  async function openConversation(id: string) {
+    try {
+      const res = await client.chats.get({ id });
+      if (!res) return;
+      restoringRef.current = true;
+      const c = res.conversation;
+      setActiveDoc(
+        c.documentId ? { id: c.documentId, title: c.documentTitle ?? "" } : null,
+      );
+      setActiveSemester(c.semesterId ?? null);
+      setConvId(id);
+      const restored = res.messages.map((m) => ({
+        id: m.id,
+        role: m.role as "user" | "assistant",
+        parts: [{ type: "text" as const, text: m.content }],
+      }));
+      // Seed the translation source + cache with the stored native text.
+      const nativeLang = c.lang ?? "de";
+      sourceRef.current = {};
+      transCache.current = {};
+      setOverrides({});
+      for (const m of res.messages) {
+        sourceRef.current[m.id] = m.content;
+        transCache.current[`${m.id}::${nativeLang}`] = m.content;
+      }
+      convLangRef.current = nativeLang;
+      displayLangRef.current = nativeLang;
+      setMessages(restored as unknown as UIMessage[]);
+      savedSigRef.current =
+        id + "|" + res.messages.map((m) => m.content).join("¦");
+      setHistoryOpen(false);
+      requestAnimationFrame(() => {
+        restoringRef.current = false;
+      });
+      // If the saved conversation isn't in the current UI language, translate.
+      if (nativeLang !== locale) {
+        void translateTo(locale, restored as unknown as UIMessage[]);
+      }
+    } catch {
+      // ignore — conversation may have been removed
+    }
+  }
+
+  function deleteConversation(id: string) {
+    removeMut.mutate(
+      { id },
+      {
+        onSuccess: () => {
+          qc.invalidateQueries({ queryKey: chatsListKey() });
+          qc.invalidateQueries({ queryKey: chatsTrashListKey() });
+          if (id === convId) newChat();
+        },
+      },
+    );
+  }
+
+  function restoreConversation(id: string) {
+    restoreMut.mutate(
+      { id },
+      {
+        onSuccess: () => {
+          qc.invalidateQueries({ queryKey: chatsListKey() });
+          qc.invalidateQueries({ queryKey: chatsTrashListKey() });
+        },
+      },
+    );
+  }
+
+  function purgeConversation(id: string) {
+    if (!window.confirm(t("chat.confirmPurge"))) return;
+    purgeMut.mutate(
+      { id },
+      {
+        onSuccess: () => {
+          qc.invalidateQueries({ queryKey: chatsTrashListKey() });
+        },
+      },
+    );
+  }
+
+  function emptyTrash() {
+    if (!window.confirm(t("chat.confirmEmptyTrash"))) return;
+    emptyTrashMut.mutate(undefined, {
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: chatsTrashListKey() });
+      },
+    });
+  }
+
+  // Bulk actions on the current selection.
+  function bulkDeleteSelected() {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    removeManyMut.mutate(
+      { ids },
+      {
+        onSuccess: () => {
+          qc.invalidateQueries({ queryKey: chatsListKey() });
+          qc.invalidateQueries({ queryKey: chatsTrashListKey() });
+          if (ids.includes(convId)) newChat();
+          exitSelect();
+        },
+      },
+    );
+  }
+  function bulkRestoreSelected() {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    restoreManyMut.mutate(
+      { ids },
+      {
+        onSuccess: () => {
+          qc.invalidateQueries({ queryKey: chatsListKey() });
+          qc.invalidateQueries({ queryKey: chatsTrashListKey() });
+          exitSelect();
+        },
+      },
+    );
+  }
+  function bulkPurgeSelected() {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    if (!window.confirm(t("chat.confirmPurgeSelected"))) return;
+    purgeManyMut.mutate(
+      { ids },
+      {
+        onSuccess: () => {
+          qc.invalidateQueries({ queryKey: chatsTrashListKey() });
+          exitSelect();
+        },
+      },
+    );
+  }
+
+  // Auto-restore the most recent conversation on first load / page refresh —
+  // but ONLY when it belongs to the currently selected scope (semester).
+  // Otherwise the user picked a different subject/semester (e.g. on the
+  // dashboard) before opening the chat: restoring the last conversation would
+  // snap the scope back to that conversation's semester and force uploads into
+  // the wrong one. In that case we keep the selected scope and start fresh.
+  useEffect(() => {
+    if (bootRef.current || !convQuery.isSuccess) return;
+    bootRef.current = true;
+    const latest = convList[0];
+    if (latest && (latest.semesterId ?? null) === (semesterId ?? null)) {
+      void openConversation(latest.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [convQuery.isSuccess]);
+
+  // Changing the scope (document or semester) starts a new conversation —
+  // but skip the initial mount and any programmatic restore.
+  useEffect(() => {
+    if (!scopeInitRef.current) {
+      scopeInitRef.current = true;
+      return;
+    }
+    if (restoringRef.current) return;
+    setMessages([]);
+    setConvId(crypto.randomUUID());
+    explainAttempts.current = {};
+    savedSigRef.current = "";
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeDoc?.id, semesterId]);
+
+  // Persist the conversation after each completed exchange.
+  useEffect(() => {
+    if (status !== "ready" || restoringRef.current || messages.length === 0) return;
+    const last = messages[messages.length - 1];
+    if (last.role !== "assistant") return;
+    const snap = snapshotOf(messages);
+    if (snap.length === 0) return;
+    const sig = convId + "|" + snap.map((m) => m.content).join("¦");
+    if (sig === savedSigRef.current) return;
+    savedSigRef.current = sig;
+    const firstUser = snap.find((m) => m.role === "user");
+    const title = (firstUser?.content ?? "Neue Unterhaltung").slice(0, 80);
+    saveMut.mutate(
+      {
+        id: convId,
+        title,
+        semesterId: semesterId ?? null,
+        documentId: activeDoc?.id ?? null,
+        documentTitle: activeDoc?.title ?? null,
+        lang: convLangRef.current,
+        messages: snap,
+      },
+      { onSuccess: () => qc.invalidateQueries({ queryKey: chatsListKey() }) },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, messages, convId]);
+
+  // Freeze each completed message's native text (and seed its cache under the
+  // language it was generated in) so later translation has a clean source and
+  // switching back to the native language is a cache hit, never a re-translate.
+  useEffect(() => {
+    if (status !== "ready") return;
+    const wasEmpty = Object.keys(sourceRef.current).length === 0;
+    for (const m of messages) {
+      if (m.role !== "user" && m.role !== "assistant") continue;
+      if (sourceRef.current[m.id] !== undefined) continue;
+      const text = messageText(m);
+      if (!text.trim()) continue;
+      sourceRef.current[m.id] = text;
+      transCache.current[`${m.id}::${locale}`] = text;
+    }
+    if (wasEmpty && Object.keys(sourceRef.current).length > 0) {
+      convLangRef.current = locale;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, messages, locale]);
+
+  // When the language toggle changes, retranslate the whole visible exchange.
+  useEffect(() => {
+    if (!localeInitRef.current) {
+      localeInitRef.current = true;
+      displayLangRef.current = locale;
+      return;
+    }
+    if (restoringRef.current) return;
+    if (locale === displayLangRef.current) return;
+    void translateTo(locale, messagesRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locale]);
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
+    });
+  }, [messages, status]);
+
+  function send(text: string) {
+    const q = text.trim();
+    if (busy) return;
+    // Allow sending when there's either text or at least one attachment.
+    if (!q && attachments.length === 0) return;
+    // Images and PDFs go to the model as file parts (it can see/read them).
+    const files = attachments
+      .filter((a) => a.mediaType.startsWith("image/") || a.mediaType === "application/pdf")
+      .filter((a) => isUsableDataUrl(a.url))
+      .map((a) => ({
+        type: "file" as const,
+        mediaType: a.mediaType || "image/png",
+        url: a.url,
+        filename: a.name,
+      }));
+    // Text files are inlined into the prompt so the tutor reads their content.
+    const textBlocks = attachments
+      .filter((a) => a.text != null)
+      .map((a) => `--- ${a.name} ---\n${a.text}`)
+      .join("\n\n");
+    const finalText = textBlocks ? (q ? `${q}\n\n${textBlocks}` : textBlocks) : q;
+    void sendMessage(
+      files.length > 0 ? { text: finalText, files } : { text: finalText },
+    );
+    setInput("");
+    setAttachments([]);
+    setAttachError(null);
+  }
+
+  // Streaming answers occasionally fail for transient reasons — a proxy idle
+  // timeout, a dropped mobile connection, or a brief gateway hiccup — which
+  // surfaced as a hard "Etwas ist schiefgelaufen" even though a simple retry
+  // succeeds. Auto-retry once per failed turn before bothering the user, and
+  // remember which turn we already retried so we never loop.
+  const autoRetried = useRef<string | null>(null);
+  useEffect(() => {
+    if (!error || busy) return;
+    const lastUser = [...messagesRef.current].reverse().find((m) => m.role === "user");
+    const turnKey = lastUser?.id ?? "none";
+    if (autoRetried.current === turnKey) return;
+    autoRetried.current = turnKey;
+    const timer = setTimeout(() => {
+      clearError();
+      void regenerate();
+    }, 900);
+    return () => clearTimeout(timer);
+  }, [error, busy, clearError, regenerate]);
+
+  function retryNow() {
+    clearError();
+    void regenerate();
+  }
+
+  // Tracks how many times "explain differently" was clicked per AI message,
+  // so the agent is told which attempt this is and never repeats a method.
+  const explainAttempts = useRef<Record<string, number>>({});
+  const [videoOpen, setVideoOpen] = useState(false);
+  const [videoScript, setVideoScript] = useState<VideoScript | null>(null);
+  const [videoLoading, setVideoLoading] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const lastTopic = useRef<string>("");
+
+  // Videosuche (YouTube) — unabhängig vom generierten Erklärvideo.
+  const [ytOpen, setYtOpen] = useState(false);
+  const [ytHits, setYtHits] = useState<YoutubeHit[]>([]);
+  const [ytQuery, setYtQuery] = useState("");
+  const [ytLoading, setYtLoading] = useState(false);
+  const [ytError, setYtError] = useState<VideoSearchError>(null);
+  const lastYtTopic = useRef<string>("");
+  const lastYtQuestion = useRef<string>("");
+
+  // Kursliste einklappbar: beim Schreiben zählt Fläche. Die Wahl überlebt den
+  // Seitenwechsel, damit sie nicht bei jedem Aufruf neu getroffen werden muss.
+  const [railOpen, setRailOpen] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.localStorage.getItem("tred.chatRail") !== "closed";
+  });
+  useEffect(() => {
+    window.localStorage.setItem("tred.chatRail", railOpen ? "open" : "closed");
+  }, [railOpen]);
+
+
+  // Studyflix-style explainer: the scene script is generated from the course
+  // documents, then animated and narrated on the device.
+  async function runVideo(topic: string) {
+    lastTopic.current = topic;
+    setVideoOpen(true);
+    setVideoScript(null);
+    setVideoError(false);
+    setVideoLoading(true);
+    try {
+      const res = await fetch("/api/agent/video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic,
+          docId: activeDoc?.id ?? null,
+          semesterId,
+          locale,
+        }),
+      });
+      if (!res.ok || !res.body) throw new Error("failed");
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      let final: VideoScript | null = null;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = buf.indexOf("\n")) >= 0) {
+          const line = buf.slice(0, nl).trim();
+          buf = buf.slice(nl + 1);
+          if (!line) continue;
+          let msg: { type?: string } & Partial<VideoScript>;
+          try {
+            msg = JSON.parse(line);
+          } catch {
+            continue;
+          }
+          if (msg.type === "heartbeat" || msg.type === "ping") continue;
+          if (msg.type === "error") throw new Error("failed");
+          if (msg.type === "result") {
+            final = {
+              title: String(msg.title ?? ""),
+              scenes: Array.isArray(msg.scenes) ? msg.scenes : [],
+            };
+          }
+        }
+      }
+      if (!final || final.scenes.length === 0) throw new Error("failed");
+      setVideoScript(final);
+    } catch {
+      setVideoError(true);
+    } finally {
+      setVideoLoading(false);
+    }
+  }
+
+  // Passende Erklärvideos auf YouTube suchen. Das Thema wird serverseitig aus
+  // der Antwort destilliert, der API-Key bleibt dort ebenfalls.
+  // Die Frage des Studenten liefert die besten Suchbegriffe — die Antwort des
+  // Tutors beginnt oft mit einer Anrede, nicht mit dem Thema.
+  function questionBefore(messageId: string): string {
+    const index = messages.findIndex((m) => m.id === messageId);
+    for (let i = index - 1; i >= 0; i -= 1) {
+      const m = messages[i];
+      if (m?.role === "user") return displayText(m);
+    }
+    return "";
+  }
+
+  async function runYoutube(topic: string, question = "") {
+    lastYtTopic.current = topic;
+    lastYtQuestion.current = question;
+    setYtOpen(true);
+    setYtHits([]);
+    setYtQuery("");
+    setYtError(null);
+    setYtLoading(true);
+    try {
+      const res = await fetch("/api/youtube/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic, question, locale }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        hits?: YoutubeHit[];
+        query?: string;
+        error?: string;
+      };
+      if (!res.ok) {
+        const code = data.error;
+        setYtError(
+          code === "not_configured" || code === "quota" ? code : "failed",
+        );
+        return;
+      }
+      setYtHits(Array.isArray(data.hits) ? data.hits : []);
+      setYtQuery(String(data.query ?? ""));
+    } catch {
+      setYtError("failed");
+    } finally {
+      setYtLoading(false);
+    }
+  }
+
+  function handleAction(
+    messageId: string,
+    action: "why" | "explain" | "engineer" | "video" | "ytsearch",
+  ) {
+    if (action === "video") {
+      const msg = messages.find((m) => m.id === messageId);
+      void runVideo(displayText(msg ?? ({} as UIMessage)));
+      return;
+    }
+    if (action === "ytsearch") {
+      const msg = messages.find((m) => m.id === messageId);
+      void runYoutube(
+        displayText(msg ?? ({} as UIMessage)),
+        questionBefore(messageId),
+      );
+      return;
+    }
+    if (busy) return;
+    if (action === "why") {
+      send(t("chat.whyPrompt"));
+    } else if (action === "engineer") {
+      send(t("chat.engineerPrompt"));
+    } else {
+      const n = (explainAttempts.current[messageId] ?? 1) + 1;
+      explainAttempts.current[messageId] = n;
+      send(t("chat.explainPrompt", { n }));
+    }
+  }
+
+  const scopeLabel = activeDoc
+    ? activeDoc.title
+    : activeSem
+      ? activeSem.name
+      : t("dashboard.allCourses");
+
+  const suggestions = [t("chat.q1"), t("chat.q2"), t("chat.q3")];
+
+  return (
+    <div className="flex h-[calc(100vh-4rem)]">
+      {/* Kursliste — Schiene auf großen Bildschirmen, einklappbar */}
+      <aside
+        className={cn(
+          "border-border hidden shrink-0 overflow-hidden border-r transition-[width] duration-200 lg:block",
+          railOpen ? "w-72" : "w-0 border-r-0",
+        )}
+        aria-hidden={!railOpen}
+      >
+        <div className="w-72">
+          <DocumentLibrary
+            activeId={activeDoc?.id ?? null}
+            semesterId={semesterId}
+            onSelect={(id, title) => setActiveDoc(id ? { id, title: title ?? "" } : null)}
+          />
+        </div>
+      </aside>
+
+      {/* Library — mobile drawer */}
+      <AnimatePresence>
+        {libOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setLibOpen(false)}
+              className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+            />
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", damping: 26, stiffness: 260 }}
+              className="bg-background fixed inset-y-0 left-0 z-50 w-72 shadow-xl lg:hidden"
+            >
+              <div className="flex justify-end p-2">
+                <Button variant="ghost" size="icon" onClick={() => setLibOpen(false)}>
+                  <X className="size-4" />
+                </Button>
+              </div>
+              <DocumentLibrary
+                activeId={activeDoc?.id ?? null}
+                semesterId={semesterId}
+                onSelect={(id, title) => {
+                  setActiveDoc(id ? { id, title: title ?? "" } : null);
+                  setLibOpen(false);
+                }}
+              />
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Conversation history — right drawer */}
+      <AnimatePresence>
+        {historyOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setHistoryOpen(false)}
+              className="fixed inset-0 z-40 bg-black/40"
+            />
+            <motion.aside
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 26, stiffness: 260 }}
+              className="bg-background fixed inset-y-0 right-0 z-50 flex w-80 max-w-[85vw] flex-col shadow-xl"
+            >
+              <div className="border-border flex items-center justify-between border-b px-4 py-3">
+                <span className="flex items-center gap-2 text-sm font-semibold">
+                  {showTrash ? <Trash2 className="size-4" /> : <History className="size-4" />}
+                  {showTrash ? t("chat.trash") : t("chat.history")}
+                </span>
+                <Button variant="ghost" size="icon" onClick={() => setHistoryOpen(false)}>
+                  <X className="size-4" />
+                </Button>
+              </div>
+
+              {showTrash ? (
+                <>
+                  {selectMode ? (
+                    <div className="border-border flex items-center justify-between gap-2 border-b p-3">
+                      <button
+                        onClick={() => toggleSelectAll(trashList.map((c) => c.id))}
+                        className="text-muted-foreground hover:text-foreground text-xs font-medium"
+                      >
+                        {selectedIds.size === trashList.length && trashList.length > 0
+                          ? t("chat.deselectAll")
+                          : t("chat.selectAll")}
+                      </button>
+                      <span className="text-muted-foreground text-xs">
+                        {t("chat.selectedCount", { n: selectedIds.size })}
+                      </span>
+                      <div className="flex items-center gap-0.5">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8"
+                          disabled={selectedIds.size === 0}
+                          onClick={bulkRestoreSelected}
+                          title={t("chat.restoreSelected")}
+                        >
+                          <RotateCcw className="size-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive size-8"
+                          disabled={selectedIds.size === 0}
+                          onClick={bulkPurgeSelected}
+                          title={t("chat.deleteSelected")}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={exitSelect}>
+                          {t("chat.cancel")}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 p-3">
+                      <Button
+                        variant="ghost"
+                        className="flex-1 justify-start gap-1.5"
+                        onClick={() => {
+                          setShowTrash(false);
+                          exitSelect();
+                        }}
+                      >
+                        <ArrowLeft className="size-4" />
+                        {t("chat.backToHistory")}
+                      </Button>
+                      {trashList.length > 0 && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8"
+                            onClick={() => {
+                              setSelectMode(true);
+                              setSelectedIds(new Set());
+                            }}
+                            title={t("chat.select")}
+                          >
+                            <ListChecks className="size-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive size-8"
+                            onClick={emptyTrash}
+                            title={t("chat.emptyTrash")}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  <div className="flex-1 overflow-y-auto px-2 pb-4">
+                    {trashList.length === 0 ? (
+                      <p className="text-muted-foreground px-2 py-8 text-center text-xs">
+                        {t("chat.trashEmpty")}
+                      </p>
+                    ) : (
+                      <ul className="space-y-0.5">
+                        {trashList.map((c) => (
+                          <li key={c.id}>
+                            <div
+                              className={cn(
+                                "group hover:bg-accent flex items-center gap-2 rounded-lg px-2 py-2 transition-colors",
+                                selectMode && selectedIds.has(c.id) && "bg-accent",
+                              )}
+                            >
+                              {selectMode ? (
+                                <button
+                                  onClick={() => toggleSelect(c.id)}
+                                  className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                                >
+                                  {selectedIds.has(c.id) ? (
+                                    <CheckSquare className="text-primary size-4 shrink-0" />
+                                  ) : (
+                                    <Square className="text-muted-foreground size-4 shrink-0" />
+                                  )}
+                                  <span className="text-muted-foreground truncate text-sm">
+                                    {c.title}
+                                  </span>
+                                </button>
+                              ) : (
+                                <>
+                                  <span className="flex min-w-0 flex-1 items-center gap-2">
+                                    <MessageSquare className="text-muted-foreground size-3.5 shrink-0" />
+                                    <span className="text-muted-foreground truncate text-sm">
+                                      {c.title}
+                                    </span>
+                                  </span>
+                                  <button
+                                    onClick={() => restoreConversation(c.id)}
+                                    className="text-muted-foreground hover:text-foreground shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                                    aria-label={t("chat.restoreConv")}
+                                    title={t("chat.restoreConv")}
+                                  >
+                                    <RotateCcw className="size-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => purgeConversation(c.id)}
+                                    className="text-muted-foreground hover:text-destructive shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                                    aria-label={t("chat.deletePermanent")}
+                                    title={t("chat.deletePermanent")}
+                                  >
+                                    <Trash2 className="size-3.5" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  {selectMode ? (
+                    <div className="border-border flex items-center justify-between gap-2 border-b p-3">
+                      <button
+                        onClick={() => toggleSelectAll(convList.map((c) => c.id))}
+                        className="text-muted-foreground hover:text-foreground text-xs font-medium"
+                      >
+                        {selectedIds.size === convList.length && convList.length > 0
+                          ? t("chat.deselectAll")
+                          : t("chat.selectAll")}
+                      </button>
+                      <span className="text-muted-foreground text-xs">
+                        {t("chat.selectedCount", { n: selectedIds.size })}
+                      </span>
+                      <div className="flex items-center gap-0.5">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive size-8"
+                          disabled={selectedIds.size === 0}
+                          onClick={bulkDeleteSelected}
+                          title={t("chat.deleteSelected")}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={exitSelect}>
+                          {t("chat.cancel")}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 p-3">
+                      <Button
+                        variant="outline"
+                        className="flex-1 gap-1.5"
+                        onClick={newChat}
+                      >
+                        <Plus className="size-4" />
+                        {t("chat.newChat")}
+                      </Button>
+                      {convList.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-9"
+                          onClick={() => {
+                            setSelectMode(true);
+                            setSelectedIds(new Set());
+                          }}
+                          title={t("chat.select")}
+                        >
+                          <ListChecks className="size-4" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                  <div className="flex-1 overflow-y-auto px-2 pb-4">
+                    {convList.length === 0 ? (
+                      <p className="text-muted-foreground px-2 py-8 text-center text-xs">
+                        {t("chat.noHistory")}
+                      </p>
+                    ) : (
+                      <ul className="space-y-0.5">
+                        {convList.map((c) => (
+                          <li key={c.id}>
+                            <div
+                              className={cn(
+                                "group hover:bg-accent flex items-center gap-2 rounded-lg px-2 py-2 transition-colors",
+                                !selectMode && c.id === convId && "bg-accent",
+                                selectMode && selectedIds.has(c.id) && "bg-accent",
+                              )}
+                            >
+                              {selectMode ? (
+                                <button
+                                  onClick={() => toggleSelect(c.id)}
+                                  className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                                >
+                                  {selectedIds.has(c.id) ? (
+                                    <CheckSquare className="text-primary size-4 shrink-0" />
+                                  ) : (
+                                    <Square className="text-muted-foreground size-4 shrink-0" />
+                                  )}
+                                  <span className="truncate text-sm">{c.title}</span>
+                                </button>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => void openConversation(c.id)}
+                                    className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                                  >
+                                    <MessageSquare className="text-muted-foreground size-3.5 shrink-0" />
+                                    <span className="truncate text-sm">{c.title}</span>
+                                  </button>
+                                  <button
+                                    onClick={() => deleteConversation(c.id)}
+                                    className="text-muted-foreground hover:text-destructive shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                                    aria-label={t("chat.deleteConv")}
+                                    title={t("chat.deleteConv")}
+                                  >
+                                    <Trash2 className="size-3.5" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  {!selectMode && (
+                    <div className="border-border border-t p-3">
+                      <Button
+                        variant="ghost"
+                        className="text-muted-foreground w-full justify-start gap-1.5"
+                        onClick={() => setShowTrash(true)}
+                      >
+                        <Trash2 className="size-4" />
+                        {t("chat.trash")}
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Chat column */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Scope bar */}
+        <div className="border-border bg-background/80 flex h-12 items-center gap-2 border-b px-4 backdrop-blur-md">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0 lg:hidden"
+            aria-label={t("chat.selectDoc")}
+            onClick={() => setLibOpen(true)}
+          >
+            <Library className="size-4" />
+          </Button>
+          {/* Auf großen Bildschirmen klappt derselbe Platz die Kursliste weg. */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hidden shrink-0 lg:inline-flex"
+            aria-label={railOpen ? t("chat.hideCourses") : t("chat.showCourses")}
+            title={railOpen ? t("chat.hideCourses") : t("chat.showCourses")}
+            aria-pressed={railOpen}
+            onClick={() => setRailOpen((v) => !v)}
+          >
+            {railOpen ? (
+              <PanelLeftClose className="size-4" />
+            ) : (
+              <PanelLeftOpen className="size-4" />
+            )}
+          </Button>
+          <span className="text-muted-foreground text-xs font-medium">{t("chat.scope")}:</span>
+          <span className="bg-primary/10 text-primary flex min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold">
+            <FileText className="size-3 shrink-0" />
+            <span className="truncate">{scopeLabel}</span>
+          </span>
+          {activeDoc && (
+            <button
+              onClick={() => setActiveDoc(null)}
+              className="text-muted-foreground hover:text-foreground text-xs underline underline-offset-2"
+            >
+              {t("chat.wholeScope")}
+            </button>
+          )}
+          <div className="ml-auto flex items-center gap-1">
+            <Button
+              variant={scratchOpen ? "secondary" : "ghost"}
+              size="sm"
+              className="h-8 gap-1.5 px-2 text-xs"
+              onClick={() => setScratchOpen((v) => !v)}
+              aria-label={scratchOpen ? t("chat.closeScratchpad") : t("chat.openScratchpad")}
+              aria-pressed={scratchOpen}
+            >
+              <NotebookPen className="size-4" />
+              <span className="hidden sm:inline">{t("scratchpad.title")}</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1.5 px-2 text-xs"
+              onClick={newChat}
+              aria-label={t("chat.newChat")}
+            >
+              <Plus className="size-4" />
+              <span className="hidden sm:inline">{t("chat.newChat")}</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              onClick={() => setHistoryOpen(true)}
+              aria-label={t("chat.history")}
+            >
+              <History className="size-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div ref={listRef} className="flex-1 overflow-y-auto">
+          <div
+            className={cn(
+              "mx-auto px-4 py-6 sm:px-6",
+              // Eingeklappt darf der Text breiter laufen; ganz ohne Grenze wird
+              // er auf 27-Zoll-Schirmen unlesbar.
+              railOpen ? "max-w-4xl" : "max-w-5xl",
+            )}
+          >
+            {messages.length === 0 ? (
+              <EmptyState
+                title={t("chat.title")}
+                subtitle={t("chat.emptyState")}
+                suggestedLabel={t("chat.suggested")}
+                suggestions={suggestions}
+                onPick={send}
+              />
+            ) : (
+              <div className="space-y-6">
+                {translating && (
+                  <div className="bg-primary/5 text-primary sticky top-0 z-10 flex items-center justify-center gap-2 rounded-full py-1.5 text-xs font-medium backdrop-blur-sm">
+                    <RefreshCw className="size-3.5 animate-spin" />
+                    {t("chat.translating")}
+                  </div>
+                )}
+                <SourceViewContext.Provider value={showSource}>
+                  <CodeExplainContext.Provider value={explainCode}>
+                    {messages.map((m) => (
+                      <MessageBubble
+                        key={m.id}
+                        role={m.role}
+                        text={displayText(m)}
+                        images={messageImages(m)}
+                        youLabel={t("chat.you")}
+                        aiLabel={t("chat.ai")}
+                        showActions={m.role === "assistant" && !busy}
+                        onAction={(a) => handleAction(m.id, a)}
+                        actionLabels={{
+                          why: t("chat.why"),
+                          explain: t("chat.explainDifferently"),
+                          engineer: t("chat.engineerMode"),
+                          video: t("video.chip"),
+                          ytsearch: t("videoSearch.chip"),
+                        }}
+                      />
+                    ))}
+                  </CodeExplainContext.Provider>
+                </SourceViewContext.Provider>
+                {status === "submitted" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-muted-foreground flex items-center gap-2 text-sm"
+                  >
+                    <LogoMark className="size-6" />
+                    <span className="flex items-center gap-1">
+                      {t("chat.thinking")}
+                      <Dots />
+                    </span>
+                  </motion.div>
+                )}
+                {error && (
+                  <div className="flex flex-wrap items-center gap-2 text-sm">
+                    <p className="text-destructive">{t("chat.error")}</p>
+                    {!busy && (
+                      <button
+                        type="button"
+                        onClick={retryNow}
+                        className="text-primary hover:bg-primary/10 rounded-md border border-current px-2 py-0.5 text-xs font-medium transition-colors"
+                      >
+                        {t("chat.retryNow")}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Composer */}
+        <div className="border-border bg-background/80 border-t p-3 pb-20 backdrop-blur-md sm:p-4 sm:pb-16">
+          <div className={cn("mx-auto", railOpen ? "max-w-4xl" : "max-w-5xl")}>
+            {/* Upload error (unsupported type / too large) */}
+            {attachError && (
+              <div className="text-destructive mb-2 flex items-center gap-2 text-xs">
+                <X className="size-3.5 shrink-0" />
+                <span>{attachError}</span>
+              </div>
+            )}
+            {/* Attachment previews — images as thumbnails, docs as chips */}
+            {attachments.length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-2">
+                {attachments.map((a) =>
+                  a.kind === "image" ? (
+                    <div
+                      key={a.id}
+                      className="border-border relative size-16 overflow-hidden rounded-lg border"
+                    >
+                      <img src={a.url} alt={a.name} className="size-full object-cover" />
+                      <button
+                        onClick={() => removeAttachment(a.id)}
+                        className="absolute right-0.5 top-0.5 grid size-5 place-items-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80"
+                        aria-label={t("chat.removeImage")}
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      key={a.id}
+                      className="border-border bg-muted/40 relative flex h-16 max-w-[12rem] items-center gap-2 rounded-lg border px-3 pr-8"
+                    >
+                      <FileIcon className="text-muted-foreground size-5 shrink-0" />
+                      <span className="truncate text-xs font-medium">{a.name}</span>
+                      <button
+                        onClick={() => removeAttachment(a.id)}
+                        className="absolute right-1 top-1 grid size-5 place-items-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70"
+                        aria-label={t("chat.removeFile")}
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </div>
+                  ),
+                )}
+              </div>
+            )}
+
+            <div className="flex items-end gap-2">
+              <div className="border-input focus-within:border-primary/60 focus-within:ring-primary/20 bg-card flex flex-1 items-end gap-2 rounded-2xl border px-3 py-2 transition-colors focus-within:ring-4">
+                {/* Hidden inputs targeted by the three menu options */}
+                <input
+                  ref={filesInputRef}
+                  type="file"
+                  accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,application/pdf,image/png,image/jpeg,image/webp,text/plain"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    void addFiles(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+                <input
+                  ref={galleryInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    void addFiles(e.target.files, true);
+                    e.target.value = "";
+                  }}
+                />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-muted-foreground hover:text-primary hover:bg-accent grid size-8 shrink-0 place-items-center rounded-lg transition-colors"
+                      title={t("chat.attachHint")}
+                      aria-label={t("chat.attach")}
+                    >
+                      <Paperclip className="size-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" side="top" className="w-60">
+                    <DropdownMenuItem
+                      className="gap-3 py-2.5"
+                      onSelect={() => filesInputRef.current?.click()}
+                    >
+                      <FolderOpen className="size-4 shrink-0" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{t("chat.attachFiles")}</span>
+                        <span className="text-muted-foreground text-xs">
+                          {t("chat.attachFilesHint")}
+                        </span>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="gap-3 py-2.5"
+                      onSelect={() => galleryInputRef.current?.click()}
+                    >
+                      <ImageIcon className="size-4 shrink-0" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{t("chat.attachGallery")}</span>
+                        <span className="text-muted-foreground text-xs">
+                          {t("chat.attachGalleryHint")}
+                        </span>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="gap-3 py-2.5"
+                      onSelect={() => {
+                        setAttachError(null);
+                        setCameraOpen(true);
+                      }}
+                    >
+                      <Camera className="size-4 shrink-0" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{t("chat.attachCamera")}</span>
+                        <span className="text-muted-foreground text-xs">
+                          {t("chat.attachCameraHint")}
+                        </span>
+                      </div>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <button
+                  type="button"
+                  onClick={() => setCalcMode((v) => !v)}
+                  className={cn(
+                    "grid size-8 shrink-0 place-items-center rounded-lg transition-colors",
+                    calcMode
+                      ? "bg-primary/15 text-primary"
+                      : "text-muted-foreground hover:text-primary hover:bg-accent",
+                  )}
+                  title={
+                    calcMode
+                      ? codeLang === "matlab"
+                        ? t("chat.calcModeOnMatlab")
+                        : t("chat.calcModeOnPython")
+                      : t("chat.calcModeHint")
+                  }
+                  aria-label={t("chat.calcMode")}
+                  aria-pressed={calcMode}
+                >
+                  <Calculator className="size-4" />
+                </button>
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      send(input);
+                    }
+                  }}
+                  rows={1}
+                  placeholder={t("chat.placeholder")}
+                  className="max-h-32 flex-1 resize-none bg-transparent py-1.5 text-sm outline-none"
+                />
+                <Button
+                  size="icon"
+                  className="brand-gradient size-8 shrink-0 text-white"
+                  onClick={() => send(input)}
+                  disabled={(!input.trim() && attachments.length === 0) || busy}
+                  aria-label={t("common.send")}
+                >
+                  <Send className="size-4" />
+                </Button>
+              </div>
+            </div>
+            {calcMode && (
+              <p className="text-muted-foreground mt-1.5 px-1 text-xs">
+                {codeLang === "matlab"
+                  ? t("chat.calcModeOnMatlab")
+                  : t("chat.calcModeOnPython")}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Scratchpad — desktop side panel (~40% → chat keeps ~60%) */}
+      {scratchOpen && (
+        <aside className="border-border bg-card hidden shrink-0 border-l lg:flex lg:w-[40%] xl:w-[38%]">
+          <Scratchpad onSendToAi={sendScratchToAi} busy={busy} />
+        </aside>
+      )}
+
+      {/* Scratchpad — mobile full-screen tab */}
+      <AnimatePresence>
+        {scratchOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="bg-background fixed inset-x-0 bottom-0 top-16 z-40 flex flex-col lg:hidden"
+          >
+            <div className="border-border flex items-center justify-end border-b px-2 py-1.5">
+              <button
+                onClick={() => setScratchOpen(false)}
+                className="text-muted-foreground hover:text-foreground grid size-8 place-items-center rounded-lg"
+                aria-label={t("chat.closeScratchpad")}
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1">
+              <Scratchpad
+                onSendToAi={(txt) => {
+                  sendScratchToAi(txt);
+                  setScratchOpen(false);
+                }}
+                busy={busy}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Camera capture (getUserMedia) — capture, retake, then confirm */}
+      <CameraCapture
+        open={cameraOpen}
+        onClose={() => setCameraOpen(false)}
+        onCapture={addCameraPhoto}
+      />
+
+      <DocumentViewer
+        docId={sourceView?.docId ?? null}
+        highlight={sourceView?.highlight ?? null}
+        onClose={() => setSourceView(null)}
+      />
+      <AnimatePresence>
+        {videoOpen && (
+          <VideoExplainer
+            script={videoScript}
+            loading={videoLoading}
+            error={videoError}
+            onClose={() => setVideoOpen(false)}
+            onRetry={() => void runVideo(lastTopic.current)}
+          />
+        )}
+        {ytOpen && (
+          <VideoSearch
+            hits={ytHits}
+            query={ytQuery}
+            loading={ytLoading}
+            error={ytError}
+            onClose={() => setYtOpen(false)}
+            onRetry={() =>
+              void runYoutube(lastYtTopic.current, lastYtQuestion.current)
+            }
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function EmptyState({
+  title,
+  subtitle,
+  suggestedLabel,
+  suggestions,
+  onPick,
+}: {
+  title: string;
+  subtitle: string;
+  suggestedLabel?: string;
+  suggestions?: string[];
+  onPick?: (q: string) => void;
+}) {
+  return (
+    <div className="flex flex-col items-center pt-10 text-center sm:pt-16">
+      <LogoMark className="size-14" />
+      <h1 className="font-display mt-5 text-2xl font-extrabold tracking-tight">{title}</h1>
+      <p className="text-muted-foreground mt-2 max-w-md text-sm">{subtitle}</p>
+      {suggestions && suggestedLabel && onPick && (
+        <div className="mt-8 w-full max-w-md">
+          <p className="text-muted-foreground mb-2 flex items-center justify-center gap-1.5 text-xs font-semibold tracking-wide uppercase">
+            <Sparkles className="size-3.5" />
+            {suggestedLabel}
+          </p>
+          <div className="space-y-2">
+            {suggestions.map((s) => (
+              <button
+                key={s}
+                onClick={() => onPick(s)}
+                className="border-border hover:border-primary/50 hover:bg-accent w-full rounded-xl border px-4 py-3 text-left text-sm font-medium transition-colors"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MessageBubble({
+  role,
+  text,
+  images,
+  youLabel,
+  aiLabel,
+  showActions,
+  onAction,
+  actionLabels,
+}: {
+  role: string;
+  text: string;
+  images?: { url: string; name?: string }[];
+  youLabel: string;
+  aiLabel: string;
+  showActions?: boolean;
+  onAction?: (a: "why" | "explain" | "engineer" | "video" | "ytsearch") => void;
+  actionLabels?: {
+    why: string;
+    explain: string;
+    engineer: string;
+    video: string;
+    ytsearch: string;
+  };
+}) {
+  const isUser = role === "user";
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      className={cn("flex gap-3", isUser && "flex-row-reverse")}
+    >
+      <div className="shrink-0">
+        {isUser ? (
+          <span className="bg-secondary text-secondary-foreground grid size-8 place-items-center rounded-full text-xs font-bold">
+            {youLabel[0]}
+          </span>
+        ) : (
+          <LogoMark className="size-8" />
+        )}
+      </div>
+      <div className={cn("min-w-0 max-w-[92%]", isUser && "flex flex-col items-end")}>
+        <p className="text-muted-foreground mb-1 text-xs font-semibold">
+          {isUser ? youLabel : aiLabel}
+        </p>
+        {images && images.length > 0 && (
+          <div
+            className={cn(
+              "mb-2 flex flex-wrap gap-2",
+              isUser && "justify-end",
+            )}
+          >
+            {images.map((img, i) => (
+              <ImageFrame key={i} src={img.url} alt={img.name} />
+            ))}
+          </div>
+        )}
+        {(text.trim() || !(images && images.length > 0)) && (
+          <div
+            className={cn(
+              "rounded-2xl px-4 py-2.5",
+              isUser ? "bg-primary text-primary-foreground" : "bg-card border-border border",
+            )}
+          >
+            {isUser ? (
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">{text}</p>
+            ) : (
+              <AiAnswer text={text} />
+            )}
+          </div>
+        )}
+
+        {showActions && onAction && actionLabels && text.trim() && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <ActionChip
+              icon={<HelpCircle className="size-3.5" />}
+              label={actionLabels.why}
+              onClick={() => onAction("why")}
+            />
+            <ActionChip
+              icon={<RefreshCw className="size-3.5" />}
+              label={actionLabels.explain}
+              onClick={() => onAction("explain")}
+            />
+            <ActionChip
+              icon={<Cog className="size-3.5" />}
+              label={actionLabels.engineer}
+              onClick={() => onAction("engineer")}
+            />
+            <ActionChip
+              icon={<Clapperboard className="size-3.5" />}
+              label={actionLabels.video}
+              onClick={() => onAction("video")}
+            />
+            <ActionChip
+              icon={<Youtube className="size-3.5" />}
+              label={actionLabels.ytsearch}
+              onClick={() => onAction("ytsearch")}
+            />
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+function ActionChip({
+  icon,
+  label,
+  onClick,
+}: {
+  icon: ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="border-border text-muted-foreground hover:border-primary/50 hover:text-primary hover:bg-primary/5 flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors"
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+function Dots() {
+  return (
+    <span className="inline-flex gap-0.5">
+      {[0, 1, 2].map((i) => (
+        <motion.span
+          key={i}
+          className="bg-muted-foreground inline-block size-1 rounded-full"
+          animate={{ opacity: [0.3, 1, 0.3] }}
+          transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+        />
+      ))}
+    </span>
+  );
+}

@@ -1,0 +1,6 @@
+[0.17ms] ".env"
+bun install v1.3.14 (0d9b296a)
+Resolving dependencies
+Resolved, downloaded and extracted [0]
+warn: incorrect peer dependency "react@19.1.0"
+EINVAL: Failed to replace old lockfile with new lockfile on disk
