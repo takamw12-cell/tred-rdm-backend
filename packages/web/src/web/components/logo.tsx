@@ -8,7 +8,7 @@ export function Logo({ className, omitle = false }: { className?: string; omitle
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Fond (optionnel, selon ton thème) */}
+      {/* Fond */}
       <rect width="100" height="100" rx="20" fill="#F8F9FA" />
       
       {/* La base du T (Manche de l'épée) */}
@@ -32,3 +32,6 @@ export function Logo({ className, omitle = false }: { className?: string; omitle
     </svg>
   );
 }
+
+// Cette ligne est bien en dehors de la fonction, c'est la bonne méthode !
+export { Logo as LogoMark };
