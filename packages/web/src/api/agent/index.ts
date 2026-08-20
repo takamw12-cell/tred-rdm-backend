@@ -8,8 +8,17 @@ import { gateway } from "./gateway";
 
 const LANG_LABEL: Record<string, string> = {
   de: "Deutsch",
-  fr: "Français",
   en: "English",
+  fr: "Français",
+  es: "Español",
+  zh: "中文",
+  hi: "हिन्दी",
+  ar: "العربية",
+  pt: "Português",
+  ru: "Русский",
+  bn: "বাংলা",
+  ja: "日本語",
+  it: "Italiano",
 };
 
 /**
