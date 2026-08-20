@@ -13,15 +13,20 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
-  const { t } = use();
-
-  const [navOpen, setNavOpen] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return window.localStorage.getItem("tred.nav") !== "closed";
-  });
+  const [navOpen, setNavOpen] = useState(true);
 
   useEffect(() => {
-    window.localStorage.setItem("tred.nav", navOpen ? "open" : "closed");
+    // On ne lit localStorage que côté client pour éviter les erreurs de rendu serveur
+    if (typeof window !== "undefined") {
+      const stored = window.localStorage.getItem("tred.nav");
+      setNavOpen(stored !== "closed");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("tred.nav", navOpen ? "open" : "closed");
+    }
   }, [navOpen]);
 
   return (
@@ -66,9 +71,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
             size="icon"
             className="hidden lg:inline-flex"
             onClick={() => setNavOpen((v) => !v)}
-            aria-label={navOpen ? t("nav.hideMenu") : t("nav.showMenu")}
-            title={navOpen ? t("nav.hideMenu") : t("nav.showMenu")}
-            aria-pressed={navOpen}
           >
             {navOpen ? (
               <PanelLeftClose className="size-5" />
@@ -100,21 +102,19 @@ export function AppLayout({ children }: { children: ReactNode }) {
 }
 
 function BottomNav() {
-  const { t } = use();
   const location = useLocation();
   const items = [
-    { to: "/dashboard", icon: LayoutGrid, key: "nav.dashboard" },
-    { to: "/chat", icon: MessageSquare, key: "nav.chat" },
-    { to: "/exercises", icon: PenSquare, key: "nav.exercises" },
+    { to: "/dashboard", icon: LayoutGrid, label: "Dashboard" },
+    { to: "/chat", icon: MessageSquare, label: "Chat" },
+    { to: "/exercises", icon: PenSquare, label: "Exercises" },
   ] as const;
 
   return (
     <nav
       className="border-border bg-background/95 fixed inset-x-0 bottom-0 z-40 flex border-t backdrop-blur lg:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-      aria-label={t("nav.menu")}
     >
-      {items.map(({ to, icon: Icon, key }) => {
+      {items.map(({ to, icon: Icon, label }) => {
         const active = location === to || location.startsWith(to + "/");
         return (
           <Link
@@ -127,16 +127,10 @@ function BottomNav() {
             )}
           >
             <Icon className="size-5" />
-            <span className="truncate px-1">{t(key)}</span>
+            <span className="truncate px-1">{label}</span>
           </Link>
         );
       })}
     </nav>
   );
-}
-
-// Simule le hook use() pour i18n (remplace par ton vrai hook si besoin)
-function use() {
-  const t = (key: string) => key; // fallback simple
-  return { t };
 }

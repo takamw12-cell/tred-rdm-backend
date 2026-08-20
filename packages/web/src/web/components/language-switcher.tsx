@@ -1,12 +1,15 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function LanguageSwitcher() {
-  const currentLocale = localStorage.getItem("tred.locale") || "de";
+  // On ne lit localStorage que côté client pour éviter les erreurs
+  const currentLocale = typeof window !== "undefined" ? localStorage.getItem("tred.locale") || "de" : "de";
 
   const handleLanguageChange = (newLocale: string) => {
-    localStorage.setItem("tred.locale", newLocale);
-    // Recharge la page pour appliquer la langue
-    window.location.reload();
+    if (typeof window !== "undefined") {
+      localStorage.setItem("tred.locale", newLocale);
+      // Recharge la page pour appliquer la nouvelle langue
+      window.location.reload();
+    }
   };
 
   const languages = [
