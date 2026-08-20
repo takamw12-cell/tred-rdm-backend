@@ -102,7 +102,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 }
 
 function BottomNav() {
-  const location = useLocation();
+  const [location] = useLocation(); // C'est la correction !
   const items = [
     { to: "/dashboard", icon: LayoutGrid, label: "Dashboard" },
     { to: "/chat", icon: MessageSquare, label: "Chat" },
