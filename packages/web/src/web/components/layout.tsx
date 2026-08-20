@@ -15,8 +15,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const { t } = use();
 
-  // Hauptmenü einklappbar. Auf dem Handy übernimmt die untere Leiste, dort
-  // gibt es die Schiene ohnehin nicht – die Einstellung gilt nur auf lg.
   const [navOpen, setNavOpen] = useState(() => {
     if (typeof window === "undefined") return true;
     return window.localStorage.getItem("tred.nav") !== "closed";
@@ -28,7 +26,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="bg-background flex min-h-screen">
-      {/* Hauptmenü – rechte Schiene ab lg, einklappbar */}
       <aside
         className={cn(
           "bg-sidebar border-sidebar-border fixed inset-y-0 left-0 z-30 hidden overflow-hidden border-r transition-[width] duration-200",
@@ -47,7 +44,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
           navOpen && "lg:pl-64"
         )}
       >
-        {/* Top bar */}
         <header className="bg-background/80 border-b sticky top-0 z-20 flex h-16 items-center gap-3 border-b px-4 backdrop-blur">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
@@ -96,7 +92,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        {/* Auf dem Handy bleibt der Hauptbereich frei von der unteren Leiste. */}
         <main className="flex-1 pb-16 lg:pb-0">{children}</main>
         <BottomNav />
       </div>
@@ -104,18 +99,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
   );
 }
 
-/**
- * Untere Navigationsleiste (nur Handy).
- *
- * Bisher führte jeder Weg über das ≡-Menü – auf dem Handy ein Umweg. Die drei
- * wichtigsten Bereiche sind jetzt immer mit dem Daumen erreichbar.
- */
 function BottomNav() {
   const { t } = use();
   const location = useLocation();
   const items = [
-    { to: "/dashboard", icon: LayoutGrid, key: "nav.
-[20.08.2026 14:49] Edwin Takam: dashboard" },
+    { to: "/dashboard", icon: LayoutGrid, key: "nav.dashboard" },
     { to: "/chat", icon: MessageSquare, key: "nav.chat" },
     { to: "/exercises", icon: PenSquare, key: "nav.exercises" },
   ] as const;
@@ -145,4 +133,10 @@ function BottomNav() {
       })}
     </nav>
   );
+}
+
+// Simule le hook use() pour i18n (remplace par ton vrai hook si besoin)
+function use() {
+  const t = (key: string) => key; // fallback simple
+  return { t };
 }
