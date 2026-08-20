@@ -1,22 +1,12 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { api } from "@/lib/api";
 
 export function LanguageSwitcher() {
-  // Pour l'instant, on lit la langue depuis le localStorage (fallback "de")
-  // Idéalement, il faudrait lire la session, mais on peut le faire plus tard.
   const currentLocale = localStorage.getItem("tred.locale") || "de";
 
-  const handleLanguageChange = async (newLocale: string) => {
-    try {
-      // Appel à l'API pour mettre à jour la locale en base (si l'utilisateur est connecté)
-      await api.users.updateLocale.mutate({ locale: newLocale });
-      // On stocke aussi en local pour l'interface
-      localStorage.setItem("tred.locale", newLocale);
-      // Recharge la page pour appliquer la nouvelle langue
-      window.location.reload();
-    } catch (error) {
-      console.error("Erreur lors du changement de langue :", error);
-    }
+  const handleLanguageChange = (newLocale: string) => {
+    localStorage.setItem("tred.locale", newLocale);
+    // Recharge la page pour appliquer la langue
+    window.location.reload();
   };
 
   const languages = [
