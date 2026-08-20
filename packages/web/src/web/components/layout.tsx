@@ -11,15 +11,31 @@ import { LogoMark } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
+// Dictionnaire des traductions pour toutes les langues
+const TRANSLATIONS: Record<string, Record<string, string>> = {
+  de: { "nav.menu": "Menü", "nav.dashboard": "Dashboard", "nav.chat": "KI-Chat", "nav.exercises": "Übungen" },
+  en: { "nav.menu": "Menu", "nav.dashboard": "Dashboard", "nav.chat": "AI Chat", "nav.exercises": "Exercises" },
+  fr: { "nav.menu": "Menu", "nav.dashboard": "Tableau de bord", "nav.chat": "Chat IA", "nav.exercises": "Exercices" },
+  es: { "nav.menu": "Menú", "nav.dashboard": "Tablero", "nav.chat": "Chat IA", "nav.exercises": "Ejercicios" },
+  zh: { "nav.menu": "菜单", "nav.dashboard": "仪表盘", "nav.chat": "AI 聊天", "nav.exercises": "练习" },
+  hi: { "nav.menu": "मेनू", "nav.dashboard": "डैशबोर्ड", "nav.chat": "AI चैट", "nav.exercises": "अभ्यास" },
+  ar: { "nav.menu": "القائمة", "nav.dashboard": "لوحة القيادة", "nav.chat": "الدردشة AI", "nav.exercises": "تمارين" },
+  pt: { "nav.menu": "Menu", "nav.dashboard": "Painel", "nav.chat": "Chat IA", "nav.exercises": "Exercícios" },
+  ru: { "nav.menu": "Меню", "nav.dashboard": "Панель", "nav.chat": "Чат ИИ", "nav.exercises": "Упражнения" },
+  bn: { "nav.menu": "মেনু", "nav.dashboard": "ড্যাশবোর্ড", "nav.chat": "AI চ্যাট", "nav.exercises": "অনুশীলন" },
+  ja: { "nav.menu": "メニュー", "nav.dashboard": "ダッシュボード", "nav.chat": "AI チャット", "nav.exercises": "演習" },
+  it: { "nav.menu": "Menu", "nav.dashboard": "Cruscotto", "nav.chat": "Chat IA", "nav.exercises": "Esercizi" },
+};
+
 export function AppLayout({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(true);
 
+  // Lecture sécurisée de la langue et du menu
   useEffect(() => {
-    // On ne lit localStorage que côté client pour éviter les erreurs de rendu serveur
     if (typeof window !== "undefined") {
-      const stored = window.localStorage.getItem("tred.nav");
-      setNavOpen(stored !== "closed");
+      const storedNav = window.localStorage.getItem("tred.nav");
+      setNavOpen(storedNav !== "closed");
     }
   }, []);
 
@@ -28,6 +44,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
       window.localStorage.setItem("tred.nav", navOpen ? "open" : "closed");
     }
   }, [navOpen]);
+
+  // Récupération de la traduction actuelle
+  const locale = typeof window !== "undefined" ? localStorage.getItem("tred.locale") || "de" : "de";
+  const t = (key: string) => TRANSLATIONS[locale]?.[key] || key;
 
   return (
     <div className="bg-background flex min-h-screen">
@@ -56,7 +76,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 variant="ghost"
                 size="icon"
                 className="lg:hidden"
-                aria-label="Menu"
+                aria-label={t("nav.menu")}
               >
                 <Menu className="size-5" />
               </Button>
@@ -102,11 +122,15 @@ export function AppLayout({ children }: { children: ReactNode }) {
 }
 
 function BottomNav() {
-  const [location] = useLocation(); // C'est la correction !
+  // CORRECTION CRUCIALE : Utilisation de [location] pour déstructurer le tableau
+  const [location] = useLocation();
+  const locale = typeof window !== "undefined" ? localStorage.getItem("tred.locale") || "de" : "de";
+  const t = (key: string) => TRANSLATIONS[locale]?.[key] || key;
+
   const items = [
-    { to: "/dashboard", icon: LayoutGrid, label: "Dashboard" },
-    { to: "/chat", icon: MessageSquare, label: "Chat" },
-    { to: "/exercises", icon: PenSquare, label: "Exercises" },
+    { to: "/dashboard", icon: LayoutGrid, key: "nav.dashboard" },
+    { to: "/chat", icon: MessageSquare, key: "nav.chat" },
+    { to: "/exercises", icon: PenSquare, key: "nav.exercises" },
   ] as const;
 
   return (
@@ -114,7 +138,7 @@ function BottomNav() {
       className="border-border bg-background/95 fixed inset-x-0 bottom-0 z-40 flex border-t backdrop-blur lg:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      {items.map(({ to, icon: Icon, label }) => {
+      {items.map(({ to, icon: Icon, key }) => {
         const active = location === to || location.startsWith(to + "/");
         return (
           <Link
@@ -127,7 +151,7 @@ function BottomNav() {
             )}
           >
             <Icon className="size-5" />
-            <span className="truncate px-1">{label}</span>
+            <span className="truncate px-1">{t(key)}</span>
           </Link>
         );
       })}

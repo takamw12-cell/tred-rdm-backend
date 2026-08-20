@@ -1,7 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function LanguageSwitcher() {
-  // On ne lit localStorage que côté client pour éviter les erreurs
   const currentLocale = typeof window !== "undefined" ? localStorage.getItem("tred.locale") || "de" : "de";
 
   const handleLanguageChange = (newLocale: string) => {
