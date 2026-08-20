@@ -1,52 +1,42 @@
-import { useRouter } from "next/navigation";
-import { useSession } from "@/lib/auth-client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api } from "@/lib/api";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 export function LanguageSwitcher() {
-  const { data: session } = useSession();
-  const router = useRouter();
-
-  // Liste des 12 langues incluant le top 10 mondial
-  const languages = [
-    { code: 'de', label: 'DE Deutsch' },
-    { code: 'en', label: 'EN English' },
-    { code: 'fr', label: 'FR Français' },
-    { code: 'es', label: 'ES Español' },    // #4 Mondial
-    { code: 'zh', label: 'ZH 中文' },       // #1 Mondial (Mandarin)
-    { code: 'hi', label: 'HI हिन्दी' },     // #3 Mondial (Hindi)
-    { code: 'ar', label: 'AR العربية' },    // #6 Mondial (Arabe)
-    { code: 'pt', label: 'PT Português' },  // #9 Mondial
-    { code: 'ru', label: 'RU Русский' },    // #8 Mondial
-    { code: 'bn', label: 'BN বাংলা' },      // #7 Mondial (Bengali)
-    { code: 'ja', label: 'JA 日本語' },     // Japonais
-    { code: 'it', label: 'IT Italiano' },   // Italien
-  ];
+  // Pour l'instant, on lit la langue depuis le localStorage (fallback "de")
+  // Idéalement, il faudrait lire la session, mais on peut le faire plus tard.
+  const currentLocale = localStorage.getItem("tred.locale") || "de";
 
   const handleLanguageChange = async (newLocale: string) => {
-    if (!session) return;
     try {
-      // Met à jour la colonne locale de l'utilisateur dans Turso
+      // Appel à l'API pour mettre à jour la locale en base (si l'utilisateur est connecté)
       await api.users.updateLocale.mutate({ locale: newLocale });
-      // Recharge la page pour que le chat et l'interface prennent la langue en compte
+      // On stocke aussi en local pour l'interface
+      localStorage.setItem("tred.locale", newLocale);
+      // Recharge la page pour appliquer la nouvelle langue
       window.location.reload();
     } catch (error) {
       console.error("Erreur lors du changement de langue :", error);
     }
   };
 
+  const languages = [
+    { code: 'de', label: 'DE Deutsch' },
+    { code: 'en', label: 'EN English' },
+    { code: 'fr', label: 'FR Français' },
+    { code: 'es', label: 'ES Español' },
+    { code: 'zh', label: 'ZH 中文' },
+    { code: 'hi', label: 'HI हिन्दी' },
+    { code: 'ar', label: 'AR العربية' },
+    { code: 'pt', label: 'PT Português' },
+    { code: 'ru', label: 'RU Русский' },
+    { code: 'bn', label: 'BN বাংলা' },
+    { code: 'ja', label: 'JA 日本語' },
+    { code: 'it', label: 'IT Italiano' },
+  ];
+
   return (
     <div className="flex items-center gap-2">
-      <Select
-        value={session?.user?.locale || "de"}
-        onValueChange={handleLanguageChange}
-      >
+      <Select value={currentLocale} onValueChange={handleLanguageChange}>
         <SelectTrigger className="w-[140px] h-8">
           <SelectValue placeholder="Langue" />
         </SelectTrigger>
