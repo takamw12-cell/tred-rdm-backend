@@ -51,7 +51,7 @@ export function buildTutorAgent(opts: {
   /** Preferred code language when calcMode is on: "matlab" | "python". */
   codeLang?: string;
 }) {
-  const lang = LANG_LABEL[opts.locale] ?? opts.locale ?? "Deutsch";
+  const lang = LANG_LABEL[opts.locale] ?? "Deutsch";
   const student = opts.studentName?.trim() || null;
   const uni = opts.university?.trim() || "FH Aachen";
   const exam = opts.examMode === true;

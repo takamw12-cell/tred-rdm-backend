@@ -15,7 +15,7 @@ import { getPlanRow } from "../lib/billing";
  * Erreichbar unter /api/rpc/account.*
  */
 
-export const LOCALES = ["de", "en", "fr", "es"] as const;
+export const LOCALES = ["de", "en", "fr"] as const;
 export type Locale = (typeof LOCALES)[number];
 
 export const account = {

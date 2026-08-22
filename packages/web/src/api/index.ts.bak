@@ -547,7 +547,6 @@ const TR_LANG: Record<string, string> = {
   de: "Deutsch",
   fr: "Französisch (français)",
   en: "Englisch (English)",
-  es: "Spanisch (español)",
 };
 
 app.post("/api/agent/translate", async (c) => {
