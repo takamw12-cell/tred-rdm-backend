@@ -1,7 +1,8 @@
 import { stepCountIs, tool, ToolLoopAgent } from "ai";
 import { z } from "zod";
 import { calculate } from "../lib/calc";
-import { solveBeam, summarize } from "../lib/beam";
+import { solveRdmSafe, type SupportKind } from "../lib/rdm-solver";
+import { toSI } from "../lib/units";
 import { renderDiagram, type DiagramSpec } from "../lib/diagrams";
 import dedent from "dedent";
 import { gateway } from "./gateway";
@@ -603,63 +604,103 @@ export function buildTutorAgent(opts: {
       // zuverlässigsten danebenliegt: die Formel stimmt, die Zahl nicht.
       balkenstatik: tool({
         description:
-          "Rechnet einen Balken vollständig durch: Auflagerkräfte, Querkraft- " +
-          "und Momentenverlauf, Extremwerte und Nulldurchgänge. IMMER benutzen, " +
-          "sobald ein Träger mit Lagern und Lasten vorkommt — nie selbst " +
-          "ausrechnen. Lasten nach unten sind positiv. Längen in m, Kräfte in N, " +
-          "Streckenlasten in N/m. Nenne dem Studierenden anschließend die " +
-          "Eckwerte und den Rechenweg, nicht die vollen Punktlisten.",
+          "Rechnet einen Balken vollständig durch: Auflagerkräfte, " +
+          "Einspannmomente, Querkraft- und Momentenverlauf sowie Extremwerte. " +
+          "IMMER benutzen, sobald ein Träger mit Lagern und Lasten vorkommt — " +
+          "NIE selbst rechnen. Beliebig viele Lager erlaubt, auch statisch " +
+          "unbestimmte Systeme (Durchlaufträger). Lasten nach unten sind " +
+          "positiv, Momente gegen den Uhrzeigersinn. Gib die Einheiten der " +
+          "Aufgabe in 'einheiten' an und rechne NICHT selbst um. Fehlt eine " +
+          "Angabe, frage danach, statt zu schätzen.",
         inputSchema: z.object({
-          art: z
-            .enum(["einfeldtraeger", "kragarm"])
-            .describe("einfeldtraeger = zwei Lager, kragarm = einseitig eingespannt"),
-          laenge: z.number().describe("Balkenlänge in m"),
-          lagerA: z.number().optional().describe("Position Lager A in m (Standard 0)"),
-          lagerB: z.number().optional().describe("Position Lager B in m (Standard = Länge)"),
-          einspannungBei: z.number().optional().describe("Kragarm: Einspannstelle in m (Standard 0)"),
+          laenge: z.number().describe("Balkenlänge"),
+          lager: z
+            .array(
+              z.object({
+                x: z.number().describe("Lage vom linken Ende"),
+                art: z
+                  .enum(["loslager", "festlager", "einspannung"])
+                  .describe(
+                    "loslager = Rollenlager, festlager = zweiwertig, einspannung = fest eingespannt",
+                  ),
+                name: z.string().optional().describe('Beschriftung, z. B. "A"'),
+              }),
+            )
+            .describe(
+              "Alle Lager. Einfeldträger = zwei Lager. Kragarm = eine einspannung. " +
+                "Durchlaufträger = drei oder mehr.",
+            ),
           einzellasten: z
             .array(z.object({ x: z.number(), F: z.number() }))
             .optional()
-            .describe("Einzelkräfte: x in m, F in N (positiv nach unten)"),
+            .describe("Einzelkräfte, positiv nach unten"),
           streckenlasten: z
             .array(z.object({ von: z.number(), bis: z.number(), q: z.number() }))
             .optional()
-            .describe("Konstante Streckenlasten in N/m (positiv nach unten)"),
+            .describe("Konstante Streckenlasten, positiv nach unten"),
           einzelmomente: z
             .array(z.object({ x: z.number(), M: z.number() }))
             .optional()
-            .describe("Eingeprägte Momente in N*m (positiv gegen den Uhrzeigersinn)"),
+            .describe("Eingeprägte Momente, positiv gegen den Uhrzeigersinn"),
+          einheiten: z
+            .object({
+              laenge: z.enum(["m", "cm", "mm"]).optional(),
+              kraft: z.enum(["N", "kN", "MN"]).optional(),
+            })
+            .optional()
+            .describe(
+              "Einheiten der obigen Zahlen. Standard: m und N. Die Umrechnung " +
+                "macht das Werkzeug — rechne sie NICHT selbst um.",
+            ),
         }),
         execute: async (a) => {
-          const r = solveBeam({
-            kind: a.art,
-            length: a.laenge,
-            supportA: a.lagerA,
-            supportB: a.lagerB,
-            fixedAt: a.einspannungBei,
-            pointLoads: a.einzellasten,
-            distributedLoads: a.streckenlasten?.map((d) => ({
-              from: d.von,
-              to: d.bis,
-              q: d.q,
+          // Umrechnung im Werkzeug, nicht im Modell. Ein Sprachmodell, das
+          // kN in N umrechnet, liegt irgendwann um den Faktor 1000 daneben —
+          // und niemand merkt es, weil die Rechnung danach in sich stimmig ist.
+          const uL = a.einheiten?.laenge ?? "m";
+          const uF = a.einheiten?.kraft ?? "N";
+          const len = (v: number) => toSI(v, "length", uL);
+          const force = (v: number) => toSI(v, "force", uF);
+          const lineLoad = (v: number) => force(v) / len(1);
+          const moment = (v: number) => force(v) * len(1);
+
+          const r = solveRdmSafe({
+            length: len(a.laenge),
+            supports: a.lager.map((s) => ({
+              x: len(s.x),
+              kind: s.art as SupportKind,
+              name: s.name,
             })),
-            pointMoments: a.einzelmomente,
+            pointLoads: a.einzellasten?.map((p) => ({ x: len(p.x), F: force(p.F) })),
+            distributedLoads: a.streckenlasten?.map((d) => ({
+              from: len(d.von),
+              to: len(d.bis),
+              q: lineLoad(d.q),
+            })),
+            pointMoments: a.einzelmomente?.map((m) => ({ x: len(m.x), M: moment(m.M) })),
           });
+
           if (!r.ok) return r;
-          // Die vollen Verläufe haben hunderte Punkte. Das Modell bekommt die
-          // Eckwerte, damit der Kontext nicht zugemüllt wird; die Punktlisten
-          // gehen ausgedünnt mit, damit daraus gezeichnet werden kann.
+
+          // Die vollen Verläufe haben hunderte Punkte. Ausgedünnt reicht es,
+          // um daraus zu zeichnen, und hält den Kontext klein.
           const thin = (pts: { x: number; y: number }[]) =>
             pts.filter((_, i) => i % 4 === 0 || i === pts.length - 1);
+
           return {
             ok: true as const,
-            zusammenfassung: summarize(r),
-            auflagerkraefte: r.supportReactions,
-            einspannmoment: r.fixedEndMoment,
+            statischBestimmt: r.degreeOfIndeterminacy === 0,
+            gradDerUnbestimmtheit: r.degreeOfIndeterminacy,
+            auflagerkraefte: r.reactions,
             extremwerte: r.extremes,
-            querkraftverlauf: thin(r.shearForceDiagram),
-            momentenverlauf: thin(r.bendingMomentDiagram),
-            einheiten: r.units,
+            querkraftverlauf: thin(r.shear),
+            momentenverlauf: thin(r.moment),
+            // Selbstkontrolle des Lösers: beide Summen müssen ≈ 0 sein.
+            // Nenne sie dem Studierenden NICHT — sie belegen nur, dass die
+            // Zahlen stimmen.
+            gleichgewichtskontrolle: r.equilibrium,
+            hinweise: r.warnings,
+            einheiten: { kraft: "N", laenge: "m", moment: "N*m" },
           };
         },
       }),
