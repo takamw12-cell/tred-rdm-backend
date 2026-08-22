@@ -1,111 +1,179 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import { SidebarContent } from "@/components/sidebar";
 import { Link, useLocation } from "wouter";
-import { LayoutGrid, MessageSquare, PenSquare } from "lucide-react";
+import {
+  LayoutGrid,
+  Menu,
+  MessagesSquare,
+  PenSquare,
+  PanelLeftOpen,
+  X,
+} from "lucide-react";
+import { SidebarContent } from "@/components/sidebar";
 import { cn } from "@/lib/utils";
+import { useT } from "@/i18n";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { FontSizeToggle } from "@/components/font-size-toggle";
 import { LogoMark } from "@/components/logo";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
-// Dictionnaire des traductions pour toutes les langues
-const TRANSLATIONS: Record<string, Record<string, string>> = {
-  de: { "nav.menu": "Menü", "nav.dashboard": "Dashboard", "nav.chat": "KI-Chat", "nav.exercises": "Übungen" },
-  en: { "nav.menu": "Menu", "nav.dashboard": "Dashboard", "nav.chat": "AI Chat", "nav.exercises": "Exercises" },
-  fr: { "nav.menu": "Menu", "nav.dashboard": "Tableau de bord", "nav.chat": "Chat IA", "nav.exercises": "Exercices" },
-  es: { "nav.menu": "Menú", "nav.dashboard": "Tablero", "nav.chat": "Chat IA", "nav.exercises": "Ejercicios" },
-  zh: { "nav.menu": "菜单", "nav.dashboard": "仪表盘", "nav.chat": "AI 聊天", "nav.exercises": "练习" },
-  hi: { "nav.menu": "मेनू", "nav.dashboard": "डैशबोर्ड", "nav.chat": "AI चैट", "nav.exercises": "अभ्यास" },
-  ar: { "nav.menu": "القائمة", "nav.dashboard": "لوحة القيادة", "nav.chat": "الدردشة AI", "nav.exercises": "تمارين" },
-  pt: { "nav.menu": "Menu", "nav.dashboard": "Painel", "nav.chat": "Chat IA", "nav.exercises": "Exercícios" },
-  ru: { "nav.menu": "Меню", "nav.dashboard": "Панель", "nav.chat": "Чат ИИ", "nav.exercises": "Упражнения" },
-  bn: { "nav.menu": "মেনু", "nav.dashboard": "ড্যাশবোর্ড", "nav.chat": "AI চ্যাট", "nav.exercises": "অনুশীলন" },
-  ja: { "nav.menu": "メニュー", "nav.dashboard": "ダッシュボード", "nav.chat": "AI チャット", "nav.exercises": "演習" },
-  it: { "nav.menu": "Menu", "nav.dashboard": "Cruscotto", "nav.chat": "Chat IA", "nav.exercises": "Esercizi" },
-};
+const PANEL_W = "17rem";
+
+/**
+ * Un SEUL panneau, deux conteneurs.
+ *
+ * L'ancien code avait deux implémentations différentes — une `<aside>` collée
+ * au bord pour le PC, un `<Sheet>` Radix pour le mobile. Deux rendus, deux
+ * comportements, et le PC cassé sans que le mobile le montre.
+ *
+ * Ici `<SidebarPanel>` est écrit une fois. Sur PC il occupe une colonne du
+ * flex ; sur mobile il flotte au-dessus d'un voile. Même bordure, même rayon,
+ * même bouton X. Ce qui est réparé d'un côté l'est des deux.
+ *
+ * Radix `Sheet` a été retiré : le portail et ses classes `hidden`/`lg:block`
+ * étaient la source du bug d'affichage. Une dépendance de moins.
+ */
+function SidebarPanel({
+  onClose,
+  onNavigate,
+}: {
+  onClose: () => void;
+  onNavigate?: () => void;
+}) {
+  const { t } = useT();
+
+  return (
+    <div className="bg-sidebar border-sidebar-border flex h-full flex-col overflow-hidden rounded-2xl border shadow-sm">
+      <div className="flex items-center justify-between px-4 pt-4">
+        <Link to="/dashboard" onClick={onNavigate} aria-label="TRED">
+          <LogoMark className="size-8" />
+        </Link>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          aria-label={t("nav.hideMenu")}
+          title={t("nav.hideMenu")}
+        >
+          <X className="size-5" />
+        </Button>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <SidebarContent onNavigate={onNavigate} />
+      </div>
+    </div>
+  );
+}
 
 export function AppLayout({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState(false);
-  const [navOpen, setNavOpen] = useState(true);
+  const { t } = useT();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Lecture sécurisée de la langue et du menu
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const storedNav = window.localStorage.getItem("tred.nav");
-      setNavOpen(storedNav !== "closed");
-    }
-  }, []);
+  // Le choix PC est mémorisé. Lu paresseusement pour éviter un premier rendu
+  // à l'état ouvert suivi d'un saut à l'état fermé.
+  const [navOpen, setNavOpen] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.localStorage.getItem("tred.nav") !== "closed";
+  });
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("tred.nav", navOpen ? "open" : "closed");
-    }
+    window.localStorage.setItem("tred.nav", navOpen ? "open" : "closed");
   }, [navOpen]);
 
-  // Récupération de la traduction actuelle
-  const locale = typeof window !== "undefined" ? localStorage.getItem("tred.locale") || "de" : "de";
-  const t = (key: string) => TRANSLATIONS[locale]?.[key] || key;
+  // Échap ferme le tiroir mobile, et le corps ne défile pas derrière lui.
+  // Sans ce verrou, fermer le tiroir renvoie l'utilisateur en haut de page.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMobileOpen(false);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previous;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [mobileOpen]);
 
   return (
     <div className="bg-background flex min-h-screen">
-            <aside
-        className={cn(
-          "bg-sidebar border-sidebar-border fixed inset-y-0 left-0 z-30 hidden overflow-hidden border-r transition-[width] duration-200 lg:block",
-          navOpen ? "w-64" : "w-0 border-r-0"
-        )}
-        aria-hidden={!navOpen}
-      >
-        <div className="w-64">
-          <SidebarContent />
-        </div>
-      </aside>
-
+      {/* ── Colonne PC ────────────────────────────────────────────────
+          `hidden lg:flex` sur le conteneur, jamais sur le panneau : c'est ce
+          qui empêche le panneau de disparaître à mi-largeur. La largeur
+          s'anime, le contenu reste à taille fixe pour ne pas se comprimer. */}
       <div
         className={cn(
-          "flex min-h-screen flex-1 flex-col transition-[padding] duration-200",
-          navOpen && "lg:pl-64"
+          "hidden shrink-0 overflow-hidden p-3 transition-[width] duration-200 ease-out lg:flex",
+          navOpen ? "" : "w-0 p-0",
         )}
+        style={navOpen ? { width: `calc(${PANEL_W} + 1.5rem)` } : undefined}
+        aria-hidden={!navOpen}
       >
-        <header className="bg-background/80 border-b sticky top-0 z-20 flex h-16 items-center gap-3 border-b px-4 backdrop-blur">
-          <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="lg:hidden"
-                aria-label={t("nav.menu")}
-              >
-                <Menu className="size-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-72 p-0">
-              <SidebarContent onNavigate={() => setOpen(false)} />
-            </SheetContent>
-          </Sheet>
+        <div className="sticky top-3 h-[calc(100vh-1.5rem)]" style={{ width: PANEL_W }}>
+          <SidebarPanel onClose={() => setNavOpen(false)} />
+        </div>
+      </div>
 
+      {/* ── Tiroir mobile — même panneau ─────────────────────────────── */}
+      {mobileOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] lg:hidden"
+            onClick={() => setMobileOpen(false)}
+            aria-hidden
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={t("nav.menu")}
+            className="fixed inset-y-3 left-3 z-50 lg:hidden"
+            style={{ width: PANEL_W }}
+          >
+            <SidebarPanel
+              onClose={() => setMobileOpen(false)}
+              onNavigate={() => setMobileOpen(false)}
+            />
+          </div>
+        </>
+      )}
+
+      {/* ── Colonne principale ───────────────────────────────────────── */}
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+        <header className="bg-background/80 border-border sticky top-0 z-20 flex h-16 items-center gap-3 border-b px-4 backdrop-blur-md sm:px-6">
           <Button
             variant="ghost"
             size="icon"
-            className="hidden lg:inline-flex"
-            onClick={() => setNavOpen((v) => !v)}
+            className="lg:hidden"
+            aria-label={t("nav.menu")}
+            onClick={() => setMobileOpen(true)}
           >
-            {navOpen ? (
-              <PanelLeftClose className="size-5" />
-            ) : (
-              <PanelLeftOpen className="size-5" />
-            )}
+            <Menu className="size-5" />
           </Button>
 
-          <div className="lg:hidden">
-            <LogoMark className="size-8" />
-          </div>
+          {/* Ce bouton n'existe QUE menu replié : ouvrir se fait ici,
+              fermer se fait par le X du panneau. Un seul rôle par bouton. */}
+          {!navOpen && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden lg:inline-flex"
+              aria-label={t("nav.showMenu")}
+              title={t("nav.showMenu")}
+              onClick={() => setNavOpen(true)}
+            >
+              <PanelLeftOpen className="size-5" />
+            </Button>
+          )}
 
-          <Link to="/dashboard" className="hidden lg:block">
+          <Link to="/dashboard" className={cn("lg:hidden")} aria-label="TRED">
             <LogoMark className="size-8" />
           </Link>
+
+          {!navOpen && (
+            <Link to="/dashboard" className="hidden lg:block" aria-label="TRED">
+              <LogoMark className="size-8" />
+            </Link>
+          )}
 
           <div className="ml-auto flex items-center gap-2">
             <FontSizeToggle />
@@ -114,32 +182,36 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 pb-16 lg:pb-0">{children}</main>
-        <BottomNav />
+        {/* `min-w-0` plus haut : sans lui, un tableau ou un bloc de code large
+            pousse la colonne et fait défiler la page entière de côté. */}
+        <main className="min-w-0 flex-1 pb-16 lg:pb-0">{children}</main>
       </div>
+
+      <BottomNav />
     </div>
   );
 }
 
+/** Barre inférieure, mobile uniquement. Retire `<BottomNav />` ci-dessus si
+ *  tu préfères que le tiroir soit le seul mode de navigation. */
 function BottomNav() {
-  // CORRECTION CRUCIALE : Utilisation de [location] pour déstructurer le tableau
+  const { t } = useT();
   const [location] = useLocation();
-  const locale = typeof window !== "undefined" ? localStorage.getItem("tred.locale") || "de" : "de";
-  const t = (key: string) => TRANSLATIONS[locale]?.[key] || key;
 
   const items = [
     { to: "/dashboard", icon: LayoutGrid, key: "nav.dashboard" },
-    { to: "/chat", icon: MessageSquare, key: "nav.chat" },
+    { to: "/chat", icon: MessagesSquare, key: "nav.chat" },
     { to: "/exercises", icon: PenSquare, key: "nav.exercises" },
   ] as const;
 
   return (
     <nav
-      className="border-border bg-background/95 fixed inset-x-0 bottom-0 z-40 flex border-t backdrop-blur lg:hidden"
+      className="border-border bg-background/95 fixed inset-x-0 bottom-0 z-30 flex border-t backdrop-blur lg:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      aria-label={t("nav.menu")}
     >
       {items.map(({ to, icon: Icon, key }) => {
-        const active = location === to || location.startsWith(to + "/");
+        const active = location === to || location.startsWith(`${to}/`);
         return (
           <Link
             key={to}
@@ -147,7 +219,7 @@ function BottomNav() {
             aria-current={active ? "page" : undefined}
             className={cn(
               "flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium transition-colors",
-              active ? "text-primary" : "text-muted-foreground"
+              active ? "text-primary" : "text-muted-foreground",
             )}
           >
             <Icon className="size-5" />
