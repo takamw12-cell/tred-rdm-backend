@@ -6,7 +6,7 @@
       "name": "sandbox-app-template",
       "dependencies": {
         "@aws-sdk/client-s3": "^3.1023.0",
-        "@libsql/client": "^0.17.2",
+        "@libsql/client": "^0.17.4",
         "cloudflare": "^5.2.0",
         "debug": "^4.4.3",
         "pm2": "^7.0.1",
