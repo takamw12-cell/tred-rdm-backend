@@ -283,24 +283,3 @@ export const translationCache = sqliteTable(
 );
 
 export type TranslationCache = typeof translationCache.$inferSelect;
-
-/**
- * Compteur de limitation de débit, une ligne par clé.
- *
- * `key` = "<portée>:<appelant>", où l'appelant est l'empreinte du cookie de
- * session quand il existe, sinon l'IP. Voir middleware/rate-limit.ts.
- *
- * `windowStart` est le début de la fenêtre en millisecondes, arrondi au
- * multiple de la durée de fenêtre. Comparer deux entiers suffit alors à savoir
- * si l'on est encore dans la même fenêtre — pas de calcul de date à faire.
- */
-export const rateLimit = sqliteTable(
-  "rate_limit",
-  {
-    key: text("key").primaryKey(),
-    windowStart: integer("window_start").notNull(),
-    count: integer("count").notNull().default(0),
-    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
-  },
-  (t) => [index("rate_limit_window_idx").on(t.windowStart)],
-);
