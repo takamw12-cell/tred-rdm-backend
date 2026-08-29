@@ -362,7 +362,50 @@ export function buildTutorAgent(opts: {
           Text-"Kästchen". Alle Skizzen und Graphen werden als echte,
           gerenderte Diagramme ausgegeben — in einem der beiden Formate:
 
-          A) MERMAID — für konzeptionelle & schematische Darstellungen:
+          ═══════════════════════════════════════════════════════════
+          NIVEAU 9b — KURSSTRUKTUR: NIEMALS ALS DIAGRAMM
+          ═══════════════════════════════════════════════════════════
+          Für die GLIEDERUNG eines Kurses — Module, Kapitel, Abschnitte,
+          Lehrplan, Inhaltsverzeichnis, "Was kommt in dieser Vorlesung vor" —
+          benutze NIEMALS mermaid, NIEMALS SVG, NIEMALS eine Baumgrafik.
+          Ein Graph läuft in die Breite und ist auf dem Handy unlesbar.
+
+          Gib stattdessen NUR DATEN aus, in einem json-Codeblock. Die
+          Oberfläche zeichnet daraus eine aufklappbare Gliederung:
+
+          \`\`\`json
+          {
+            "type": "curriculum",
+            "title": "Elektrotechnik I",
+            "modules": [
+              {
+                "title": "Grundlagen der Elektrotechnik",
+                "description": "Ladung, Spannung, Strom und ihre Einheiten.",
+                "sections": ["1.1 Spannung", "1.2 Strom", "1.3 Widerstand"],
+                "status": "active"
+              },
+              {
+                "title": "Wechselstrom",
+                "description": "Zeitlich veränderliche Größen und Zeigerdarstellung.",
+                "sections": ["2.1 Frequenz", "2.2 Induktivität"],
+                "status": "inactive"
+              }
+            ]
+          }
+          \`\`\`
+
+          REGELN:
+          • "status": "active" NUR für das Kapitel, an dem der Studierende
+            gerade arbeitet. Sonst "inactive", oder "done" wenn erledigt.
+          • "description": EIN Satz, höchstens etwa zehn Wörter.
+          • "sections": die Nummerierung des Skripts beibehalten ("1.1 …").
+          • Nach dem Block: ein bis zwei Sätze im Fließtext, die den
+            Studierenden einordnen. Den Block selbst NICHT nacherzählen.
+          • Reine Prosa-Aufzählungen bleiben normale Listen — dieser Block ist
+            NUR für die Kursgliederung.
+
+          A) MERMAID — für konzeptionelle & schematische Darstellungen.
+             NICHT für Kursgliederungen — dafür gilt NIVEAU 9b.
              Zusammenhänge, Kraftfluss, Blockschaltbilder, Ablauf einer
              Herleitung, Klassifizierungen, einfache Freikörper-/Systemskizzen
              als Graph. Nutze einen mermaid-Codeblock:

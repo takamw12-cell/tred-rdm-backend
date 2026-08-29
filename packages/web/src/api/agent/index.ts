@@ -363,6 +363,18 @@ export function buildTutorAgent(opts: {
           gerenderte Diagramme ausgegeben — in einem der beiden Formate:
 
           ═══════════════════════════════════════════════════════════
+          NIVEAU 9c — BIETE NIE AN, WAS DU NICHT ZEICHNEN KANNST
+          ═══════════════════════════════════════════════════════════
+          Wenn du dem Studierenden eine Auswahl an Skizzen anbietest,
+          nenne AUSSCHLIESSLICH Typen, die \`skizze\` kennt:
+          spannungsteiler · komparator_led · balken · querschnitt ·
+          reihenschaltung · parallelschaltung · rc_glied · rl_glied.
+
+          Für alles andere: beschreibe die Schaltung in Worten und nenne
+          die Bauteile der Reihe nach. Eine ehrliche Beschreibung ist
+          besser als ein Angebot, das beim Anklicken scheitert.
+
+          ═══════════════════════════════════════════════════════════
           NIVEAU 9b — KURSSTRUKTUR: NIEMALS ALS DIAGRAMM
           ═══════════════════════════════════════════════════════════
           Für die GLIEDERUNG eines Kurses — Module, Kapitel, Abschnitte,
@@ -756,6 +768,7 @@ export function buildTutorAgent(opts: {
           "Zeichnet eine saubere Standard-Skizze im Lehrbuch-Stil. IMMER " +
           "bevorzugt benutzen, wenn die Situation zu einem der Typen passt: " +
           "spannungsteiler, komparator_led (OP als Komparator mit LED), " +
+          "reihenschaltung, parallelschaltung, rc_glied, rl_glied, " +
           "balken (Träger mit Lagern, Streckenlast, Einzelkraft), " +
           "querschnitt (Rechteckquerschnitt). Das Ergebnis ist fertiges SVG, " +
           "das du unverändert in einen \`\`\`svg-Block setzt.",
@@ -763,7 +776,12 @@ export function buildTutorAgent(opts: {
         // sonst wird JEDE Anfrage mit "input_schema.type: Field required"
         // abgelehnt. Deshalb ein Objekt mit optionalen Feldern je Typ.
         inputSchema: z.object({
-          typ: z.enum(["spannungsteiler", "komparator_led", "balken", "querschnitt"]),
+          typ: z
+            .string()
+            .describe(
+              "spannungsteiler | komparator_led | balken | querschnitt | " +
+                "reihenschaltung | parallelschaltung | rc_glied | rl_glied",
+            ),
           // spannungsteiler + komparator_led
           quelle: z.string().optional(),
           rOben: z.string().optional(),
@@ -785,6 +803,17 @@ export function buildTutorAgent(opts: {
           masz: z.string().optional(),
           lagerLinks: z.string().optional(),
           lagerRechts: z.string().optional(),
+          // reihenschaltung + parallelschaltung
+          widerstaende: z
+            .array(z.string())
+            .optional()
+            .describe('Zwei bis vier Widerstände, z. B. ["R₁ = 1 Ω", "R₂ = 2 Ω"]'),
+          strom: z.string().optional(),
+          // rc_glied + rl_glied
+          widerstand: z.string().optional(),
+          kondensator: z.string().optional(),
+          spule: z.string().optional(),
+          ausgang: z.string().optional(),
           // querschnitt
           breite: z.string().optional(),
           hoehe: z.string().optional(),
@@ -792,6 +821,23 @@ export function buildTutorAgent(opts: {
         }),
         execute: async (input) => {
           const i = input as Record<string, unknown>;
+          // Validation ICI et non dans le schéma : une énumération Zod
+          // rejette AVANT execute, l'appel d'outil échoue, et tout le flux
+          // meurt sur un « Fehler » que l'étudiant ne comprend pas. Un
+          // message de retour, lui, se rattrape.
+          const BEKANNTE_TYPEN = [
+            "spannungsteiler", "komparator_led", "balken", "querschnitt",
+            "reihenschaltung", "parallelschaltung", "rc_glied", "rl_glied",
+          ];
+          if (!BEKANNTE_TYPEN.includes(String(i.typ))) {
+            return {
+              error:
+                `Für "${String(i.typ)}" gibt es kein Gerüst. Verfügbar: ` +
+                BEKANNTE_TYPEN.join(", ") +
+                ". Beschreibe die Schaltung stattdessen in Worten, oder wähle " +
+                "das nächstliegende Gerüst.",
+            };
+          }
           const spec = {
             ...i,
             ...(i.einzelkraftText
