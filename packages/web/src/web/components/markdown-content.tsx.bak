@@ -6,7 +6,6 @@ import type { Components } from "react-markdown";
 import { cn } from "@/lib/utils";
 import { MermaidDiagram, ChartBlock, TikzDiagram, SvgBlock } from "./diagram-blocks";
 import { CodeBlock, isHighlightableLang } from "./code-block";
-import { Curriculum, parseCurriculum } from "./curriculum";
 
 // Intercept fenced code blocks: ```mermaid renders a real diagram, ```chart
 // renders a plotted graph (Q/M curves, Mohr circle, …). Everything else keeps
@@ -19,13 +18,6 @@ function codeLang(node: unknown): string | undefined {
   return hit?.replace("language-", "");
 }
 
-/** Texte brut d'une clôture de code, depuis le nœud hast. */
-function rawCode(node: unknown): string {
-  const code = (node as { children?: { children?: { value?: string }[] }[] })
-    ?.children?.[0];
-  return code?.children?.map((c) => c.value ?? "").join("") ?? "";
-}
-
 const components: Components = {
   code(props) {
     const { className, children } = props as {
@@ -35,13 +27,6 @@ const components: Components = {
     const match = /language-(\w+)/.exec(className ?? "");
     const lang = match?.[1];
     const raw = String(children ?? "");
-    // Un bloc ```json qui décrit une structure de cours devient le
-    // Course Structure Navigator. Tout autre JSON garde l'affichage normal —
-    // d'où le `parseCurriculum` qui renvoie null plutôt que de lever.
-    if (lang === "json") {
-      const curriculum = parseCurriculum(raw);
-      if (curriculum) return <Curriculum data={curriculum} />;
-    }
     if (lang === "mermaid") return <MermaidDiagram code={raw} />;
     if (lang === "chart") return <ChartBlock code={raw} />;
     if (lang === "svg") return <SvgBlock code={raw} />;
@@ -58,10 +43,6 @@ const components: Components = {
     const { node, children } = props as { node?: unknown; children?: React.ReactNode };
     const lang = codeLang(node);
     if (lang === "mermaid" || lang === "chart" || lang === "svg" || lang === "tikz")
-      return <>{children}</>;
-    // Même chose pour un curriculum : il rend sa propre <section>, qui n'a
-    // rien à faire à l'intérieur d'un <pre>.
-    if (lang === "json" && parseCurriculum(rawCode(node)) !== null)
       return <>{children}</>;
     // CodeBlock renders its own <pre>; don't double-wrap it.
     if (isHighlightableLang(lang)) return <>{children}</>;
