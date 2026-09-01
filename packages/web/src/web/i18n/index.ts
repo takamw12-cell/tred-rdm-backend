@@ -16,12 +16,39 @@ export type { Locale, Messages };
  * autres arrivent en arrière-plan au moment où on les demande, et restent en
  * mémoire ensuite. Vite les découpe automatiquement en fichiers séparés.
  */
-const LOADERS: Record<Locale, () => Promise<Messages>> = {
-  de: async () => de,
+/**
+ * Fusion profonde d'un paquet partiel par-dessus l'allemand.
+ *
+ * Sans elle, une clé absente d'une traduction afficherait son chemin technique
+ * — « settings.themeLabel » en plein milieu de l'écran. Avec elle, elle
+ * affiche l'allemand, et une langue peut être livrée à moitié traduite sans
+ * que personne ne le voie comme un défaut.
+ */
+function mergeOverDe(base: unknown, patch: unknown): unknown {
+  if (!patch || typeof patch !== "object") return base;
+  const out: Record<string, unknown> = { ...(base as Record<string, unknown>) };
+  for (const [key, value] of Object.entries(patch as Record<string, unknown>)) {
+    out[key] =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? mergeOverDe(out[key], value)
+        : value;
+  }
+  return out;
+}
+
+const LOADERS: Partial<Record<Locale, () => Promise<unknown>>> = {
   fr: () => import("./messages/fr").then((m) => m.fr),
   en: () => import("./messages/en").then((m) => m.en),
+  es: () => import("./messages/es").then((m) => m.es),
+  it: () => import("./messages/it").then((m) => m.it),
+  pt: () => import("./messages/pt").then((m) => m.pt),
+  ru: () => import("./messages/ru").then((m) => m.ru),
+  ar: () => import("./messages/ar").then((m) => m.ar),
+  zh: () => import("./messages/zh").then((m) => m.zh),
+  hi: () => import("./messages/hi").then((m) => m.hi),
+  bn: () => import("./messages/bn").then((m) => m.bn),
+  ja: () => import("./messages/ja").then((m) => m.ja),
 };
-
 const loaded: Partial<Record<Locale, Messages>> = { de };
 const pending = new Set<Locale>();
 
@@ -42,9 +69,18 @@ const getVersion = () => version;
 export function preloadLocale(locale: Locale): void {
   if (loaded[locale] || pending.has(locale)) return;
   pending.add(locale);
-  LOADERS[locale]()
+  const load = LOADERS[locale];
+  if (!load) {
+    // Aucune traduction pour cette langue : l'allemand reste affiché, et le
+    // tuteur répond quand même dans la langue choisie. Ne JAMAIS lever ici —
+    // `preloadLocale` est appelé pendant le rendu.
+    pending.delete(locale);
+    return;
+  }
+
+  load()
     .then((pack) => {
-      loaded[locale] = pack;
+      loaded[locale] = mergeOverDe(de, pack) as Messages;
       emit();
     })
     .catch(() => {

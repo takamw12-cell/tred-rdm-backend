@@ -101,7 +101,13 @@ export function useT(): { t: TranslateFn; locale: Locale } {
   const pack = loaded[locale] ?? de;
 
   const t = useCallback<TranslateFn>(
-    (key, vars) => interpolate(resolve(pack, key), vars),
+    (key, vars) => {
+      // __fallbackDe : une clé absente de la langue courante retombe
+      // sur l'allemand plutôt que d'afficher son chemin technique.
+      let text = resolve(pack, key);
+      if (text === key && pack !== de) text = resolve(de, key);
+      return interpolate(text, vars);
+    },
     [pack],
   );
 

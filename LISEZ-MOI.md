@@ -1,73 +1,55 @@
-# La page Réglages, pour de vrai
+# Les douze langues de l'interface
 
-## Ce que j'ai trouvé
+## Deux défauts
 
-J'ai cloné ton dépôt GitHub — il est public — et j'ai enfin lu tes **vrais**
-fichiers au lieu d'une copie que tu m'avais envoyée il y a des heures. Deux
-composants expliquent tout.
+**L'espagnol faisait planter la page.** `es` figurait dans le type `Locale` et
+avait son fichier de traduction — mais il n'avait **aucun chargeur** dans
+`LOADERS`. Appeler `LOADERS["es"]()` levait donc une exception pendant le
+rendu. Si tu as vu « Etwas ist schiefgelaufen » en choisissant l'espagnol,
+c'était ça.
 
-### 1. `settings.tsx` était une maquette
+**Huit langues n'avaient aucun fichier.** Le menu proposait douze langues,
+`i18n/messages/` en contenait quatre.
 
-Première ligne de ton fichier, écrite noir sur blanc :
+## Le principe qui change
 
-```
-// Version simplifiée : on utilise useState localement
-```
+Un paquet de langue **n'a plus besoin d'être complet**. Il est fusionné
+par-dessus l'allemand au chargement : une clé absente affiche l'allemand, pas
+son chemin technique.
 
-112 lignes. Trois `useState` locaux. Zéro store, zéro appel au serveur, zéro
-traduction — tous les textes en dur, en français.
-
-Donc : cliquer « Sombre » ne changeait pas le thème. Rien n'était enregistré.
-Et « Code de calcul » ne pouvait pas disparaître, puisque mes correctifs
-cherchaient des motifs dans un fichier qui ne les contenait plus.
-
-### 2. Le sélecteur de langue écrivait dans la mauvaise clé
-
-```
-language-switcher.tsx  →  localStorage["tred.locale"]
-stores/locale.ts       →  localStorage["aerostudy-locale"]
-```
-
-Deux clés différentes. **Changer la langue ne touchait jamais l'interface.**
-Elle changeait la langue du tuteur — le chat lit bien `tred.locale` — et rien
-d'autre. Le menu passait en italien, tous les libellés restaient en français.
-
-Il contournait aussi `setLocale`, c'est-à-dire l'endroit où la langue est
-envoyée au serveur. Rien n'était conservé.
-
-**Tout ce qu'il fallait existait déjà** : `useThemeStore`, `useFontSizeStore`,
-`useUserStore`, `account.dataExport`, `account.deleteAccount`, un store de
-langue soigné qui prévient le serveur. Deux maquettes recouvraient tout ça.
+Ça change tout pour la suite : ajouter une langue coûte désormais ce que tu
+veux y mettre, et ne peut plus casser la compilation. Avant, le type
+`Messages` exigeait les 545 clés — tout ou rien.
 
 ## Les étapes
 
 ```
 cd C:\dev\tred-rdm\aerostudy-ai
-tar -xf "%USERPROFILE%\Downloads\tred-reglages.zip" -C .
-node patch-reglages.mjs
+tar -xf "%USERPROFILE%\Downloads\tred-12-langues.zip" -C .
+node patch-langues-ui.mjs
 bun run verify
-git add -A && git commit -m "page reglages reelle" && git push
+git add -A && git commit -m "douze langues d'interface" && git push
 ```
 
-Quatre lignes vertes (une par langue).
+Dix fichiers écrits : huit langues, `types.ts`, `index.ts`.
 
-## Ce que tu verras
+## Ce qui est traduit
 
-- **Thème** clair / sombre / système — qui fonctionne, et qui persiste
-- **Taille du texte** — les trois « A » sont dessinés à leur propre taille
-- **Langue de l'interface** — qui change vraiment l'interface, sans recharger
-- **Mode allemand technique** — l'interrupteur relié à ton store
-- **Abonnement** — ton forfait réel, lien vers la page de tarifs
-- **Exporter mes données** — RGPD art. 15 et 20, le JSON se télécharge
-- **Supprimer mon compte** — RGPD art. 17, avec saisie de « LÖSCHEN »
-- **Plus de « Code de calcul »**
+Ce qu'un étudiant voit dans ses cinq premières minutes : la **navigation**,
+les **mots communs**, la **connexion**, les **réglages**. Environ cent textes
+par langue.
 
-Et douze langues dans le menu : les quatre traduites changent toute
-l'application, les huit autres changent le tuteur et sont marquées d'un point.
-Pour un étudiant, la langue des réponses compte plus que celle des boutons.
+Le reste — le chat, les exercices, le tableau de bord — retombe sur
+l'allemand. C'est un choix : pour une application de la FH Aachen, l'allemand
+est un repli défendable, et le tuteur, lui, répond déjà dans les douze langues.
 
-## Vérifié sur ton vrai code
+Compléter une langue plus tard ne demande aucune précaution : tu ajoutes les
+clés que tu veux dans le fichier, quand tu veux.
 
-Les deux fichiers compilent contre ton dépôt cloné. Chaque import, chaque
-export utilisé a été contrôlé un par un : `Theme`, `FontSize`, `germanMode`,
-`Switch`, `Input`, `account.dataExport`, `account.deleteAccount`.
+## À vérifier après le déploiement
+
+Passe en 日本語. La barre latérale, les boutons et la page Réglages doivent
+changer ; le tableau de bord reste en allemand. Puis pose une question au
+tuteur : il doit répondre en japonais.
+
+Et essaie l'espagnol — c'est celui qui plantait.

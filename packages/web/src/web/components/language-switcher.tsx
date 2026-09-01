@@ -26,7 +26,10 @@ import type { Locale } from "@/i18n/types";
  */
 
 /** Les langues dont l'interface est traduite — voir i18n/messages/. */
-const UI_LOCALES = ["de", "en", "fr", "es"] as const;
+const UI_LOCALES = [
+  "de", "en", "fr", "es", "it", "pt",
+  "ru", "ar", "zh", "hi", "bn", "ja",
+] as const;
 
 /** Tout ce que le tuteur sait parler — voir api/lib/languages.ts. */
 const CHOICES: { code: string; label: string }[] = [
