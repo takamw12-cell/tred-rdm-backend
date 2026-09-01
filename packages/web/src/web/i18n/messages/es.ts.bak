@@ -2,6 +2,26 @@ import type { Messages } from "../types";
 
 // German technical terms are intentionally preserved verbatim, glossed in English.
 export const en: Messages = {
+  search: {
+    title: "Search",
+    placeholder: "Search documents, conversations, exercises …",
+    hint: "Type at least two characters.",
+    empty: "Nothing found for \"{q}\".",
+    more: "There are more results — narrow your search.",
+    documents: "Documents",
+    conversations: "Conversations",
+    exercises: "Exercises",
+    navigate: "move",
+    open: "open",
+    close: "close",
+    back: "back",
+    exportPdf: "As PDF",
+    solution: "Solution",
+    question: "Question",
+    answer: "Answer",
+    loadFailed: "Could not be loaded.",
+    emptyConversation: "This conversation is empty.",
+  },
   brand: {
     name: "TRED",
     tagline: "Engineering studies. Trilingual. Finally clear.",
@@ -118,7 +138,7 @@ export const en: Messages = {
     lastChapter: "Technische Mechanik 2 — Ch. 3: Querkraft & Biegemoment",
     exercises: "Exercises",
     allCourses: "All courses",
-    docsCount: "{count} docs",
+    docsCount: "{count} documentos",
     materials: "Materials",
     pages: "Pages",
     noMaterials: "No materials yet. Import a Skript, Übung or Klausur to get started.",
@@ -332,9 +352,9 @@ export const en: Messages = {
     scanned:
       "This PDF has no readable text — it's most likely a scan (image). Please upload a PDF with real text (e.g. the digital script instead of a scanned sheet).",
     uploadFailed: "Upload failed: {msg}",
-    kindVorlesung: "Vorlesung",
+    kindVorlesung: "Clase",
     kindUebung: "Übung",
-    kindKlausur: "Klausur",
+    kindKlausur: "Examen",
     kindOther: "Other",
     view: "View",
   },

@@ -1,5 +1,4 @@
 import { betterAuth } from "better-auth";
-import { sendMail, resetPasswordMail } from "./lib/mail";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { expo } from "@better-auth/expo";
 import { db } from "./database";
@@ -14,18 +13,7 @@ export const auth = betterAuth({
   basePath: "/api/auth",
   baseURL: process.env.WEBSITE_URL,
   database: drizzleAdapter(db, { provider: "sqlite" }),
-  emailAndPassword: {
-    enabled: true,
-    // Sans ceci, un étudiant qui se trompe de mot de passe à l'inscription
-    // est bloqué DÉFINITIVEMENT : Better Auth n'envoie rien de lui-même.
-    sendResetPassword: async ({ user, url }) => {
-      const mail = resetPasswordMail(url, user.name);
-      await sendMail({ to: user.email, ...mail });
-    },
-    // Une heure. Assez pour aller chercher l'e-mail, assez court pour qu'un
-    // lien retrouvé dans une boîte partagée ne serve plus à rien.
-    resetPasswordTokenExpiresIn: 3600,
-  },
+  emailAndPassword: { enabled: true },
   secret: process.env.BETTER_AUTH_SECRET,
   ...(googleEnabled || appleEnabled
     ? {

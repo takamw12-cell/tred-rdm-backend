@@ -222,22 +222,6 @@ export default function LoginPage() {
             />
           </div>
 
-          {!isSignup && (
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={() => void forgotPassword()}
-                className="text-muted-foreground hover:text-foreground text-xs transition-colors"
-              >
-                {t("auth.forgotPassword")}
-              </button>
-            </div>
-          )}
-
-          {forgotSent && (
-            <p className="text-muted-foreground text-sm">{t("auth.forgotSent")}</p>
-          )}
-
           {error && (
             <p className="text-destructive text-sm font-medium">{error}</p>
           )}

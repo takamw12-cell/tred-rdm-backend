@@ -8,6 +8,7 @@ import { documents } from "./routes/documents";
 import { savedExercises } from "./routes/saved-exercises";
 import { semesters } from "./routes/semesters";
 import { chats } from "./routes/chats";
+import { search } from "./routes/search";
 import { subscriptions } from "./routes/subscriptions";
 import { notifications } from "./routes/notifications";
 import { credits } from "./routes/credits";
@@ -70,6 +71,7 @@ export const router = {
   savedExercises,
   semesters,
   chats,
+  search,
   subscriptions,
   notifications,
   credits,
@@ -294,6 +296,36 @@ app.post("/api/subscriptions/webhook", async (c) => {
 
 // ── Öffentliche Konfiguration ─────────────────────────────────────────────
 // Das Frontend fragt hier, ob es das Registrierungsformular überhaupt zeigt.
+// ── Rapports d'erreur du navigateur ───────────────────────────────────────
+// Volontairement PUBLIQUE et sans base de données : ce qui compte, c'est que
+// l'erreur apparaisse dans les journaux Railway. Une table demanderait une
+// migration, une purge et une page d'administration — pour une information
+// que tu vas lire trois fois par semaine.
+//
+// Réponse 204 dans TOUS les cas : un rapport d'erreur qui échoue et déclenche
+// un second rapport est une boucle qu'on ne veut pas découvrir en production.
+app.post("/api/errors", async (c) => {
+  try {
+    const body = (await c.req.json()) as Record<string, unknown>;
+    const ip = (c.req.header("x-forwarded-for") ?? "").split(",")[0]?.trim();
+    console.error(
+      "[client-error]",
+      JSON.stringify({
+        kind: body.kind,
+        area: body.area,
+        message: String(body.message ?? "").slice(0, 300),
+        url: body.url,
+        at: body.at,
+        ip,
+        stack: String(body.stack ?? "").slice(0, 800),
+      }),
+    );
+  } catch {
+    /* corps illisible : rien à journaliser, rien à signaler */
+  }
+  return c.body(null, 204);
+});
+
 app.get("/api/config", (c) =>
   c.json({ publicSignup: publicSignupAllowed(), inviteRequired: !publicSignupAllowed() }),
 );

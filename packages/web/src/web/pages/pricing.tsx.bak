@@ -5,7 +5,6 @@ import { Check, Loader2, AlertCircle, ShieldCheck, Sparkles } from "lucide-react
 import { PageContainer, PageHeader, Reveal } from "@/components/page";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { WithdrawalConsent } from "@/components/consent";
 import { Progress } from "@/components/ui/progress";
 import { useT } from "@/i18n";
 import { useUserStore, type PlanId } from "@/stores/user";
@@ -114,14 +113,6 @@ export default function PricingPage() {
 
   const busy = checkoutMut.isPending || portalMut.isPending;
 
-  // § 356 Abs. 5 BGB : deux affirmations DISTINCTES, jamais précochées. Les
-  // fusionner en une seule case annulerait l'effet — c'est précisément ce que
-  // la jurisprudence allemande sanctionne.
-  const [consentStart, setConsentStart] = useState(false);
-  const [consentLose, setConsentLose] = useState(false);
-  const [consentError, setConsentError] = useState(false);
-  const consentOk = consentStart && consentLose;
-
   return (
     <PageContainer>
       <PageHeader title={t("pricing.title")} subtitle={t("pricing.subtitle")} />
@@ -208,21 +199,6 @@ export default function PricingPage() {
             </ul>
 
             <div className="mt-auto pt-6">
-              {!isPaid && (
-                <WithdrawalConsent
-                  start={consentStart}
-                  lose={consentLose}
-                  onStart={(v) => {
-                    setConsentStart(v);
-                    setConsentError(false);
-                  }}
-                  onLose={(v) => {
-                    setConsentLose(v);
-                    setConsentError(false);
-                  }}
-                  error={consentError}
-                />
-              )}
               {isPaid ? (
                 <Button
                   variant="ghost"
@@ -336,12 +312,6 @@ export default function PricingPage() {
                   disabled={busy || isLoading || !selected}
                   onClick={() => {
                     setError(null);
-                    // Le bouton reste actif exprès : un bouton mort n'explique
-                    // rien, un message rouge sous les cases, si.
-                    if (!consentOk) {
-                      setConsentError(true);
-                      return;
-                    }
                     if (selected) checkoutMut.mutate(selected.priceId);
                   }}
                 >

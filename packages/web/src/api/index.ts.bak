@@ -8,11 +8,13 @@ import { documents } from "./routes/documents";
 import { savedExercises } from "./routes/saved-exercises";
 import { semesters } from "./routes/semesters";
 import { chats } from "./routes/chats";
+import { search } from "./routes/search";
 import { subscriptions } from "./routes/subscriptions";
 import { notifications } from "./routes/notifications";
 import { credits } from "./routes/credits";
 import { account } from "./routes/account";
 import { auth } from "./auth";
+import { rateLimitMiddleware } from "./middleware/rate-limit";
 import { db } from "./database";
 import { document, savedExercise, semester, userAccess } from "./database/schema";
 import { and, eq } from "drizzle-orm";
@@ -69,6 +71,7 @@ export const router = {
   savedExercises,
   semesters,
   chats,
+  search,
   subscriptions,
   notifications,
   credits,
@@ -80,6 +83,33 @@ export type AppRouter = typeof router;
 export type AppRouterClient = RouterClient<AppRouter>;
 
 const app = createApp(router);
+
+// ── Limitation de débit ───────────────────────────────────────────────────
+// Montée AVANT tout le reste : une requête refusée ne doit toucher ni la
+// session, ni le quota, ni le modèle.
+//
+// Trois règles, parce que trois menaces différentes :
+//
+//   • /api/auth/*  — bourrage d'identifiants et création de comptes en masse.
+//     Compté par IP : à ce stade il n'y a pas encore de cookie de session.
+//
+//   • /api/agent/* — TOUTES les routes du modèle, pas seulement /messages.
+//     exercise, formulas, video et translate coûtent autant, parfois plus.
+//     C'est ici que part l'argent.
+//
+//   • /api/documents/upload — l'extraction de texte d'un PDF de 200 pages
+//     occupe le serveur bien plus longtemps qu'une requête ordinaire.
+//     Fenêtre de cinq minutes : on téléverse par rafales, pas en continu.
+//
+// /api/health, le webhook Stripe et /api/rpc/* ne sont volontairement pas
+// limités : le premier sert aux sondes Railway, le deuxième vient de Stripe
+// et doit toujours passer, le troisième est déjà borné par les quotas.
+app.use("/api/auth/*", rateLimitMiddleware({ limit: 10, scope: "auth" }));
+app.use("/api/agent/*", rateLimitMiddleware({ limit: 5, scope: "agent" }));
+app.use(
+  "/api/documents/upload",
+  rateLimitMiddleware({ limit: 10, scope: "upload", windowMs: 5 * 60_000 }),
+);
 
 // Better Auth handler (Hono v4 uses single `*` wildcard).
 // ── Sperre: greift vor jeder API-Anfrage ──────────────────────────────────

@@ -22,8 +22,8 @@
     "db:push": "turbo db:push",
     "internal:check-conventions": "konsistent",
     "internal:kill-port": "lsof -t -i :${PORT:-4200} | xargs kill -9",
-    "test": "bun test --cwd packages/web",
-    "verify": "bunx tsc --noEmit -p packages/web && bun test --cwd packages/web"
+    "test": "bun test",
+    "verify": "bunx tsc --noEmit -p packages/web && bun test"
   },
   "devDependencies": {
     "@tursodatabase/api": "^1.9.2",
