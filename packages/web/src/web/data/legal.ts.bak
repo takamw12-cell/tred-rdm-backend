@@ -176,8 +176,8 @@ Löschung: sofortige und vollständige Entfernung, mit der Ausnahme oben.
 
 ## 6. Empfänger
 
-Railway (Hosting, deutschland), Turso (Datenbank, EU), je ne sais plus
-(Originaldateien, frankfurt), Anthropic (Sprachmodell, USA), Resend
+Railway (Hosting, [Region]), Turso (Datenbank, EU), [Objektspeicher]
+(Originaldateien, [Region]), Anthropic (Sprachmodell, USA), Resend
 (E-Mail-Versand, USA), Stripe (Zahlungen, Irland), Expo
 (Push-Benachrichtigungen, USA).
 
@@ -187,7 +187,7 @@ Wir setzen keine Werbe- oder Trackingcookies. Verwendet werden ausschließlich
 technisch notwendige Daten: das Anmelde-Cookie sowie die lokal gespeicherten
 Einstellungen für Sprache, Schriftgröße und Darstellung.
 
-Stand: 01.09.2026`,
+Stand: [Datum]`,
 
   /* ══════════════════════════════════════════════════════════════════════ */
 
@@ -250,7 +250,7 @@ An
 E-Mail: [takamw12@gmail.com]
 Telefon: [+49 15753400989]
 
-Hereby I/we (*) rescind the contract concluded by me/us (*) with rached edwin takam („TRED") for the provision of the following service:
+Hereby I/we (*) rescind the contract concluded by me/us (*) with [Name] („TRED") for the provision of the following service:
 
 _______________________________________________
 
@@ -272,7 +272,7 @@ Datum: _________
 
   agb: `## § 1 Geltungsbereich
 
-Diese AGB gelten für alle Verträge zwischen rached edwin takam („TRED") und Verbrauchern
+Diese AGB gelten für alle Verträge zwischen [Name] („TRED") und Verbrauchern
 über die Nutzung der Anwendung TRED.
 
 ## § 2 Leistungsbeschreibung
@@ -358,7 +358,7 @@ angenommen. Auf diese Folge weisen wir in der Mitteilung gesondert hin.
 Es gilt deutsches Recht. Zwingende Verbraucherschutzvorschriften deines
 Aufenthaltsstaates bleiben unberührt.
 
-Stand: 01.09.2026 · Version 1.0`,
+Stand: [Datum] · Version 1.0`,
 };
 
 /** Slugs des URL — ce sont ceux qu'attendent les lecteurs et les autorités. */
