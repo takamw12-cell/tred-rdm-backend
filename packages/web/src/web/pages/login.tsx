@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
+import { AmbientBackground } from "@/components/ambient-background";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LanguageSwitcher } from "@/components/language-switcher";
@@ -107,7 +108,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="paper-grid relative flex min-h-screen items-center justify-center overflow-hidden px-4">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4">
+      <AmbientBackground variant="hero" />
       {/* Millimeterpapier statt Farbwolken: der Hintergrund ist der
           Arbeitsuntergrund, nicht Dekoration. */}
 

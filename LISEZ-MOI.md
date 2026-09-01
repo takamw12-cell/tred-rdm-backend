@@ -1,104 +1,49 @@
-# Lot 1 (version complète) + correctif du lot 2
+# Fond animé
 
-Un seul zip, deux commandes.
-
-Le lot 1 n'avait jamais été appliqué : il n'y a **toujours pas de « mot de passe
-oublié »** sur ton application. Un étudiant qui se trompe à l'inscription est
-bloqué définitivement, et tu ne peux pas le débloquer non plus.
-
-Cette version fait tout le branchement toute seule. La précédente laissait trois
-raccords à faire à la main — ils sont automatisés ici.
-
----
+Regarde d'abord l'aperçu que je t'ai envoyé dans la conversation. Si ça te va,
+installe. Sinon, dis-moi ce qui cloche avant que ça parte en ligne.
 
 ## Les étapes
 
-**Étape 1** — décompresse, à la racine du projet :
-
 ```
 cd C:\dev\tred-rdm\aerostudy-ai
-tar -xf "%USERPROFILE%\Downloads\tred-lot1-complet.zip" -C .
-```
-
-**Étape 2** — lance les deux scripts :
-
-```
-node patch-lot1.mjs
-node fix-lot2.mjs
-```
-
-Le premier doit afficher **9 lignes vertes**, le second entre 1 et 4.
-
-**Étape 3** — vérifie, puis déploie :
-
-```
+tar -xf "%USERPROFILE%\Downloads\tred-fond.zip" -C .
+node patch-fond.mjs
 bun run verify
-git add -A
-git commit -m "lot 1 : mot de passe oublié, barriere d'erreur, consentement"
-git push
+git add -A && git commit -m "fond anime" && git push
 ```
 
-`bun run verify` doit finir par **`0 fail`**.
+`patch-fond.mjs` doit afficher **2 lignes vertes**.
 
----
+## Ce que ça touche
 
-## Ce que ça branche
-
-| Où | Quoi |
+| Fichier | Modification |
 |---|---|
-| `api/auth.ts` | Better Auth envoie enfin le lien de réinitialisation |
-| `api/lib/mail.ts` | Envoi par Resend, sans aucune dépendance ajoutée |
-| `api/index.ts` | `/api/errors` — les erreurs du navigateur arrivent dans les journaux Railway |
-| `app.tsx` | La route `/reset-password` **hors** de la zone connectée, et la barrière anti-page-blanche autour de l'application |
-| `login.tsx` | Le lien « Passwort vergessen? » et l'envoi |
-| `pricing.tsx` | Les deux cases § 356 Abs. 5 BGB, bloquantes avant le paiement |
-| les 3 fichiers de langue | Les libellés, **dans les trois** |
+| `components/ambient-background.tsx` | Nouveau |
+| `pages/login.tsx` | `paper-grid` remplacé par le composant, variante « hero » |
+| `components/layout.tsx` | `bg-background` retiré du conteneur, variante « ambient » |
 
-Ce dernier point corrigeait un piège de la version précédente : elle n'ajoutait
-les libellés qu'à l'allemand. Comme le type `Messages` est déduit de `de.ts`,
-`tsc` aurait refusé de compiler et le déploiement aurait échoué.
+Les deux retraits sont volontaires et nécessaires :
 
-Le zip apporte aussi la version corrigée de `search-sql.test.ts` (le lot 2) :
-elle s'ignore proprement quand `@libsql/client` n'est pas installé sur ta
-machine, au lieu de faire échouer toute la vérification.
+- `paper-grid` dessinait déjà une trame statique. Le composant dessine la même,
+  avec les mêmes jetons `--grid-line` et `--grid-step`. En laisser deux
+  superposées ferait apparaître des lignes doubles au moindre décalage.
+- `bg-background` sur le conteneur posait un aplat opaque **par-dessus** le
+  fond. Cette couleur est déjà peinte par `<body>` dans `styles.css` — la
+  retirer ne change rien à l'apparence, mais laisse le fond visible.
 
----
+## Réglages
 
-## Après le déploiement — la seule chose que je ne peux pas faire
+Deux nombres à changer si l'effet te paraît trop fort ou trop faible, dans
+`ambient-background.tsx`, tout en bas :
 
-Sur Railway, deux variables d'environnement :
-
-```
-RESEND_API_KEY   ta clé sur resend.com — gratuit jusqu'à 3 000 e-mails/mois
-MAIL_FROM        TRED <noreply@ton-domaine.de>
+```ts
+"--tred-glow-1": hero ? "... 24% ..." : "... 8% ..."
+"--tred-glow-2": hero ? "... 15% ..." : "... 5% ..."
 ```
 
-Le domaine doit être vérifié chez Resend, sinon l'envoi est refusé. Pour
-essayer tout de suite sans domaine, `MAIL_FROM` peut valoir
-`TRED <onboarding@resend.dev>` — c'est d'ailleurs la valeur par défaut.
+Le premier nombre de chaque paire est la page de connexion, le second
+l'application. Monte ou descends de deux ou trois points à la fois.
 
-Sans ces variables le serveur démarre quand même, mais aucun e-mail ne part et
-tu liras `[mail] RESEND_API_KEY absente` dans les journaux Railway.
-
-**Teste-le avant de le proposer à quelqu'un** : déconnecte-toi, clique
-« Passwort vergessen? », et regarde si l'e-mail arrive.
-
----
-
-## Deux détails de conception
-
-**Le message est le même que le compte existe ou non.** Répondre « ce compte
-n'existe pas » permettrait à n'importe qui de savoir qui est inscrit chez toi,
-une adresse à la fois.
-
-**Le bouton de paiement reste cliquable sans les cases cochées.** Il affiche un
-message rouge sous les cases au lieu d'être grisé : un bouton mort n'explique
-rien à celui qui le regarde.
-
----
-
-## Si un bloc échoue
-
-Le script te dit lequel et pourquoi, et applique quand même les autres. Envoie-
-moi le fichier concerné, je réajuste. Chaque fichier modifié est sauvegardé en
-`.bak` juste à côté.
+Les vitesses sont dans le bloc CSS : `38s` et `52s` pour la connexion, `76s` et
+`104s` pour l'application. Plus le nombre est grand, plus c'est lent.
