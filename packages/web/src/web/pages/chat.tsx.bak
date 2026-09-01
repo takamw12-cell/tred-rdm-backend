@@ -737,9 +737,67 @@ export default function ChatPage() {
   // dashboard) before opening the chat: restoring the last conversation would
   // snap the scope back to that conversation's semester and force uploads into
   // the wrong one. In that case we keep the selected scope and start fresh.
+  // ── Ouverture depuis la recherche globale ────────────────────────────────
+  // Deux chemins, parce que cette page peut déjà être à l'écran ou pas encore
+  // montée quand on clique un résultat :
+  //   • déjà là  → l'événement arrive tout de suite, ci-dessous ;
+  //   • ailleurs → la demande attend dans sessionStorage et est lue au montage.
+  useEffect(() => {
+    function forget(key: string) {
+      try {
+        sessionStorage.removeItem(key);
+      } catch {
+        /* navigation privée */
+      }
+    }
+    function onOpenChat(e: Event) {
+      const id = (e as CustomEvent<string>).detail;
+      forget("tred.openChat");
+      if (typeof id === "string" && id) void openConversation(id);
+    }
+    function onOpenDoc(e: Event) {
+      const d = (e as CustomEvent<{ id: string; title: string }>).detail;
+      forget("tred.openDoc");
+      if (d && d.id) setActiveDoc({ id: d.id, title: d.title ?? "" });
+    }
+    window.addEventListener("tred:open-chat", onOpenChat);
+    window.addEventListener("tred:open-doc", onOpenDoc);
+    return () => {
+      window.removeEventListener("tred:open-chat", onOpenChat);
+      window.removeEventListener("tred:open-doc", onOpenDoc);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (bootRef.current || !convQuery.isSuccess) return;
     bootRef.current = true;
+
+    // Une demande venue de la recherche prime sur la reprise automatique : on
+    // vient de cliquer un résultat précis, rouvrir autre chose serait absurde.
+    const readOnce = (key: string): unknown => {
+      try {
+        const raw = sessionStorage.getItem(key);
+        if (!raw) return null;
+        sessionStorage.removeItem(key);
+        return JSON.parse(raw) as unknown;
+      } catch {
+        return null;
+      }
+    };
+
+    const wantedDoc = readOnce("tred.openDoc") as { id?: string; title?: string } | null;
+    if (wantedDoc && wantedDoc.id) {
+      setActiveDoc({ id: wantedDoc.id, title: wantedDoc.title ?? "" });
+      return;
+    }
+
+    const wantedChat = readOnce("tred.openChat");
+    if (typeof wantedChat === "string" && wantedChat) {
+      void openConversation(wantedChat);
+      return;
+    }
+
     const latest = convList[0];
     if (latest && (latest.semesterId ?? null) === (semesterId ?? null)) {
       void openConversation(latest.id);

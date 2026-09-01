@@ -1,0 +1,15 @@
+{
+  "packages/web/src/web/pages/chat.tsx": "991398620ba28a7af1dda3b7b43413bb88dc62a1ab4a4985be7eb577cbee5e2e",
+  "packages/web/src/web/i18n/messages/es.ts": "c1c9e2174be260e5144af4fa90f96f7b1d4adaba0a37703c7f6440453a3bb482",
+  "packages/web/src/web/data/localized.ts": null,
+  "packages/web/src/web/data/chat.ts": "8359205ad2169a5a002771d8c6b4018c6b7515ded692f21f8b5e8bc2c1fa83c6",
+  "packages/web/src/web/data/dictionary.ts": "b47b0d6ed006b232f1fdcfae8a02687200bf2e356917c824486c290c361f3790",
+  "packages/web/src/web/data/dna.ts": "fc96a7f137d30fa578a4ff9475cc7b7810341a3b239e900acc1a8a66b50b7b0f",
+  "packages/web/src/web/components/dictionary-tooltip.tsx": "710511cc1912bbbbaf69511bd6942977a73ea711fa40b80ab9d6c3e667642816",
+  "packages/web/src/web/pages/dna.tsx": "73bb7caa865a892b92833e7a1414318d2ff2eaed6b8b340c8a91ccb919d4aa89",
+  "packages/web/src/web/pages/dictionary.tsx": "0130e6ce85dbeb5b4f3ebfbbc8a3c000eeb89cffd3957ac6c0f0c1d3a127607a",
+  "packages/web/src/web/pages/login.tsx": "5187752b20189fbcfe1ff501d84ba7350b2cd40a0ab8925b1b4a87bd074e44f0",
+  "packages/web/src/api/routes/account.ts": "96fe3328a5176ff38a24e37fca37885cfcc8ed1fcbf86cb398531cc4f740367e",
+  "packages/web/src/api/index.ts": "b532abae56d86fe617c831cce272cce2b80839810443a56bcbdc79ec2ced4793",
+  "packages/web/src/api/lib/translation-cache.ts": "3802bcb28482ea36648fd31890b87ec6e384fa0e016f1f769cf49985491ca15e"
+}

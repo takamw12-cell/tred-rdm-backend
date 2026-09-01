@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { LegalFooter } from "@/components/legal-footer";
 import { Button } from "@/components/ui/button";
 import { AmbientBackground } from "@/components/ambient-background";
 import { Input } from "@/components/ui/input";
@@ -265,6 +266,10 @@ export default function LoginPage() {
           {isSignup ? t("auth.toSignIn") : t("auth.toSignUp")}
         </button>
       </motion.div>
+
+      {/* Sous la carte, pas dedans : ces liens ne font pas partie du
+          formulaire, et doivent rester visibles sans le remplir. */}
+      <LegalFooter className="absolute bottom-6 left-0 right-0 px-4" />
     </div>
   );
 }

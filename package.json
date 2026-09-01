@@ -23,7 +23,7 @@
     "internal:check-conventions": "konsistent",
     "internal:kill-port": "lsof -t -i :${PORT:-4200} | xargs kill -9",
     "test": "bun test --cwd packages/web",
-    "verify": "bunx tsc --noEmit -p packages/web && bun test --cwd packages/web",
+    "verify": "bunx tsc --noEmit -p packages/web/tsconfig.app.json && bun test --cwd packages/web",
     "legal": "node check-legal.mjs"
   },
   "devDependencies": {
