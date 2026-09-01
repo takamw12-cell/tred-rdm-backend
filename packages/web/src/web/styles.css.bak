@@ -76,111 +76,103 @@
 :root {
   --radius: 0.5rem;
 
-  --background: #f3f5f7;
-  --foreground: #15181b;
+  --background: #f4f5f2;
+  --foreground: #14181b;
   --card: #ffffff;
-  --card-foreground: #15181b;
+  --card-foreground: #14181b;
   --popover: #ffffff;
-  --popover-foreground: #15181b;
+  --popover-foreground: #14181b;
 
-  --primary: #10427b;
-  --primary-foreground: #f5f7fa;
+  --primary: #0f4f49;
+  --primary-foreground: #f7f8f5;
   --signature: #f2b705;
-  --signature-foreground: #15181b;
+  --signature-foreground: #14181b;
 
-  --secondary: #e8ebf0;
-  --secondary-foreground: #2a3138;
-  --muted: #e8ebf0;
-  --muted-foreground: #59616b;
-  --accent: #e0e5ec;
-  --accent-foreground: #15181b;
+  --secondary: #eaece7;
+  --secondary-foreground: #2a3035;
+  --muted: #eaece7;
+  --muted-foreground: #5a6169;
+  --accent: #e3e7e2;
+  --accent-foreground: #14181b;
   --destructive: #b3261e;
 
-  --border: #dde1e7;
-  --input: #d3d8e0;
-  --ring: #10427b;
+  --border: #dfe2dd;
+  --input: #d5d9d3;
+  --ring: #0f4f49;
 
   /* Wissensstände: erarbeitet / in Arbeit / unberührt */
   --mastered: #0f7a5a;
   --learning: #f2b705;
-  --new: #98a1ab;
+  --new: #9aa3a8;
 
-  --chart-1: #10427b;
-  --chart-2: #4a7cb8;
+  --chart-1: #0f4f49;
+  --chart-2: #3f8f83;
   --chart-3: #f2b705;
   --chart-4: #b3261e;
-  --chart-5: #59616b;
+  --chart-5: #5a6169;
 
-  --sidebar: #eef1f5;
-  --sidebar-foreground: #15181b;
-  --sidebar-primary: #10427b;
-  --sidebar-primary-foreground: #f5f7fa;
-  --sidebar-accent: #e0e5ec;
-  --sidebar-accent-foreground: #15181b;
-  --sidebar-border: #dde1e7;
-  --sidebar-ring: #10427b;
+  --sidebar: #eff1ed;
+  --sidebar-foreground: #14181b;
+  --sidebar-primary: #0f4f49;
+  --sidebar-primary-foreground: #f7f8f5;
+  --sidebar-accent: #e3e7e2;
+  --sidebar-accent-foreground: #14181b;
+  --sidebar-border: #dfe2dd;
+  --sidebar-ring: #0f4f49;
 
   /* Millimeterpapier: Rasterfarbe und Teilung */
-  --grid-line: rgb(21 24 27 / 0.05);
-
-  /* Teinte du fond animé — voir components/ambient-background.tsx */
-  --amb: #1d4ed8;
+  --grid-line: rgb(20 24 27 / 0.05);
   --grid-step: 28px;
 }
 
 /* ── Dunkel: Zeichentisch bei Nacht ────────────────────────────────────── */
 .dark {
-  --background: #0f1215;
-  --foreground: #e7eaef;
-  --card: #171a1f;
-  --card-foreground: #e7eaef;
-  --popover: #171a1f;
-  --popover-foreground: #e7eaef;
+  --background: #0e1214;
+  --foreground: #e8ebe6;
+  --card: #161b1e;
+  --card-foreground: #e8ebe6;
+  --popover: #161b1e;
+  --popover-foreground: #e8ebe6;
 
-  /* Auf Schiefer trägt das tiefe Blau nicht mehr — es wird zu hellem Blau,
-     damit Schaltflächen den Kontrast für dunkle Schrift behalten. */
-  --primary: #72aaf2;
-  --primary-foreground: #06182e;
+  /* Auf Schiefer trägt das tiefe Grün nicht mehr — es wird zu Leuchtgrün,
+     damit Schaltflächen den Kontrast für weiße Schrift behalten. */
+  --primary: #3fbfa8;
+  --primary-foreground: #06201d;
   --signature: #ffc93c;
-  --signature-foreground: #15181b;
+  --signature-foreground: #14181b;
 
-  --secondary: #1f242c;
-  --secondary-foreground: #e7eaef;
-  --muted: #1f242c;
-  --muted-foreground: #99a1ad;
-  --accent: #282f38;
-  --accent-foreground: #e7eaef;
+  --secondary: #1f262a;
+  --secondary-foreground: #e8ebe6;
+  --muted: #1f262a;
+  --muted-foreground: #97a0a4;
+  --accent: #253036;
+  --accent-foreground: #e8ebe6;
   --destructive: #ef5350;
 
-  --border: rgb(231 234 239 / 0.12);
-  --input: rgb(231 234 239 / 0.18);
-  --ring: #72aaf2;
+  --border: rgb(232 235 230 / 0.12);
+  --input: rgb(232 235 230 / 0.18);
+  --ring: #3fbfa8;
 
   --mastered: #4fc38f;
   --learning: #ffc93c;
-  --new: #6b7480;
+  --new: #6b757a;
 
-  --chart-1: #72aaf2;
-  --chart-2: #a8c9f8;
+  --chart-1: #3fbfa8;
+  --chart-2: #7fd8c6;
   --chart-3: #ffc93c;
   --chart-4: #ef5350;
-  --chart-5: #99a1ad;
+  --chart-5: #97a0a4;
 
-  --sidebar: #12161b;
-  --sidebar-foreground: #e7eaef;
-  --sidebar-primary: #72aaf2;
-  --sidebar-primary-foreground: #06182e;
-  --sidebar-accent: #282f38;
-  --sidebar-accent-foreground: #e7eaef;
-  --sidebar-border: rgb(231 234 239 / 0.12);
-  --sidebar-ring: #72aaf2;
+  --sidebar: #11161a;
+  --sidebar-foreground: #e8ebe6;
+  --sidebar-primary: #3fbfa8;
+  --sidebar-primary-foreground: #06201d;
+  --sidebar-accent: #253036;
+  --sidebar-accent-foreground: #e8ebe6;
+  --sidebar-border: rgb(232 235 230 / 0.12);
+  --sidebar-ring: #3fbfa8;
 
-  --grid-line: rgb(231 234 239 / 0.045);
-
-
-  /* Teinte du fond animé — voir components/ambient-background.tsx */
-
-  --amb: #7aa7ff;
+  --grid-line: rgb(232 235 230 / 0.045);
 }
 
 @layer base {

@@ -144,13 +144,18 @@ export function AmbientBackground({
 
   const hero = variant === "hero";
 
+  // `--amb` est la teinte du fond, définie dans styles.css. Elle est
+  // volontairement distincte de `--primary` : à 8 % d'opacité, un bleu de
+  // bouton — sombre et peu saturé pour rester lisible sous du texte blanc — ne
+  // se lit plus que comme du gris. Le repli sur `--primary` garde le composant
+  // fonctionnel si le jeton n'a pas encore été ajouté.
   const vars = {
     "--tred-glow-1": hero
-      ? "color-mix(in oklab, var(--primary) 24%, transparent)"
-      : "color-mix(in oklab, var(--primary) 8%, transparent)",
+      ? "color-mix(in oklab, var(--amb, var(--primary)) 24%, transparent)"
+      : "color-mix(in oklab, var(--amb, var(--primary)) 8%, transparent)",
     "--tred-glow-2": hero
-      ? "color-mix(in oklab, var(--primary) 15%, transparent)"
-      : "color-mix(in oklab, var(--primary) 5%, transparent)",
+      ? "color-mix(in oklab, var(--amb, var(--primary)) 15%, transparent)"
+      : "color-mix(in oklab, var(--amb, var(--primary)) 5%, transparent)",
   } as React.CSSProperties;
 
   return (
