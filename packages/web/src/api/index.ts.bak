@@ -8,6 +8,8 @@ import { documents } from "./routes/documents";
 import { savedExercises } from "./routes/saved-exercises";
 import { semesters } from "./routes/semesters";
 import { chats } from "./routes/chats";
+import { memory } from "./routes/memory";
+import { openGaps, noteGap, resolveGap } from "./lib/memory";
 import { search } from "./routes/search";
 import { subscriptions } from "./routes/subscriptions";
 import { notifications } from "./routes/notifications";
@@ -71,6 +73,7 @@ export const router = {
   savedExercises,
   semesters,
   chats,
+  memory,
   search,
   subscriptions,
   notifications,
@@ -509,6 +512,11 @@ app.post("/api/agent/messages", async (c) => {
     .then((r) => r[0]?.locale ?? "de")
     .catch(() => "de");
 
+  // Ce que le tuteur a retenu de cette personne. Une requête, plafonnée à
+  // huit lignes : au-delà, le prompt s'allonge sans que la réponse gagne.
+  const uid = session.user.id;
+  const gaps = await openGaps(uid);
+
   const agent = buildTutorAgent({
     sources,
     contextLabel,
@@ -517,6 +525,11 @@ app.post("/api/agent/messages", async (c) => {
     examMode: examMode === true,
     calcMode: calcMode === true,
     codeLang: codeLang === "matlab" ? "matlab" : "python",
+    memory: {
+      open: gaps,
+      note: (input) => noteGap(uid, { ...input, semesterId: semesterId ?? null }),
+      resolve: (label) => resolveGap(uid, label),
+    },
   });
 
   return createAgentUIStreamResponse({

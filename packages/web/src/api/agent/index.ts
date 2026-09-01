@@ -1,4 +1,5 @@
 import { stepCountIs, tool, ToolLoopAgent } from "ai";
+import { langOf } from "../lib/languages";
 import { z } from "zod";
 import { calculate } from "../lib/calc";
 import { solveRdmSafe, type SupportKind } from "../lib/rdm-solver";
@@ -8,20 +9,6 @@ import { ageLabel } from "../lib/memory-text";
 import dedent from "dedent";
 import { gateway } from "./gateway";
 
-const LANG_LABEL: Record<string, string> = {
-  de: "Deutsch",
-  en: "English",
-  fr: "Français",
-  es: "Español",
-  zh: "中文",
-  hi: "हिन्दी",
-  ar: "العربية",
-  pt: "Português",
-  ru: "Русский",
-  bn: "বাংলা",
-  ja: "日本語",
-  it: "Italiano",
-};
 
 /**
  * Consigne de langue — dans la langue elle-même.
@@ -30,51 +17,7 @@ const LANG_LABEL: Record<string, string> = {
  * même phrase en allemand : le modèle bascule dès la lecture de la consigne.
  * C'est la correction principale du défaut « le chat ne suit pas la langue ».
  */
-const LANG_RULE: Record<string, { label: string; top: string; bottom: string }> = {
-  de: {
-    label: "Deutsch",
-    top: dedent`
-      SPRACHREGEL — GILT VOR ALLEM ANDEREN
-      Du antwortest auf DEUTSCH.`,
-    bottom: "ERINNERUNG: Deine Antwort ist auf DEUTSCH.",
-  },
-  fr: {
-    label: "Français",
-    top: dedent`
-      RÈGLE DE LANGUE — PRIORITAIRE SUR TOUT LE RESTE
-      Tu réponds en FRANÇAIS, entièrement.
-
-      Le reste de ces instructions est rédigé en allemand, et les documents de
-      cours sont en allemand : cela ne change rien. Ta réponse est en français.
-      Seuls les termes techniques allemands sont conservés (voir NIVEAU 3).`,
-    bottom: "RAPPEL FINAL : ta réponse est rédigée en FRANÇAIS.",
-  },
-  en: {
-    label: "English",
-    top: dedent`
-      LANGUAGE RULE — TAKES PRECEDENCE OVER EVERYTHING ELSE
-      You answer in ENGLISH, entirely.
-
-      The rest of these instructions is written in German, and the course
-      documents are in German: this changes nothing. Your answer is in English.
-      Only German technical terms are kept (see NIVEAU 3).`,
-    bottom: "FINAL REMINDER: your answer is written in ENGLISH.",
-  },
-};
-
-/** Repli : on nomme le code de langue plutôt que de retomber en allemand. */
-function langRule(locale?: string) {
-  const known = locale ? LANG_RULE[locale] : undefined;
-  if (known) return known;
-  const code = locale ?? "de";
-  return {
-    label: code,
-    top: dedent`
-      LANGUAGE RULE — TAKES PRECEDENCE OVER EVERYTHING ELSE
-      You answer entirely in the language with the code "${code}".`,
-    bottom: `FINAL REMINDER: answer in the language with the code "${code}".`,
-  };
-}
+const langRule = langOf;
 
 /**
  * Build the TRED tutor agent grounded in a single course document.

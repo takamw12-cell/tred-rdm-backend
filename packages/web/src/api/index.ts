@@ -8,6 +8,7 @@ import { documents } from "./routes/documents";
 import { savedExercises } from "./routes/saved-exercises";
 import { semesters } from "./routes/semesters";
 import { chats } from "./routes/chats";
+import { langOf } from "./lib/languages";
 import { memory } from "./routes/memory";
 import { openGaps, noteGap, resolveGap } from "./lib/memory";
 import { search } from "./routes/search";
@@ -702,11 +703,6 @@ app.post("/api/agent/translate", async (c) => {
 // Generate a course-styled exercise (or a full practice Klausur) grounded in
 // the student's documents. Returns structured JSON so the UI can show the
 // statement, an answer space, points, and a hideable model solution.
-const EX_LANG: Record<string, string> = {
-  de: "Deutsch",
-  fr: "Französisch (français)",
-  en: "Englisch (English)",
-};
 
 app.post("/api/agent/exercise", async (c) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
@@ -730,8 +726,8 @@ app.post("/api/agent/exercise", async (c) => {
     locale?: string;
   };
   const mode = body.mode === "klausur" ? "klausur" : "exercise";
-  const locale = EX_LANG[body.locale ?? ""] ? (body.locale as string) : "de";
-  const langLabel = EX_LANG[locale];
+  // Repli qui NOMME la langue au lieu de basculer en allemand sans le dire.
+  const { code: locale, label: langLabel } = langOf(body.locale);
 
   // Resolve grounding documents. A specific document / basedOn Klausur wins;
   // otherwise scope by semester, else all of the user's documents.
@@ -967,8 +963,8 @@ app.post("/api/agent/formulas", async (c) => {
     semesterId?: string | null;
     locale?: string;
   };
-  const locale = EX_LANG[body.locale ?? ""] ? (body.locale as string) : "de";
-  const langLabel = EX_LANG[locale];
+  // Repli qui NOMME la langue au lieu de basculer en allemand sans le dire.
+  const { code: locale, label: langLabel } = langOf(body.locale);
 
   let rows;
   if (body.semesterId) {
@@ -1087,8 +1083,8 @@ app.post("/api/agent/video", async (c) => {
     semesterId?: string | null;
     locale?: string;
   };
-  const locale = EX_LANG[body.locale ?? ""] ? (body.locale as string) : "de";
-  const langLabel = EX_LANG[locale];
+  // Repli qui NOMME la langue au lieu de basculer en allemand sans le dire.
+  const { code: locale, label: langLabel } = langOf(body.locale);
   const topic = (body.topic ?? "").slice(0, 4000);
 
   let rows;

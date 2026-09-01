@@ -1,43 +1,66 @@
-# Durcissement
+# Dix langues côté serveur
 
-La mémoire du tuteur ne peut plus faire tomber le chat.
+Voilà pourquoi « les langues ne fonctionnent pas ».
+
+## Le défaut
+
+Il y avait **deux tables de langues** dans ton code, et aucune ne couvrait ce
+que ton interface propose :
+
+| Table | Utilisée par | Couvrait |
+|---|---|---|
+| `LANG_LABEL` (agent) | le chat | de, fr, en |
+| `EX_LANG` (index) | exercices, Klausuren, formulaires | de, fr, en |
+
+Ton interface propose **dix** langues.
+
+Le code faisait littéralement ceci :
+
+```ts
+const locale = EX_LANG[body.locale ?? ""] ? body.locale : "de";
+```
+
+Un étudiant choisit l'espagnol → `EX_LANG["es"]` vaut `undefined` → le code
+bascule **explicitement en allemand**. Sans message, sans trace. Sept de tes
+dix langues ne pouvaient donc pas fonctionner sur les exercices, les Klausuren
+et les formulaires — quoi que je corrige ailleurs.
+
+## Les étapes
 
 ```
 cd C:\dev\tred-rdm\aerostudy-ai
-tar -xf "%USERPROFILE%\Downloads\tred-solide.zip" -C .
-node patch-solide.mjs
+tar -xf "%USERPROFILE%\Downloads\tred-langues.zip" -C .
+node patch-langues.mjs
 bun run verify
-git add -A && git commit -m "memoire non bloquante" && git push
+git add -A && git commit -m "dix langues cote serveur" && git push
 ```
 
-## Pourquoi
+Le script te dira quelles langues ton interface propose et si toutes sont
+couvertes.
 
-Tu as poussé le code de la mémoire. S'il tourne sur Railway **sans que la table
-`misconception` existe**, chaque message du chat lève une exception dans
-`openGaps()` — et `/api/agent/messages` répond une erreur. Le chat entier
-tombe, à cause d'un supplément.
+## Ce que ça change
 
-`lib/memory.ts` est désormais enveloppé : à la première erreur, la mémoire se
-désactive pour l'instance, écrit une ligne dans les journaux Railway, et le
-tuteur repart **exactement comme avant cette livraison**. Rien ne casse.
+**Une seule table**, `lib/languages.ts`, utilisée par le chat, les exercices,
+les Klausuren et les formulaires. Deux tables qui doivent rester d'accord
+finissent toujours par diverger ; il n'y en a plus qu'une.
 
-C'est la règle générale : une fonction de confort ne doit jamais pouvoir
-emporter la fonction principale.
+**Quinze langues** couvertes : de, en, fr, es, it, pt, nl, pl, tr, ru, uk, ar,
+zh, ro, cs.
 
-## Aussi
+**La consigne est écrite dans la langue.** Pour l'espagnol, le prompt commence
+par `REGLA DE IDIOMA — TIENE PRIORIDAD SOBRE TODO LO DEMÁS`. C'est la seule
+chose qui fait vraiment basculer un modèle noyé sous cinq cents lignes
+d'allemand.
 
-`.gitignore` ignore désormais les `*.bak`. Ton dernier envoi en a embarqué
-dix-sept sur GitHub. Pour les retirer du dépôt sans les effacer de ton disque :
+**Le repli ne ment plus.** Une langue inconnue produit une consigne qui la
+nomme par son code, au lieu de retomber en allemand en silence. Un repli
+silencieux est pire qu'une erreur : personne ne peut le signaler.
 
-```
-git rm --cached -r --quiet "*.bak"
-```
+**`pt-BR` trouve `pt`**, `" EN "` trouve `en`. Les codes régionaux et les
+espaces ne cassent plus rien.
 
-## Ça ne remplace pas la migration
+## Si une de tes langues manque
 
-Le durcissement empêche la casse ; il ne crée pas la table. Pour que la mémoire
-fonctionne vraiment :
-
-```
-bun --env-file=.env migration-memoire.mjs
-```
+Le script te le dira. Elle fonctionnera quand même — avec une consigne rédigée
+en anglais qui nomme le code. Envoie-moi la liste et j'écris les phrases dans
+ces langues : c'est ce qui fait la différence.
