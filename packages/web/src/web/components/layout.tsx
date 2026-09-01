@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import {
   LayoutGrid,
@@ -7,6 +7,7 @@ import {
   PenSquare,
   PanelLeftOpen,
   X,
+  Search,
 } from "lucide-react";
 import { SidebarContent } from "@/components/sidebar";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ import { LogoMark } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { LegalFooter } from "@/components/legal-footer";
 import { AmbientBackground } from "@/components/ambient-background";
+import { SearchDialog, useSearchShortcut } from "@/components/search-dialog";
 
 const PANEL_W = "17rem";
 
@@ -71,6 +73,11 @@ function SidebarPanel({
 export function AppLayout({ children }: { children: ReactNode }) {
   const { t } = useT();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  // Mémorisé : `useSearchShortcut` dépend de cette fonction ; une nouvelle à
+  // chaque rendu ferait détacher puis rattacher l'écouteur en boucle.
+  const openSearch = useCallback(() => setSearchOpen(true), []);
+  useSearchShortcut(openSearch);
 
   // Le choix PC est mémorisé. Lu paresseusement pour éviter un premier rendu
   // à l'état ouvert suivi d'un saut à l'état fermé.
@@ -179,6 +186,20 @@ export function AppLayout({ children }: { children: ReactNode }) {
           )}
 
           <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              onClick={openSearch}
+              className="text-muted-foreground hover:bg-accent hover:text-foreground flex h-9 items-center gap-2 rounded-lg px-2.5 text-sm transition-colors sm:px-3"
+              aria-label={t("search.title")}
+              title={t("search.title")}
+            >
+              <Search className="size-4" />
+              <span className="hidden sm:inline">{t("search.title")}</span>
+              {/* Le raccourci n'est montré que là où il existe un clavier. */}
+              <kbd className="border-border text-muted-foreground ml-1 hidden rounded border px-1.5 py-0.5 text-[10px] lg:inline">
+                ⌘K
+              </kbd>
+            </button>
             <FontSizeToggle />
             <LanguageSwitcher />
             <ThemeToggle />
@@ -194,6 +215,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <LegalFooter />
         </footer>
       </div>
+
+      <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
 
       <BottomNav />
     </div>

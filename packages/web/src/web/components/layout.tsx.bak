@@ -16,6 +16,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { FontSizeToggle } from "@/components/font-size-toggle";
 import { LogoMark } from "@/components/logo";
 import { Button } from "@/components/ui/button";
+import { LegalFooter } from "@/components/legal-footer";
 import { AmbientBackground } from "@/components/ambient-background";
 
 const PANEL_W = "17rem";
@@ -187,6 +188,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
         {/* `min-w-0` plus haut : sans lui, un tableau ou un bloc de code large
             pousse la colonne et fait défiler la page entière de côté. */}
         <main className="min-w-0 flex-1 pb-16 lg:pb-0">{children}</main>
+
+        {/* « Ständig verfügbar » : joignable depuis chaque page. */}
+        <footer className="border-border border-t px-4 py-5 pb-20 lg:pb-5">
+          <LegalFooter />
+        </footer>
       </div>
 
       <BottomNav />
