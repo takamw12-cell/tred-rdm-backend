@@ -1,63 +1,73 @@
-# Les trois correctifs restants, en un seul zip
+# La page Réglages, pour de vrai
 
-Un seul téléchargement, une seule commande. Les scripts sont exactement ceux
-des trois zips précédents ; ils sont enchaînés pour que l'ordre ne puisse pas
-être inversé.
+## Ce que j'ai trouvé
+
+J'ai cloné ton dépôt GitHub — il est public — et j'ai enfin lu tes **vrais**
+fichiers au lieu d'une copie que tu m'avais envoyée il y a des heures. Deux
+composants expliquent tout.
+
+### 1. `settings.tsx` était une maquette
+
+Première ligne de ton fichier, écrite noir sur blanc :
+
+```
+// Version simplifiée : on utilise useState localement
+```
+
+112 lignes. Trois `useState` locaux. Zéro store, zéro appel au serveur, zéro
+traduction — tous les textes en dur, en français.
+
+Donc : cliquer « Sombre » ne changeait pas le thème. Rien n'était enregistré.
+Et « Code de calcul » ne pouvait pas disparaître, puisque mes correctifs
+cherchaient des motifs dans un fichier qui ne les contenait plus.
+
+### 2. Le sélecteur de langue écrivait dans la mauvaise clé
+
+```
+language-switcher.tsx  →  localStorage["tred.locale"]
+stores/locale.ts       →  localStorage["aerostudy-locale"]
+```
+
+Deux clés différentes. **Changer la langue ne touchait jamais l'interface.**
+Elle changeait la langue du tuteur — le chat lit bien `tred.locale` — et rien
+d'autre. Le menu passait en italien, tous les libellés restaient en français.
+
+Il contournait aussi `setLocale`, c'est-à-dire l'endroit où la langue est
+envoyée au serveur. Rien n'était conservé.
+
+**Tout ce qu'il fallait existait déjà** : `useThemeStore`, `useFontSizeStore`,
+`useUserStore`, `account.dataExport`, `account.deleteAccount`, un store de
+langue soigné qui prévient le serveur. Deux maquettes recouvraient tout ça.
+
+## Les étapes
 
 ```
 cd C:\dev\tred-rdm\aerostudy-ai
-tar -xf "%USERPROFILE%\Downloads\tred-tout.zip" -C .
-node tout.mjs
-```
-
-Quatre étapes, quatre lignes vertes au bilan.
-
-Puis :
-
-```
-bun --env-file=.env migration-memoire.mjs
+tar -xf "%USERPROFILE%\Downloads\tred-reglages.zip" -C .
+node patch-reglages.mjs
 bun run verify
-git add -A && git commit -m "correctifs" && git push
+git add -A && git commit -m "page reglages reelle" && git push
 ```
 
-## Ce que contient chaque étape
+Quatre lignes vertes (une par langue).
 
-**1. La mémoire ne peut plus casser le chat.** Tu as déployé le code de la
-mémoire ; s'il tourne sans la table `misconception`, chaque message lève une
-exception et `/api/agent/messages` tombe. Désormais la mémoire se désactive
-toute seule, écrit une ligne dans les journaux Railway, et le tuteur repart
-comme avant. Une fonction de confort ne doit jamais emporter la fonction
-principale.
+## Ce que tu verras
 
-**2. Dix langues côté serveur.** Il y avait deux tables couvrant `de`, `fr`,
-`en`, alors que ton interface propose dix langues. Le code retombait
-explicitement en allemand pour les sept autres — sans message, sans trace.
-Une seule table désormais, quinze langues, chacune avec sa consigne rédigée
-dans la langue.
+- **Thème** clair / sombre / système — qui fonctionne, et qui persiste
+- **Taille du texte** — les trois « A » sont dessinés à leur propre taille
+- **Langue de l'interface** — qui change vraiment l'interface, sans recharger
+- **Mode allemand technique** — l'interrupteur relié à ton store
+- **Abonnement** — ton forfait réel, lien vers la page de tarifs
+- **Exporter mes données** — RGPD art. 15 et 20, le JSON se télécharge
+- **Supprimer mon compte** — RGPD art. 17, avec saisie de « LÖSCHEN »
+- **Plus de « Code de calcul »**
 
-**3 et 4. La palette bleu calque et le fond animé.** Dans cet ordre : la
-palette pose le jeton `--amb` que le fond utilise. Inversés, le fond
-retomberait sur la couleur des boutons.
+Et douze langues dans le menu : les quatre traduites changent toute
+l'application, les huit autres changent le tuteur et sont marquées d'un point.
+Pour un étudiant, la langue des réponses compte plus que celle des boutons.
 
-## Ce que ça touche
+## Vérifié sur ton vrai code
 
-| Fichier | Étape |
-|---|---|
-| `api/lib/memory.ts` | remplacé (1) |
-| `api/lib/languages.ts` | nouveau (2) |
-| `api/agent/index.ts` | table unique (2) |
-| `api/index.ts` | table unique (2) |
-| `web/styles.css` | 62 jetons de couleur (3) |
-| `web/components/ambient-background.tsx` | nouveau (4) |
-| `web/pages/login.tsx`, `components/layout.tsx` | fond monté (4) |
-| `.gitignore` | les `*.bak` sortent du dépôt (1) |
-
-Chaque fichier modifié garde son `.bak` à côté. Relancer `tout.mjs` ne fait
-rien de plus.
-
-## Et si rien ne change encore une fois
-
-Alors le problème n'est pas dans le code. Va sur **railway.app → ton projet →
-Deployments** : un déploiement doit apparaître dans la minute qui suit ton
-`git push`, et finir en vert. S'il n'apparaît pas, Railway n'écoute pas ce
-dépôt — et c'est la seule chose qui compte à ce moment-là.
+Les deux fichiers compilent contre ton dépôt cloné. Chaque import, chaque
+export utilisé a été contrôlé un par un : `Theme`, `FontSize`, `germanMode`,
+`Switch`, `Input`, `account.dataExport`, `account.deleteAccount`.

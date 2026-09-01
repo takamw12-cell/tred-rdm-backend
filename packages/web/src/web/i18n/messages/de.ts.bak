@@ -1,6 +1,18 @@
 // German is the canonical message set. Its shape defines the Messages type;
 // fr.ts and en.ts must match it exactly.
 export const de = {
+  memory: {
+    title: "Woran du gerade arbeitest",
+    subtitle: "Was TRED sich aus euren Gesprächen gemerkt hat. Du entscheidest, was hier steht.",
+    times: "{n}×",
+    today: "heute",
+    yesterday: "gestern",
+    daysAgo: "vor {n} Tagen",
+    weeksAgo: "vor {n} Wochen",
+    understood: "Verstanden",
+    wrong: "Stimmt nicht",
+    more: "+{n} weitere",
+  },
   search: {
     title: "Suche",
     placeholder: "Dokumente, Unterhaltungen, Übungen durchsuchen …",
