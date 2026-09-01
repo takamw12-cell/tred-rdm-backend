@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="7 24 86 57">
-  <g transform="translate(50 50) scale(1.0) translate(-50 -50)">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" fill="#F8F9FA"/><g transform="translate(50 50) scale(0.8) translate(-50 -50)">
     <g fill="#111111">
       <rect x="10" y="27" width="80" height="32" rx="16"/>
       <g transform="rotate(-26 24 47)"><rect x="11" y="39" width="23" height="40" rx="11.5"/></g>

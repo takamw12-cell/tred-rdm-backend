@@ -1,5 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="7 24 86 57">
-  <g transform="translate(50 50) scale(1.0) translate(-50 -50)">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#F8F9FA"/>
+  <g transform="translate(600 250) scale(3.4) translate(-50 -50)"><g transform="translate(50 50) scale(1.0) translate(-50 -50)">
     <g fill="#111111">
       <rect x="10" y="27" width="80" height="32" rx="16"/>
       <g transform="rotate(-26 24 47)"><rect x="11" y="39" width="23" height="40" rx="11.5"/></g>
@@ -13,5 +14,9 @@
       <rect x="21" y="32.5" width="21" height="7.5" rx="3.75"/>
       <rect x="27.75" y="32.5" width="7.5" height="21" rx="3.75"/>
     </g>
-  </g>
+  </g></g>
+  <text x="600" y="470" text-anchor="middle" font-family="IBM Plex Sans Condensed, Arial Narrow, sans-serif"
+        font-size="96" font-weight="700" fill="#111111" letter-spacing="-2">TRED</text>
+  <text x="600" y="530" text-anchor="middle" font-family="IBM Plex Sans, Arial, sans-serif"
+        font-size="32" fill="#5B6572">Dein Kurs. Dein Tempo.</text>
 </svg>
