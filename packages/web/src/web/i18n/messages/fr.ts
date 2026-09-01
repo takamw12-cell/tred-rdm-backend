@@ -2,6 +2,18 @@ import type { Messages } from "../types";
 
 // German technical terms are intentionally preserved verbatim, glossed in French.
 export const fr: Messages = {
+  memory: {
+    title: "Ce sur quoi tu travailles",
+    subtitle: "Ce que TRED a retenu de vos échanges. C'est toi qui décides de ce qui figure ici.",
+    times: "{n}×",
+    today: "aujourd'hui",
+    yesterday: "hier",
+    daysAgo: "il y a {n} jours",
+    weeksAgo: "il y a {n} semaines",
+    understood: "Compris",
+    wrong: "C'est faux",
+    more: "+{n} autres",
+  },
   search: {
     title: "Recherche",
     placeholder: "Chercher dans les documents, conversations, exercices …",

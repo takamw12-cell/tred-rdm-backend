@@ -4,6 +4,7 @@ import { calculate } from "../lib/calc";
 import { solveRdmSafe, type SupportKind } from "../lib/rdm-solver";
 import { toSI } from "../lib/units";
 import { renderDiagram, type DiagramSpec } from "../lib/diagrams";
+import { ageLabel } from "../lib/memory-text";
 import dedent from "dedent";
 import { gateway } from "./gateway";
 
@@ -85,6 +86,65 @@ function langRule(locale?: string) {
  * with [[SEITE n]] markers — is injected so answers stay on the material and
  * can cite exact pages.
  */
+/**
+ * Ce que le tuteur sait de l'étudiant, et comment il l'enrichit.
+ *
+ * Passé sous forme de fonctions plutôt que d'accès direct à la base :
+ * l'agent reste un module sans dépendance au schéma.
+ */
+export interface TutorMemory {
+  /** Lacunes ouvertes, les plus tenaces d'abord. */
+  open: { label: string; topic: string; timesSeen: number; lastSeen: Date }[];
+  /** Enregistre ou incrémente. `repeat` dit si c'est une récidive. */
+  note: (input: { topic: string; label: string; detail: string }) => Promise<{
+    repeat: boolean;
+    timesSeen: number;
+  }>;
+  /** Marque une lacune comme comblée. */
+  resolve: (label: string) => Promise<boolean>;
+}
+
+/**
+ * Le bloc « ce que tu sais de cette personne », ou une chaîne vide.
+ *
+ * Construit à part plutôt qu'inséré comme expression au milieu du prompt :
+ * un gabarit imbriqué dans un autre devient illisible, et c'est exactement
+ * le genre d'endroit où une accolade oubliée casse tout le prompt.
+ */
+function buildMemoryBlock(memory?: TutorMemory): string {
+  if (!memory || memory.open.length === 0) return "";
+
+  const lines = memory.open
+    .map(
+      (g) =>
+        "  - " +
+        g.label +
+        " (" + g.topic + ", " + g.timesSeen + "\u00d7, zuletzt " + ageLabel(g.lastSeen) + ")",
+    )
+    .join("\n");
+
+  return [
+    "\u2550".repeat(59),
+    "NIVEAU 2b \u2014 WAS DU \u00dcBER DIESE PERSON WEISST",
+    "\u2550".repeat(59),
+    "Offene Denkl\u00fccken aus fr\u00fcheren Gespr\u00e4chen:",
+    "",
+    lines,
+    "",
+    "SO BENUTZT DU DIESES WISSEN:",
+    "- Ber\u00fchrt die aktuelle Frage eine dieser L\u00fccken, sprich sie AKTIV an,",
+    "  bevor du weitermachst. Genau daf\u00fcr ist die Liste da.",
+    '- Sag es freundlich und ohne Vorwurf: "Das hatten wir schon einmal \u2014',
+    '  schau, worauf es dabei ankommt \u2026"',
+    "- Erkl\u00e4rt der/die Studierende den Zusammenhang jetzt eigenst\u00e4ndig",
+    "  und richtig, benutze luecke_geschlossen.",
+    "- Erw\u00e4hne NIEMALS die Liste als solche. Du erinnerst dich \u2014 du",
+    "  liest nicht aus einer Akte vor.",
+    "- Im Pr\u00fcfungsmodus: nur beobachten und aufzeichnen, nichts sagen.",
+    "",
+  ].join("\n");
+}
+
 export interface TutorSource {
   title: string;
   kind: string;
@@ -104,8 +164,11 @@ export function buildTutorAgent(opts: {
   calcMode?: boolean;
   /** Preferred code language when calcMode is on: "matlab" | "python". */
   codeLang?: string;
+  /** Mémoire du tuteur. Absente = comportement d'avant, sans diagnostic. */
+  memory?: TutorMemory;
 }) {
   const rule = langRule(opts.locale);
+  const memoryBlock = buildMemoryBlock(opts.memory);
   const lang = rule.label;
   const student = opts.studentName?.trim() || null;
   const uni = opts.university?.trim() || "FH Aachen";
@@ -208,6 +271,7 @@ export function buildTutorAgent(opts: {
           FRUSTRATION: erkennen → entlasten → einen kleinen Erfolg anbieten
           → die Wahl lassen.
 
+          ${memoryBlock}
           ═══════════════════════════════════════════════════════════
           NIVEAU 3 — SPRACHEN
           ═══════════════════════════════════════════════════════════
@@ -692,6 +756,57 @@ export function buildTutorAgent(opts: {
       // Ein Sprachmodell SCHREIBT Zahlen, es RECHNET sie nicht. Damit
       // Zwischenergebnisse und Umschaltpunkte belastbar sind, werden sie hier
       // tatsächlich ausgerechnet statt formuliert.
+      // ── Diagnostic ────────────────────────────────────────────────────
+      // La description est stricte à dessein : un profil rempli de fautes
+      // d'inattention ne sert à rien et devient vite pénible à lire.
+      ...(opts.memory
+        ? {
+            merke_luecke: tool({
+              description:
+                "H\u00e4lt eine DENKL\u00dcCKE fest, die wiederkommen wird. NUR benutzen " +
+                "bei einer echten begrifflichen Fehlvorstellung \u2014 etwa Spannung " +
+                "und Dehnung verwechseln, ein Vorzeichen systematisch falsch " +
+                "setzen, eine Formel auf einen Fall anwenden, f\u00fcr den sie nicht " +
+                "gilt. NICHT benutzen bei Rechenfehlern, Tippfehlern, " +
+                "Fl\u00fcchtigkeit oder einer blo\u00dfen Wissensl\u00fccke. Im Zweifel: " +
+                "nicht benutzen. Formuliere kurz und in der dritten Person, so " +
+                "dass es in vier Wochen noch verst\u00e4ndlich ist.",
+              inputSchema: z.object({
+                thema: z.string().describe("Fach oder Kapitel"),
+                kurzform: z
+                  .string()
+                  .describe("Ein Satz, z. B. Verwechselt Spannung und Dehnung"),
+                detail: z
+                  .string()
+                  .optional()
+                  .describe("Woran es sich gezeigt hat, in ein bis zwei S\u00e4tzen"),
+              }),
+              execute: async ({ thema, kurzform, detail }) =>
+                opts.memory!.note({
+                  topic: thema,
+                  label: kurzform,
+                  detail: detail ?? "",
+                }),
+            }),
+
+            luecke_geschlossen: tool({
+              description:
+                "Markiert eine fr\u00fcher festgehaltene Denkl\u00fccke als ausger\u00e4umt. " +
+                "Benutzen, wenn der/die Studierende den Zusammenhang jetzt " +
+                "eigenst\u00e4ndig und richtig erkl\u00e4rt \u2014 nicht schon dann, wenn " +
+                "er oder sie deiner Erkl\u00e4rung nur zustimmt.",
+              inputSchema: z.object({
+                kurzform: z
+                  .string()
+                  .describe("Die Kurzform der L\u00fccke, wie sie in der Liste steht"),
+              }),
+              execute: async ({ kurzform }) => ({
+                geschlossen: await opts.memory!.resolve(kurzform),
+              }),
+            }),
+          }
+        : {}),
+
       rechnen: tool({
         description:
           "Rechnet einen arithmetischen Ausdruck exakt aus. IMMER benutzen, " +

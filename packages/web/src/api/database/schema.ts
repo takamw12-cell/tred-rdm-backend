@@ -149,6 +149,36 @@ export const usageCounter = sqliteTable(
 
 export type UsageCounter = typeof usageCounter.$inferSelect;
 
+// ── Was der Tutor sich gemerkt hat ────────────────────────────────────────
+// Eine *Denklücke*, kein Rechenfehler: eine falsche Vorstellung, die
+// wiederkommt, solange sie nicht ausgeräumt ist. `timesSeen` ist das
+// eigentliche Signal — einmal ist Unachtsamkeit, dreimal ist ein Muster.
+//
+// Gelöste Einträge werden NICHT gelöscht, sondern auf "resolved" gesetzt:
+// der Verlauf ist der Beleg dafür, dass jemand vorankommt.
+export const misconception = sqliteTable(
+  "misconception",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    semesterId: text("semester_id"),
+    topic: text("topic").notNull().default("Allgemein"),
+    label: text("label").notNull(),
+    detail: text("detail").notNull().default(""),
+    status: text("status").notNull().default("open"), // open | resolved
+    timesSeen: integer("times_seen").notNull().default(1),
+    firstSeen: integer("first_seen", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    lastSeen: integer("last_seen", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("misconception_user_status_idx").on(t.userId, t.status)],
+);
+
+export type Misconception = typeof misconception.$inferSelect;
+
 export * from "./auth-schema";
 
 // ── Zugang: Sperre und Rolle ──────────────────────────────────────────────
