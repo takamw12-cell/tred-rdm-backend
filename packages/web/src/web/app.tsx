@@ -1,4 +1,5 @@
 import { Route, Switch, Redirect } from "wouter";
+import LegalPage from "@/pages/legal";
 import ResetPasswordPage from "@/pages/reset-password";
 import { ErrorBoundary, installGlobalErrorReporting } from "@/components/error-boundary";
 import { Loader2 } from "lucide-react";
@@ -37,7 +38,6 @@ function LoadingScreen() {
 function AuthedApp() {
   return (
     <Switch>
-      <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/" component={RootRedirect} />
       <Route path="/onboarding" component={OnboardingPage} />
       <Route path="/exam" component={ExamPage} />
@@ -76,7 +76,29 @@ installGlobalErrorReporting();
 function App() {
   return (
     <Provider>
-      <Gate />
+      {/* ── Routes publiques ────────────────────────────────────────────────
+          Montées AVANT <Gate />, qui renvoie l'écran de connexion dès qu'il
+          n'y a pas de session.
+
+          • Les mentions légales : § 5 DDG exige que l'Impressum soit
+            « unmittelbar erreichbar » — joignable sans détour, donc sans
+            connexion. Derrière un mur de connexion, l'obligation n'est pas
+            remplie.
+
+          • La réinitialisation du mot de passe : on arrive dessus DÉCONNECTÉ,
+            par un lien reçu par e-mail. Placée dans la zone authentifiée, elle
+            ne s'ouvrait jamais — le lien renvoyait à la page de connexion, et
+            personne ne pouvait changer son mot de passe. */}
+      <Switch>
+        <Route path="/impressum">{() => <LegalPage doc="impressum" />}</Route>
+        <Route path="/datenschutz">{() => <LegalPage doc="datenschutz" />}</Route>
+        <Route path="/widerruf">{() => <LegalPage doc="widerruf" />}</Route>
+        <Route path="/agb">{() => <LegalPage doc="agb" />}</Route>
+        <Route path="/reset-password" component={ResetPasswordPage} />
+        <Route>
+          <Gate />
+        </Route>
+      </Switch>
     </Provider>
   );
 }

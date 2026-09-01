@@ -1,4 +1,6 @@
 import { Route, Switch, Redirect } from "wouter";
+import ResetPasswordPage from "@/pages/reset-password";
+import { ErrorBoundary, installGlobalErrorReporting } from "@/components/error-boundary";
 import { Loader2 } from "lucide-react";
 import { Provider } from "./components/provider";
 import { AppLayout } from "./components/layout";
@@ -35,10 +37,12 @@ function LoadingScreen() {
 function AuthedApp() {
   return (
     <Switch>
+      <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/" component={RootRedirect} />
       <Route path="/onboarding" component={OnboardingPage} />
       <Route path="/exam" component={ExamPage} />
       <Route>
+        <ErrorBoundary area="app">
         <AppLayout>
           <Switch>
             <Route path="/dashboard" component={DashboardPage} />
@@ -54,6 +58,7 @@ function AuthedApp() {
             <Route component={RootRedirect} />
           </Switch>
         </AppLayout>
+        </ErrorBoundary>
       </Route>
     </Switch>
   );
@@ -65,6 +70,8 @@ function Gate() {
   if (!session) return <LoginPage />;
   return <AuthedApp />;
 }
+
+installGlobalErrorReporting();
 
 function App() {
   return (
