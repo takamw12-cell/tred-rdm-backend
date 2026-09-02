@@ -7,6 +7,9 @@ import { cn } from "@/lib/utils";
 import { MermaidDiagram, ChartBlock, TikzDiagram, SvgBlock } from "./diagram-blocks";
 import { CodeBlock, isHighlightableLang } from "./code-block";
 import { Curriculum, parseCurriculum } from "./curriculum";
+import { MARK, rehypeEnrich } from "./enrich";
+import { DictionaryTooltip } from "./dictionary-tooltip";
+import { SourceCitation } from "./source-citation";
 
 // Intercept fenced code blocks: ```mermaid renders a real diagram, ```chart
 // renders a plotted graph (Q/M curves, Mohr circle, …). Everything else keeps
@@ -27,6 +30,37 @@ function rawCode(node: unknown): string {
 }
 
 const components: Components = {
+  /**
+   * `rehypeEnrich` marque les termes techniques et les citations de source
+   * avec des `data-tred-*`. C'est ici qu'ils redeviennent des composants.
+   *
+   * Un `span` porteur de données plutôt qu'une balise inventée : une balise
+   * inconnue dépend du bon vouloir de la chaîne de rendu, un `span` non.
+   */
+  span(props) {
+    const { node, children, ...rest } = props as {
+      node?: { properties?: Record<string, unknown> };
+      children?: React.ReactNode;
+    };
+    const p = node?.properties ?? {};
+
+    const termId = p[MARK.term];
+    if (typeof termId === "string" && termId) {
+      return <DictionaryTooltip termId={termId}>{children}</DictionaryTooltip>;
+    }
+
+    if (p[MARK.cite]) {
+      const page = Number(p[MARK.page]);
+      const doc = String(p[MARK.doc] ?? "").trim();
+      // Une page illisible vaut mieux affichée en texte que sous forme de
+      // « Seite NaN » : on laisse alors passer le rendu normal.
+      if (doc && Number.isFinite(page) && page > 0) {
+        return <SourceCitation doc={doc} page={page} />;
+      }
+    }
+
+    return <span {...rest}>{children}</span>;
+  },
   code(props) {
     const { className, children } = props as {
       className?: string;
@@ -314,7 +348,9 @@ export function MarkdownContent({
     >
       <Markdown
         remarkPlugins={[remarkMath, remarkGfm]}
-        rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}
+        // L'ordre compte : KaTeX construit ses formules d'abord, l'enrichissement
+        // passe ensuite et sait alors reconnaître — et éviter — ses sous-arbres.
+        rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }], rehypeEnrich]}
         components={components}
       >
         {repairSvgFences(repairMath(splitGluedMath(content)))}
