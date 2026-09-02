@@ -1,0 +1,12 @@
+# Ce qui n'a rien à faire dans une archive de build.
+# EAS envoie tout le dépôt : sans ce fichier, on téléverse les sauvegardes,
+# les sorties de compilation et les journaux à chaque build.
+**/*.bak
+**/dist/
+**/build/
+**/.turbo/
+**/coverage/
+sortie.txt
+*.log
+packages/desktop/
+packages/web/public/videos/
