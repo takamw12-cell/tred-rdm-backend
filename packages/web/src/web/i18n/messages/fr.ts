@@ -493,7 +493,8 @@ export const fr: Messages = {
     codeLangDesc: "Utilisé dans le Mode Calcul du chat (MATLAB ou Python).",
     privacySection: "Confidentialité",
     deleteAccount: "Supprimer le compte",
-    deleteAccountDesc: "Votre compte et toutes vos données seront définitivement supprimés.",
+    deleteAccountDesc:
+      "Irréversible. Compte, documents, conversations, semestres, exercices sauvegardés, crédits et appareils — tout disparaît. Il n'y a pas de corbeille.",
     privacyDesc: "Nous ne vendons jamais vos données. Vous contrôlez tout.",
   },
   pricing: {

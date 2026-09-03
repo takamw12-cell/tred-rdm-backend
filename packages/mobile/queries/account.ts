@@ -46,14 +46,6 @@ export function useDataExport() {
   return useMutation(orpc.account.dataExport.mutationOptions());
 }
 
-/** Les tables concernées par l'effacement — pour l'écran de confirmation. */
-export function useDeletionScope() {
-  return useQuery({
-    ...orpc.account.deletionScope.queryOptions(),
-    staleTime: Infinity,
-  });
-}
-
 /**
  * DSGVO Art. 17 — l'effacement. IRRÉVERSIBLE.
  *

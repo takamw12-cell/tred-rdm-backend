@@ -493,7 +493,8 @@ export const en: Messages = {
     codeLangDesc: "Used in the chat's Calc Mode (MATLAB or Python).",
     privacySection: "Privacy",
     deleteAccount: "Delete account",
-    deleteAccountDesc: "Your account and all data will be permanently deleted.",
+    deleteAccountDesc:
+      "Irreversible. Account, documents, conversations, semesters, saved exercises, credits and devices — all of it goes. There is no trash bin.",
     privacyDesc: "We never sell your data. You are in control.",
   },
   pricing: {

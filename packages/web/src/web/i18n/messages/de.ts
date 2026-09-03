@@ -492,7 +492,8 @@ export const de = {
     codeLangDesc: "Wird im Rechenmodus des Chats verwendet (MATLAB oder Python).",
     privacySection: "Datenschutz",
     deleteAccount: "Konto löschen",
-    deleteAccountDesc: "Dein Konto und alle Daten werden dauerhaft gelöscht.",
+    deleteAccountDesc:
+      "Unwiderruflich. Konto, Unterlagen, Unterhaltungen, Semester, gespeicherte Übungen, Guthaben und Geräte — alles wird entfernt. Es gibt keinen Papierkorb.",
     privacyDesc: "Wir verkaufen deine Daten niemals. Du kontrollierst alles.",
   },
   pricing: {

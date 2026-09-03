@@ -505,7 +505,8 @@ export const es: Messages = {
     codeLangDesc: "Se usa en el modo cálculo del chat (MATLAB o Python).",
     privacySection: "Privacidad",
     deleteAccount: "Eliminar la cuenta",
-    deleteAccountDesc: "Tu cuenta y todos tus datos se eliminarán definitivamente.",
+    deleteAccountDesc:
+      "Irreversible. Cuenta, documentos, conversaciones, semestres, ejercicios guardados, créditos y dispositivos: todo desaparece. No hay papelera.",
     privacyDesc: "Nunca vendemos tus datos. Tú tienes el control.",
   },
   pricing: {
