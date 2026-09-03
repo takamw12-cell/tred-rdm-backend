@@ -13,6 +13,12 @@ export const en: Messages = {
     understood: "Got it",
     wrong: "Not true",
     more: "+{n} more",
+    reviewTitle: "Review today",
+    reviewSubtitle: "What you weren't sure about last time. Two minutes is enough.",
+    reviewKnown: "I know it",
+    reviewNotYet: "Not yet",
+    reviewLeft: "{n} left",
+    reviewStreak: "{n}× correct in a row",
   },
   search: {
     title: "Search",

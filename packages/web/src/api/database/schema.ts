@@ -17,7 +17,13 @@ export const semester = sqliteTable("semester", {
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
-});
+  },
+  // Sans index sur userId, la base parcourt les lignes de TOUS les
+  // étudiants à chaque lecture. Invisible à dix, décisif à mille.
+  (t) => [
+    index("semester_user_idx").on(t.userId),
+  ],
+);
 
 export type Semester = typeof semester.$inferSelect;
 
@@ -46,7 +52,14 @@ export const document = sqliteTable("document", {
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
-});
+  },
+  // Sans index sur userId, la base parcourt les lignes de TOUS les
+  // étudiants à chaque lecture. Invisible à dix, décisif à mille.
+  (t) => [
+    index("document_user_created_idx").on(t.userId, t.createdAt),
+    index("document_semester_idx").on(t.semesterId),
+  ],
+);
 
 export type Document = typeof document.$inferSelect;
 
@@ -70,7 +83,13 @@ export const chatConversation = sqliteTable("chat_conversation", {
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
-});
+  },
+  // Sans index sur userId, la base parcourt les lignes de TOUS les
+  // étudiants à chaque lecture. Invisible à dix, décisif à mille.
+  (t) => [
+    index("conversation_user_updated_idx").on(t.userId, t.updatedAt),
+  ],
+);
 
 export type ChatConversation = typeof chatConversation.$inferSelect;
 
@@ -109,7 +128,13 @@ export const savedExercise = sqliteTable("saved_exercise", {
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
-});
+  },
+  // Sans index sur userId, la base parcourt les lignes de TOUS les
+  // étudiants à chaque lecture. Invisible à dix, décisif à mille.
+  (t) => [
+    index("saved_exercise_user_created_idx").on(t.userId, t.createdAt),
+  ],
+);
 
 export type SavedExercise = typeof savedExercise.$inferSelect;
 
@@ -131,7 +156,13 @@ export const userPlan = sqliteTable("user_plan", {
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
-});
+  },
+  // Sans index sur userId, la base parcourt les lignes de TOUS les
+  // étudiants à chaque lecture. Invisible à dix, décisif à mille.
+  (t) => [
+    index("user_plan_user_idx").on(t.userId),
+  ],
+);
 
 export type UserPlan = typeof userPlan.$inferSelect;
 
@@ -167,6 +198,22 @@ export const misconception = sqliteTable(
     detail: text("detail").notNull().default(""),
     status: text("status").notNull().default("open"), // open | resolved
     timesSeen: integer("times_seen").notNull().default(1),
+
+    /**
+     * ── La planification des révisions ────────────────────────────────────
+     *
+     * Sans ces trois colonnes, « compris » clôturait une lacune pour toujours.
+     * L'app savait ce que l'étudiant ne comprenait pas et n'y revenait jamais.
+     *
+     * `dueAt` est nullable : les lignes écrites avant cette migration n'ont pas
+     * de rendez-vous. Elles sont traitées comme dues immédiatement plutôt que
+     * d'être perdues.
+     */
+    dueAt: integer("due_at", { mode: "timestamp" }),
+    /** Jours jusqu'à la prochaine révision. Double à chaque réussite. */
+    intervalDays: integer("interval_days").notNull().default(1),
+    /** Réussites consécutives. Remis à zéro par un échec. */
+    reviews: integer("reviews").notNull().default(0),
     firstSeen: integer("first_seen", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -174,7 +221,12 @@ export const misconception = sqliteTable(
       .notNull()
       .$defaultFn(() => new Date()),
   },
-  (t) => [index("misconception_user_status_idx").on(t.userId, t.status)],
+  (t) => [
+    index("misconception_user_status_idx").on(t.userId, t.status),
+    // La file de révision se lit « mes lacunes ouvertes dont l'échéance est
+    // passée, la plus ancienne d'abord ». Les trois colonnes dans cet ordre.
+    index("misconception_due_idx").on(t.userId, t.status, t.dueAt),
+  ],
 );
 
 export type Misconception = typeof misconception.$inferSelect;
@@ -202,7 +254,13 @@ export const userAccess = sqliteTable("user_access", {
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
-});
+  },
+  // Sans index sur userId, la base parcourt les lignes de TOUS les
+  // étudiants à chaque lecture. Invisible à dix, décisif à mille.
+  (t) => [
+    index("user_access_user_idx").on(t.userId),
+  ],
+);
 
 export type UserAccess = typeof userAccess.$inferSelect;
 
@@ -241,7 +299,13 @@ export const pushToken = sqliteTable("push_token", {
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
-});
+  },
+  // Sans index sur userId, la base parcourt les lignes de TOUS les
+  // étudiants à chaque lecture. Invisible à dix, décisif à mille.
+  (t) => [
+    index("push_token_user_idx").on(t.userId),
+  ],
+);
 
 export type PushToken = typeof pushToken.$inferSelect;
 
@@ -258,7 +322,13 @@ export const purchasedCredits = sqliteTable("purchased_credits", {
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
-});
+  },
+  // Sans index sur userId, la base parcourt les lignes de TOUS les
+  // étudiants à chaque lecture. Invisible à dix, décisif à mille.
+  (t) => [
+    index("purchased_credits_user_idx").on(t.userId),
+  ],
+);
 
 export type PurchasedCredits = typeof purchasedCredits.$inferSelect;
 

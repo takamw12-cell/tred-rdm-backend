@@ -13,6 +13,12 @@ export const fr: Messages = {
     understood: "Compris",
     wrong: "C'est faux",
     more: "+{n} autres",
+    reviewTitle: "À réviser aujourd'hui",
+    reviewSubtitle: "Ce dont tu n'étais pas sûr la dernière fois. Deux minutes suffisent.",
+    reviewKnown: "Je sais",
+    reviewNotYet: "Pas encore",
+    reviewLeft: "encore {n}",
+    reviewStreak: "{n} fois d'affilée",
   },
   search: {
     title: "Recherche",

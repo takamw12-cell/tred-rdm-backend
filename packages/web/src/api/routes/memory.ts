@@ -3,6 +3,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { authed } from "../middleware/auth";
 import { db } from "../database";
 import { misconception } from "../database/schema";
+import { dueGaps, reviewGap } from "../lib/memory";
 
 /**
  * Ce que le tuteur a retenu de l'étudiant.
@@ -36,7 +37,40 @@ export const memory = {
         timesSeen: r.timesSeen,
         firstSeen: r.firstSeen,
         lastSeen: r.lastSeen,
+        dueAt: r.dueAt,
+        intervalDays: r.intervalDays,
+        reviews: r.reviews,
       }));
+    }),
+
+  /**
+   * Ce qu'il est temps de revoir aujourd'hui.
+   *
+   * Séparé de `list` à dessein : `list` montre tout ce que TRED a retenu — la
+   * transparence — tandis que `due` ne rend que le travail du jour. Mélanger
+   * les deux donnerait une liste de vingt lignes dont l'étudiant ne saurait
+   * pas laquelle traiter.
+   */
+  due: authed
+    .input(z.object({ limit: z.number().int().min(1).max(20).optional() }).optional())
+    .handler(async ({ input, context }) => {
+      return dueGaps(context.user.id, input?.limit ?? 5);
+    }),
+
+  /**
+   * Enregistre une révision.
+   *
+   * `ok: true` double l'intervalle, `ok: false` le ramène à un jour. Au-delà
+   * de soixante jours, la notion est acquise et cesse de revenir.
+   *
+   * Remplace l'usage de `resolve` depuis la carte de révision : clore une
+   * lacune parce qu'on l'a comprise une fois était précisément le défaut —
+   * l'app oubliait ce qu'elle venait d'apprendre sur l'étudiant.
+   */
+  review: authed
+    .input(z.object({ id: z.string().min(1), ok: z.boolean() }))
+    .handler(async ({ input, context }) => {
+      return reviewGap(context.user.id, input.id, input.ok);
     }),
 
   /** « J'ai compris » : l'étudiant peut clore une lacune lui-même. */

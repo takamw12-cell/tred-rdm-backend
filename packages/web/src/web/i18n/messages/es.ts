@@ -25,6 +25,12 @@ export const es: Messages = {
     understood: "Entendido",
     wrong: "No es correcto",
     more: "+{n} más",
+    reviewTitle: "Repasar hoy",
+    reviewSubtitle: "Lo que la última vez no tenías claro. Bastan dos minutos.",
+    reviewKnown: "Lo sé",
+    reviewNotYet: "Todavía no",
+    reviewLeft: "quedan {n}",
+    reviewStreak: "{n} veces seguidas",
   },
   search: {
     title: "Buscar",

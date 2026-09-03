@@ -1,6 +1,7 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, lte, or } from "drizzle-orm";
 import { db } from "../database";
 import { misconception } from "../database/schema";
+import { firstSchedule, nextSchedule } from "./memory-schedule";
 import { sameGap } from "./memory-text";
 
 /**
@@ -42,6 +43,12 @@ export interface Gap {
   timesSeen: number;
   firstSeen: Date;
   lastSeen: Date;
+  /** Quand la lacune redevient à réviser. `null` = avant la planification. */
+  dueAt: Date | null;
+  /** Jours jusqu'à la prochaine révision. Double à chaque réussite. */
+  intervalDays: number;
+  /** Réussites consécutives. */
+  reviews: number;
 }
 
 /**
@@ -82,6 +89,9 @@ export async function openGaps(userId: string, limit = 8): Promise<Gap[]> {
       timesSeen: r.timesSeen,
       firstSeen: r.firstSeen,
       lastSeen: r.lastSeen,
+      dueAt: r.dueAt,
+      intervalDays: r.intervalDays,
+      reviews: r.reviews,
     }));
   } catch (error) {
     memoryFailed("openGaps", error);
@@ -122,9 +132,12 @@ export async function noteGap(
 
     if (match) {
       const timesSeen = match.timesSeen + 1;
+      // Retrébucher sur la même notion est un échec de révision, même si la
+      // question n'était pas posée comme telle : on remet le compteur à zéro
+      // et l'échéance à demain.
       await db
         .update(misconception)
-        .set({ timesSeen, lastSeen: now })
+        .set({ timesSeen, lastSeen: now, ...nextSchedule(match, false, now) })
         .where(eq(misconception.id, match.id));
       return { repeat: true, timesSeen };
     }
@@ -136,10 +149,13 @@ export async function noteGap(
       topic: input.topic.trim().slice(0, 80) || "Allgemein",
       label,
       detail: (input.detail ?? "").trim().slice(0, 500),
-      status: "open",
       timesSeen: 1,
       firstSeen: now,
       lastSeen: now,
+      // Le premier rendez-vous : demain, pas dans une heure — l'explication
+      // est encore sous ses yeux. Fournit aussi `status: "open"`, d'où
+      // l'absence de ligne séparée.
+      ...firstSchedule(now),
     });
 
     return { repeat: false, timesSeen: 1 };
@@ -177,5 +193,104 @@ export async function resolveGap(
   } catch (error) {
     memoryFailed("resolveGap", error);
     return false;
+  }
+}
+
+/* ── La file de révision ─────────────────────────────────────────────────── */
+
+/**
+ * Les lacunes qu'il est temps de revoir.
+ *
+ * `dueAt IS NULL` est inclus volontairement : ce sont les lacunes enregistrées
+ * avant que la planification existe. Sans cette clause, elles resteraient
+ * invisibles pour toujours — un silence pire qu'une erreur.
+ *
+ * Tri par échéance croissante : la plus en retard passe la première. C'est
+ * aussi celle que l'étudiant a le plus de risques d'avoir oubliée.
+ */
+export async function dueGaps(userId: string, limit = 5): Promise<Gap[]> {
+  if (disabled) return [];
+
+  try {
+    const now = new Date();
+    const rows = await db
+      .select()
+      .from(misconception)
+      .where(
+        and(
+          eq(misconception.userId, userId),
+          eq(misconception.status, "open"),
+          or(isNull(misconception.dueAt), lte(misconception.dueAt, now)),
+        ),
+      )
+      .orderBy(asc(misconception.dueAt), desc(misconception.timesSeen))
+      .limit(limit);
+
+    return rows.map((r) => ({
+      id: r.id,
+      topic: r.topic,
+      label: r.label,
+      detail: r.detail,
+      timesSeen: r.timesSeen,
+      firstSeen: r.firstSeen,
+      lastSeen: r.lastSeen,
+      dueAt: r.dueAt,
+      intervalDays: r.intervalDays,
+      reviews: r.reviews,
+    }));
+  } catch (error) {
+    memoryFailed("dueGaps", error);
+    return [];
+  }
+}
+
+/**
+ * Enregistre une révision et fixe le rendez-vous suivant.
+ *
+ * Le calcul est dans `memory-schedule.ts`, qui ne touche pas la base : cette
+ * fonction ne fait que lire, appeler, écrire. C'est ce qui rend la règle
+ * vérifiable sans base de données.
+ *
+ * La vérification du propriétaire est dans le `where` de la mise à jour, pas
+ * dans un `if` après lecture : entre les deux, rien ne peut s'intercaler.
+ */
+export async function reviewGap(
+  userId: string,
+  id: string,
+  ok: boolean,
+): Promise<{ ok: true; dueAt: Date; status: string } | { ok: false }> {
+  if (disabled) return { ok: false };
+
+  try {
+    const [row] = await db
+      .select()
+      .from(misconception)
+      .where(and(eq(misconception.id, id), eq(misconception.userId, userId)))
+      .limit(1);
+
+    if (!row) return { ok: false };
+
+    const now = new Date();
+    const next = nextSchedule(row, ok, now);
+
+    await db
+      .update(misconception)
+      .set({
+        dueAt: next.dueAt,
+        intervalDays: next.intervalDays,
+        reviews: next.reviews,
+        status: next.status,
+        lastSeen: now,
+        // Une révision ratée compte comme une rencontre de plus avec la
+        // difficulté : c'est ce compteur qui distingue « distraction » de
+        // « blocage réel », et il doit continuer de monter.
+        timesSeen: ok ? row.timesSeen : row.timesSeen + 1,
+      })
+      .where(and(eq(misconception.id, id), eq(misconception.userId, userId)));
+
+    return { ok: true, dueAt: next.dueAt, status: next.status };
+  } catch (error) {
+    memoryFailed("reviewGap", error);
+    return { ok: false };
   }
 }

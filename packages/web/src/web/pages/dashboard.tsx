@@ -26,6 +26,7 @@ import {
 import { PageContainer, Reveal } from "@/components/page";
 import { Card, CardContent } from "@/components/ui/card";
 import { MemoryCard } from "@/components/memory-card";
+import { ReviewCard } from "@/components/review-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -302,6 +303,12 @@ export default function DashboardPage() {
         <StatCard icon={<FileText className="text-learning size-4" />} value={String(stats.pages)} label={t("dashboard.pages")} />
         <StatCard icon={<BookOpen className="text-mastered size-4" />} value={String(stats.byKind.vorlesung)} label={t("library.kindVorlesung")} />
         <StatCard icon={<FileCheck className="text-primary size-4" />} value={String(stats.byKind.klausur)} label={t("library.kindKlausur")} />
+      </Reveal>
+
+      {/* La révision passe AVANT la mémoire : l'une demande une action du
+          jour, l'autre montre un état. L'action se place là où l'œil arrive. */}
+      <Reveal className="mb-6">
+        <ReviewCard />
       </Reveal>
 
       <Reveal className="mb-6">

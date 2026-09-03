@@ -12,6 +12,12 @@ export const de = {
     understood: "Verstanden",
     wrong: "Stimmt nicht",
     more: "+{n} weitere",
+    reviewTitle: "Heute wiederholen",
+    reviewSubtitle: "Was du zuletzt nicht sicher konntest. Zwei Minuten genügen.",
+    reviewKnown: "Ich kann es",
+    reviewNotYet: "Noch nicht",
+    reviewLeft: "noch {n}",
+    reviewStreak: "{n}× in Folge gewusst",
   },
   search: {
     title: "Suche",
