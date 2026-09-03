@@ -54,7 +54,12 @@
       "scheme": "tred",
       "privacyPolicyUrl": "https://aerostudy-production-0c66.up.railway.app/datenschutz",
       "termsUrl": "https://aerostudy-production-0c66.up.railway.app/agb",
-      "supportEmail": "takamw12@gmail.com"
-    }
+      "supportEmail": "takamw12@gmail.com",
+      "router": {},
+      "eas": {
+        "projectId": "14055aa9-319b-4945-b592-0ab0b8ae495a"
+      }
+    },
+    "owner": "tred12"
   }
 }
