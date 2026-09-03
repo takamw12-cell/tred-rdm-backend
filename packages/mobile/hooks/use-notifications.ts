@@ -77,7 +77,18 @@ export function useNotifications(enabled: boolean) {
         router.push("/paywall");
         return;
       }
-      if (data?.screen) router.push(`/(tabs)/${data.screen}` as never);
+      // La relance du soir mène à la révision. Sans cette ligne, le champ
+      // `screen: "review"` serait poussé vers `/(tabs)/review`, un onglet qui
+      // n'existe pas — la notification dérangerait sans rien ouvrir.
+      if (data?.screen === "review") {
+        router.push("/review");
+        return;
+      }
+
+      // Tout autre écran inconnu ramène à l'accueil. Pousser un chemin qui
+      // n'existe pas laisse l'application sur un écran d'erreur d'expo-router,
+      // ce qui se lit comme une panne alors que c'est une notification périmée.
+      if (data?.screen) router.push("/(tabs)");
     });
     return () => sub.remove();
   }, [router]);

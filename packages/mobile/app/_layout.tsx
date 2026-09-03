@@ -95,6 +95,10 @@ export default function RootLayout() {
                       options={{ presentation: "modal" }}
                     />
                     <Stack.Screen
+                      name="review"
+                      options={{ presentation: "modal" }}
+                    />
+                    <Stack.Screen
                       name="legal/[doc]"
                       options={{ presentation: "modal" }}
                     />

@@ -333,6 +333,32 @@ export const contentReport = sqliteTable(
 
 export type ContentReport = typeof contentReport.$inferSelect;
 
+/**
+ * Le journal des tâches planifiées. Une ligne par tâche, pas par exécution.
+ *
+ * ── À quoi ça sert vraiment ───────────────────────────────────────────────
+ *
+ * Cette table est un VERROU, pas un historique. La relance du soir tourne dans
+ * le processus du serveur : deux répliques Railway la déclencheraient donc
+ * deux fois, et l'étudiant recevrait deux notifications identiques. Avant
+ * d'envoyer quoi que ce soit, chaque réplique tente
+ *
+ *     UPDATE job_run SET ran_at = maintenant
+ *      WHERE key = 'evening_reminder' AND ran_at < début_de_la_journée
+ *
+ * SQLite rend le nombre de lignes touchées. Une seule réplique en obtient 1 ;
+ * les autres obtiennent 0 et ne font rien. Pas de service externe, pas de
+ * configuration, et le jour où tu passes à deux répliques rien ne change.
+ */
+export const jobRun = sqliteTable("job_run", {
+  key: text("key").primaryKey(),
+  ranAt: integer("ran_at").notNull().default(0),
+  /** Ce que la dernière exécution a fait — pour savoir si elle sert. */
+  note: text("note").notNull().default(""),
+});
+
+export type JobRun = typeof jobRun.$inferSelect;
+
 export * from "./auth-schema";
 
 // ── Zugang: Sperre und Rolle ──────────────────────────────────────────────

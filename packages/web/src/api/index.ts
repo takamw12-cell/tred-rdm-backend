@@ -64,6 +64,7 @@ import {
   withinTokenCap,
 } from "./lib/plan";
 import { notifyExerciseReady } from "./lib/push";
+import { startEveningReminder } from "./lib/evening-reminder";
 import { applySubscription, endSubscription } from "./lib/billing";
 import { grantCredits } from "./lib/credits";
 import {
@@ -97,6 +98,12 @@ export type AppRouter = typeof router;
 export type AppRouterClient = RouterClient<AppRouter>;
 
 const app = createApp(router);
+
+// La relance du soir. Elle ne fait rien avant 19 h à Berlin, et rien du tout
+// si une autre réplique a déjà pris le verrou du jour — voir
+// lib/evening-reminder.ts. Sans elle, la répétition espacée écrit des
+// rendez-vous que personne ne tient.
+startEveningReminder();
 
 // ── Limitation de débit ───────────────────────────────────────────────────
 // Montée AVANT tout le reste : une requête refusée ne doit toucher ni la

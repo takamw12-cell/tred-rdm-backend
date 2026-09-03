@@ -213,6 +213,18 @@ export const fr: Translations = {
     version: "Version {{version}}",
   },
 
+  review: {
+    title: "Révision",
+    left_one: "Une lacune t'attend",
+    left_other: "{{count}} lacunes t'attendent",
+    timesSeen_one: "Apparue une fois",
+    timesSeen_other: "Apparue {{count}} fois",
+    known: "Je sais",
+    notYet: "Pas encore",
+    doneTitle: "Rien à réviser",
+    doneBody: "Tout est à jour. On te préviendra quand quelque chose revient.",
+    hint: "« Je sais » double l'intervalle — 1, 2, 4, 8 jours. « Pas encore » la ramène demain.",
+  },
   report: {
     action: "Signaler",
     title: "Signaler cette réponse",

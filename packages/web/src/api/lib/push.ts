@@ -203,19 +203,12 @@ export function notifyExerciseReady(params: {
   });
 }
 
-/** Monatslimit erreicht — führt in der App direkt auf die Tarifseite. */
-export function notifyQuotaReached(params: {
-  userId: string;
-  metric: string;
-  plan: string;
-}): void {
-  sendNotificationSafe({
-    userId: params.userId,
-    title: "Monatslimit erreicht",
-    body:
-      params.plan === "free"
-        ? "Dein Freikontingent ist aufgebraucht. Mit einem Upgrade geht es sofort weiter."
-        : "Du hast dein Monatskontingent aufgebraucht. Nächsten Monat geht es weiter.",
-    data: { type: "quota_reached", metric: params.metric, screen: "pricing" },
-  });
-}
+/*
+ * `notifyQuotaReached` a été retirée : elle était écrite et jamais appelée.
+ *
+ * Et c'était juste. Une notification poussée pour annoncer un plafond atteint
+ * arrive pendant que l'étudiant regarde déjà le message d'erreur dans
+ * l'application — le quota ne se dépasse jamais en arrière-plan, toujours sur
+ * un geste. Le doublon serait du bruit, et le bruit fait couper les
+ * notifications, y compris celles qui servent.
+ */

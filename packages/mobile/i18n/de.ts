@@ -213,6 +213,18 @@ export const de = {
     version: "Version {{version}}",
   },
 
+  review: {
+    title: "Wiederholung",
+    left_one: "Eine Lücke wartet",
+    left_other: "{{count}} Lücken warten",
+    timesSeen_one: "Einmal aufgetaucht",
+    timesSeen_other: "{{count}} Mal aufgetaucht",
+    known: "Weiß ich",
+    notYet: "Noch nicht",
+    doneTitle: "Nichts zu wiederholen",
+    doneBody: "Alles im Kasten. Wir melden uns, wenn wieder etwas dran ist.",
+    hint: "„Weiß ich“ verdoppelt den Abstand — 1, 2, 4, 8 Tage. „Noch nicht“ holt die Lücke morgen zurück.",
+  },
   report: {
     action: "Melden",
     title: "Diese Antwort melden",

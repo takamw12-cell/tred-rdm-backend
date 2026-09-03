@@ -17,6 +17,7 @@ import { CreditBadge } from "@/components/CreditBadge";
 import { TredLogoIcon } from "@/components/TredLogoIcon";
 import { useColors } from "@/hooks/use-colors";
 import { useConversations } from "@/queries/chats";
+import { useDueGaps } from "@/queries/memory";
 import { Button } from "@/components/ui/Button";
 import { Radius, Space } from "@/constants/theme";
 
@@ -25,6 +26,8 @@ export default function Learn() {
   const c = useColors();
   const router = useRouter();
   const chats = useConversations();
+  const due = useDueGaps();
+  const dueCount = due.data?.length ?? 0;
 
   const formatDate = useCallback(
     (value: Date | string | number | null | undefined) => {
@@ -48,6 +51,31 @@ export default function Learn() {
         </View>
         <CreditBadge />
       </View>
+
+      {/* La révision, quand il y en a. Elle n'apparaît pas les autres jours :
+          une bannière permanente et souvent vide apprend à l'œil à sauter
+          cette zone, y compris les jours où elle compte. */}
+      {dueCount > 0 ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push("/review")}
+          style={({ pressed }) => [
+            styles.review,
+            { backgroundColor: c.accentSoft, borderColor: c.signature, opacity: pressed ? 0.85 : 1 },
+          ]}
+        >
+          <Ionicons name="flag" size={18} color={c.signature} />
+          <View style={styles.reviewText}>
+            <Text style={[styles.reviewTitle, { color: c.foreground }]}>
+              {t("review.title")}
+            </Text>
+            <Text style={[styles.reviewBody, { color: c.mutedForeground }]}>
+              {t("review.left", { count: dueCount })}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={c.mutedForeground} />
+        </Pressable>
+      ) : null}
 
       {chats.isLoading ? (
         <View style={styles.center}>
@@ -159,6 +187,20 @@ const styles = StyleSheet.create({
   brandRow: { flexDirection: "row", alignItems: "center", gap: Space.sm },
   brandText: { fontSize: 18, fontWeight: "800", letterSpacing: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  review: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Space.md,
+    marginHorizontal: Space.lg,
+    marginBottom: Space.md,
+    paddingHorizontal: Space.lg,
+    paddingVertical: Space.md,
+    borderRadius: Radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  reviewText: { flex: 1, gap: 2 },
+  reviewTitle: { fontSize: 15, fontWeight: "600" },
+  reviewBody: { fontSize: 12 },
   list: { paddingHorizontal: Space.lg, paddingBottom: Space.xl, gap: Space.sm, flexGrow: 1 },
   sectionTitle: {
     fontSize: 12,

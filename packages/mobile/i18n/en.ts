@@ -209,6 +209,18 @@ export const en: Translations = {
     version: "Version {{version}}",
   },
 
+  review: {
+    title: "Review",
+    left_one: "One gap waiting",
+    left_other: "{{count}} gaps waiting",
+    timesSeen_one: "Came up once",
+    timesSeen_other: "Came up {{count}} times",
+    known: "I know it",
+    notYet: "Not yet",
+    doneTitle: "Nothing to review",
+    doneBody: "All clear. We will tell you when something is due again.",
+    hint: "\"I know it\" doubles the gap — 1, 2, 4, 8 days. \"Not yet\" brings it back tomorrow.",
+  },
   report: {
     action: "Report",
     title: "Report this answer",
