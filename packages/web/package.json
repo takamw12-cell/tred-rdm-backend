@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/api/index.ts"
+    ".": "./src/api/index.ts",
+    "./legal": "./src/web/data/legal.ts"
   },
   "scripts": {
     "build": "tsc --noEmit && vite build",
@@ -75,7 +76,7 @@
     "wouter": "^3.9.0",
     "zod": "^4.3.6",
     "zustand": "^5.0.14",
-    "stripe":"^22.5.0",
+    "stripe": "^22.5.0",
     "expo-server-sdk": "^7.1.0"
   },
   "devDependencies": {

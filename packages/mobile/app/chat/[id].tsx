@@ -19,6 +19,7 @@ import { fetch as expoFetch } from "expo/fetch";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useChat } from "@ai-sdk/react";
 import { RichText } from "@/components/chat/RichText";
+import { ReportButton } from "@/components/chat/ReportButton";
 import { CreditBadge } from "@/components/CreditBadge";
 import { EmptyState } from "@/components/ui/Screen";
 import { Button } from "@/components/ui/Button";
@@ -219,6 +220,19 @@ export default function ChatScreen() {
                     </Text>
                   </View>
                 )}
+
+                {/* Le signalement n'apparaît qu'une fois la réponse ÉCRITE.
+                    Pendant le flux, la moitié du texte n'est pas encore là :
+                    signaler ce qu'on n'a pas fini de lire n'a pas de sens, et
+                    l'extrait envoyé serait tronqué. */}
+                {text.trim() && !streaming ? (
+                  <ReportButton
+                    conversationId={convId.current}
+                    messageId={item.id}
+                    text={text}
+                    locale={i18n.language}
+                  />
+                ) : null}
               </View>
             );
           }}

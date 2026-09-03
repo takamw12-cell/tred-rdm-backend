@@ -16,6 +16,7 @@ import { subscriptions } from "./routes/subscriptions";
 import { notifications } from "./routes/notifications";
 import { credits } from "./routes/credits";
 import { account } from "./routes/account";
+import { reports } from "./routes/reports";
 import { auth } from "./auth";
 import { rateLimitMiddleware } from "./middleware/rate-limit";
 import { db } from "./database";
@@ -80,6 +81,7 @@ export const router = {
   notifications,
   credits,
   account,
+  reports,
 };
 
 export type AppRouter = typeof router;

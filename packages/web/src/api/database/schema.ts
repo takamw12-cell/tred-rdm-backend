@@ -231,6 +231,56 @@ export const misconception = sqliteTable(
 
 export type Misconception = typeof misconception.$inferSelect;
 
+/**
+ * Signalement d'une réponse du tuteur.
+ *
+ * ── Pourquoi cette table existe ───────────────────────────────────────────
+ *
+ * Google Play l'exige. Sa règle « AI-Generated Content » demande que toute app
+ * produisant du contenu par IA « contienne des fonctions de signalement
+ * permettant aux utilisateurs de signaler un contenu offensant SANS quitter
+ * l'application ». TRED est un agent conversationnel texte-vers-texte : il est
+ * dans le champ, sans discussion possible. Sans ce chemin, la fiche est
+ * refusée.
+ *
+ * ── Ce qui est conservé, et pourquoi ──────────────────────────────────────
+ *
+ * Le texte signalé est copié ici, tronqué. Ce n'est pas une redondance : une
+ * conversation peut être supprimée par l'étudiant juste après le signalement,
+ * et un rapport qui pointe vers du vide ne sert à rien — ni pour corriger le
+ * modèle, ni pour répondre à Google.
+ *
+ * `resolvedAt` n'est pas un ornement : sans lui, la liste des signalements
+ * grossit sans qu'on sache lesquels ont été regardés.
+ */
+export const contentReport = sqliteTable(
+  "content_report",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    conversationId: text("conversation_id"),
+    messageId: text("message_id"),
+    /** « harmful » | « wrong » | « offensive » | « other » — voir routes/reports.ts. */
+    reason: text("reason").notNull(),
+    /** L'extrait signalé, borné. Le champ libre de l'étudiant vient après. */
+    excerpt: text("excerpt").notNull().default(""),
+    note: text("note").notNull().default(""),
+    locale: text("locale").notNull().default("de"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    resolvedAt: integer("resolved_at", { mode: "timestamp" }),
+  },
+  (t) => [
+    // La seule lecture qui compte : « les signalements non traités, les plus
+    // récents d'abord ».
+    index("content_report_open_idx").on(t.resolvedAt, t.createdAt),
+    index("content_report_user_idx").on(t.userId),
+  ],
+);
+
+export type ContentReport = typeof contentReport.$inferSelect;
+
 export * from "./auth-schema";
 
 // ── Zugang: Sperre und Rolle ──────────────────────────────────────────────

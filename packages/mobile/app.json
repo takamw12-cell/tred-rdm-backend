@@ -2,6 +2,8 @@
   "expo": {
     "name": "TRED",
     "slug": "tred",
+    "description": "TRED ist dein KI-Tutor für das Ingenieurstudium. Lade deine Vorlesungsskripte, Übungen und Altklausuren hoch und stelle Fragen dazu — die Antworten stützen sich auf deine eigenen Unterlagen und nennen die Seite, aus der sie stammen. TRED merkt sich, was du falsch verstanden hast, und kommt im richtigen Abstand darauf zurück. Oberfläche auf Deutsch, Englisch und Französisch — geprüft wird auf Deutsch.",
+    "privacy": "public",
     "version": "1.0.0",
     "scheme": "tred",
     "orientation": "portrait",
@@ -49,7 +51,10 @@
     "extra": {
       "apiUrl": "https://aerostudy-production-0c66.up.railway.app",
       "applicationId": "aerostu-53skcll",
-      "scheme": "tred"
+      "scheme": "tred",
+      "privacyPolicyUrl": "https://aerostudy-production-0c66.up.railway.app/datenschutz",
+      "termsUrl": "https://aerostudy-production-0c66.up.railway.app/agb",
+      "supportEmail": "takamw12@gmail.com"
     }
   }
 }

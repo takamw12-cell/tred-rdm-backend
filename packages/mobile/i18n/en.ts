@@ -43,6 +43,10 @@ export const en: Translations = {
     invalidCredentials: "Email or password is incorrect.",
     emailTaken: "That email is already registered.",
     signOutConfirm: "Sign out?",
+    forgot: "Forgot your password?",
+    forgotSent: "If an account exists for that address, the email is on its way.",
+    errorGeneric: "That didn't work. Please try again.",
+    inviteInvalid: "That invitation code is not valid.",
   },
 
   tabs: {
@@ -197,9 +201,31 @@ export const en: Translations = {
       "An active subscription is cancelled first. Type LÖSCHEN to confirm.",
     deleteAccountKeyword: "LÖSCHEN",
     deleteAccountWrongKeyword: "Please type LÖSCHEN exactly.",
+    theme: "Appearance",
+    themeSystem: "Match the system",
+    themeLight: "Light",
+    themeDark: "Dark",
+    dataTitle: "Your data",
     version: "Version {{version}}",
   },
 
+  report: {
+    action: "Report",
+    title: "Report this answer",
+    body:
+      "Tell us what was wrong. The answer and your note come to us — not to " +
+      "other students.",
+    reason_harmful: "Dangerous or unsafe",
+    reason_wrong: "Factually wrong",
+    reason_offensive: "Offensive or inappropriate",
+    reason_other: "Something else",
+    notePlaceholder: "What was wrong? (optional)",
+    send: "Report",
+    thanksTitle: "Thank you",
+    thanksBody:
+      "The report is in. We will look at it — you won't get a reply, but every " +
+      "report is read.",
+  },
   legal: {
     title: "Legal",
     impressum: "Legal notice",

@@ -13,6 +13,7 @@ import { OneDollarStatsProvider } from "../lib/__analytics";
 import { isWeb, startWebSafeArea } from "../lib/__web-safe-area";
 import { SessionGate } from "../components/SessionGate";
 import { i18n, initI18n } from "../i18n";
+import { ThemeProvider, useTheme } from "../lib/theme";
 import appJson from "../app.json";
 
 const queryClient = new QueryClient({
@@ -74,30 +75,48 @@ export default function RootLayout() {
         <SafeAreaProvider>
           <QueryClientProvider client={queryClient}>
             <I18nextProvider i18n={i18n}>
-              <StatusBar style="auto" />
-              <SessionGate>
-                <Stack screenOptions={{ headerShown: false }}>
-                  <Stack.Screen name="(tabs)" />
-                  <Stack.Screen name="(auth)" />
-                  <Stack.Screen name="chat/[id]" />
-                  <Stack.Screen
-                    name="paywall"
-                    options={{ presentation: "modal" }}
-                  />
-                  <Stack.Screen
-                    name="credits"
-                    options={{ presentation: "modal" }}
-                  />
-                  <Stack.Screen
-                    name="legal/[doc]"
-                    options={{ presentation: "modal" }}
-                  />
-                </Stack>
-              </SessionGate>
+              {/* Le thème enveloppe tout ce qui appelle `useColors()` — donc
+                  SessionGate compris, qui peint déjà un fond avant le premier
+                  écran. Le placer plus bas ferait clignoter le clair au
+                  lancement pour qui a choisi le sombre. */}
+              <ThemeProvider>
+                <ThemedStatusBar />
+                <SessionGate>
+                  <Stack screenOptions={{ headerShown: false }}>
+                    <Stack.Screen name="(tabs)" />
+                    <Stack.Screen name="(auth)" />
+                    <Stack.Screen name="chat/[id]" />
+                    <Stack.Screen
+                      name="paywall"
+                      options={{ presentation: "modal" }}
+                    />
+                    <Stack.Screen
+                      name="credits"
+                      options={{ presentation: "modal" }}
+                    />
+                    <Stack.Screen
+                      name="legal/[doc]"
+                      options={{ presentation: "modal" }}
+                    />
+                  </Stack>
+                </SessionGate>
+              </ThemeProvider>
             </I18nextProvider>
           </QueryClientProvider>
         </SafeAreaProvider>
       </OneDollarStatsProvider>
     </ErrorBoundary>
   );
+}
+
+/**
+ * La barre d'état, accordée au thème choisi.
+ *
+ * `style="auto"` suit le réglage du SYSTÈME. Sur un téléphone en clair avec
+ * l'app forcée en sombre, elle écrivait donc l'heure en noir sur un fond
+ * presque noir. Elle lit maintenant le même thème que les écrans.
+ */
+function ThemedStatusBar() {
+  const { scheme } = useTheme();
+  return <StatusBar style={scheme === "dark" ? "light" : "dark"} />;
 }

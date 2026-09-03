@@ -45,6 +45,11 @@ export const de = {
     invalidCredentials: "E-Mail oder Passwort stimmt nicht.",
     emailTaken: "Diese E-Mail ist bereits registriert.",
     signOutConfirm: "Wirklich abmelden?",
+    forgot: "Passwort vergessen?",
+    forgotSent:
+      "Falls ein Konto zu dieser Adresse existiert, ist die E-Mail unterwegs.",
+    errorGeneric: "Das hat nicht geklappt. Versuch es bitte noch einmal.",
+    inviteInvalid: "Dieser Einladungscode gilt nicht.",
   },
 
   tabs: {
@@ -200,9 +205,31 @@ export const de = {
       "Ein laufendes Abo wird zuerst gekündigt. Tippe LÖSCHEN, um zu bestätigen.",
     deleteAccountKeyword: "LÖSCHEN",
     deleteAccountWrongKeyword: "Bitte tippe genau LÖSCHEN.",
+    theme: "Erscheinungsbild",
+    themeSystem: "Wie das System",
+    themeLight: "Hell",
+    themeDark: "Dunkel",
+    dataTitle: "Deine Daten",
     version: "Version {{version}}",
   },
 
+  report: {
+    action: "Melden",
+    title: "Diese Antwort melden",
+    body:
+      "Sag uns, was nicht in Ordnung war. Die Antwort und dein Hinweis gehen " +
+      "an uns — nicht an andere Studierende.",
+    reason_harmful: "Gefährlich oder unsicher",
+    reason_wrong: "Fachlich falsch",
+    reason_offensive: "Beleidigend oder unangemessen",
+    reason_other: "Etwas anderes",
+    notePlaceholder: "Was war falsch? (optional)",
+    send: "Melden",
+    thanksTitle: "Danke",
+    thanksBody:
+      "Die Meldung ist da. Wir schauen sie uns an — Antwort bekommst du keine, " +
+      "aber jede Meldung wird gelesen.",
+  },
   legal: {
     title: "Rechtliches",
     impressum: "Impressum",

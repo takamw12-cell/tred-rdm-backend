@@ -43,6 +43,11 @@ export const fr: Translations = {
     invalidCredentials: "E-mail ou mot de passe incorrect.",
     emailTaken: "Cette adresse est déjà utilisée.",
     signOutConfirm: "Se déconnecter ?",
+    forgot: "Mot de passe oublié ?",
+    forgotSent:
+      "Si un compte existe pour cette adresse, le courriel est parti.",
+    errorGeneric: "Cela n'a pas fonctionné. Réessaie.",
+    inviteInvalid: "Ce code d'invitation n'est pas valide.",
   },
 
   tabs: {
@@ -200,9 +205,31 @@ export const fr: Translations = {
       "Un abonnement en cours est d'abord résilié. Tape LÖSCHEN pour confirmer.",
     deleteAccountKeyword: "LÖSCHEN",
     deleteAccountWrongKeyword: "Tape exactement LÖSCHEN.",
+    theme: "Apparence",
+    themeSystem: "Comme le système",
+    themeLight: "Clair",
+    themeDark: "Sombre",
+    dataTitle: "Tes données",
     version: "Version {{version}}",
   },
 
+  report: {
+    action: "Signaler",
+    title: "Signaler cette réponse",
+    body:
+      "Dis-nous ce qui n'allait pas. La réponse et ton commentaire nous " +
+      "parviennent — pas aux autres étudiants.",
+    reason_harmful: "Dangereux ou risqué",
+    reason_wrong: "Faux sur le fond",
+    reason_offensive: "Offensant ou déplacé",
+    reason_other: "Autre chose",
+    notePlaceholder: "Qu'est-ce qui n'allait pas ? (facultatif)",
+    send: "Signaler",
+    thanksTitle: "Merci",
+    thanksBody:
+      "Le signalement est enregistré. Nous le regardons — tu n'auras pas de " +
+      "réponse, mais chaque signalement est lu.",
+  },
   legal: {
     title: "Mentions légales",
     impressum: "Mentions légales",

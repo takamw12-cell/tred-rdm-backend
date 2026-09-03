@@ -4,8 +4,10 @@ import { db } from "../database";
 import {
   chatConversation,
   chatMessage,
+  contentReport,
   creditTransaction,
   document,
+  misconception,
   purchasedCredits,
   pushToken,
   savedExercise,
@@ -47,6 +49,11 @@ export const PERSONAL_DATA_TABLES = [
   "chat_message",
   "saved_exercise",
   "usage_counter",
+  // Ajoutées après coup — et c'est exactement le défaut que l'en-tête de ce
+  // fichier annonce : deux tables portant `user_id` créées ailleurs, oubliées
+  // ici. `misconception` contient ce que l'étudiant a mal compris, nommément.
+  "misconception",
+  "content_report",
 ] as const;
 
 /* -------------------------------------------------------------------------- */
@@ -82,12 +89,14 @@ export async function exportUserData(userId: string) {
         .where(inArray(chatMessage.conversationId, conversationIds))
     : [];
 
-  const [semesters, documents, exercises, tokens, transactions] = await Promise.all([
+  const [semesters, documents, exercises, tokens, transactions, luecken] =
+    await Promise.all([
     db.select().from(semester).where(eq(semester.userId, userId)),
     db.select().from(document).where(eq(document.userId, userId)),
     db.select().from(savedExercise).where(eq(savedExercise.userId, userId)),
     db.select().from(pushToken).where(eq(pushToken.userId, userId)),
     db.select().from(creditTransaction).where(eq(creditTransaction.userId, userId)),
+    db.select().from(misconception).where(eq(misconception.userId, userId)),
   ]);
 
   return {
@@ -118,6 +127,10 @@ export async function exportUserData(userId: string) {
       : null,
     guthaben: credits ?? { creditsRemaining: 0 },
     creditBewegungen: transactions,
+    // Art. 15 verlangt ALLE Daten. Was der Tutor über deine Fehler notiert
+    // hat, gehört ausdrücklich dazu — es ist die persönlichste Tabelle der
+    // ganzen Anwendung.
+    wissensluecken: luecken,
     semester: semesters,
     dokumente: documents.map((d) => ({
       ...d,
@@ -214,6 +227,13 @@ export async function deleteUserData(userId: string): Promise<DeletionReport> {
   );
 
   // Better Auth zuletzt: Sitzungen und Anmeldeverfahren vor dem Nutzer.
+  await step("misconception", () =>
+    db.delete(misconception).where(eq(misconception.userId, userId)),
+  );
+  await step("content_report", () =>
+    db.delete(contentReport).where(eq(contentReport.userId, userId)),
+  );
+
   await step("session", () => db.delete(session).where(eq(session.userId, userId)));
   await step("account", () => db.delete(account).where(eq(account.userId, userId)));
   await step("user", () => db.delete(user).where(eq(user.id, userId)));
