@@ -177,10 +177,18 @@ Löschung: sofortige und vollständige Entfernung, mit der Ausnahme oben.
 ## 6. Empfänger
 
 Railway Corp. (Hosting, EU), Turso / ChiselStrike Inc. (Datenbank, EU),
-[Anbieter des Objektspeichers, Rechtsform, Standort] (Originaldateien),
+Cloudflare Germany GmbH bzw. Cloudflare, Inc. (Objektspeicher R2,
+Originaldateien; Speicherregion EU),
 Anthropic PBC (Sprachmodell, USA), Resend (E-Mail-Versand, USA),
 Stripe Payments Europe Ltd. (Zahlungen, Irland), Expo / 650 Industries Inc.
 (Push-Benachrichtigungen, USA), OneDollarStats (Reichweitenmessung der App).
+
+Drittlandtransfer: Anthropic PBC, Resend und Cloudflare, Inc. haben ihren Sitz
+in den USA. Die Übermittlung erfolgt auf Grundlage der Standardvertragsklauseln
+der EU-Kommission (Art. 46 Abs. 2 lit. c DSGVO). Die Originaldateien selbst
+liegen in der EU-Region von Cloudflare R2; ein Zugriff durch die
+US-Muttergesellschaft ist damit nicht vollständig ausgeschlossen und deshalb
+hier ausgewiesen.
 
 ## 7. Cookies und lokale Speicherung
 
