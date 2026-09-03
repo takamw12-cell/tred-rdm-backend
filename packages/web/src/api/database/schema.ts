@@ -39,10 +39,61 @@ export const semesterShare = sqliteTable("semester_share", {
     .$defaultFn(() => new Date()),
 });
 
+/**
+ * Un Fach : Elektrotechnik, Thermodynamik, Technische Mechanik.
+ *
+ * ── Pourquoi ce niveau manquait ───────────────────────────────────────────
+ *
+ * La hiérarchie s'arrêtait à Semester → Documents. Un étudiant qui suit six
+ * matières se retrouvait avec trente fichiers en vrac, et finissait par créer
+ * un « semestre » nommé « elektrotechnik » — ce qui casse le sens du semestre
+ * et empêche de retrouver la même matière l'année suivante.
+ *
+ * ── Le Fach appartient au semestre ────────────────────────────────────────
+ *
+ * « Mathematik 1 » et « Mathematik 2 » sont donc deux Fächer distincts, sans
+ * lien entre eux. C'est un choix : il rend l'écran simple à lire et la
+ * suppression d'un semestre évidente. Un Fach qui traverserait les semestres
+ * serait plus juste sur le fond, mais demanderait à l'étudiant de comprendre
+ * deux axes au lieu d'un — et personne ne range ses cours en pensant à un
+ * modèle de données.
+ */
+export const subject = sqliteTable(
+  "subject",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    /** Le semestre auquel il appartient. Jamais nul : un Fach hors semestre
+     *  n'a nulle part où s'afficher. */
+    semesterId: text("semester_id").notNull(),
+    name: text("name").notNull(),
+    /** Couleur de la pastille, choisie par l'étudiant. Six teintes fixes ;
+     *  voir SUBJECT_COLORS dans routes/subjects.ts. */
+    color: text("color").notNull().default("slate"),
+    /** Ordre d'affichage. L'ordre alphabétique met « Analysis » avant
+     *  « Werkstoffkunde » même quand l'examen d'Analysis est en février. */
+    position: integer("position").notNull().default(0),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    // La seule lecture qui compte : « les Fächer de ce semestre, dans l'ordre ».
+    index("subject_semester_idx").on(t.semesterId, t.position),
+    index("subject_user_idx").on(t.userId),
+  ],
+);
+
+export type Subject = typeof subject.$inferSelect;
+
 export const document = sqliteTable("document", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull(),
   semesterId: text("semester_id"), // nullable FK -> semester.id
+  /** Le Fach. Nul = « pas encore classé », ce qui doit rester possible :
+   *  obliger à choisir une matière au moment du téléversement ferait
+   *  renoncer au téléversement. */
+  subjectId: text("subject_id"),
   title: text("title").notNull(),
   kind: text("kind").notNull().default("vorlesung"), // vorlesung | uebung | klausur | other
   textContent: text("text_content").notNull(),
@@ -58,6 +109,7 @@ export const document = sqliteTable("document", {
   (t) => [
     index("document_user_created_idx").on(t.userId, t.createdAt),
     index("document_semester_idx").on(t.semesterId),
+    index("document_subject_idx").on(t.subjectId),
   ],
 );
 

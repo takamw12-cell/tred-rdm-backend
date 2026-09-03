@@ -2,7 +2,7 @@ import { z } from "zod";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { authed } from "../middleware/auth";
 import { db } from "../database";
-import { document, semester, semesterShare } from "../database/schema";
+import { document, semester, semesterShare, subject } from "../database/schema";
 
 export const semesters = {
   // List the user's semesters, each with its document + page counts.
@@ -174,6 +174,34 @@ export const semesters = {
         semesterNumber: src[0].semesterNumber,
       });
 
+      // Les Fächer sont recopiés AVANT les documents, et on garde la
+      // correspondance ancien → nouveau. Sans elle, les documents arriveraient
+      // avec l'identifiant d'un Fach appartenant à quelqu'un d'autre : ils
+      // seraient invisibles chez le destinataire et visibles chez personne.
+      const fachSrc = await db
+        .select()
+        .from(subject)
+        .where(
+          and(
+            eq(subject.semesterId, src[0].id),
+            eq(subject.userId, share[0].ownerId),
+          ),
+        );
+
+      const remap = new Map<string, string>();
+      for (const f of fachSrc) {
+        const nouvelId = `sub_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`;
+        await db.insert(subject).values({
+          id: nouvelId,
+          userId: context.user.id,
+          semesterId: newSemId,
+          name: f.name,
+          color: f.color,
+          position: f.position,
+        });
+        remap.set(f.id, nouvelId);
+      }
+
       const docs = await db
         .select()
         .from(document)
@@ -188,6 +216,7 @@ export const semesters = {
           id: crypto.randomUUID(),
           userId: context.user.id,
           semesterId: newSemId,
+          subjectId: d.subjectId ? (remap.get(d.subjectId) ?? null) : null,
           title: d.title,
           kind: d.kind,
           textContent: d.textContent,

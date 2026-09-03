@@ -580,6 +580,18 @@ export const es: Messages = {
     send: "Denunciar",
     thanksTitle: "Gracias, hemos recibido la denuncia",
   },
+  subjects: {
+    one: "Asignatura",
+    all: "Todas las asignaturas",
+    new: "Nueva asignatura",
+    namePlaceholder: "p. ej. Electrotecnia",
+    unassigned: "Sin clasificar",
+    moveTo: "Mover a una asignatura …",
+    wholeSemester: "Semestre completo",
+    remove: "Eliminar {{name}}",
+    removedNotice:
+      "{{name}} se ha eliminado. {{n}} documentos están ahora en «Sin clasificar»: no se ha borrado ninguno.",
+  },
   share: {
     button: "Compartir",
     title: "Compartir el semestre",

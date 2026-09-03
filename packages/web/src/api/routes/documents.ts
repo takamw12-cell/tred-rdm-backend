@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { authed } from "../middleware/auth";
@@ -14,14 +14,27 @@ const MAX_CHARS = 400_000;
 
 export const documents = {
   list: authed
-    .input(z.object({ semesterId: z.string().nullable().optional() }).optional())
+    .input(
+      z
+        .object({
+          semesterId: z.string().nullable().optional(),
+          /** Filtre par Fach. La chaîne "none" isole les documents encore non
+           *  classés — `null` ne peut pas servir ici, il signifie déjà
+           *  « pas de filtre ». */
+          subjectId: z.string().nullable().optional(),
+        })
+        .optional(),
+    )
     .handler(async ({ input, context }) => {
       const filters = [eq(document.userId, context.user.id)];
       if (input?.semesterId) filters.push(eq(document.semesterId, input.semesterId));
+      if (input?.subjectId === "none") filters.push(isNull(document.subjectId));
+      else if (input?.subjectId) filters.push(eq(document.subjectId, input.subjectId));
       const rows = await db
         .select({
           id: document.id,
           semesterId: document.semesterId,
+          subjectId: document.subjectId,
           title: document.title,
           kind: document.kind,
           pageCount: document.pageCount,
@@ -55,6 +68,7 @@ export const documents = {
         textContent: z.string().min(1),
         pageCount: z.number().int().nonnegative(),
         semesterId: z.string().nullable().optional(),
+        subjectId: z.string().nullable().optional(),
       }),
     )
     .handler(async ({ input, context }) => {
@@ -97,11 +111,23 @@ export const documents = {
 
   // Move a document to a semester (or unassign with null).
   assign: authed
-    .input(z.object({ id: z.string(), semesterId: z.string().nullable() }))
+    .input(
+      z.object({
+        id: z.string(),
+        semesterId: z.string().nullable(),
+        /** Absent = on ne touche pas au Fach. `null` = on l'en sort.
+         *  Sans cette distinction, déplacer un document d'un semestre à
+         *  l'autre effacerait silencieusement son classement. */
+        subjectId: z.string().nullable().optional(),
+      }),
+    )
     .handler(async ({ input, context }) => {
       await db
         .update(document)
-        .set({ semesterId: input.semesterId })
+        .set({
+          semesterId: input.semesterId,
+          ...(input.subjectId !== undefined ? { subjectId: input.subjectId } : {}),
+        })
         .where(
           and(eq(document.id, input.id), eq(document.userId, context.user.id)),
         );

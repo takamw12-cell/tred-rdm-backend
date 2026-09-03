@@ -567,6 +567,18 @@ export const de = {
     send: "Melden",
     thanksTitle: "Danke, die Meldung ist da",
   },
+  subjects: {
+    one: "Fach",
+    all: "Alle Fächer",
+    new: "Neues Fach",
+    namePlaceholder: "z. B. Elektrotechnik",
+    unassigned: "Nicht zugeordnet",
+    moveTo: "In ein Fach verschieben …",
+    wholeSemester: "Ganzes Semester",
+    remove: "{{name}} löschen",
+    removedNotice:
+      "{{name}} wurde gelöscht. {{n}} Unterlagen liegen jetzt unter „Nicht zugeordnet“ — gelöscht wurde nichts davon.",
+  },
   share: {
     button: "Teilen",
     title: "Semester teilen",

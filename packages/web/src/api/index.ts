@@ -17,10 +17,17 @@ import { notifications } from "./routes/notifications";
 import { credits } from "./routes/credits";
 import { account } from "./routes/account";
 import { reports, listOpenReports, resolveReport } from "./routes/reports";
+import { subjects } from "./routes/subjects";
 import { auth } from "./auth";
 import { rateLimitMiddleware } from "./middleware/rate-limit";
 import { db } from "./database";
-import { document, savedExercise, semester, userAccess } from "./database/schema";
+import {
+  document,
+  savedExercise,
+  semester,
+  subject,
+  userAccess,
+} from "./database/schema";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { buildTutorAgent } from "./agent";
@@ -82,6 +89,7 @@ export const router = {
   credits,
   account,
   reports,
+  subjects,
 };
 
 export type AppRouter = typeof router;
@@ -431,6 +439,7 @@ app.post("/api/admin/invites/disable", async (c) => {
 // Streaming tutor chat — grounded in the user's documents.
 // Scope resolution (in priority order):
 //   documentId  -> a single document
+//   subjectId   -> all documents of that Fach
 //   semesterId  -> all documents in that semester
 //   (neither)   -> all of the user's documents, or general-tutor mode if none.
 // The chat never dead-ends: with no documents the agent answers from general
@@ -457,10 +466,19 @@ app.post("/api/agent/messages", async (c) => {
   if (!cap.ok) return c.json(tokenCapError(cap.used, cap.cap), 402);
 
   const body = await c.req.json();
-  const { messages, documentId, semesterId, locale, examMode, calcMode, codeLang } =
-    body as {
+  const {
+    messages,
+    documentId,
+    subjectId,
+    semesterId,
+    locale,
+    examMode,
+    calcMode,
+    codeLang,
+  } = body as {
       messages: unknown[];
       documentId?: string | null;
+      subjectId?: string | null;
       semesterId?: string | null;
       locale?: string;
       examMode?: boolean;
@@ -481,6 +499,26 @@ app.post("/api/agent/messages", async (c) => {
       .limit(1);
     if (!rows[0]) return c.json({ error: "document not found" }, 404);
     contextLabel = rows[0].title;
+  } else if (subjectId) {
+    // Un Fach : le script, les exercices et les anciennes klausuren ensemble.
+    // C'est la portée que demande une vraie question de révision — « explique
+    // -moi la loi des mailles » n'appartient à aucun fichier en particulier.
+    rows = await db
+      .select()
+      .from(document)
+      .where(
+        and(
+          eq(document.subjectId, subjectId),
+          eq(document.userId, session.user.id),
+        ),
+      );
+    const fach = await db
+      .select()
+      .from(subject)
+      .where(and(eq(subject.id, subjectId), eq(subject.userId, session.user.id)))
+      .limit(1);
+    if (!fach[0]) return c.json({ error: "subject not found" }, 404);
+    contextLabel = fach[0].name;
   } else if (semesterId) {
     rows = await db
       .select()
@@ -1393,6 +1431,15 @@ app.post("/api/documents/upload", async (c) => {
       ? semesterIdInput.trim()
       : null;
 
+  // Le Fach, s'il est choisi au moment du dépôt. Il ne l'est jamais quand on
+  // téléverse en lot depuis le bureau, d'où le repli sur null plutôt qu'une
+  // erreur : un document non classé reste un document déposé.
+  const subjectIdInput = form.get("subjectId");
+  const subjectId =
+    typeof subjectIdInput === "string" && subjectIdInput.trim()
+      ? subjectIdInput.trim()
+      : null;
+
   const bytes = new Uint8Array(await file.arrayBuffer());
   if (bytes.byteLength === 0) return c.json({ error: "empty file" }, 400);
 
@@ -1449,6 +1496,7 @@ app.post("/api/documents/upload", async (c) => {
     id,
     userId: session.user.id,
     semesterId,
+    subjectId,
     title,
     kind: kind as "vorlesung" | "uebung" | "klausur" | "other",
     textContent: text,

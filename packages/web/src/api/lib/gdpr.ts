@@ -13,6 +13,7 @@ import {
   savedExercise,
   semester,
   semesterShare,
+  subject,
   usageCounter,
   userAccess,
   userPlan,
@@ -44,6 +45,7 @@ export const PERSONAL_DATA_TABLES = [
   "push_token",
   "semester",
   "semester_share",
+  "subject",
   "document",
   "chat_conversation",
   "chat_message",
@@ -211,6 +213,7 @@ export async function deleteUserData(userId: string): Promise<DeletionReport> {
   await step("semester_share", () =>
     db.delete(semesterShare).where(eq(semesterShare.ownerId, userId)),
   );
+  await step("subject", () => db.delete(subject).where(eq(subject.userId, userId)));
   await step("semester", () => db.delete(semester).where(eq(semester.userId, userId)));
   await step("push_token", () => db.delete(pushToken).where(eq(pushToken.userId, userId)));
   await step("credit_transactions", () =>

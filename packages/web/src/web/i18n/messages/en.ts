@@ -568,6 +568,18 @@ export const en: Messages = {
     send: "Report",
     thanksTitle: "Thank you, the report is in",
   },
+  subjects: {
+    one: "Subject",
+    all: "All subjects",
+    new: "New subject",
+    namePlaceholder: "e.g. Electrical engineering",
+    unassigned: "Unassigned",
+    moveTo: "Move to a subject …",
+    wholeSemester: "Whole semester",
+    remove: "Delete {{name}}",
+    removedNotice:
+      "{{name}} was deleted. {{n}} documents are now under \"Unassigned\" — none of them were deleted.",
+  },
   share: {
     button: "Share",
     title: "Share semester",

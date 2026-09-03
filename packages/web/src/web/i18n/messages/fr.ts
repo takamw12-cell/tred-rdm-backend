@@ -568,6 +568,18 @@ export const fr: Messages = {
     send: "Signaler",
     thanksTitle: "Merci, le signalement est enregistré",
   },
+  subjects: {
+    one: "Matière",
+    all: "Toutes les matières",
+    new: "Nouvelle matière",
+    namePlaceholder: "p. ex. Électrotechnique",
+    unassigned: "Non classés",
+    moveTo: "Ranger dans une matière …",
+    wholeSemester: "Tout le semestre",
+    remove: "Supprimer {{name}}",
+    removedNotice:
+      "{{name}} a été supprimée. {{n}} documents sont maintenant dans « Non classés » — aucun n'a été effacé.",
+  },
   share: {
     button: "Partager",
     title: "Partager le semestre",

@@ -61,6 +61,7 @@ import { client } from "@/lib/api";
 import { useSemesterStore } from "@/stores/semester";
 import { semestersListOptions } from "@/queries/semesters";
 import { documentsListOptions } from "@/queries/documents";
+import { subjectsListOptions } from "@/queries/subjects";
 import {
   chatsListOptions,
   chatsListKey,
@@ -244,6 +245,20 @@ export default function ChatPage() {
   // by title when the chat isn't pinned to a single document.
   const { data: scopeDocs = [] } = useQuery(documentsListOptions(semesterId));
 
+  /**
+   * Le Fach sur lequel le tuteur travaille.
+   *
+   * Remis à zéro quand le semestre change : garder l'identifiant d'un Fach qui
+   * appartient à un autre semestre ferait répondre le serveur « subject not
+   * found » sur une question parfaitement normale.
+   */
+  const [chatSubject, setChatSubject] = useState<string | null>(null);
+  const { data: subjectData } = useQuery(subjectsListOptions(semesterId));
+  const chatSubjects = subjectData?.subjects ?? [];
+  useEffect(() => {
+    setChatSubject(null);
+  }, [semesterId]);
+
   // Source viewer: opened from an [[OFFICIAL]] citation to show the exact
   // passage the tutor quoted, highlighted in the course document.
   const [sourceView, setSourceView] = useState<
@@ -339,11 +354,13 @@ export default function ChatPage() {
   // Refs let the transport read the latest values without rebuilding.
   const docIdRef = useRef<string | null>(null);
   const semIdRef = useRef<string | null>(null);
+  const subIdRef = useRef<string | null>(null);
   const localeRef = useRef(locale);
   const calcModeRef = useRef(calcMode);
   const codeLangRef = useRef(codeLang);
   docIdRef.current = activeDoc?.id ?? null;
   semIdRef.current = semesterId;
+  subIdRef.current = chatSubject;
   localeRef.current = locale;
   calcModeRef.current = calcMode;
   codeLangRef.current = codeLang;
@@ -354,8 +371,10 @@ export default function ChatPage() {
         api: "/api/agent/messages",
         body: () => ({
           documentId: docIdRef.current,
-          // Only scope by semester when no single document is selected.
-          semesterId: docIdRef.current ? null : semIdRef.current,
+          // La portée va du plus étroit au plus large : un document, sinon un
+          // Fach, sinon le semestre. Le serveur applique le même ordre.
+          subjectId: docIdRef.current ? null : subIdRef.current,
+          semesterId: docIdRef.current || subIdRef.current ? null : semIdRef.current,
           locale: localeRef.current,
           calcMode: calcModeRef.current,
           codeLang: codeLangRef.current,
@@ -987,9 +1006,11 @@ export default function ChatPage() {
 
   const scopeLabel = activeDoc
     ? activeDoc.title
-    : activeSem
-      ? activeSem.name
-      : t("dashboard.allCourses");
+    : chatSubject
+      ? (chatSubjects.find((f) => f.id === chatSubject)?.name ?? t("subjects.one"))
+      : activeSem
+        ? activeSem.name
+        : t("dashboard.allCourses");
 
   const suggestions = [t("chat.q1"), t("chat.q2"), t("chat.q3")];
 
@@ -1382,6 +1403,23 @@ export default function ChatPage() {
             <FileText className="size-3 shrink-0" />
             <span className="truncate">{scopeLabel}</span>
           </span>
+          {/* Le Fach ne se choisit que si aucun document précis n'est ouvert :
+              deux portées affichées en même temps ne se comprennent pas. */}
+          {!activeDoc && chatSubjects.length > 0 && (
+            <select
+              value={chatSubject ?? ""}
+              onChange={(e) => setChatSubject(e.target.value || null)}
+              aria-label={t("subjects.one")}
+              className="border-border bg-background h-7 max-w-[11rem] rounded-full border px-2 text-xs"
+            >
+              <option value="">{t("subjects.wholeSemester")}</option>
+              {chatSubjects.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+          )}
           {activeDoc && (
             <button
               onClick={() => setActiveDoc(null)}

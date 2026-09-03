@@ -42,6 +42,12 @@ import {
   semesterCreateOptions,
   semesterRemoveOptions,
 } from "@/queries/semesters";
+import { SubjectBar } from "@/components/subject-bar";
+import {
+  subjectsListOptions,
+  subjectsListKey,
+  subjectAssignOptions,
+} from "@/queries/subjects";
 import {
   documentsListOptions,
   documentsListKey,
@@ -87,6 +93,11 @@ export default function DashboardPage() {
 
   // Document management (delete single / bulk).
   const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
+
+  /** Le Fach affiché : null = tous · "none" = les non classés · sinon un id. */
+  const [activeSubject, setActiveSubject] = useState<string | null>(null);
+  const assignSubject = useMutation(subjectAssignOptions());
+  const { data: subjectData } = useQuery(subjectsListOptions(activeId));
   const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null);
   const [viewerDocId, setViewerDocId] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
@@ -148,7 +159,30 @@ export default function DashboardPage() {
     }
   }
 
+  /** Range les documents cochés dans un Fach, ou les en sort. */
+  async function moveSelected(subjectId: string | null) {
+    const ids = [...selectedDocs];
+    if (ids.length === 0) return;
+    await assignSubject.mutateAsync({ documentIds: ids, subjectId });
+    setSelectedDocs(new Set());
+    await qc.invalidateQueries({ queryKey: documentsListKey() });
+    await qc.invalidateQueries({ queryKey: subjectsListKey() });
+  }
+
   const activeSem = sems.find((s) => s.id === activeId) ?? null;
+
+  /**
+   * Les documents effectivement affichés.
+   *
+   * Le filtre est local : la liste du semestre est déjà en mémoire, et un
+   * aller-retour serveur à chaque clic sur une puce ferait clignoter l'écran
+   * pour trier ce qu'on a sous la main.
+   */
+  const shownDocs = useMemo(() => {
+    if (activeSubject === null) return docs;
+    if (activeSubject === "none") return docs.filter((d) => !d.subjectId);
+    return docs.filter((d) => d.subjectId === activeSubject);
+  }, [docs, activeSubject]);
 
   // Real, calculable metrics — no fabricated progress.
   const stats = useMemo(() => {
@@ -297,6 +331,18 @@ export default function DashboardPage() {
         </div>
       </Reveal>
 
+      {/* Fächer du semestre actif. Rien à afficher sans semestre : un Fach
+          appartient à un semestre, et « tous les cours » les mélangerait. */}
+      {activeId !== null && (
+        <Reveal className="mb-6">
+          <SubjectBar
+            semesterId={activeId}
+            active={activeSubject}
+            onChange={setActiveSubject}
+          />
+        </Reveal>
+      )}
+
       {/* Real stats */}
       <Reveal className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard icon={<Layers className="text-primary size-4" />} value={String(stats.docs)} label={t("dashboard.materials")} />
@@ -338,7 +384,31 @@ export default function DashboardPage() {
                   <span className="text-sm font-medium">
                     {t("dashboard.docsSelected", { n: selectedDocs.size })}
                   </span>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Ranger plusieurs documents d'un coup. Les classer un par
+                        un après un semestre entier est le genre de tâche qu'on
+                        ne fait jamais. */}
+                    {activeId !== null && (subjectData?.subjects.length ?? 0) > 0 && (
+                      <select
+                        aria-label={t("subjects.moveTo")}
+                        defaultValue=""
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          if (!v) return;
+                          e.target.value = "";
+                          void moveSelected(v === "none" ? null : v);
+                        }}
+                        className="border-border bg-background h-8 rounded-md border px-2 text-sm"
+                      >
+                        <option value="">{t("subjects.moveTo")}</option>
+                        {subjectData?.subjects.map((sub) => (
+                          <option key={sub.id} value={sub.id}>
+                            {sub.name}
+                          </option>
+                        ))}
+                        <option value="none">{t("subjects.unassigned")}</option>
+                      </select>
+                    )}
                     <Button variant="ghost" size="sm" onClick={() => setSelectedDocs(new Set())}>
                       {t("common.cancel")}
                     </Button>
@@ -359,7 +429,7 @@ export default function DashboardPage() {
                   <Loader2 className="size-4 animate-spin" />
                   {t("common.loading")}
                 </div>
-              ) : docs.length === 0 ? (
+              ) : shownDocs.length === 0 ? (
                 <div className="flex flex-col items-center py-10 text-center">
                   <span className="bg-secondary text-muted-foreground mb-3 grid size-12 place-items-center rounded-2xl">
                     <FileText className="size-6" />
@@ -376,7 +446,7 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div className="space-y-1.5">
-                  {docs.map((d) => {
+                  {shownDocs.map((d) => {
                     const Icon = KIND_ICON[(d.kind as DocKind) ?? "other"] ?? File;
                     const checked = selectedDocs.has(d.id);
                     return (
