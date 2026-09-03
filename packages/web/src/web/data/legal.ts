@@ -176,18 +176,34 @@ Löschung: sofortige und vollständige Entfernung, mit der Ausnahme oben.
 
 ## 6. Empfänger
 
-Railway (Hosting, deutschland), Turso (Datenbank, EU), je ne sais plus
-(Originaldateien, frankfurt), Anthropic (Sprachmodell, USA), Resend
-(E-Mail-Versand, USA), Stripe (Zahlungen, Irland), Expo
-(Push-Benachrichtigungen, USA).
+Railway Corp. (Hosting, EU), Turso / ChiselStrike Inc. (Datenbank, EU),
+[Anbieter des Objektspeichers, Rechtsform, Standort] (Originaldateien),
+Anthropic PBC (Sprachmodell, USA), Resend (E-Mail-Versand, USA),
+Stripe Payments Europe Ltd. (Zahlungen, Irland), Expo / 650 Industries Inc.
+(Push-Benachrichtigungen, USA), OneDollarStats (Reichweitenmessung der App).
 
 ## 7. Cookies und lokale Speicherung
 
-Wir setzen keine Werbe- oder Trackingcookies. Verwendet werden ausschließlich
-technisch notwendige Daten: das Anmelde-Cookie sowie die lokal gespeicherten
-Einstellungen für Sprache, Schriftgröße und Darstellung.
+Wir setzen keine Werbe- oder Trackingcookies, weder auf der Website noch in der
+App. Verwendet werden das Anmelde-Cookie sowie die lokal gespeicherten
+Einstellungen für Sprache, Schriftgröße und Darstellung. In der mobilen App
+liegen Sitzungstoken, Sprache und Erscheinungsbild im gesicherten Speicher des
+Geräts (iOS-Schlüsselbund bzw. Android-Keystore).
 
-Stand: 01.09.2026`,
+## 8. Reichweitenmessung in der mobilen App
+
+Die mobile App meldet Seitenaufrufe an OneDollarStats. Übermittelt werden der
+aufgerufene Bildschirm, der Verweis und die Geräte-Kennung des Browsers
+(User-Agent). Es werden dabei KEINE Cookies gesetzt, keine Kennung über
+Sitzungen hinweg vergeben und keine Daten mit deinem Konto verknüpft. Die
+Website selbst enthält keine Reichweitenmessung.
+
+Zweck: erkennen, welche Funktionen benutzt werden und welche nicht.
+Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einer
+funktionsfähigen, bedarfsgerechten Anwendung). Du kannst dem jederzeit
+widersprechen — eine E-Mail an uns genügt.
+
+Stand: 03.09.2026`,
 
   /* ══════════════════════════════════════════════════════════════════════ */
 
@@ -199,9 +215,9 @@ Vertragsschlusses.
 
 Um dein Widerrufsrecht auszuüben, musst du uns
 
-[rached edwin takam]
-[adalbertsteinweg 28]
-[52070] [Aachen]
+rached edwin takam
+adalbertsteinweg 28
+52070 Aachen
 E-Mail: takamw12@gmail.com
 Telefon: +49 15753400989
 
@@ -244,11 +260,11 @@ zurück.
 ---
 
 An
-[rached edwin takam]
-[adalbertsteinweg 28]
-[52070] [Aachen]
-E-Mail: [takamw12@gmail.com]
-Telefon: [+49 15753400989]
+rached edwin takam
+adalbertsteinweg 28
+52070 Aachen
+E-Mail: takamw12@gmail.com
+Telefon: +49 15753400989
 
 Hereby I/we (*) rescind the contract concluded by me/us (*) with rached edwin takam („TRED") for the provision of the following service:
 
