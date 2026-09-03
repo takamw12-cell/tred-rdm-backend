@@ -24,12 +24,12 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { buildTutorAgent } from "./agent";
 import {
-  extractDocument,
   fileExtension,
   isSupported,
   storageMime,
   UnsupportedFormatError,
 } from "./lib/extract";
+import { extractInBackground } from "./lib/extract-queue";
 import { renderTikz } from "./lib/tikz";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { s3, S3_BUCKET } from "./lib/s3";
@@ -1374,9 +1374,18 @@ app.post("/api/documents/upload", async (c) => {
 
   let extracted;
   try {
-    extracted = await extractDocument(bytes, file.name);
+    // Hors du fil principal. Le rendu d'une page scannée en image gèle le fil
+    // par blocs de plus de deux secondes — mesuré — et pendant ce temps le
+    // serveur ne répond à personne d'autre. Le worker le fait ailleurs ; si
+    // rien ne peut le démarrer, la file retombe sur l'extraction directe.
+    extracted = await extractInBackground(bytes, file.name);
   } catch (err) {
-    if (err instanceof UnsupportedFormatError) {
+    // Une erreur revenue du worker n'est plus une instance de la classe : elle
+    // a traversé une frontière de fil. Son `name` a été conservé pour ça.
+    if (
+      err instanceof UnsupportedFormatError ||
+      (err instanceof Error && err.name === "UnsupportedFormatError")
+    ) {
       return c.json({ error: "unsupported_format" }, 415);
     }
     console.error("[upload] extraction failed", err);
