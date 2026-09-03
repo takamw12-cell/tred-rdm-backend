@@ -34,6 +34,7 @@ import {
   PanelLeftOpen,
 } from "lucide-react";
 import { AiAnswer, SourceViewContext } from "@/components/ai-answer";
+import { ReportAnswer } from "@/components/report-answer";
 import { CodeExplainContext } from "@/components/code-block";
 import { DocumentViewer } from "@/components/document-viewer";
 import { ImageFrame } from "@/components/diagram-frame";
@@ -1460,6 +1461,9 @@ export default function ChatPage() {
                         aiLabel={t("chat.ai")}
                         showActions={m.role === "assistant" && !busy}
                         onAction={(a) => handleAction(m.id, a)}
+                        messageId={m.id}
+                        conversationId={convId}
+                        locale={locale}
                         actionLabels={{
                           why: t("chat.why"),
                           explain: t("chat.explainDifferently"),
@@ -1812,12 +1816,18 @@ function MessageBubble({
   showActions,
   onAction,
   actionLabels,
+  messageId,
+  conversationId,
+  locale,
 }: {
   role: string;
   text: string;
   images?: { url: string; name?: string }[];
   youLabel: string;
   aiLabel: string;
+  messageId?: string;
+  conversationId?: string;
+  locale?: string;
   showActions?: boolean;
   onAction?: (a: "why" | "explain" | "engineer" | "video" | "ytsearch") => void;
   actionLabels?: {
@@ -1903,6 +1913,19 @@ function MessageBubble({
               label={actionLabels.ytsearch}
               onClick={() => onAction("ytsearch")}
             />
+
+            {/* Le drapeau ferme la rangée, en gris. Les puces au-dessus sont
+                des gestes fréquents ; celui-ci doit se trouver quand on le
+                cherche, et pas s'attraper du pouce quand on ne le cherche
+                pas. */}
+            {messageId && conversationId && (
+              <ReportAnswer
+                conversationId={conversationId}
+                messageId={messageId}
+                text={text}
+                locale={locale ?? "de"}
+              />
+            )}
           </div>
         )}
       </div>

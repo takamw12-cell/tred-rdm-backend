@@ -553,6 +553,19 @@ export const de = {
     error: "Erstellung fehlgeschlagen. Bitte erneut versuchen.",
     emptyHint: "Tipp: Lade zuerst deine Skripte hoch, damit die Sammlung exakt deiner Vorlesung folgt.",
   },
+  report: {
+    action: "Melden",
+    title: "Diese Antwort melden",
+    body:
+      "Sag uns, was nicht in Ordnung war. Die Antwort und dein Hinweis gehen an uns — nicht an andere Studierende.",
+    reason_harmful: "Gefährlich oder unsicher",
+    reason_wrong: "Fachlich falsch",
+    reason_offensive: "Beleidigend oder unangemessen",
+    reason_other: "Etwas anderes",
+    notePlaceholder: "Was war falsch? (optional)",
+    send: "Melden",
+    thanksTitle: "Danke, die Meldung ist da",
+  },
   share: {
     button: "Teilen",
     title: "Semester teilen",

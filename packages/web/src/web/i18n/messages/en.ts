@@ -554,6 +554,19 @@ export const en: Messages = {
     error: "Generation failed. Please try again.",
     emptyHint: "Tip: upload your lecture notes first so the sheet follows your course exactly.",
   },
+  report: {
+    action: "Report",
+    title: "Report this answer",
+    body:
+      "Tell us what was wrong. The answer and your note come to us — not to other students.",
+    reason_harmful: "Dangerous or unsafe",
+    reason_wrong: "Factually wrong",
+    reason_offensive: "Offensive or inappropriate",
+    reason_other: "Something else",
+    notePlaceholder: "What was wrong? (optional)",
+    send: "Report",
+    thanksTitle: "Thank you, the report is in",
+  },
   share: {
     button: "Share",
     title: "Share semester",

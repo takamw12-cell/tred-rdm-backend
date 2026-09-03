@@ -566,6 +566,19 @@ export const es: Messages = {
     error: "La generación ha fallado. Inténtalo de nuevo.",
     emptyHint: "Consejo: sube antes tus apuntes de clase para que el formulario siga exactamente tu curso.",
   },
+  report: {
+    action: "Denunciar",
+    title: "Denunciar esta respuesta",
+    body:
+      "Dinos qué estuvo mal. La respuesta y tu comentario llegan a nosotros, no a otros estudiantes.",
+    reason_harmful: "Peligroso o inseguro",
+    reason_wrong: "Incorrecto en el fondo",
+    reason_offensive: "Ofensivo o inapropiado",
+    reason_other: "Otra cosa",
+    notePlaceholder: "¿Qué estuvo mal? (opcional)",
+    send: "Denunciar",
+    thanksTitle: "Gracias, hemos recibido la denuncia",
+  },
   share: {
     button: "Compartir",
     title: "Compartir el semestre",

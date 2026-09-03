@@ -16,7 +16,7 @@ import { subscriptions } from "./routes/subscriptions";
 import { notifications } from "./routes/notifications";
 import { credits } from "./routes/credits";
 import { account } from "./routes/account";
-import { reports } from "./routes/reports";
+import { reports, listOpenReports, resolveReport } from "./routes/reports";
 import { auth } from "./auth";
 import { rateLimitMiddleware } from "./middleware/rate-limit";
 import { db } from "./database";
@@ -371,6 +371,28 @@ app.post("/api/admin/users/access", async (c) => {
     return c.json({ error: "CANNOT_BAN_SELF" }, 400);
   }
   await setActive(body.userId, body.isActive, body.note);
+  return c.json({ ok: true });
+});
+
+/**
+ * Les signalements de réponses de l'IA, non traités.
+ *
+ * Sans cet écran, le bouton « Signaler » exigé par Google Play serait une
+ * boîte aux lettres sans clé : conforme à la règle, et parfaitement inutile.
+ * C'est ici qu'on voit si le tuteur dérape, et sur quel chapitre.
+ */
+app.get("/api/admin/reports", async (c) => {
+  const guard = await requireAdmin(c);
+  if (!guard.ok) return c.json({ error: "FORBIDDEN" }, guard.status);
+  return c.json({ reports: await listOpenReports() });
+});
+
+app.post("/api/admin/reports/resolve", async (c) => {
+  const guard = await requireAdmin(c);
+  if (!guard.ok) return c.json({ error: "FORBIDDEN" }, guard.status);
+  const body = (await c.req.json().catch(() => ({}))) as { id?: string };
+  if (!body.id) return c.json({ error: "invalid body" }, 400);
+  await resolveReport(body.id);
   return c.json({ ok: true });
 });
 

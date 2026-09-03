@@ -4,7 +4,6 @@ import { desc, eq, isNull } from "drizzle-orm";
 import { authed } from "../middleware/auth";
 import { db } from "../database";
 import { contentReport } from "../database/schema";
-import { getAccess } from "../lib/access";
 
 /**
  * Signaler une réponse du tuteur.
@@ -77,46 +76,32 @@ export const reports = {
 
       return { ok: true as const };
     }),
-
-  /**
-   * Les signalements ouverts. Réservé à l'administration.
-   *
-   * Sans cette liste, la fonction précédente serait une boîte aux lettres sans
-   * clé : conforme à la règle, et inutile. C'est ici qu'on voit si le tuteur
-   * dérape sur un chapitre précis.
-   */
-  listOpen: authed
-    .input(z.object({ limit: z.number().int().min(1).max(200).optional() }).optional())
-    .handler(async ({ input, context }) => {
-      // Le rôle vit dans `user_access`, pas dans la session : un jeton volé ne
-      // devient pas administrateur parce qu'il porte le mot.
-      const access = await getAccess(context.user.id, context.user.email);
-      if (access.role !== "admin") {
-        return { reports: [] as (typeof contentReport.$inferSelect)[] };
-      }
-
-      const rows = await db
-        .select()
-        .from(contentReport)
-        .where(isNull(contentReport.resolvedAt))
-        .orderBy(desc(contentReport.createdAt))
-        .limit(input?.limit ?? 50);
-
-      return { reports: rows };
-    }),
-
-  /** Marquer un signalement comme traité. */
-  resolve: authed
-    .input(z.object({ id: z.string() }))
-    .handler(async ({ input, context }) => {
-      const access = await getAccess(context.user.id, context.user.email);
-      if (access.role !== "admin") return { ok: false as const };
-
-      await db
-        .update(contentReport)
-        .set({ resolvedAt: new Date() })
-        .where(eq(contentReport.id, input.id));
-
-      return { ok: true as const };
-    }),
 };
+
+/**
+ * Les signalements ouverts, les plus récents d'abord.
+ *
+ * ── Pourquoi ce n'est pas une route oRPC ──────────────────────────────────
+ *
+ * L'écran d'administration parle en REST à `/api/admin/*`, et la garde
+ * `requireAdmin()` y est écrite une seule fois. Une deuxième route oRPC avec
+ * sa propre vérification de rôle serait le jour où l'une des deux oublie de
+ * la faire. Ces deux fonctions exposent donc la requête, pas l'autorisation :
+ * c'est l'appelant qui garde la porte.
+ */
+export function listOpenReports(limit = 100) {
+  return db
+    .select()
+    .from(contentReport)
+    .where(isNull(contentReport.resolvedAt))
+    .orderBy(desc(contentReport.createdAt))
+    .limit(limit);
+}
+
+/** Marquer un signalement comme traité. */
+export async function resolveReport(id: string): Promise<void> {
+  await db
+    .update(contentReport)
+    .set({ resolvedAt: new Date() })
+    .where(eq(contentReport.id, id));
+}

@@ -554,6 +554,19 @@ export const fr: Messages = {
     error: "Échec de la création. Réessaie.",
     emptyHint: "Astuce : téléverse d'abord tes polycopiés pour que le formulaire suive exactement ton cours.",
   },
+  report: {
+    action: "Signaler",
+    title: "Signaler cette réponse",
+    body:
+      "Dis-nous ce qui n'allait pas. La réponse et ton commentaire nous parviennent — pas aux autres étudiants.",
+    reason_harmful: "Dangereux ou risqué",
+    reason_wrong: "Faux sur le fond",
+    reason_offensive: "Offensant ou déplacé",
+    reason_other: "Autre chose",
+    notePlaceholder: "Qu'est-ce qui n'allait pas ? (facultatif)",
+    send: "Signaler",
+    thanksTitle: "Merci, le signalement est enregistré",
+  },
   share: {
     button: "Partager",
     title: "Partager le semestre",
