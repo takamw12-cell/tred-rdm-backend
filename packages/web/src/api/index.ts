@@ -22,6 +22,7 @@ import { auth } from "./auth";
 import { rateLimitMiddleware } from "./middleware/rate-limit";
 import { db } from "./database";
 import {
+  contentReport,
   document,
   savedExercise,
   semester,
@@ -65,6 +66,7 @@ import {
 } from "./lib/plan";
 import { notifyExerciseReady } from "./lib/push";
 import { startEveningReminder } from "./lib/evening-reminder";
+import { detectDocumentDenial } from "./lib/denial-guard";
 import { applySubscription, endSubscription } from "./lib/billing";
 import { grantCredits } from "./lib/credits";
 import {
@@ -617,8 +619,41 @@ app.post("/api/agent/messages", async (c) => {
     // Echte Abrechnung: jeder Schritt des Werkzeug-Loops meldet seinen
     // Verbrauch. Feuern und vergessen — ein Schreibfehler darf den laufenden
     // Stream nicht abbrechen.
-    onStepEnd: (step: { usage?: { outputTokens?: number } }) => {
+    onStepEnd: (step: { usage?: { outputTokens?: number }; text?: string }) => {
       void addOutputTokens(session.user.id, step.usage?.outputTokens ?? 0);
+
+      // ── Le garde-fou ────────────────────────────────────────────────
+      //
+      // Les tests verrouillent ce que le prompt DIT ; ils ne peuvent rien
+      // contre un modèle qui désobéit à une instruction correcte. Ici on lit
+      // ce qui a réellement été produit.
+      //
+      // On ne réécrit rien : le texte est déjà à l'écran, et le corriger en
+      // cours de route serait pire. On le SIGNALE, ce qui fait remonter la
+      // panne dans « Gemeldete Antworten » au lieu de la laisser invisible.
+      const denial = detectDocumentDenial(step.text ?? "", rows.length);
+      if (!denial) return;
+
+      console.error(
+        `[garde] le tuteur a nié ${rows.length} document(s) — ${denial.label}`,
+      );
+
+      void db
+        .insert(contentReport)
+        .values({
+          id: `rep_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`,
+          userId: session.user.id,
+          conversationId: null,
+          messageId: null,
+          reason: "wrong",
+          excerpt: denial.excerpt,
+          note: `[automatique] ${denial.label} — ${rows.length} document(s) étaient fournis`,
+          locale: locale ?? "de",
+        })
+        .catch(() => {
+          /* Un signalement qui échoue ne doit pas casser la réponse en cours.
+             Le console.error ci-dessus reste, lui. */
+        });
     },
   });
 });

@@ -15,7 +15,8 @@
     "preview": "bun run build && vite preview",
     "db:generate": "bun --env-file=../../.env drizzle-kit generate",
     "db:migrate": "bun --env-file=../../.env drizzle-kit migrate",
-    "db:push": "bun --env-file=../../.env drizzle-kit push"
+    "db:push": "bun --env-file=../../.env drizzle-kit push",
+    "test": "bun test"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.24",
