@@ -589,6 +589,15 @@ app.post("/api/agent/messages", async (c) => {
 
   const agent = buildTutorAgent({
     sources,
+    // L'inventaire complet, pas seulement les extraits retenus. `sources` peut
+    // n'en contenir que cinq sur neuf selon la question ; sans cette liste, le
+    // tuteur ne peut pas savoir que les quatre autres existent et répond
+    // « je ne l'ai pas » sur un fichier visible dans la barre latérale.
+    inventory: rows.map((d) => ({
+      title: d.title,
+      kind: d.kind,
+      pageCount: d.pageCount,
+    })),
     contextLabel,
     locale: locale ?? storedLocale,
     studentName: session.user.name,

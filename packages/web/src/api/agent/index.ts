@@ -97,6 +97,15 @@ export interface TutorSource {
 export function buildTutorAgent(opts: {
   /** One or more course documents to ground answers in. Empty = general tutor mode. */
   sources: TutorSource[];
+  /**
+   * TOUS les documents de la portée, titre et nombre de pages seulement.
+   *
+   * `sources` ne contient que les EXTRAITS retenus pour la question posée —
+   * cinq documents sur neuf, parfois. Sans cet inventaire, le tuteur ne peut
+   * pas savoir que les quatre autres existent, et répond « je ne l'ai pas »
+   * à propos d'un fichier que l'étudiant voit dans sa barre latérale.
+   */
+  inventory?: { title: string; kind: string; pageCount: number }[];
   /** Label of the current context, e.g. a semester name or "Alle Kurse". */
   contextLabel?: string;
   locale: string;
@@ -119,7 +128,8 @@ export function buildTutorAgent(opts: {
   const calc = opts.calcMode === true;
   const codeLang = opts.codeLang === "matlab" ? "matlab" : "python";
   const sources = opts.sources ?? [];
-  const hasDocs = sources.length > 0;
+  const inventory = opts.inventory ?? [];
+  const hasDocs = sources.length > 0 || inventory.length > 0;
 
   // Assemble the grounding block from all provided documents.
   const docBlock = hasDocs
@@ -237,27 +247,51 @@ export function buildTutorAgent(opts: {
           ${
             hasDocs
               ? dedent`
-          Kontext: **${opts.contextLabel ?? "Kursmaterial"}** (${sources.length} Dokument(e)).
-          Dein Wissen stammt VORRANGIG aus den DOKUMENTEN unten.
-          Sie sind mit Seitenmarken [[SEITE n]] versehen.
+          Kontext: **${opts.contextLabel ?? "Kursmaterial"}**.
 
-          ZITIEREN: Beziehe dich, wo sinnvoll, auf Dokument und Seite:
-          "→ ${sources[0].title}, Seite 7".
+          DIESE UNTERLAGEN GEHÖREN DEM/DER STUDIERENDEN. Sie sind dauerhaft
+          im Konto gespeichert und stehen dir in JEDER Unterhaltung zur
+          Verfügung — es gibt keine "vorherige Sitzung", die du nicht sehen
+          könntest.
 
-          NICHT GEFUNDEN: Wenn eine Information NICHT in den Dokumenten steht:
-          "Diese Information steht nicht in deinen Unterlagen. Soll ich dir
-          mit meinem allgemeinen Fachwissen antworten?" — und kennzeichne
-          allgemeines Wissen klar ("nicht im Skript, aber allgemein gilt: …").
+          ${
+            inventory.length > 0
+              ? dedent`
+          VOLLSTÄNDIGE LISTE (${inventory.length}):
+          ${inventory.map((d) => `  · ${d.title} — ${d.pageCount} Seiten (${d.kind})`).join("\n")}`
+              : ""
+          }
 
-          Du veränderst oder widersprichst den Dokumenten NIE.`
+          VERBOTEN: Du behauptest NIE, keine Dateien zu sehen, keinen Zugriff
+          zu haben oder bei null zu starten. Der/die Studierende sieht diese
+          Liste auf dem Bildschirm; eine solche Antwort ist schlicht falsch
+          und zerstört das Vertrauen sofort.
+
+          Unten stehen die AUSZÜGE, die zu dieser Frage passen — nicht der
+          ganze Bestand. Steht etwas nicht darin, sagst du: "In den Abschnitten,
+          die ich für diese Frage vor mir habe, steht das nicht — frag mich
+          gezielt danach, dann hole ich die passende Stelle." Du sagst NIEMALS,
+          das Dokument existiere nicht.
+
+          Die Auszüge sind mit Seitenmarken [[SEITE n]] versehen.
+          ZITIEREN: "→ ${(sources[0]?.title ?? inventory[0]?.title) ?? "Skript"}, Seite 7".
+
+          Allgemeines Wissen kennzeichnest du klar ("nicht im Skript, aber
+          allgemein gilt: …"). Du veränderst oder widersprichst den
+          Dokumenten NIE.`
               : dedent`
-          Der/die Studierende hat noch KEINE Kursunterlagen hochgeladen.
-          Arbeite in diesem Fall als allgemeiner Ingenieur-Tutor auf Basis
-          deines Fachwissens (kennzeichne dies mit "allgemein gilt: …") und
-          hilf trotzdem sofort weiter — verweigere die Antwort NIE, nur weil
-          kein Dokument da ist. Lade freundlich dazu ein, ein Skript oder eine
-          Übung hochzuladen, damit du dich exakt am offiziellen Kurs orientieren
-          kannst — aber ERST nachdem du die Frage beantwortet hast.`
+          In DIESER Auswahl liegt kein Dokument. Das heißt NICHT, dass der/die
+          Studierende nichts hochgeladen hat — vielleicht ist gerade ein
+          Semester oder ein Fach ausgewählt, in dem nichts liegt.
+
+          Arbeite als allgemeiner Ingenieur-Tutor (kennzeichne das mit
+          "allgemein gilt: …") und hilf sofort weiter — verweigere die Antwort
+          NIE. Weise danach freundlich darauf hin, dass ein anderes Semester
+          oder "Alle Materialien" mehr Unterlagen enthalten könnte, oder lade
+          zum Hochladen ein.
+
+          Du behauptest NIE, keinen Zugriff auf frühere Unterhaltungen oder
+          Dateien zu haben — das ist nicht die Lage.`
           }
 
           ═══════════════════════════════════════════════════════════
