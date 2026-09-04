@@ -579,6 +579,26 @@ export const de = {
     removedNotice:
       "{{name}} wurde gelöscht. {{n}} Unterlagen liegen jetzt unter „Nicht zugeordnet“ — gelöscht wurde nichts davon.",
   },
+  guide: {
+    skip: "Überspringen",
+    back: "Zurück",
+    next: "Weiter",
+    done: "Los geht's",
+    replay: "Rundgang wiederholen",
+    replayDesc: "Zeigt dir die vier wichtigsten Stellen noch einmal.",
+    navTitle: "Hier findest du alles",
+    navBody:
+      "Kurse, Übungen, Formeln, Prüfungsmodus. Alles, was du brauchst, liegt in diesem Menü.",
+    uploadTitle: "Fang mit einem Skript an",
+    uploadBody:
+      "Lade eine Vorlesung, eine Übung oder eine Altklausur hoch. Ohne deine Unterlagen antworte ich nur allgemein — mit ihnen nenne ich dir die Seite.",
+    chatTitle: "Frag mich, was du willst",
+    chatBody:
+      "Hier erkläre ich dir deinen Stoff und rechne mit dir. Ich merke mir, was du noch nicht verstanden hast, und komme darauf zurück.",
+    languageTitle: "Zwölf Sprachen",
+    languageBody:
+      "Lerne in deiner Sprache — geprüft wirst du trotzdem auf Deutsch, deshalb bleiben die Fachbegriffe deutsch.",
+  },
   share: {
     button: "Teilen",
     title: "Semester teilen",

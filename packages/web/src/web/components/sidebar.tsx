@@ -46,13 +46,17 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         </Link>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3">
+      <nav className="flex-1 space-y-1 px-3" data-tour="nav">
         {navItems.map(({ to, icon: Icon, key }) => {
           const active = location === to;
           return (
             <Link
               key={to}
               to={to}
+              // Le tuteur est l'étape 3 du guide. L'attribut vit sur le lien,
+              // pas sur un conteneur : c'est ce rectangle-là qu'il faut
+              // éclairer, pas toute la colonne.
+              data-tour={to === "/chat" ? "chat" : undefined}
               onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",

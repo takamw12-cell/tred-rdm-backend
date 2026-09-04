@@ -21,6 +21,7 @@ import { useDocuments, useRemoveDocument } from "@/queries/documents";
 import { usePlan } from "@/queries/plan";
 import { pickAndUploadDocument, type UploadError } from "@/lib/upload";
 import { orpc } from "@/lib/api";
+import { useTourTarget } from "@/components/OnboardingGuide";
 import { Radius, Space } from "@/constants/theme";
 
 const KIND_ICON = {
@@ -37,6 +38,7 @@ const KIND_LABEL = {
 
 export default function Documents() {
   const { t } = useTranslation();
+  const cibleUpload = useTourTarget("upload");
   const c = useColors();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -188,6 +190,9 @@ export default function Documents() {
           Une extraction de PDF prend parfois dix secondes ; sans ce retour,
           l'utilisateur relance et envoie le fichier deux fois. */}
       <Pressable
+        ref={cibleUpload.ref}
+        onLayout={cibleUpload.onLayout}
+        collapsable={false}
         accessibilityRole="button"
         accessibilityLabel={t("documents.upload")}
         accessibilityState={{ busy }}

@@ -2,7 +2,11 @@ import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 
+import { View } from "react-native";
+import { BottomTabBar } from "@react-navigation/bottom-tabs";
+
 import { useColors } from "@/hooks/use-colors";
+import { useTourTarget } from "@/components/OnboardingGuide";
 
 /**
  * Les onglets.
@@ -31,9 +35,19 @@ import { useColors } from "@/hooks/use-colors";
 export default function TabLayout() {
   const colors = useColors();
   const { t } = useTranslation();
+  const cible = useTourTarget("tabs");
 
   return (
     <Tabs
+      // La barre est dessinée par la navigation : on ne peut pas lui attacher
+      // un ref. `tabBar` l'enveloppe d'une vue mesurable en réutilisant le
+      // rendu d'origine — aucun pixel ne change, seule la mesure devient
+      // possible.
+      tabBar={(props) => (
+        <View ref={cible.ref} onLayout={cible.onLayout} collapsable={false}>
+          <BottomTabBar {...props} />
+        </View>
+      )}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
@@ -42,6 +56,7 @@ export default function TabLayout() {
           backgroundColor: colors.background,
           borderTopColor: colors.border,
         },
+
       }}
     >
       <Tabs.Screen

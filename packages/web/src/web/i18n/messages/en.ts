@@ -580,6 +580,26 @@ export const en: Messages = {
     removedNotice:
       "{{name}} was deleted. {{n}} documents are now under \"Unassigned\" — none of them were deleted.",
   },
+  guide: {
+    skip: "Skip",
+    back: "Back",
+    next: "Next",
+    done: "Let's go",
+    replay: "Replay the tour",
+    replayDesc: "Shows you the four key places again.",
+    navTitle: "Everything lives here",
+    navBody:
+      "Courses, exercises, formulas, exam mode. Everything you need is in this menu.",
+    uploadTitle: "Start with a script",
+    uploadBody:
+      "Upload a lecture, an exercise sheet or a past exam. Without your documents I can only answer in general — with them I can name the page.",
+    chatTitle: "Ask me anything",
+    chatBody:
+      "This is where I explain your material and work through it with you. I remember what you did not understand and bring it back.",
+    languageTitle: "Twelve languages",
+    languageBody:
+      "Learn in your language — you will still be examined in German, so the technical terms stay German.",
+  },
   share: {
     button: "Share",
     title: "Share semester",

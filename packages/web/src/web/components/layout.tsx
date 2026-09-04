@@ -10,6 +10,7 @@ import {
   Search,
 } from "lucide-react";
 import { SidebarContent } from "@/components/sidebar";
+import { OnboardingGuide } from "@/components/onboarding-guide";
 import { cn } from "@/lib/utils";
 import { useT } from "@/i18n";
 import { LanguageSwitcher } from "@/components/language-switcher";
@@ -154,6 +155,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             variant="ghost"
             size="icon"
             className="lg:hidden"
+            data-tour="nav"
             aria-label={t("nav.menu")}
             onClick={() => setMobileOpen(true)}
           >
@@ -201,7 +203,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
               </kbd>
             </button>
             <FontSizeToggle />
-            <LanguageSwitcher />
+            <span data-tour="language">
+              <LanguageSwitcher />
+            </span>
             <ThemeToggle />
           </div>
         </header>
@@ -209,6 +213,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
         {/* `min-w-0` plus haut : sans lui, un tableau ou un bloc de code large
             pousse la colonne et fait défiler la page entière de côté. */}
         <main className="min-w-0 flex-1 pb-16 lg:pb-0">{children}</main>
+
+        {/* Le guide du premier lancement. Monté ici et pas dans une page :
+            il doit pouvoir éclairer l'en-tête et la barre latérale, qui
+            n'appartiennent à aucune page. */}
+        <OnboardingGuide />
 
         {/* « Ständig verfügbar » : joignable depuis chaque page. */}
         <footer className="border-border border-t px-4 py-5 pb-20 lg:pb-5">

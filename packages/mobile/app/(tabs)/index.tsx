@@ -18,6 +18,7 @@ import { TredLogoIcon } from "@/components/TredLogoIcon";
 import { useColors } from "@/hooks/use-colors";
 import { useConversations } from "@/queries/chats";
 import { useDueGaps } from "@/queries/memory";
+import { useTourTarget } from "@/components/OnboardingGuide";
 import { Button } from "@/components/ui/Button";
 import { Radius, Space } from "@/constants/theme";
 
@@ -28,6 +29,7 @@ export default function Learn() {
   const chats = useConversations();
   const due = useDueGaps();
   const dueCount = due.data?.length ?? 0;
+  const cibleChat = useTourTarget("chat");
 
   const formatDate = useCallback(
     (value: Date | string | number | null | undefined) => {
@@ -157,6 +159,9 @@ export default function Learn() {
       )}
 
       <Pressable
+        ref={cibleChat.ref}
+        onLayout={cibleChat.onLayout}
+        collapsable={false}
         accessibilityRole="button"
         accessibilityLabel={t("chat.newChat")}
         onPress={() => router.push("/chat/new")}

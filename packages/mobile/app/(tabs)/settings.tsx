@@ -20,6 +20,7 @@ import Constants from "expo-constants";
 import { Screen } from "@/components/ui/Screen";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { useRestartGuide, useTourTarget } from "@/components/OnboardingGuide";
 import { useColors } from "@/hooks/use-colors";
 import { useTheme, THEME_MODES, type ThemeMode } from "@/lib/theme";
 import { authClient } from "@/lib/auth-client";
@@ -99,6 +100,9 @@ export default function Settings() {
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [typed, setTyped] = useState("");
+
+  const cibleProfil = useTourTarget("profile");
+  const revoirLeGuide = useRestartGuide();
 
   const version = Constants.expoConfig?.version ?? "1.0.0";
   const current = (i18n.language.slice(0, 2) as Language) ?? "de";
@@ -260,19 +264,27 @@ export default function Settings() {
         </Section>
 
         {/* ── Langue ───────────────────────────────────────────────────── */}
-        <Section title={t("account.language")}>
-          <Card padded={false}>
-            {LANGUAGES.map((language, i) => (
-              <ChoiceRow
-                key={language}
-                label={LANGUAGE_LABEL[language]}
-                selected={current === language}
-                first={i === 0}
-                onPress={() => void chooseLanguage(language)}
-              />
-            ))}
-          </Card>
-        </Section>
+        {/* La quatrième étape du guide s'arrête ici. Sur le web, le sélecteur
+            de langue est en haut à droite ; sur téléphone il n'y a pas de
+            place pour un en-tête, et le réglage vit dans cet écran. Le guide
+            montre donc l'endroit RÉEL, pas l'endroit du web.
+            `collapsable={false}` : sans lui, Android fusionne cette vue avec
+            son parent et `measureInWindow` ne trouve plus rien à mesurer. */}
+        <View ref={cibleProfil.ref} onLayout={cibleProfil.onLayout} collapsable={false}>
+          <Section title={t("account.language")}>
+            <Card padded={false}>
+              {LANGUAGES.map((language, i) => (
+                <ChoiceRow
+                  key={language}
+                  label={LANGUAGE_LABEL[language]}
+                  selected={current === language}
+                  first={i === 0}
+                  onPress={() => void chooseLanguage(language)}
+                />
+              ))}
+            </Card>
+          </Section>
+        </View>
 
         {/* ── Thème ────────────────────────────────────────────────────── */}
         <Section title={t("account.theme")}>
@@ -346,6 +358,17 @@ export default function Settings() {
         </Section>
 
         <View style={styles.footer}>
+          {/* Le guide part de la barre d'onglets, tout en bas de l'écran :
+              il faut donc quitter les Réglages pour qu'il ait de la place.
+              Le retour à l'accueil fait partie du geste. */}
+          <Button
+            label={t("guide.replay")}
+            variant="ghost"
+            onPress={() => {
+              router.navigate("/(tabs)");
+              revoirLeGuide();
+            }}
+          />
           <Button
             label={t("auth.signOut")}
             variant="ghost"

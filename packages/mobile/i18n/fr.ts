@@ -255,6 +255,26 @@ export const fr: Translations = {
     consentRequired: "Confirme les deux points pour continuer.",
   },
 
+  guide: {
+    skip: "Passer",
+    back: "Retour",
+    next: "Suivant",
+    done: "C'est parti",
+    replay: "Revoir la visite",
+    tabsTitle: "Tes quatre espaces",
+    tabsBody:
+      "En bas, tu passes du chat aux documents, à ta progression et aux réglages. Il n'y a rien d'autre à retenir.",
+    uploadTitle: "Commence par un polycopié",
+    uploadBody:
+      "Dépose un cours, un TD ou une ancienne épreuve. Sans tes documents je ne réponds qu'en général — avec eux je te donne la page.",
+    chatTitle: "Demande-moi ce que tu veux",
+    chatBody:
+      "C'est ici que je t'explique ton cours et qu'on calcule ensemble. Je retiens ce que tu n'as pas compris et j'y reviens.",
+    profileTitle: "Ta langue",
+    profileBody:
+      "Apprends dans ta langue — tu seras quand même examiné en allemand, donc les termes techniques restent en allemand.",
+  },
+
   errors: {
     unauthorized: "Reconnecte-toi.",
     network: "Pas de connexion. Vérifie ton accès Internet.",

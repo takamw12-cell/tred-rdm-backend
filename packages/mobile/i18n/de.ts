@@ -255,6 +255,26 @@ export const de = {
     consentRequired: "Bitte bestätige beide Punkte, um fortzufahren.",
   },
 
+  guide: {
+    skip: "Überspringen",
+    back: "Zurück",
+    next: "Weiter",
+    done: "Los geht's",
+    replay: "Rundgang noch einmal ansehen",
+    tabsTitle: "Deine vier Bereiche",
+    tabsBody:
+      "Unten wechselst du zwischen Chat, Unterlagen, Fortschritt und Einstellungen. Mehr musst du dir nicht merken.",
+    uploadTitle: "Fang mit einem Skript an",
+    uploadBody:
+      "Lade eine Vorlesung, eine Übung oder eine Altklausur hoch. Ohne deine Unterlagen antworte ich nur allgemein — mit ihnen nenne ich dir die Seite.",
+    chatTitle: "Frag mich, was du willst",
+    chatBody:
+      "Hier erkläre ich dir deinen Stoff und rechne mit dir. Ich merke mir, was du noch nicht verstanden hast, und komme darauf zurück.",
+    profileTitle: "Deine Sprache",
+    profileBody:
+      "Lerne in deiner Sprache — geprüft wirst du trotzdem auf Deutsch, deshalb bleiben die Fachbegriffe deutsch.",
+  },
+
   errors: {
     unauthorized: "Bitte melde dich erneut an.",
     network: "Keine Verbindung. Prüfe dein Internet.",

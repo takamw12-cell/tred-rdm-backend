@@ -279,7 +279,12 @@ export default function DashboardPage() {
           <p className="text-muted-foreground mt-1.5">{t("dashboard.subtitle")}</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => navigate("/chat")}>
+          <Button
+            variant="outline"
+            size="sm"
+            data-tour="upload"
+            onClick={() => navigate("/chat")}
+          >
             <Upload className="size-4" />
             {t("dashboard.importDocs")}
           </Button>

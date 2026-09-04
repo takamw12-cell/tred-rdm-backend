@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import {
   Moon,
   Sun,
@@ -10,6 +10,7 @@ import {
   Trash2,
   Loader2,
   Type,
+  Compass,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { restartGuide } from "@/components/onboarding-guide";
 import { useThemeStore, type Theme } from "@/stores/theme";
 import { useFontSizeStore, type FontSize } from "@/stores/font-size";
 import { useUserStore } from "@/stores/user";
@@ -137,6 +139,7 @@ function Choice<T extends string>({
 
 export default function SettingsPage() {
   const { t } = useT();
+  const [, setLocation] = useLocation();
 
   const theme = useThemeStore((s) => s.theme);
   const setTheme = useThemeStore((s) => s.setTheme);
@@ -238,6 +241,27 @@ export default function SettingsPage() {
               ]}
               sizes={["text-xs", "text-sm", "text-base"]}
             />
+          </Row>
+
+          {/* Le guide s'arrête sur le bouton de dépôt, qui vit sur le tableau
+              de bord. Le relancer depuis ici sauterait justement cette
+              étape-là : on y retourne d'abord. */}
+          <Row
+            label={t("guide.replay")}
+            description={t("guide.replayDesc")}
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => {
+                setLocation("/dashboard");
+                restartGuide();
+              }}
+            >
+              <Compass className="size-3.5" />
+              {t("guide.replay")}
+            </Button>
           </Row>
         </div>
       </Section>

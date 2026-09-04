@@ -592,6 +592,26 @@ export const es: Messages = {
     removedNotice:
       "{{name}} se ha eliminado. {{n}} documentos están ahora en «Sin clasificar»: no se ha borrado ninguno.",
   },
+  guide: {
+    skip: "Omitir",
+    back: "Atrás",
+    next: "Siguiente",
+    done: "Empecemos",
+    replay: "Repetir el recorrido",
+    replayDesc: "Vuelve a mostrarte los cuatro sitios clave.",
+    navTitle: "Aquí está todo",
+    navBody:
+      "Cursos, ejercicios, fórmulas, modo examen. Todo lo que necesitas está en este menú.",
+    uploadTitle: "Empieza con un apunte",
+    uploadBody:
+      "Sube una clase, una hoja de ejercicios o un examen anterior. Sin tus documentos solo respondo en general; con ellos te cito la página.",
+    chatTitle: "Pregúntame lo que quieras",
+    chatBody:
+      "Aquí te explico la materia y resolvemos juntos. Recuerdo lo que no entendiste y vuelvo sobre ello.",
+    languageTitle: "Doce idiomas",
+    languageBody:
+      "Aprende en tu idioma: te examinarán en alemán, así que los términos técnicos siguen en alemán.",
+  },
   share: {
     button: "Compartir",
     title: "Compartir el semestre",

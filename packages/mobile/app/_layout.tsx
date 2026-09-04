@@ -14,6 +14,7 @@ import { isWeb, startWebSafeArea } from "../lib/__web-safe-area";
 import { SessionGate } from "../components/SessionGate";
 import { i18n, initI18n } from "../i18n";
 import { ThemeProvider, useTheme } from "../lib/theme";
+import { OnboardingGuide, TourProvider } from "../components/OnboardingGuide";
 import appJson from "../app.json";
 
 const queryClient = new QueryClient({
@@ -82,6 +83,10 @@ export default function RootLayout() {
               <ThemeProvider>
                 <ThemedStatusBar />
                 <SessionGate>
+                  {/* Le guide enveloppe la navigation : ses cibles vivent dans
+                      des écrans différents (l'accueil, l'onglet Unterlagen),
+                      et un registre local à un écran ne les verrait pas. */}
+                  <TourProvider>
                   <Stack screenOptions={{ headerShown: false }}>
                     <Stack.Screen name="(tabs)" />
                     <Stack.Screen name="(auth)" />
@@ -103,6 +108,8 @@ export default function RootLayout() {
                       options={{ presentation: "modal" }}
                     />
                   </Stack>
+                  <OnboardingGuide />
+                  </TourProvider>
                 </SessionGate>
               </ThemeProvider>
             </I18nextProvider>

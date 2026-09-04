@@ -251,6 +251,26 @@ export const en: Translations = {
     consentRequired: "Please confirm both points to continue.",
   },
 
+  guide: {
+    skip: "Skip",
+    back: "Back",
+    next: "Next",
+    done: "Let's go",
+    replay: "Show the tour again",
+    tabsTitle: "Your four areas",
+    tabsBody:
+      "Down here you switch between chat, documents, progress and settings. There is nothing else to learn.",
+    uploadTitle: "Start with a script",
+    uploadBody:
+      "Upload a lecture, an exercise sheet or an old exam. Without your documents I can only answer in general — with them I can give you the page.",
+    chatTitle: "Ask me anything",
+    chatBody:
+      "This is where I explain your material and work through problems with you. I remember what you haven't understood yet and come back to it.",
+    profileTitle: "Your language",
+    profileBody:
+      "Learn in your own language — you will still be examined in German, so the technical terms stay German.",
+  },
+
   errors: {
     unauthorized: "Please sign in again.",
     network: "No connection. Check your internet.",
