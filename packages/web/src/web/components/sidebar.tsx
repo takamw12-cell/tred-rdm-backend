@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   MessagesSquare,
   BookMarked,
+  Library,
   Network,
   GraduationCap,
   Settings,
@@ -22,6 +23,9 @@ import { cn } from "@/lib/utils";
 export const navItems = [
   { to: "/dashboard", icon: LayoutDashboard, key: "nav.dashboard" },
   { to: "/chat", icon: MessagesSquare, key: "nav.chat" },
+  // Placé juste après le tuteur : c'est là que va quelqu'un qui n'a rien à
+  // lui donner à lire encore.
+  { to: "/courses", icon: Library, key: "nav.courses" },
   { to: "/dictionary", icon: BookMarked, key: "nav.dictionary" },
   { to: "/dna", icon: Network, key: "nav.dna" },
   { to: "/exercises", icon: PenSquare, key: "nav.exercises" },

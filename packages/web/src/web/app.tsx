@@ -20,6 +20,7 @@ import ExamPage from "./pages/exam";
 import SettingsPage from "./pages/settings";
 import PricingPage from "./pages/pricing";
 import CreditsPage from "./pages/credits";
+import CoursesPage from "./pages/courses";
 import AdminPage from "./pages/admin";
 
 function RootRedirect() {
@@ -57,6 +58,7 @@ function AuthedApp() {
             {/* Séparée de /pricing : le mur du quota tombe sur quelqu'un qui
                 révise, et qui veut dix questions ce soir — pas un abonnement. */}
             <Route path="/credits" component={CreditsPage} />
+            <Route path="/courses" component={CoursesPage} />
             {/* Serverseitig durch die Admin-Rolle geschützt, nicht durch Verstecken. */}
             <Route path="/admin" component={AdminPage} />
             <Route component={RootRedirect} />

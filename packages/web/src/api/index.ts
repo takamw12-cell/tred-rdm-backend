@@ -18,11 +18,14 @@ import { credits } from "./routes/credits";
 import { account } from "./routes/account";
 import { reports, listOpenReports, resolveReport } from "./routes/reports";
 import { subjects } from "./routes/subjects";
+import { courses, myCourseIds } from "./routes/courses";
+import { visibleDocuments } from "./lib/visible-documents";
 import { auth } from "./auth";
 import { rateLimitMiddleware } from "./middleware/rate-limit";
 import { db } from "./database";
 import {
   contentReport,
+  course,
   document,
   savedExercise,
   semester,
@@ -93,6 +96,7 @@ export const router = {
   account,
   reports,
   subjects,
+  courses,
 };
 
 export type AppRouter = typeof router;
@@ -480,6 +484,7 @@ app.post("/api/agent/messages", async (c) => {
     documentId,
     subjectId,
     semesterId,
+    courseId,
     locale,
     examMode,
     calcMode,
@@ -489,6 +494,7 @@ app.post("/api/agent/messages", async (c) => {
       documentId?: string | null;
       subjectId?: string | null;
       semesterId?: string | null;
+      courseId?: string | null;
       locale?: string;
       examMode?: boolean;
       calcMode?: boolean;
@@ -498,16 +504,36 @@ app.post("/api/agent/messages", async (c) => {
   let rows;
   let contextLabel = "Alle Kurse";
 
+  // Les cours suivis, lus une fois. Ils élargissent CHAQUE portée : un
+  // étudiant qui vient de s'inscrire n'a aucun document à lui, et c'est
+  // précisément celui-là qu'il faut pouvoir servir.
+  const mesCours = await myCourseIds(session.user.id);
+  const lisible = visibleDocuments(session.user.id, mesCours);
+
   if (documentId) {
     rows = await db
       .select()
       .from(document)
-      .where(
-        and(eq(document.id, documentId), eq(document.userId, session.user.id)),
-      )
+      .where(and(eq(document.id, documentId), lisible))
       .limit(1);
     if (!rows[0]) return c.json({ error: "document not found" }, 404);
     contextLabel = rows[0].title;
+  } else if (courseId) {
+    // Tout un cours partagé — le Skript de la Vorlesung, ses Übungen et ses
+    // anciennes Klausuren, tels que la promotion les a déposés.
+    if (!mesCours.includes(courseId)) {
+      return c.json({ error: "course not found" }, 404);
+    }
+    rows = await db
+      .select()
+      .from(document)
+      .where(and(eq(document.courseId, courseId), eq(document.visibility, "course")));
+    const cours = await db
+      .select({ name: course.name })
+      .from(course)
+      .where(eq(course.id, courseId))
+      .limit(1);
+    contextLabel = cours[0]?.name ?? "Kurs";
   } else if (subjectId) {
     // Un Fach : le script, les exercices et les anciennes klausuren ensemble.
     // C'est la portée que demande une vraie question de révision — « explique
@@ -545,10 +571,10 @@ app.post("/api/agent/messages", async (c) => {
       .limit(1);
     contextLabel = sem[0]?.name ?? "Semester";
   } else {
-    rows = await db
-      .select()
-      .from(document)
-      .where(eq(document.userId, session.user.id));
+    // « Alle Kurse » : les miens ET ceux que ma promotion a partagés. C'est la
+    // portée par défaut, donc celle que voit un étudiant qui vient d'arriver
+    // et n'a encore rien déposé.
+    rows = await db.select().from(document).where(lisible);
   }
 
   // Nur die für die aktuelle Frage relevanten Abschnitte mitschicken.
@@ -844,13 +870,22 @@ app.post("/api/agent/exercise", async (c) => {
 
   // Resolve grounding documents. A specific document / basedOn Klausur wins;
   // otherwise scope by semester, else all of the user's documents.
+  // La même règle de visibilité que le chat : mes documents, plus ceux que ma
+  // promotion a partagés dans les cours que je suis. Sans cette ligne, un
+  // étudiant qui a rejoint un cours sans rien déposer ne pourrait générer
+  // aucun exercice — exactement la personne qu'il faut servir en premier.
+  const lisibleEx = visibleDocuments(
+    session.user.id,
+    await myCourseIds(session.user.id),
+  );
+
   const targetId = body.basedOnId || body.documentId || null;
   let rows;
   if (targetId) {
     rows = await db
       .select()
       .from(document)
-      .where(and(eq(document.id, targetId), eq(document.userId, session.user.id)))
+      .where(and(eq(document.id, targetId), lisibleEx))
       .limit(1);
   } else if (body.semesterId) {
     rows = await db
@@ -863,10 +898,7 @@ app.post("/api/agent/exercise", async (c) => {
         ),
       );
   } else {
-    rows = await db
-      .select()
-      .from(document)
-      .where(eq(document.userId, session.user.id));
+    rows = await db.select().from(document).where(lisibleEx);
   }
 
   const { sources: exSources } = selectRelevantContext(
@@ -1079,6 +1111,15 @@ app.post("/api/agent/formulas", async (c) => {
   // Repli qui NOMME la langue au lieu de basculer en allemand sans le dire.
   const { label: langLabel } = langOf(body.locale);
 
+  // La même règle de visibilité que le chat : mes documents, plus ceux que ma
+  // promotion a partagés dans les cours que je suis. Sans cette ligne, un
+  // étudiant qui a rejoint un cours sans rien déposer ne pourrait générer
+  // aucun exercice — exactement la personne qu'il faut servir en premier.
+  const lisibleFo = visibleDocuments(
+    session.user.id,
+    await myCourseIds(session.user.id),
+  );
+
   let rows;
   if (body.semesterId) {
     rows = await db
@@ -1091,10 +1132,7 @@ app.post("/api/agent/formulas", async (c) => {
         ),
       );
   } else {
-    rows = await db
-      .select()
-      .from(document)
-      .where(eq(document.userId, session.user.id));
+    rows = await db.select().from(document).where(lisibleFo);
   }
 
   const { sources: fSources } = selectRelevantContext(
@@ -1200,14 +1238,21 @@ app.post("/api/agent/video", async (c) => {
   const { label: langLabel } = langOf(body.locale);
   const topic = (body.topic ?? "").slice(0, 4000);
 
+  // La même règle de visibilité que le chat : mes documents, plus ceux que ma
+  // promotion a partagés dans les cours que je suis. Sans cette ligne, un
+  // étudiant qui a rejoint un cours sans rien déposer ne pourrait générer
+  // aucun exercice — exactement la personne qu'il faut servir en premier.
+  const lisibleVi = visibleDocuments(
+    session.user.id,
+    await myCourseIds(session.user.id),
+  );
+
   let rows;
   if (body.docId) {
     rows = await db
       .select()
       .from(document)
-      .where(
-        and(eq(document.id, body.docId), eq(document.userId, session.user.id)),
-      );
+      .where(and(eq(document.id, body.docId), lisibleVi));
   } else if (body.semesterId) {
     rows = await db
       .select()
@@ -1219,10 +1264,7 @@ app.post("/api/agent/video", async (c) => {
         ),
       );
   } else {
-    rows = await db
-      .select()
-      .from(document)
-      .where(eq(document.userId, session.user.id));
+    rows = await db.select().from(document).where(lisibleVi);
   }
 
   const { sources: vSources } = selectRelevantContext(

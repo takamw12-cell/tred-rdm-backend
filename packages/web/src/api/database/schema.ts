@@ -94,6 +94,18 @@ export const document = sqliteTable("document", {
    *  obliger à choisir une matière au moment du téléversement ferait
    *  renoncer au téléversement. */
   subjectId: text("subject_id"),
+  /** Le cours partagé où ce document est publié. Nul = strictement privé. */
+  courseId: text("course_id"),
+  /**
+   * "private" | "course".
+   *
+   * Deux colonnes plutôt qu'une : `courseId` dit OÙ, `visibility` dit SI. Les
+   * séparer permet de retirer un document du partage sans perdre son
+   * rattachement, et de l'y remettre d'un geste. Avec une colonne unique, tout
+   * retrait effacerait l'information — et un retrait demandé par un
+   * professeur deviendrait irréversible pour l'étudiant qui l'a déposé.
+   */
+  visibility: text("visibility").notNull().default("private"),
   title: text("title").notNull(),
   kind: text("kind").notNull().default("vorlesung"), // vorlesung | uebung | klausur | other
   textContent: text("text_content").notNull(),
@@ -110,6 +122,9 @@ export const document = sqliteTable("document", {
     index("document_user_created_idx").on(t.userId, t.createdAt),
     index("document_semester_idx").on(t.semesterId),
     index("document_subject_idx").on(t.subjectId),
+    // « Les documents partagés de ce cours » — la lecture faite à chaque
+    // ouverture du tableau de bord par chaque membre.
+    index("document_course_idx").on(t.courseId, t.visibility),
   ],
 );
 
@@ -532,3 +547,75 @@ export const rateLimit = sqliteTable(
   },
   (t) => [index("rate_limit_window_idx").on(t.windowStart)],
 );
+
+// ── La bibliothèque de cours partagée ──────────────────────────────────────
+//
+// Le constat qui a fait construire ça : treize comptes, onze n'ayant jamais
+// déposé un seul document. Ce n'était pas un défaut d'accueil — c'était qu'un
+// nouvel inscrit arrivait dans une pièce vide et n'avait rien à demander.
+//
+// À la FH Aachen, tous les étudiants d'une Vorlesung ont LE MÊME Skript.
+// Chacun le téléversait séparément, et le serveur l'extrayait autant de fois
+// qu'il y avait d'inscrits. Le partage règle d'un coup l'arrivée (il y a
+// quelque chose à lire dès la première minute), la raison d'inviter quelqu'un,
+// et le coût d'extraction.
+//
+// ── Ce qui n'est PAS fait ici, volontairement ─────────────────────────────
+//
+// Les documents ne sont pas copiés. Un document partagé reste UNE ligne, avec
+// son `userId` d'origine : celui qui l'a déposé reste identifiable, et le
+// retirer se fait en remettant `visibility` à "private". Dupliquer aurait
+// rendu tout retrait impossible à garantir — et un Skript est une œuvre
+// protégée, donc le retrait doit être certain.
+
+/**
+ * Un cours suivi par plusieurs étudiants.
+ *
+ * `normalizedKey` est l'identité réelle du cours. Sans elle, « Elektrotechnik 2 »,
+ * « elektrotechnik 2 » et « Elektrotechnik  2 » feraient trois cours distincts,
+ * chacun avec un seul membre — c'est-à-dire aucun partage, et le problème
+ * intact.
+ */
+export const course = sqliteTable(
+  "course",
+  {
+    id: text("id").primaryKey(),
+    /** L'identité, calculée : "<université>/<nom>" sans casse ni accents. */
+    normalizedKey: text("normalized_key").notNull().unique(),
+    /** Ce que l'on affiche, tel que le premier étudiant l'a écrit. */
+    name: text("name").notNull(),
+    university: text("university").notNull(),
+    /** Studiengang, quand il est connu. Sert à proposer les bons cours. */
+    program: text("program"),
+    /** Qui l'a créé. Pour le support, jamais affiché comme une propriété. */
+    createdBy: text("created_by").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    index("course_key_idx").on(t.normalizedKey),
+    index("course_university_idx").on(t.university),
+  ],
+);
+
+export type Course = typeof course.$inferSelect;
+
+/** Qui suit quel cours. La clé composite empêche la double adhésion. */
+export const courseMember = sqliteTable(
+  "course_member",
+  {
+    courseId: text("course_id").notNull(),
+    userId: text("user_id").notNull(),
+    joinedAt: integer("joined_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    primaryKey({ columns: [t.courseId, t.userId] }),
+    // La lecture chaude : « mes cours », faite à chaque question au tuteur.
+    index("course_member_user_idx").on(t.userId),
+  ],
+);
+
+export type CourseMember = typeof courseMember.$inferSelect;
