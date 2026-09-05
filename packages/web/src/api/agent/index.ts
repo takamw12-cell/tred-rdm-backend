@@ -5,6 +5,7 @@ import { calculate } from "../lib/calc";
 import { solveRdmSafe, type SupportKind } from "../lib/rdm-solver";
 import { toSI } from "../lib/units";
 import { renderDiagram, type DiagramSpec } from "../lib/diagrams";
+import type { Passage } from "../lib/document-search";
 import { ageLabel } from "../lib/memory-text";
 import dedent from "dedent";
 import { gateway } from "./gateway";
@@ -118,6 +119,13 @@ export function buildTutorAgent(opts: {
   codeLang?: string;
   /** Mémoire du tuteur. Absente = comportement d'avant, sans diagnostic. */
   memory?: TutorMemory;
+  /**
+   * La recherche dans TOUT le cours, pas seulement dans les extraits retenus.
+   *
+   * Absente = comportement d'avant : le tuteur ne voit que ce que le serveur a
+   * choisi pour lui. Présente, il peut aller lire.
+   */
+  search?: (requete: string, titre?: string) => Passage[];
 }) {
   const rule = langRule(opts.locale);
   const memoryBlock = buildMemoryBlock(opts.memory);
@@ -145,6 +153,31 @@ export function buildTutorAgent(opts: {
 
   return new ToolLoopAgent({
     model: gateway("anthropic/claude-sonnet-4.6"),
+    /**
+     * Le droit de réfléchir avant de répondre.
+     *
+     * Rien n'activait le raisonnement étendu : le modèle répondait en un seul
+     * passage. Pour une définition, c'est sans importance. Pour une dérivation
+     * de moment fléchissant — poser l'équilibre, intégrer deux fois, déterminer
+     * les constantes aux conditions aux limites — c'est demander à un
+     * professeur de répondre sans brouillon. Les erreurs de signe et les
+     * constantes oubliées viennent de là.
+     *
+     * `adaptive` et non un budget fixe : le modèle décide lui-même du temps
+     * qu'il y consacre. Une question de vocabulaire n'en consomme pas, une
+     * dérivation en consomme beaucoup. Un budget fixe ferait payer les deux au
+     * même prix — et le budget en tokens de sortie est justement le garde-fou
+     * qui protège la facture.
+     *
+     * `summarized` : l'étudiant voit un résumé du cheminement, pas le monologue
+     * entier. Le monologue est long et souvent hésitant ; il ferait douter d'un
+     * professeur, alors qu'il est le signe qu'il travaille.
+     */
+    providerOptions: {
+      anthropic: {
+        thinking: { type: "adaptive", display: "summarized" },
+      },
+    },
     instructions: [
       {
         role: "system",
@@ -268,10 +301,28 @@ export function buildTutorAgent(opts: {
           und zerstört das Vertrauen sofort.
 
           Unten stehen die AUSZÜGE, die zu dieser Frage passen — nicht der
-          ganze Bestand. Steht etwas nicht darin, sagst du: "In den Abschnitten,
-          die ich für diese Frage vor mir habe, steht das nicht — frag mich
-          gezielt danach, dann hole ich die passende Stelle." Du sagst NIEMALS,
-          das Dokument existiere nicht.
+          ganze Bestand.${
+            opts.search
+              ? `
+
+          DU KANNST SELBST NACHSCHLAGEN. Steht etwas nicht in den Auszügen
+          unten, RUFE \`suche_in_unterlagen\` AUF, bevor du irgendetwas
+          verneinst. Die Auszüge wurden vom Server nach den Wörtern DEINER
+          Frage ausgewählt — ein Skript, das "Kirchhoffsche Regeln" schreibt,
+          wird von der Suche nach "Maschengleichung" nicht getroffen. Das
+          Kapitel ist trotzdem da.
+
+          Findest du beim ersten Versuch nichts, SUCHE ERNEUT mit anderen
+          Wörtern: Synonym, Name des Gesetzes, Oberbegriff, Formelzeichen.
+          Erst nach zwei oder drei erfolglosen Formulierungen darfst du sagen,
+          dass etwas nicht in den Unterlagen steht — und dann sagst du, wonach
+          du gesucht hast.`
+              : `
+
+          Steht etwas nicht darin, sagst du:
+          "In den Abschnitten, die ich für diese Frage vor mir habe, steht das nicht
+          — frag mich gezielt danach, dann hole ich die passende Stelle."`
+          } Du sagst NIEMALS, das Dokument existiere nicht.
 
           Die Auszüge sind mit Seitenmarken [[SEITE n]] versehen.
           ZITIEREN: "→ ${(sources[0]?.title ?? inventory[0]?.title) ?? "Skript"}, Seite 7".
@@ -756,6 +807,65 @@ export function buildTutorAgent(opts: {
       },
     ],
     tools: {
+      /**
+       * Chercher dans les documents — l'outil qui change la nature du tuteur.
+       *
+       * Avant lui, le serveur devinait quels passages envoyer, à partir des
+       * mots exacts de la question. « Maschengleichung » ne trouvait pas
+       * « Kirchhoffsche Regeln », et le tuteur répondait de mémoire générale.
+       *
+       * Maintenant il cherche, lit, et recommence avec d'autres mots si la
+       * première tentative ne donne rien. C'est la différence entre réciter et
+       * aller voir.
+       */
+      ...(opts.search
+        ? {
+            suche_in_unterlagen: tool({
+              description:
+                "Durchsucht ALLE Unterlagen des/der Studierenden \u2014 auch die " +
+                "Abschnitte, die nicht schon oben stehen. BENUTZE DIESES " +
+                "WERKZEUG, bevor du sagst, etwas stehe nicht in den " +
+                "Unterlagen. Findest du nichts, SUCHE NOCH EINMAL mit anderen " +
+                "W\u00f6rtern: dem Synonym, dem Namen des Gesetzes, dem " +
+                "Oberbegriff. \u201eMaschengleichung\u201c steht im Skript oft " +
+                "als \u201eKirchhoffsche Regeln\u201c. Erst wenn zwei oder drei " +
+                "Formulierungen nichts ergeben, ist es wirklich nicht da.",
+              inputSchema: z.object({
+                suchbegriff: z
+                  .string()
+                  .describe(
+                    "Fachbegriffe, nach denen gesucht wird. Keine ganzen Fragen \u2014 " +
+                      "die Suche ist w\u00f6rtlich. Gut: \u201eBiegemoment " +
+                      "Randbedingungen Einspannung\u201c.",
+                  ),
+                dokument: z
+                  .string()
+                  .optional()
+                  .describe(
+                    "Nur in diesem Dokument suchen. Teil des Titels gen\u00fcgt. " +
+                      "Weglassen, um alle zu durchsuchen.",
+                  ),
+              }),
+              execute: async ({ suchbegriff, dokument }) => {
+                const trouvailles = opts.search!(suchbegriff, dokument);
+                if (trouvailles.length === 0) {
+                  return {
+                    gefunden: 0,
+                    // Le message dit quoi faire, pas seulement ce qui manque.
+                    // Un outil qui renvoie une liste vide se lit comme « ça
+                    // n'existe pas » ; c'est exactement l'erreur à éviter.
+                    hinweis:
+                      "Nichts mit diesen W\u00f6rtern. Suche noch einmal mit einem " +
+                      "Synonym oder dem Oberbegriff, bevor du daraus schlie\u00dft, " +
+                      "dass es nicht in den Unterlagen steht.",
+                  };
+                }
+                return { gefunden: trouvailles.length, stellen: trouvailles };
+              },
+            }),
+          }
+        : {}),
+
       // Ein Sprachmodell SCHREIBT Zahlen, es RECHNET sie nicht. Damit
       // Zwischenergebnisse und Umschaltpunkte belastbar sind, werden sie hier
       // tatsächlich ausgerechnet statt formuliert.

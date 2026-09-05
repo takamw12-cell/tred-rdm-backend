@@ -46,6 +46,7 @@ import { renderTikz } from "./lib/tikz";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { s3, S3_BUCKET } from "./lib/s3";
 import { selectRelevantContext } from "./lib/retrieval";
+import { chercherDansDocuments } from "./lib/document-search";
 import { searchYoutube } from "./lib/youtube";
 import {
   getAccess,
@@ -644,6 +645,25 @@ app.post("/api/agent/messages", async (c) => {
       note: (input) => noteGap(uid, { ...input, semesterId: semesterId ?? null }),
       resolve: (label) => resolveGap(uid, label),
     },
+    /**
+     * La recherche porte sur `rows` — TOUT le corpus visible — et non sur
+     * `sources`, qui n'en est qu'un extrait de 24 000 caractères choisi par
+     * correspondance de mots.
+     *
+     * C'est là toute la différence. Le contexte initial reste ce qu'il était,
+     * pour que les questions simples n'aient rien à demander ; mais quand le
+     * tuteur ne trouve pas, il peut désormais aller lire les 64 000 caractères
+     * restants au lieu de conclure qu'ils n'existent pas.
+     *
+     * Rien n'est relu en base : `rows` est déjà en mémoire. La recherche est
+     * lexicale et locale, donc instantanée et sans coût.
+     */
+    search: (requete, titre) =>
+      chercherDansDocuments(
+        rows.map((d) => ({ title: d.title, kind: d.kind, content: d.textContent })),
+        requete,
+        titre,
+      ),
   });
 
   return createAgentUIStreamResponse({

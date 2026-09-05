@@ -108,9 +108,36 @@ describe("des documents existent mais aucun extrait n'a été retenu", () => {
     }
   });
 
-  test("il apprend à dire « pas dans ces passages », pas « ça n'existe pas »", () => {
+  test("sans outil de recherche : « pas dans ces passages », jamais « ça n'existe pas »", () => {
     expect(p).toContain("die ich für diese Frage vor mir habe");
     expect(p).toContain("NIEMALS");
+  });
+
+  test("AVEC l'outil de recherche : chercher avant de nier", () => {
+    // Le tuteur ne dépend plus de ce que le serveur a deviné. Ce qu'il faut
+    // verrouiller, c'est l'ORDRE : chercher d'abord, conclure ensuite. Sans
+    // cette règle, l'outil existerait sans jamais être appelé — et la panne du
+    // 3 septembre reviendrait à l'identique.
+    const avecRecherche = prompt({
+      sources: [],
+      inventory: INVENTAIRE,
+      locale: "de",
+      search: () => [],
+    });
+
+    expect(avecRecherche).toContain("suche_in_unterlagen");
+    expect(avecRecherche).toContain("bevor du irgendetwas");
+    // L'exemple concret compte autant que la règle : c'est lui qui apprend au
+    // modèle QUEL genre d'écart de vocabulaire il doit soupçonner.
+    expect(avecRecherche).toContain("Kirchhoffsche Regeln");
+    expect(avecRecherche).toContain("Maschengleichung");
+    // Une seule tentative infructueuse ne prouve rien.
+    expect(avecRecherche).toContain("SUCHE ERNEUT");
+    // Et il ne doit jamais franchir la dernière limite.
+    expect(avecRecherche).toContain("Du sagst NIEMALS, das Dokument existiere nicht");
+    for (const deni of DENIS) {
+      expect(avecRecherche).not.toContain(deni);
+    }
   });
 });
 
