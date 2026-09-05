@@ -79,7 +79,12 @@ const components: Components = {
     if (lang === "mermaid") return <MermaidDiagram code={raw} />;
     if (lang === "chart") return <ChartBlock code={raw} />;
     if (lang === "svg") return <SvgBlock code={raw} />;
-    if (lang === "tikz") return <TikzDiagram code={raw} />;
+    // « circuitikz » est le mot que le tuteur écrit pour un schéma
+    // électrique. Le même compilateur les traite : circuitikz N'EST qu'un
+    // paquet TikZ. Deux noms parce qu'un modèle qui dessine un circuit écrit
+    // spontanément le second, et refuser ce mot ferait tomber le bloc en
+    // code brut.
+    if (lang === "tikz" || lang === "circuitikz") return <TikzDiagram code={raw} />;
     // Multiline code fences in a highlightable language -> rich CodeBlock
     // (copy / download / explain). Inline code has no language + no newline.
     if (isHighlightableLang(lang) && raw.includes("\n"))
@@ -91,7 +96,13 @@ const components: Components = {
   pre(props) {
     const { node, children } = props as { node?: unknown; children?: React.ReactNode };
     const lang = codeLang(node);
-    if (lang === "mermaid" || lang === "chart" || lang === "svg" || lang === "tikz")
+    if (
+      lang === "mermaid" ||
+      lang === "chart" ||
+      lang === "svg" ||
+      lang === "tikz" ||
+      lang === "circuitikz"
+    )
       return <>{children}</>;
     // Même chose pour un curriculum : il rend sa propre <section>, qui n'a
     // rien à faire à l'intérieur d'un <pre>.

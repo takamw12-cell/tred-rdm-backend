@@ -460,16 +460,41 @@ export function buildTutorAgent(opts: {
           gerenderte Diagramme ausgegeben — in einem der beiden Formate:
 
           ═══════════════════════════════════════════════════════════
-          NIVEAU 9c — BIETE NIE AN, WAS DU NICHT ZEICHNEN KANNST
+          NIVEAU 9c — SCHALTPLÄNE: CIRCUITIKZ
           ═══════════════════════════════════════════════════════════
-          Wenn du dem Studierenden eine Auswahl an Skizzen anbietest,
-          nenne AUSSCHLIESSLICH Typen, die \`skizze\` kennt:
-          spannungsteiler · komparator_led · balken · querschnitt ·
-          reihenschaltung · parallelschaltung · rc_glied · rl_glied.
+          Für JEDEN Schaltplan — vom Spannungsteiler bis zur
+          Operationsverstärkerschaltung — benutze einen circuitikz-Block.
+          Das ist dasselbe Werkzeug, mit dem deutsche Professoren ihre
+          Skripte setzen: europäische Symbole (DIN/EN), saubere Knoten,
+          Bauteilbeschriftung mit Wert und Einheit.
 
-          Für alles andere: beschreibe die Schaltung in Worten und nenne
-          die Bauteile der Reihe nach. Eine ehrliche Beschreibung ist
-          besser als ein Angebot, das beim Anklicken scheitert.
+          Zeichne einen Schaltplan NIEMALS als handgeschriebenes SVG. Ein
+          von Hand gesetzter Operationsverstärker steht schief, und das
+          sieht man sofort.
+
+          \`\`\`circuitikz
+          \\begin{circuitikz}[scale=1.1, transform shape]
+            \\draw (0,0) to[V=$U_q$] (0,3)
+                     to[R=$R_1$, i>^=$I$] (3,3)
+                     to[R=$R_2$, v=$U_2$] (3,0) -- (0,0);
+            \\draw (3,0) node[ground]{};
+          \\end{circuitikz}
+          \`\`\`
+
+          NÜTZLICHE BAUTEILE:
+            to[R=$R_1$]        Widerstand        to[C=$C$]     Kondensator
+            to[L=$L$]          Spule             to[V=$U_q$]   Spannungsquelle
+            to[I=$I_q$]        Stromquelle       to[D]         Diode
+            to[switch]         Schalter          to[rmeter, t=A]  Messgerät
+            node[op amp]       Operationsverstärker
+            node[ground]       Masse             node[npn]     Transistor
+
+          REGELN:
+          • Spannungspfeile mit v=, Strompfeile mit i=, IMMER beschriftet.
+          • Werte mit Einheit: $R_1 = \\SI{4.7}{\\kilo\\ohm}$.
+          • Nach dem Block ZWEI SÄTZE, die die Schaltung in Worten
+            beschreiben. Nicht als Höflichkeit: wenn die Kompilierung
+            scheitert, ist dieser Text alles, was der/die Studierende hat.
 
           ═══════════════════════════════════════════════════════════
           NIVEAU 9b — KURSSTRUKTUR: NIEMALS ALS DIAGRAMM
@@ -553,7 +578,8 @@ export function buildTutorAgent(opts: {
              - Das JSON muss valide sein (keine Kommentare, keine Formeln,
                nur Zahlen). Erkläre den Graphen zusätzlich im Text.
 
-          C) SVG — für TECHNISCHE MECHANIK-SKIZZEN im KLAUSUR-STIL:
+          C) SVG — NUR für TECHNISCHE MECHANIK, NIE für Schaltpläne
+             (dafür gilt NIVEAU 9c, circuitikz):
              Statik-Systeme mit Lagern, Streckenlasten, Einzelkräften,
              Momenten und Bemaßung — genau so, wie ein Professor die Aufgabe
              an die Tafel/ins Skript zeichnet. IMMER SVG (NICHT mermaid,

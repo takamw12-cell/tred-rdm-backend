@@ -42,6 +42,25 @@ const PREAMBLE = String.raw`\documentclass[border=8pt,varwidth]{standalone}
   \providecommand{\gram}{g}\providecommand{\second}{s}\providecommand{\ampere}{A}\providecommand{\kelvin}{K}%
   \providecommand{\per}{/}\providecommand{\squared}{\ensuremath{{}^2}}\providecommand{\cubed}{\ensuremath{{}^3}}%
 }
+% CircuiTikz — les schémas électriques.
+%
+% C'est le paquet dont se servent réellement les professeurs d'ingénierie
+% allemands : résistances, sources, amplificateurs opérationnels, transistors,
+% appareils de mesure, avec la norme européenne (DIN/EN) et non les symboles
+% américains. Avant lui, le tuteur dessinait ses circuits en SVG à la main,
+% coordonnée par coordonnée, et cela se voyait.
+%
+% On teste la presence du fichier, au lieu d'un \usepackage sec : si l'image
+% de deploiement ne porte pas circuitikz, une figure de mecanique doit quand
+% meme compiler. Le schema electrique echouera seul, avec un message lisible,
+% au lieu d'emporter toutes les autres figures avec lui.
+\IfFileExists{circuitikz.sty}{%
+  \usepackage[european, straightvoltages, RPvoltages, betterproportions]{circuitikz}%
+  % Épaisseurs et tailles pensées pour un écran de téléphone, pas pour une
+  % feuille A4 : les valeurs par défaut de circuitikz sont trop fines.
+  \ctikzset{bipoles/length=1.1cm, resistors/scale=0.85, sources/scale=0.9}%
+  \ctikzset{font=\sffamily\large}%
+}{}
 \usepackage{helvet}
 \renewcommand{\familydefault}{\sfdefault}
 \usetikzlibrary{arrows.meta,patterns,patterns.meta,decorations.pathmorphing,decorations.markings,decorations.pathreplacing,calc,angles,quotes,positioning,shapes.geometric,shapes.misc,backgrounds,intersections,through}

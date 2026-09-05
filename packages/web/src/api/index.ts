@@ -137,6 +137,13 @@ app.use(
   "/api/documents/upload",
   rateLimitMiddleware({ limit: 10, scope: "upload", windowMs: 5 * 60_000 }),
 );
+// La compilation LaTeX lance pdflatex ET dvisvgm — deux processus, jusqu'à
+// vingt secondes de calcul, sur le serveur qui répond aussi aux questions des
+// autres étudiants. Une réponse contenant quatre schémas fait quatre appels
+// légitimes, d'où trente : assez large pour une conversation nourrie, assez
+// étroit pour qu'une boucle ne mette pas le serveur à genoux. Le cache par
+// empreinte absorbe les relectures, qui ne recompilent rien.
+app.use("/api/tikz/*", rateLimitMiddleware({ limit: 30, scope: "tikz" }));
 
 // Better Auth handler (Hono v4 uses single `*` wildcard).
 // ── Sperre: greift vor jeder API-Anfrage ──────────────────────────────────
@@ -910,12 +917,26 @@ app.post("/api/agent/exercise", async (c) => {
     .map((d) => `-- ${d.title} (${d.kind}) --\n${d.content}`)
     .join("\n\n");
 
+  // « klausurnah » ne dit rien à un modèle : il produisait un exercice
+  // d'application propre mais scolaire. Ce qui distingue une vraie épreuve
+  // d'ingénieur, ce n'est pas la longueur du calcul — c'est qu'il faut
+  // CHOISIR une méthode, que toutes les données ne sont pas fournies, et
+  // qu'une partie de la note porte sur l'interprétation du résultat.
   const diffLabel =
     body.difficulty === "easy"
-      ? "leicht (Grundlagen)"
+      ? "leicht: Grundlagen, eine Formel, ein Rechenschritt. Zum Warmwerden."
       : body.difficulty === "hard"
-        ? "schwer (klausurnah, mehrere Schritte)"
-        : "mittel";
+        ? [
+            "schwer, auf echtem Klausurniveau einer deutschen Hochschule:",
+            "• mehrere Teilaufgaben, die aufeinander aufbauen (a → b → c);",
+            "• die Methode ist NICHT vorgegeben — der/die Studierende muss sie wählen;",
+            "• mindestens eine Größe muss aus einer Randbedingung selbst bestimmt werden;",
+            "• eine Teilaufgabe verlangt eine INTERPRETATION statt einer Zahl",
+            "  (Größenordnung, Plausibilität, Grenzfall, was passiert wenn ...);",
+            "• eine Zahlenangabe darf überflüssig sein — Klausuren geben nicht nur",
+            "  das Nötige. NICHT erwähnen, dass sie überflüssig ist.",
+          ].join("\n")
+        : "mittel: zwei bis drei Schritte, Methode erkennbar, alle Angaben vorhanden.";
   const typeLabel =
     body.type === "proof"
       ? "Herleitung / Beweis"
@@ -925,7 +946,14 @@ app.post("/api/agent/exercise", async (c) => {
 
   const klausurRule =
     mode === "klausur"
-      ? "- Erzeuge 3-5 Aufgaben mit Punkten, die sich zu 100 summieren, plus ein kurzes Bewertungsschema."
+      ? [
+          "- Erzeuge 3-5 Aufgaben mit Punkten, die sich zu 100 summieren, plus ein Bewertungsschema.",
+          "- BEARBEITUNGSZEIT oben angeben (90 oder 120 Minuten) und die Punkte so verteilen,",
+          "  dass sie realistisch erreichbar ist: etwa ein Punkt pro Minute.",
+          "- Die Aufgaben decken VERSCHIEDENE Kapitel ab, nicht dreimal dasselbe Thema.",
+          "- Genau eine Aufgabe ist bewusst leicht (Einstieg), genau eine deutlich schwer.",
+          "- Zulässige Hilfsmittel nennen (Formelsammlung, Taschenrechner)."
+        ].join("\n")
       : "- Genau EINE zusammenhaengende Aufgabe (ggf. mit Teilaufgaben a, b, c).";
   const modeWord = mode === "klausur" ? "Übungsklausur" : "Übungsaufgabe";
 
@@ -942,7 +970,8 @@ ANFORDERUNGEN:
 - Formeln als LaTeX zwischen $...$ bzw. $...$.
 - RECHENPROBE: Bevor du eine Aussage der Form \"wenn X steigt, dann steigt/sinkt Y\" oder eine Schaltbedingung formulierst, setze zwei Zahlenwerte beiderseits des Umschaltpunkts ein und rechne beide Fälle aus. Beim Spannungsteiler U = U₀·R_unten/(R_oben+R_unten) gilt: steigt R_oben, so SINKT U. Angabe, Rechenweg und Ergebnis müssen dieselbe Richtung haben.
 - Liegt in den Unterlagen eine Musterlösung vor, ist sie maßgeblich; weiche nur ab, wenn du den Widerspruch ausdrücklich benennst.
-- Wo eine Skizze hilft (Balken, Querschnitt, Freikörperbild, Schaltung): füge einen \`\`\`svg-Codeblock mit reinem, nativem SVG ein — EXAKT im selben Klausur-Stil wie im Tutor-Chat. KEIN TikZ, KEIN mermaid. Regeln:
+- SCHALTPLÄNE: als \`\`\`circuitikz-Block, mit europäischen Symbolen (DIN/EN) — so, wie ein Professor sie ins Skript setzt. NIE als handgezeichnetes SVG: ein von Hand gesetzter Operationsverstärker steht schief. Beispiel: \`\\begin{circuitikz} \\draw (0,0) to[V=$U_q$] (0,3) to[R=$R_1$, i>^=$I$] (3,3) to[R=$R_2$, v=$U_2$] (3,0) -- (0,0); \\end{circuitikz}\`. Spannungen mit v=, Ströme mit i=, Werte mit Einheit.
+- MECHANIK-SKIZZEN (Balken, Querschnitt, Freikörperbild): füge einen \`\`\`svg-Codeblock mit reinem, nativem SVG ein — EXAKT im selben Klausur-Stil wie im Tutor-Chat. KEIN TikZ, KEIN mermaid. Regeln:
   • IMMER \`viewBox\` (z. B. "0 0 480 260"), NIE feste width/height.
   • Nur diese Elemente: svg, g, defs, marker, path, line, polyline, polygon, rect, circle, ellipse, text, tspan. Keine Skripte, keine externen Referenzen.
   • TM-Symbole als Geometrie: Festlager = Dreieck; Loslager = Dreieck + Bodenlinie; Einspannung = schraffierte Wand; Streckenlast = Pfeilreihe unter Decklinie; Einzelkraft = dicke Linie mit marker-end-Pfeilspitze; Moment = Bogen-path mit Pfeil.

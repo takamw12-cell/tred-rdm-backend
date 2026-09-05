@@ -213,21 +213,81 @@ export function SvgBlock({ code }: { code: string }) {
   return <SvgDiagramFrame svg={svg} name="skizze" background="white" />;
 }
 
-// ── TikZ (legacy) ─────────────────────────────────────────────────────
-// Older conversations may still contain ```tikz blocks. We no longer compile
-// TikZ (the WASM engine froze the browser and prod has no LaTeX toolchain).
-// Instead of dumping raw code at the user, show a clean neutral placeholder.
-// New sketches are emitted as native ```svg blocks (see SvgBlock above).
-export function TikzDiagram(_props: { code: string }) {
-  return (
-    <div className="border-border bg-secondary/40 text-muted-foreground my-3 flex items-center gap-2 rounded-xl border p-4 text-xs">
-      <AlertTriangle className="size-3.5 shrink-0" />
-      <span>
-        Diese Skizze wurde in einem älteren Format erstellt und kann hier nicht
-        mehr angezeigt werden. Bitte den Tutor um eine neue Skizze.
-      </span>
-    </div>
-  );
+// ── TikZ / CircuiTikz ─────────────────────────────────────────────────
+//
+// Compilé PAR LE SERVEUR, pas dans le navigateur.
+//
+// La première tentative faisait tourner un moteur TeX en WebAssembly dans
+// l'onglet ; il gelait le fil principal, ce que Playwright avait confirmé.
+// L'abandon était juste — mais la conclusion tirée alors, « on ne compile
+// plus de TikZ », coûtait cher : le tuteur s'est mis à dessiner ses circuits
+// en SVG à la main, segment par segment, et un amplificateur opérationnel
+// placé à la main est de travers.
+//
+// `/api/tikz/render` compile avec pdflatex et met en cache par empreinte du
+// contenu. Le navigateur ne fait que recevoir un SVG.
+//
+// ── Quand la compilation échoue ───────────────────────────────────────
+//
+// Elle échouera : LaTeX absent d'un environnement de développement, macro
+// inconnue, image déployée sans circuitikz. On n'affiche alors PAS le code
+// source — un étudiant à qui l'on montre du LaTeX brut au milieu d'une
+// explication croit à une panne. On affiche une ligne honnête, et le texte
+// autour du schéma continue d'enseigner.
+export function TikzDiagram({ code }: { code: string }) {
+  const [svg, setSvg] = useState<string>("");
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setSvg("");
+    setFailed(false);
+
+    fetch("/api/tikz/render", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ code }),
+    })
+      .then(async (r) => {
+        if (!r.ok) throw new Error(String(r.status));
+        return (await r.json()) as { svg?: string };
+      })
+      .then((data) => {
+        if (cancelled) return;
+        if (data.svg) setSvg(data.svg);
+        else setFailed(true);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [code]);
+
+  if (failed) {
+    return (
+      <div className="border-border bg-secondary/40 text-muted-foreground my-3 flex items-center gap-2 rounded-xl border p-3 text-xs">
+        <AlertTriangle className="size-3.5 shrink-0" />
+        <span>Diese Skizze konnte nicht gezeichnet werden.</span>
+      </div>
+    );
+  }
+
+  if (!svg) {
+    return (
+      <div className="border-border bg-card text-muted-foreground my-3 flex items-center justify-center gap-2 rounded-xl border p-6 text-xs">
+        <Loader2 className="size-4 animate-spin" /> Skizze wird gezeichnet …
+      </div>
+    );
+  }
+
+  // Le SVG vient de dvisvgm, donc de notre propre serveur — mais il est
+  // injecté par innerHTML, et le code TikZ, lui, vient du modèle. On le
+  // repasse par le même nettoyage que les blocs ```svg.
+  return <SvgDiagramFrame svg={sanitizeSvg(svg)} name="skizze" background="white" />;
 }
 // ── Charts ──────────────────────────────────────────────────────────────
 // Renders a ```chart fenced block. Expected JSON:

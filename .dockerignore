@@ -1,0 +1,38 @@
+# Ce qui ne doit JAMAIS entrer dans l'image.
+#
+# `node_modules` en tête : sans cette ligne, Docker copie les dépendances de
+# la machine de développement par-dessus celles que `bun install` vient de
+# poser dans l'image. Sur Windows, ce sont des dossiers vides — l'image se
+# construirait donc en apparence, puis planterait au démarrage.
+#
+# `.env` : les secrets viennent des variables Railway, jamais d'un fichier
+# embarqué dans une image que l'on pousse dans un registre.
+node_modules
+**/node_modules
+.env
+*.env
+.git
+.github
+
+# Les paquets qui ne sont pas déployés ici.
+packages/mobile/.expo
+packages/mobile/android
+packages/mobile/ios
+packages/desktop
+
+# Sorties de construction locales — reconstruites dans l'image.
+packages/web/dist
+packages/web/local-test.db
+*.tsbuildinfo
+export-runable
+
+# Les scripts de livraison et les notes : sans intérêt en production, et ils
+# invalideraient le cache de couches à chaque nouvelle livraison.
+*.mjs
+*.md
+!README.md
+*.zip
+*.tgz
+diagrams
+erreurs.txt
+api-tree.txt
