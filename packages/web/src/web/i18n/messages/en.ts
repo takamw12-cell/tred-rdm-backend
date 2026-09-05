@@ -225,6 +225,7 @@ export const en: Messages = {
     retryNow: "Retry now",
     quotaReached: "You have used up this month's allowance.",
     seePlans: "See plans",
+    topUpNow: "Top up",
     tooFast: "Too many requests in a row. One moment.",
     signInPrompt: "Sign in to upload your courses and learn with the AI.",
     why: "Why?",
@@ -582,6 +583,23 @@ export const en: Messages = {
     remove: "Delete {{name}}",
     removedNotice:
       "{{name}} was deleted. {{n}} documents are now under \"Unassigned\" — none of them were deleted.",
+  },
+  quota: {
+    nearLimit: "{{count}} of {{limit}} questions left this month.",
+    payingFromCredits:
+      "This month's allowance is used up. Further questions are paid from your credits — {{count}} left.",
+    exhausted: "Your allowance is used up and you have no credits left.",
+    topUp: "Top up",
+  },
+  credits: {
+    title: "Credits",
+    subtitle: "Your monthly allowance and your purchased credits.",
+    backToChat: "Back to chat",
+    monthlyLeft: "Left this month",
+    monthlyResets: "Resets on the 1st of the month.",
+    purchased: "Purchased credits",
+    neverExpire: "Never expire.",
+    history: "History",
   },
   guide: {
     skip: "Skip",

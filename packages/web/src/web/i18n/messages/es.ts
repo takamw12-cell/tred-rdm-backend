@@ -237,6 +237,7 @@ export const es: Messages = {
     retryNow: "Reintentar ahora",
     quotaReached: "Has agotado tu cuota de este mes.",
     seePlans: "Ver planes",
+    topUpNow: "Recargar",
     tooFast: "Demasiadas peticiones seguidas. Un momento.",
     signInPrompt: "Inicia sesión para subir tus cursos y aprender con la IA.",
     why: "¿Por qué?",
@@ -594,6 +595,23 @@ export const es: Messages = {
     remove: "Eliminar {{name}}",
     removedNotice:
       "{{name}} se ha eliminado. {{n}} documentos están ahora en «Sin clasificar»: no se ha borrado ninguno.",
+  },
+  quota: {
+    nearLimit: "Te quedan {{count}} de {{limit}} preguntas este mes.",
+    payingFromCredits:
+      "Tu cuota mensual se ha agotado. Las siguientes preguntas se pagan con tus créditos — quedan {{count}}.",
+    exhausted: "Tu cuota se ha agotado y no te quedan créditos.",
+    topUp: "Recargar",
+  },
+  credits: {
+    title: "Créditos",
+    subtitle: "Tu cuota mensual y tus créditos comprados.",
+    backToChat: "Volver al chat",
+    monthlyLeft: "Quedan este mes",
+    monthlyResets: "Se reinicia el día 1 de cada mes.",
+    purchased: "Créditos comprados",
+    neverExpire: "Nunca caducan.",
+    history: "Historial",
   },
   guide: {
     skip: "Omitir",

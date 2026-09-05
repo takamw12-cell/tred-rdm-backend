@@ -19,6 +19,7 @@ import FormulasPage from "./pages/formulas";
 import ExamPage from "./pages/exam";
 import SettingsPage from "./pages/settings";
 import PricingPage from "./pages/pricing";
+import CreditsPage from "./pages/credits";
 import AdminPage from "./pages/admin";
 
 function RootRedirect() {
@@ -53,6 +54,9 @@ function AuthedApp() {
             <Route path="/formulas" component={FormulasPage} />
             <Route path="/settings" component={SettingsPage} />
             <Route path="/pricing" component={PricingPage} />
+            {/* Séparée de /pricing : le mur du quota tombe sur quelqu'un qui
+                révise, et qui veut dix questions ce soir — pas un abonnement. */}
+            <Route path="/credits" component={CreditsPage} />
             {/* Serverseitig durch die Admin-Rolle geschützt, nicht durch Verstecken. */}
             <Route path="/admin" component={AdminPage} />
             <Route component={RootRedirect} />

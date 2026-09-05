@@ -224,6 +224,7 @@ export const de = {
     retryNow: "Jetzt erneut versuchen",
     quotaReached: "Dein Kontingent für diesen Monat ist aufgebraucht.",
     seePlans: "Tarife ansehen",
+    topUpNow: "Guthaben aufladen",
     tooFast: "Zu viele Anfragen kurz hintereinander. Einen Moment.",
     signInPrompt: "Melde dich an, um deine Kurse hochzuladen und mit der KI zu lernen.",
     why: "Warum?",
@@ -581,6 +582,23 @@ export const de = {
     remove: "{{name}} löschen",
     removedNotice:
       "{{name}} wurde gelöscht. {{n}} Unterlagen liegen jetzt unter „Nicht zugeordnet“ — gelöscht wurde nichts davon.",
+  },
+  quota: {
+    nearLimit: "Noch {{count}} von {{limit}} Fragen diesen Monat.",
+    payingFromCredits:
+      "Dein Monatskontingent ist aufgebraucht. Weitere Fragen werden aus deinem Guthaben bezahlt — noch {{count}}.",
+    exhausted: "Dein Kontingent ist aufgebraucht, und du hast kein Guthaben mehr.",
+    topUp: "Guthaben aufladen",
+  },
+  credits: {
+    title: "Guthaben",
+    subtitle: "Dein Monatskontingent und deine gekauften Credits.",
+    backToChat: "Zurück zum Chat",
+    monthlyLeft: "Diesen Monat übrig",
+    monthlyResets: "Setzt sich am 1. des Monats zurück.",
+    purchased: "Gekaufte Credits",
+    neverExpire: "Verfallen nie.",
+    history: "Verlauf",
   },
   guide: {
     skip: "Überspringen",

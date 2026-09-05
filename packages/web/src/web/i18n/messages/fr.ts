@@ -225,6 +225,7 @@ export const fr: Messages = {
     retryNow: "Réessayer maintenant",
     quotaReached: "Ton forfait du mois est épuisé.",
     seePlans: "Voir les formules",
+    topUpNow: "Recharger",
     tooFast: "Trop de demandes d'affilée. Un instant.",
     signInPrompt: "Connecte-toi pour téléverser tes cours et apprendre avec l'IA.",
     why: "Pourquoi ?",
@@ -582,6 +583,23 @@ export const fr: Messages = {
     remove: "Supprimer {{name}}",
     removedNotice:
       "{{name}} a été supprimée. {{n}} documents sont maintenant dans « Non classés » — aucun n'a été effacé.",
+  },
+  quota: {
+    nearLimit: "Il te reste {{count}} questions sur {{limit}} ce mois-ci.",
+    payingFromCredits:
+      "Ton forfait du mois est épuisé. Les questions suivantes sont payées sur ton solde — il t'en reste {{count}}.",
+    exhausted: "Ton forfait est épuisé et tu n'as plus de crédits.",
+    topUp: "Recharger",
+  },
+  credits: {
+    title: "Crédits",
+    subtitle: "Ton forfait mensuel et tes crédits achetés.",
+    backToChat: "Retour au chat",
+    monthlyLeft: "Restant ce mois-ci",
+    monthlyResets: "Remis à zéro le 1er du mois.",
+    purchased: "Crédits achetés",
+    neverExpire: "N'expirent jamais.",
+    history: "Historique",
   },
   guide: {
     skip: "Passer",

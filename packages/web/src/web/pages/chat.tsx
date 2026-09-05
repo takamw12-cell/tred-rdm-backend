@@ -42,6 +42,8 @@ import { CameraCapture } from "@/components/camera-capture";
 import { Scratchpad } from "@/components/scratchpad";
 import { downscaleImageToDataUrl, downscaleDataUrl, isUsableDataUrl } from "@/lib/image";
 import { readChatFailure } from "@/lib/chat-error";
+import { QuotaBanner } from "@/components/quota-banner";
+import { creditsMeKey } from "@/queries/credits";
 import { Link } from "wouter";
 import { VideoExplainer, type VideoScript } from "@/components/video-explainer";
 import {
@@ -825,6 +827,19 @@ export default function ChatPage() {
    */
   const echec = useMemo(() => readChatFailure(error), [error]);
 
+  /**
+   * Le solde, relu après chaque réponse terminée.
+   *
+   * Sans cela, le bandeau annoncerait « il te reste 4 questions » pendant que
+   * l'étudiant en pose une cinquième : un compteur faux est pire qu'aucun
+   * compteur, parce qu'on lui fait confiance. `status` repasse à "ready" à la
+   * fin du flux, y compris quand la réponse a été payée sur les crédits.
+   */
+  useEffect(() => {
+    if (status !== "ready") return;
+    void qc.invalidateQueries({ queryKey: creditsMeKey() });
+  }, [status, qc]);
+
   // Streaming answers occasionally fail for transient reasons — a proxy idle
   // timeout, a dropped mobile connection, or a brief gateway hiccup — which
   // surfaced as a hard "Etwas ist schiefgelaufen" even though a simple retry
@@ -1555,11 +1570,15 @@ export default function ChatPage() {
                         <p className="text-foreground">
                           {echec.message || t("chat.quotaReached")}
                         </p>
+                        {/* Vers /credits et non /pricing : quelqu'un bloqué en
+                            pleine révision veut continuer ce soir, pas
+                            s'engager au mois. La page des tarifs reste à un
+                            clic de là. */}
                         <Link
-                          href="/pricing"
+                          href="/credits"
                           className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
                         >
-                          {t("chat.seePlans")}
+                          {t("chat.topUpNow")}
                         </Link>
                       </>
                     ) : (
@@ -1590,6 +1609,10 @@ export default function ChatPage() {
         {/* Composer */}
         <div className="border-border bg-background/80 border-t p-3 pb-20 backdrop-blur-md sm:p-4 sm:pb-16">
           <div className={cn("mx-auto", railOpen ? "max-w-4xl" : "max-w-5xl")}>
+            {/* Le solde, juste au-dessus du champ de saisie. C'est le seul
+                endroit où l'information arrive avant la décision d'écrire —
+                partout ailleurs elle arrive après le refus. */}
+            <QuotaBanner />
             {/* Upload error (unsupported type / too large) */}
             {attachError && (
               <div className="text-destructive mb-2 flex items-center gap-2 text-xs">

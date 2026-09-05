@@ -3,6 +3,11 @@ import { and, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { db } from "../database";
 import { jobRun, misconception, pushToken, userAccess } from "../database/schema";
 import { sendNotification } from "./push";
+import {
+  marquerPrevenu,
+  quiEstPresqueAuBout,
+  TEXTES_QUOTA,
+} from "./quota-warning";
 
 /**
  * La relance du soir.
@@ -132,7 +137,11 @@ const TEXTES: Record<string, { titre: string; corps: (n: number) => string }> = 
  * jamais installé l'application ; commencer par les lacunes ferait lire toute
  * la table pour n'en garder qu'une poignée.
  */
-export async function balayerRelances(): Promise<{ envoyes: number; vises: number }> {
+export async function balayerRelances(): Promise<{
+  envoyes: number;
+  vises: number;
+  alertesQuota: number;
+}> {
   // Les utilisateurs joignables. `groupBy` plutôt que `distinct` : un étudiant
   // avec un téléphone et une tablette ne doit compter qu'une fois.
   const joignables = await db
@@ -141,10 +150,48 @@ export async function balayerRelances(): Promise<{ envoyes: number; vises: numbe
     .groupBy(pushToken.userId)
     .limit(MAX_UTILISATEURS);
 
-  if (joignables.length === 0) return { envoyes: 0, vises: 0 };
+  if (joignables.length === 0) return { envoyes: 0, vises: 0, alertesQuota: 0 };
 
   const ids = joignables.map((r) => r.userId);
   const maintenant = new Date();
+
+  // La langue enregistrée sur le serveur — la seule connue quand
+  // l'application est fermée. Lue une fois pour les deux messages.
+  const languesToutes = await db
+    .select({ userId: userAccess.userId, locale: userAccess.locale })
+    .from(userAccess)
+    .where(inArray(userAccess.userId, ids));
+  const langueDe = new Map(languesToutes.map((l) => [l.userId, l.locale]));
+
+  /**
+   * L'alerte de quota passe AVANT la relance de révision, et l'exclut.
+   *
+   * Deux notifications le même soir au même étudiant, c'est le début de la fin
+   * des notifications : il les coupe toutes, y compris celle qui le fait
+   * réviser. Et entre les deux, l'ordre n'est pas discutable — quelqu'un qui
+   * ne peut plus poser de question ne peut pas réviser non plus. On lui dit
+   * d'abord ce qui le bloque.
+   */
+  const alertes = await quiEstPresqueAuBout(ids);
+  let alertesQuota = 0;
+  const prevenus = new Set<string>();
+
+  for (const a of alertes) {
+    const texte = TEXTES_QUOTA[langueDe.get(a.userId) ?? "de"] ?? TEXTES_QUOTA.de;
+    const r = await sendNotification({
+      userId: a.userId,
+      title: texte.titre,
+      body: texte.corps(a.restants),
+      data: { type: "quota_low", screen: "credits", remaining: a.restants },
+    });
+    // La marque n'est posée QUE si la notification est partie. Sinon un échec
+    // réseau ferait taire l'alerte pour tout le mois.
+    if (r.sent > 0) {
+      await marquerPrevenu(a.userId);
+      prevenus.add(a.userId);
+      alertesQuota += r.sent;
+    }
+  }
 
   // Combien de lacunes dues par étudiant, en une requête. La même condition
   // que `dueGaps` : ouverte, et sans échéance ou échéance passée.
@@ -160,23 +207,15 @@ export async function balayerRelances(): Promise<{ envoyes: number; vises: numbe
     )
     .groupBy(misconception.userId);
 
-  const aRelancer = dues.filter((d) => Number(d.n) > 0);
-  if (aRelancer.length === 0) return { envoyes: 0, vises: 0 };
-
-  // La langue est celle enregistrée sur le serveur — la seule que l'on
-  // connaisse sans que l'application soit ouverte. C'est exactement ce pour
-  // quoi `account.setLocale` existe.
-  const langues = await db
-    .select({ userId: userAccess.userId, locale: userAccess.locale })
-    .from(userAccess)
-    .where(inArray(userAccess.userId, aRelancer.map((d) => d.userId)));
-
-  const parUtilisateur = new Map(langues.map((l) => [l.userId, l.locale]));
+  const aRelancer = dues.filter(
+    (d) => Number(d.n) > 0 && !prevenus.has(d.userId),
+  );
+  if (aRelancer.length === 0) return { envoyes: 0, vises: 0, alertesQuota };
 
   let envoyes = 0;
   for (const d of aRelancer) {
     const n = Number(d.n);
-    const texte = TEXTES[parUtilisateur.get(d.userId) ?? "de"] ?? TEXTES.de;
+    const texte = TEXTES[langueDe.get(d.userId) ?? "de"] ?? TEXTES.de;
 
     // En série et non en parallèle : cinq cents notifications lancées d'un
     // coup saturent la connexion sortante et font expirer les requêtes des
@@ -190,7 +229,7 @@ export async function balayerRelances(): Promise<{ envoyes: number; vises: numbe
     envoyes += r.sent;
   }
 
-  return { envoyes, vises: aRelancer.length };
+  return { envoyes, vises: aRelancer.length, alertesQuota };
 }
 
 let minuterie: ReturnType<typeof setInterval> | null = null;
@@ -214,13 +253,11 @@ export function startEveningReminder(): void {
       if (heureBerlin(maintenant) !== HEURE_LOCALE) return;
       if (!(await prendreLeVerrou(maintenant))) return;
 
-      const { envoyes, vises } = await balayerRelances();
-      await db
-        .update(jobRun)
-        .set({ note: `${envoyes} envoyées à ${vises} étudiants` })
-        .where(eq(jobRun.key, JOB));
+      const { envoyes, vises, alertesQuota } = await balayerRelances();
+      const note = `${envoyes} révisions à ${vises} étudiants · ${alertesQuota} alertes de quota`;
+      await db.update(jobRun).set({ note }).where(eq(jobRun.key, JOB));
 
-      console.log(`[relance] ${envoyes} notifications à ${vises} étudiants`);
+      console.log(`[relance] ${note}`);
     } catch (error) {
       // Une tâche de fond qui jette tue le processus sous Node. Elle doit
       // échouer en silence et réessayer au tour suivant.

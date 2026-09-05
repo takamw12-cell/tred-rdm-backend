@@ -77,6 +77,13 @@ export function useNotifications(enabled: boolean) {
         router.push("/paywall");
         return;
       }
+      // L'alerte du soir (api/lib/quota-warning.ts) mène à la recharge, pas au
+      // paywall : quelqu'un qui approche de sa limite en pleine période de
+      // révision veut continuer ce soir, pas s'engager au mois.
+      if (data?.type === "quota_low" || data?.screen === "credits") {
+        router.push("/credits");
+        return;
+      }
       // La relance du soir mène à la révision. Sans cette ligne, le champ
       // `screen: "review"` serait poussé vers `/(tabs)/review`, un onglet qui
       // n'existe pas — la notification dérangerait sans rien ouvrir.
