@@ -41,6 +41,8 @@ import { ImageFrame } from "@/components/diagram-frame";
 import { CameraCapture } from "@/components/camera-capture";
 import { Scratchpad } from "@/components/scratchpad";
 import { downscaleImageToDataUrl, downscaleDataUrl, isUsableDataUrl } from "@/lib/image";
+import { readChatFailure } from "@/lib/chat-error";
+import { Link } from "wouter";
 import { VideoExplainer, type VideoScript } from "@/components/video-explainer";
 import {
   VideoSearch,
@@ -816,24 +818,40 @@ export default function ChatPage() {
     setAttachError(null);
   }
 
+  /**
+   * Pourquoi la réponse a échoué — d'après le serveur, pas d'après une
+   * supposition. Voir `lib/chat-error.ts` : le corps JSON du refus arrive
+   * dans `error.message`, déguisé par le transport.
+   */
+  const echec = useMemo(() => readChatFailure(error), [error]);
+
   // Streaming answers occasionally fail for transient reasons — a proxy idle
   // timeout, a dropped mobile connection, or a brief gateway hiccup — which
   // surfaced as a hard "Etwas ist schiefgelaufen" even though a simple retry
   // succeeds. Auto-retry once per failed turn before bothering the user, and
   // remember which turn we already retried so we never loop.
+  //
+  // MAIS : on ne relance JAMAIS un refus définitif. Le 5 septembre, un quota
+  // atteint relançait toutes les 900 ms — chaque tentative repartait pour un
+  // 402, et la seule chose que l'étudiant voyait était « la connexion a été
+  // interrompue ». Une limite de débit, elle, se relance : à la seconde que le
+  // serveur indique, jamais avant, sinon la relance recompte dans le limiteur
+  // et prolonge le blocage.
   const autoRetried = useRef<string | null>(null);
   useEffect(() => {
     if (!error || busy) return;
+    if (echec.kind === "quota") return;
     const lastUser = [...messagesRef.current].reverse().find((m) => m.role === "user");
     const turnKey = lastUser?.id ?? "none";
     if (autoRetried.current === turnKey) return;
     autoRetried.current = turnKey;
+    const delai = echec.kind === "rate" ? (echec.retryAfter + 1) * 1000 : 900;
     const timer = setTimeout(() => {
       clearError();
       void regenerate();
-    }, 900);
+    }, delai);
     return () => clearTimeout(timer);
-  }, [error, busy, clearError, regenerate]);
+  }, [error, busy, echec, clearError, regenerate]);
 
   function retryNow() {
     clearError();
@@ -1527,16 +1545,40 @@ export default function ChatPage() {
                   </motion.div>
                 )}
                 {error && (
+                  /* Trois refus distincts, trois messages distincts. Afficher
+                     « la connexion a été interrompue » à quelqu'un dont le
+                     forfait est épuisé lui fait croire à une panne — et il
+                     s'en va au lieu de s'abonner. */
                   <div className="flex flex-wrap items-center gap-2 text-sm">
-                    <p className="text-destructive">{t("chat.error")}</p>
-                    {!busy && (
-                      <button
-                        type="button"
-                        onClick={retryNow}
-                        className="text-primary hover:bg-primary/10 rounded-md border border-current px-2 py-0.5 text-xs font-medium transition-colors"
-                      >
-                        {t("chat.retryNow")}
-                      </button>
+                    {echec.kind === "quota" ? (
+                      <>
+                        <p className="text-foreground">
+                          {echec.message || t("chat.quotaReached")}
+                        </p>
+                        <Link
+                          href="/pricing"
+                          className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
+                        >
+                          {t("chat.seePlans")}
+                        </Link>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-destructive">
+                          {echec.kind === "rate"
+                            ? echec.message || t("chat.tooFast")
+                            : t("chat.error")}
+                        </p>
+                        {!busy && (
+                          <button
+                            type="button"
+                            onClick={retryNow}
+                            className="text-primary hover:bg-primary/10 rounded-md border border-current px-2 py-0.5 text-xs font-medium transition-colors"
+                          >
+                            {t("chat.retryNow")}
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                 )}
