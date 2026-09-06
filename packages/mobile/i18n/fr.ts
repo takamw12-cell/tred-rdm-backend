@@ -255,6 +255,15 @@ export const fr: Translations = {
     consentRequired: "Confirme les deux points pour continuer.",
   },
 
+  welcome: {
+    title: "Pose ta question",
+    body: "Dépose ton polycopié ou demande directement. Je réponds avec tes documents, pas avec des généralités.",
+    solve: "Résoudre un exercice",
+    upload: "Déposer un cours",
+    practice: "S'entraîner",
+    exam: "Préparer une Klausur",
+    ask: "Pose une question sur ton cours …",
+  },
   guide: {
     skip: "Passer",
     back: "Retour",

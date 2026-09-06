@@ -43,6 +43,7 @@ import {
   semesterRemoveOptions,
 } from "@/queries/semesters";
 import { SubjectBar } from "@/components/subject-bar";
+import { EmptyStart } from "@/components/empty-start";
 import {
   subjectsListOptions,
   subjectsListKey,
@@ -347,6 +348,11 @@ export default function DashboardPage() {
           />
         </Reveal>
       )}
+
+      {/* La pièce vide. Placé AVANT les compteurs : quatre zéros alignés ne
+          disent pas quoi faire, ils constatent. Le bloc s'efface de lui-même
+          dès qu'un cours est rejoint ou qu'un document existe. */}
+      <EmptyStart hasDocuments={stats.docs > 0} />
 
       {/* Real stats */}
       <Reveal className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">

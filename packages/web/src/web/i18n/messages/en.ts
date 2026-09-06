@@ -585,6 +585,11 @@ export const en: Messages = {
     removedNotice:
       "{name} was deleted. {n} documents are now under \"Unassigned\" — none of them were deleted.",
   },
+  emptyStart: {
+    title: "Start with your lectures",
+    body: "Tell us which courses you take — you will immediately see what your classmates have already put there. Then you can ask before uploading anything yourself.",
+    orUpload: "Or upload your own script.",
+  },
   courses: {
     title: "Course library",
     subtitle: "Your lecture material, shared with everyone taking the same course.",

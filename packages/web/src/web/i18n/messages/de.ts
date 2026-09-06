@@ -584,6 +584,11 @@ export const de = {
     removedNotice:
       "{name} wurde gelöscht. {n} Unterlagen liegen jetzt unter „Nicht zugeordnet“ — gelöscht wurde nichts davon.",
   },
+  emptyStart: {
+    title: "Fang mit deinen Vorlesungen an",
+    body: "Sag, welche Kurse du hörst — du siehst sofort, was deine Kommilitonen dort schon abgelegt haben. Dann kannst du fragen, bevor du selbst etwas hochlädst.",
+    orUpload: "Oder lade dein eigenes Skript hoch.",
+  },
   courses: {
     title: "Kursbibliothek",
     subtitle:

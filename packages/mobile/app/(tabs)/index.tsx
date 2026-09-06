@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Screen, EmptyState } from "@/components/ui/Screen";
+import { ChatWelcome } from "@/components/ChatWelcome";
 import { Card } from "@/components/ui/Card";
 import { CreditBadge } from "@/components/CreditBadge";
 import { TredLogoIcon } from "@/components/TredLogoIcon";
@@ -19,7 +20,6 @@ import { useColors } from "@/hooks/use-colors";
 import { useConversations } from "@/queries/chats";
 import { useDueGaps } from "@/queries/memory";
 import { useTourTarget } from "@/components/OnboardingGuide";
-import { Button } from "@/components/ui/Button";
 import { Radius, Space } from "@/constants/theme";
 
 export default function Learn() {
@@ -104,19 +104,10 @@ export default function Learn() {
               </Text>
             ) : null
           }
-          ListEmptyComponent={
-            <EmptyState
-              title={t("chat.emptyTitle")}
-              body={t("chat.emptyBody")}
-              action={
-                <Button
-                  label={t("chat.newChat")}
-                  onPress={() => router.push("/chat/new")}
-                  haptic
-                />
-              }
-            />
-          }
+          // Le compagnon plutôt qu'un état vide. Un écran qui REGARDE se
+          // traverse autrement qu'un écran qui attend — et les quatre
+          // pastilles donnent une première question à qui n'en a pas.
+          ListEmptyComponent={<ChatWelcome />}
           renderItem={({ item }) => (
             <Card
               style={styles.row}

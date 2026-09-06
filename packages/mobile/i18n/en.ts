@@ -251,6 +251,15 @@ export const en: Translations = {
     consentRequired: "Please confirm both points to continue.",
   },
 
+  welcome: {
+    title: "Just ask",
+    body: "Upload your script or ask straight away. I answer from your own material, not from general knowledge.",
+    solve: "Solve a problem",
+    upload: "Upload a script",
+    practice: "Practise",
+    exam: "Prepare a Klausur",
+    ask: "Ask a question about your course …",
+  },
   guide: {
     skip: "Skip",
     back: "Back",

@@ -1,9 +1,8 @@
 import { Tabs } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 
 import { View } from "react-native";
-import { BottomTabBar } from "@react-navigation/bottom-tabs";
+import { LiquidTabBar } from "@/components/LiquidTabBar";
 
 import { useColors } from "@/hooks/use-colors";
 import { useTourTarget } from "@/components/OnboardingGuide";
@@ -39,63 +38,37 @@ export default function TabLayout() {
 
   return (
     <Tabs
-      // La barre est dessinée par la navigation : on ne peut pas lui attacher
-      // un ref. `tabBar` l'enveloppe d'une vue mesurable en réutilisant le
-      // rendu d'origine — aucun pixel ne change, seule la mesure devient
-      // possible.
+      // La vue qui enveloppe la barre sert au guide de premier lancement :
+      // `LiquidTabBar` est dessinée par la navigation et n'accepte pas de ref,
+      // alors que le projecteur a besoin de mesurer ce rectangle.
       tabBar={(props) => (
         <View ref={cible.ref} onLayout={cible.onLayout} collapsable={false}>
-          <BottomTabBar {...props} />
+          <LiquidTabBar {...props} />
         </View>
       )}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.mutedForeground,
-        tabBarStyle: {
-          backgroundColor: colors.background,
-          borderTopColor: colors.border,
-        },
-
+        // La barre flotte AU-DESSUS du contenu : sans cette réserve, le
+        // dernier message d'une conversation se cache derrière elle.
+        sceneStyle: { backgroundColor: colors.background, paddingBottom: 84 },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: t("tabs.chat"),
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? "chatbubbles" : "chatbubbles-outline"}
-              size={size}
-              color={color}
-            />
-          ),
         }}
       />
       <Tabs.Screen
         name="documents"
         options={{
           title: t("tabs.documents"),
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? "documents" : "documents-outline"}
-              size={size}
-              color={color}
-            />
-          ),
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: t("tabs.profile"),
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? "person-circle" : "person-circle-outline"}
-              size={size}
-              color={color}
-            />
-          ),
         }}
       />
     </Tabs>

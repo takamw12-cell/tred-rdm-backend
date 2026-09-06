@@ -255,6 +255,15 @@ export const de = {
     consentRequired: "Bitte bestätige beide Punkte, um fortzufahren.",
   },
 
+  welcome: {
+    title: "Frag einfach drauflos",
+    body: "Lade dein Skript hoch oder stell direkt eine Frage. Ich antworte mit deinen Unterlagen, nicht mit Allgemeinwissen.",
+    solve: "Aufgabe lösen",
+    upload: "Skript hochladen",
+    practice: "Üben",
+    exam: "Klausur vorbereiten",
+    ask: "Stell eine Frage zu deinem Kurs …",
+  },
   guide: {
     skip: "Überspringen",
     back: "Zurück",

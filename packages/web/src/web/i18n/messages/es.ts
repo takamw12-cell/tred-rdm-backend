@@ -597,6 +597,11 @@ export const es: Messages = {
     removedNotice:
       "{name} se ha eliminado. {n} documentos están ahora en «Sin clasificar»: no se ha borrado ninguno.",
   },
+  emptyStart: {
+    title: "Empieza por tus clases",
+    body: "Dinos qué cursos sigues: verás enseguida lo que tus compañeros ya han dejado ahí. Así puedes preguntar antes de subir nada.",
+    orUpload: "O sube tu propio material.",
+  },
   courses: {
     title: "Biblioteca de cursos",
     subtitle: "El material de tus clases, compartido con quienes cursan lo mismo.",

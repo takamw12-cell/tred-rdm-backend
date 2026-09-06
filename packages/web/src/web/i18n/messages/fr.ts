@@ -585,6 +585,11 @@ export const fr: Messages = {
     removedNotice:
       "{name} a été supprimée. {n} documents sont maintenant dans « Non classés » — aucun n'a été effacé.",
   },
+  emptyStart: {
+    title: "Commence par tes cours",
+    body: "Dis quels cours tu suis — tu vois aussitôt ce que ta promotion y a déjà déposé. Tu peux poser ta première question avant même de téléverser quoi que ce soit.",
+    orUpload: "Ou dépose ton propre polycopié.",
+  },
   courses: {
     title: "Bibliothèque de cours",
     subtitle: "Les documents de tes cours, partagés avec ceux qui suivent les mêmes.",
