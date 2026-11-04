@@ -150,6 +150,14 @@ export const subscriptions = {
       }),
     )
     .handler(async ({ input, context }) => {
+      // Ohne Schlüssel würde getStripe() werfen und der catch unten daraus
+      // ein 502 machen. 503 sagt ehrlich: noch nicht konfiguriert.
+      if (!process.env.STRIPE_SECRET_KEY) {
+        throw new ORPCError("SERVICE_UNAVAILABLE", {
+          message: "Zahlungen sind noch nicht konfiguriert.",
+        });
+      }
+
       // Nur konfigurierte Preise akzeptieren. Ohne diese Prüfung könnte ein
       // Client eine beliebige (auch 0-Euro-) Preis-ID unterschieben.
       const allowed = knownPriceIds();

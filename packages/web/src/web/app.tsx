@@ -1,5 +1,6 @@
-import { Route, Switch, Redirect } from "wouter";
+import { Route, Switch, Redirect, useSearch } from "wouter";
 import LegalPage from "@/pages/legal";
+import LandingPage from "@/pages/landing";
 import ResetPasswordPage from "@/pages/reset-password";
 import { ErrorBoundary, installGlobalErrorReporting } from "@/components/error-boundary";
 import { Loader2 } from "lucide-react";
@@ -28,6 +29,18 @@ function RootRedirect() {
   return <Redirect to={onboarded ? "/dashboard" : "/onboarding"} />;
 }
 
+/**
+ * /login?redirect=/landing : la page de connexion est rendue par <Gate /> tant
+ * qu'il n'y a pas de session. Dès que la session existe, on arrive ici et on
+ * renvoie vers `redirect`. Chemin interne uniquement (« /x », jamais « //x »
+ * ni « /\x ») : sinon n'importe quel lien pourrait rediriger hors du site.
+ */
+function LoginRedirect() {
+  const target = new URLSearchParams(useSearch()).get("redirect");
+  const safe = !!target && target.startsWith("/") && !/^\/[/\\]/.test(target);
+  return safe ? <Redirect to={target} /> : <RootRedirect />;
+}
+
 function LoadingScreen() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4">
@@ -41,6 +54,7 @@ function AuthedApp() {
   return (
     <Switch>
       <Route path="/" component={RootRedirect} />
+      <Route path="/login" component={LoginRedirect} />
       <Route path="/onboarding" component={OnboardingPage} />
       <Route path="/exam" component={ExamPage} />
       <Route>
@@ -101,6 +115,8 @@ function App() {
         <Route path="/widerruf">{() => <LegalPage doc="widerruf" />}</Route>
         <Route path="/agb">{() => <LegalPage doc="agb" />}</Route>
         <Route path="/reset-password" component={ResetPasswordPage} />
+        {/* Page de vente : publique, un visiteur sans compte doit la voir. */}
+        <Route path="/landing" component={LandingPage} />
         <Route>
           <Gate />
         </Route>
