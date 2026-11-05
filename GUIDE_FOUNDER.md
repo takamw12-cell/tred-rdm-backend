@@ -214,3 +214,22 @@ TABLE      = migre-avatar-usage.mjs lancé : oui/non
 
 ### Sources
 [Figma MCP](https://help.figma.com/hc/en-us/articles/35281350665623) · [LiveAvatar](https://help.heygen.com/en/articles/12758516-introducing-liveavatar) · [LiveAvatar SDK](https://github.com/heygen-com/liveavatar-web-sdk) · [Revue LiveAvatar 2026](https://www.liforma.ai/resources/heygen-liveavatar-review) · [HeyGen API pricing (G2)](https://www.g2.com/articles/heygen-api-pricing) · [LiveKit quotas](https://docs.livekit.io/deploy/admin/quotas-and-limits/) · [LiveKit pricing](https://livekit.com/pricing) · [Mathpix pricing](https://mathpix.com/pricing/api) · [tldraw licence](https://tldraw.dev/sdk-features/license-key) · [ElevenLabs pricing 2026](https://www.activepieces.com/blog/elevenlabs-pricing-2026-plans-credits-and-costs.md) · [PostHog free tier](https://costbench.com/software/product-analytics/posthog/free-plan/) · [Sentry free plan](https://costbench.com/software/developer-tools/sentry/free-plan/) · [D-ID pricing](https://www.spatius.ai/blog/d-id-pricing-2026/)
+
+---
+
+## Activer les vraies voix de professeur (ElevenLabs) — 10 minutes
+
+Sans clé, le bouton « Anhören » utilise la voix de l'appareil (souvent robotique) et l'indique discrètement : « Premium-Stimme nicht eingerichtet ». Avec la clé, chaque professeur parle avec SA voix : **Prof. Kenta** (jeune, dynamique), **Prof. Ren** (charismatique), **Dr. Aiko** (posée), **Sensei Haruto** (grave, calme).
+
+1. **Compte** : va sur https://elevenlabs.io → *Sign up* (Google possible).
+2. **Abonnement** : le plan *Free* (≈ 10 000 caractères/mois) suffit pour essayer, mais il interdit l'usage commercial et exige d'attribuer ElevenLabs. Pour la bêta avec tes amis, prends **Starter** (≈ 5 $/mois, ≈ 30 000 caractères, licence commerciale). Vérifie les montants sur la page *Pricing*. Une réponse lue ≈ 1 000–1 500 caractères.
+3. **Clé API** : en bas à gauche, clique sur ton profil → **API Keys** (parfois sous *Developers*) → **Create API Key** → nom « TRED » → autorise au minimum **Text to Speech** → **Create** → copie la clé `sk_…` (elle ne s'affiche qu'une fois). **Ne la colle jamais dans le chat.**
+4. **En local** : ouvre `C:\dev\tred-rdm\aerostudy-ai\.env` et ajoute la ligne `ELEVENLABS_API_KEY=sk_…`.
+5. **Sur Railway** : projet *aerostudy* → service **TRED** → onglet **Variables** → **New Variable** → nom `ELEVENLABS_API_KEY`, valeur `sk_…` → **Add**, puis **Deploy** pour appliquer.
+6. **(Optionnel) Changer une voix** : ElevenLabs → **Voices** → **Voice Library** → filtre *German* ou *Educational*, écoute, **Add to my voices** → dans *My Voices*, menu « ⋯ » → **Copy Voice ID** → variable Railway `ELEVENLABS_VOICE_KENTA` (ou `_REN`, `_AIKO`, `_HARUTO`).
+7. **Budget** : chaque étudiant est plafonné à `ELEVENLABS_DAILY_CHARS` caractères par jour (défaut 20 000). Une même réponse réécoutée ne coûte rien (cache). Au-delà du plafond, la voix de l'appareil prend le relais.
+
+**Tester la différence** : *Einstellungen* → « Stimme des Professors ».
+- Choisis une voix « Stimmen dieses Geräts » dans la liste → **Stimme testen** : c'est la voix robotique.
+- Puis, dans « Echte Professorenstimmen », clique **▶** sur Prof. Kenta, Prof. Ren, Dr. Aiko : c'est la voix premium.
+- Dans le chat, **Anhören** sous une réponse lit TOUTE la réponse avec la voix du professeur choisi dans le vestiaire.

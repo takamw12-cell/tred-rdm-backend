@@ -67,3 +67,14 @@ describe("panoplie de voix : styles", () => {
     expect(premiumSlotFor([], "calm")).toBeUndefined();
   });
 });
+
+describe("lecture premium : toute la réponse, par morceaux", () => {
+  test("aucun morceau ne dépasse 1 800 caractères, rien n'est perdu", async () => {
+    const { premiumChunks } = await import("../src/web/lib/voice");
+    const long = Array.from({ length: 120 }, (_, i) => `Das ist Satz Nummer ${i} über das Kirchhoffsche Gesetz.`).join(" ");
+    const parts = premiumChunks(long);
+    expect(parts.length).toBeGreaterThan(1);
+    for (const p of parts) expect(p.length).toBeLessThanOrEqual(1800);
+    expect(parts.join(" ").replace(/\s+/g, " ")).toBe(long.replace(/\s+/g, " "));
+  });
+});
