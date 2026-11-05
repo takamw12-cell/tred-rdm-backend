@@ -19,7 +19,7 @@ import { FontSizeToggle } from "@/components/font-size-toggle";
 import { LogoMark } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { LegalFooter } from "@/components/legal-footer";
-import { AmbientBackground } from "@/components/ambient-background";
+import { DynamicBackground } from "@/components/dynamic-background";
 import { SearchDialog, useSearchShortcut } from "@/components/search-dialog";
 
 const PANEL_W = "17rem";
@@ -48,7 +48,7 @@ function SidebarPanel({
   const { t } = useT();
 
   return (
-    <div className="bg-sidebar border-sidebar-border flex h-full flex-col overflow-hidden rounded-2xl border shadow-sm">
+    <div className="glass bg-sidebar border-sidebar-border flex h-full flex-col overflow-hidden rounded-2xl border shadow-sm">
       <div className="flex items-center justify-between px-4 pt-4">
         <Link to="/dashboard" onClick={onNavigate} aria-label="TRED">
           <LogoMark className="size-8" />
@@ -73,6 +73,7 @@ function SidebarPanel({
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { t } = useT();
+  const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   // Mémorisé : `useSearchShortcut` dépend de cette fonction ; une nouvelle à
@@ -106,8 +107,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
   }, [mobileOpen]);
 
   return (
-    <div className="relative flex min-h-screen">
-      <AmbientBackground />
+    // Fond photo de la filière sur TOUTE l'app ; `.glass-scope` passe toutes
+    // les cartes (et les éléments `.glass`) en verre dépoli. Le dashboard a un
+    // voile plus léger : on y lit peu, on y vient pour l'ambiance.
+    <div className="glass-scope relative flex min-h-screen">
+      <DynamicBackground variant={location.startsWith("/dashboard") ? "vivid" : "calm"} />
       {/* ── Colonne PC ────────────────────────────────────────────────
           `hidden lg:flex` sur le conteneur, jamais sur le panneau : c'est ce
           qui empêche le panneau de disparaître à mi-largeur. La largeur

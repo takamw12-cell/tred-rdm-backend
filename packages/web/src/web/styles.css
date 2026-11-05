@@ -292,7 +292,7 @@ html:lang(ar) body { line-height: 1.7; }
   unicode-bidi: isolate;
 }
 
-/* ── Verre dépoli (dashboard) ──────────────────────────────────────────
+/* ── Verre dépoli (toute l'app, via le layout) ─────────────────────────
    Toutes les cartes ui/card d'une zone `.glass-scope` laissent deviner le
    fond photo (DynamicBackground) sans perdre le contraste du texte.
    80 % de blanc et non 70 : sur la photo la plus sombre (engrenages noirs),
@@ -304,7 +304,9 @@ html:lang(ar) body { line-height: 1.7; }
   backdrop-filter: blur(14px) saturate(1.2);
   border-color: rgb(255 255 255 / 0.6);
 }
-/* Les pastilles de semestre suivent le même verre. */
+/* Barre latérale, bulles du tuteur, pastilles : le même verre, posé à la main
+   (classe `.glass` / `.glass-chip`) là où ce ne sont pas des ui/card. */
+.glass-scope .glass,
 .glass-scope .glass-chip {
   background-color: rgb(255 255 255 / 0.8);
   -webkit-backdrop-filter: blur(10px);

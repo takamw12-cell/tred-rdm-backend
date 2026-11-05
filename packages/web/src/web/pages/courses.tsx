@@ -82,7 +82,7 @@ export default function CoursesPage() {
   const cours = mesCours ?? [];
 
   return (
-    <div className="bg-background mx-auto min-h-screen w-full max-w-4xl space-y-6 p-6 md:p-8">
+    <div className="mx-auto min-h-screen w-full max-w-4xl space-y-6 p-6 md:p-8">
       <div>
         <h1 className="font-display mb-1 text-2xl font-bold tracking-tight">
           {t("courses.title")}

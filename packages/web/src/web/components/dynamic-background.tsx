@@ -19,9 +19,10 @@ import { backgroundsFor, categoryForProgram } from "@/lib/background-sets";
  * - Mode test : `?bg=30` → rotation en 30 s + étiquette de diagnostic.
  * - L'image suivante est PRÉCHARGÉE avant le fondu : jamais de fondu vers un
  *   écran vide sur une connexion lente.
- * - Voile crème en dégradé (80 % en haut → 35 % en bas) : la photo se voit
- *   nettement ; les cartes en verre dépoli (.glass-scope, styles.css)
- *   gardent le texte lisible, même sur la photo la plus sombre.
+ * - Monté UNE fois dans le layout : toute l'app partage le même fond.
+ * - Voile en dégradé, selon la page (VEILS) : léger sur le dashboard, plus
+ *   couvrant sur les pages de lecture ; les cartes en verre dépoli
+ *   (.glass-scope, styles.css) gardent le texte lisible partout.
  * - Rendu dans <body> par un portail : la page parente est animée
  *   (transform), ce qui casserait `position: fixed`.
  * - `prefers-reduced-motion` : la règle globale de styles.css ramène le
@@ -44,7 +45,19 @@ function readDebugSeconds(): number | null {
   return Number.isFinite(n) && n > 0 ? Math.min(3600, Math.max(5, n)) : 30;
 }
 
-export function DynamicBackground() {
+/**
+ * `vivid` : dashboard — voile léger, la photo porte l'ambiance.
+ * `calm`  : pages de lecture (chat, exercices…) — voile plus couvrant ; les
+ *           cartes en verre assurent le contraste du texte.
+ */
+const VEILS = {
+  vivid: "from-background/70 via-background/35 to-background/20",
+  // 80 % minimum : sur la photo la plus sombre, le texte gris posé hors des
+  // bulles (nom « TRED », boutons d'action) reste vers 4:1.
+  calm: "from-background/90 via-background/85 to-background/80",
+} as const;
+
+export function DynamicBackground({ variant = "calm" }: { variant?: keyof typeof VEILS }) {
   const program = useUserStore((s) => s.profile.degree);
   const category = useMemo(() => categoryForProgram(program), [program]);
   const images = useMemo(() => backgroundsFor(category), [category]);
@@ -107,7 +120,7 @@ export function DynamicBackground() {
       {/* Le voile, en dégradé : plus dense en haut, où le titre et la date
           sont posés directement sur la photo ; léger plus bas, où les cartes
           en verre dépoli (.glass-scope) assurent elles-mêmes la lisibilité. */}
-      <div className="from-background/80 via-background/50 to-background/35 absolute inset-0 bg-gradient-to-b" />
+      <div className={`absolute inset-0 bg-gradient-to-b transition-colors duration-700 ${VEILS[variant]}`} />
       {debugSeconds !== null && (
         <div className="bg-primary text-primary-foreground absolute right-3 bottom-3 rounded-md px-2 py-1 font-mono text-[11px] leading-tight">
           {category} · {current.split("/").slice(-2).join("/")} · {debugSeconds}s

@@ -31,7 +31,7 @@ export default function CreditsPage() {
   const { data: historique } = useQuery(creditTransactionsOptions(30));
 
   return (
-    <div className="bg-background mx-auto min-h-screen w-full max-w-3xl space-y-6 p-6 md:p-8">
+    <div className="mx-auto min-h-screen w-full max-w-3xl space-y-6 p-6 md:p-8">
       <div>
         <Link
           href="/chat"

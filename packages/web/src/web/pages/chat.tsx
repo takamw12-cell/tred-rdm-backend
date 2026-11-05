@@ -2055,7 +2055,7 @@ function MessageBubble({
           <div
             className={cn(
               "rounded-2xl px-4 py-2.5",
-              isUser ? "bg-primary text-primary-foreground" : "bg-card border-border border",
+              isUser ? "bg-primary text-primary-foreground" : "glass bg-card border-border border",
             )}
           >
             {isUser ? (
