@@ -1,6 +1,6 @@
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../database";
-import { document, usageCounter, userPlan } from "../database/schema";
+import { document, usageCounter, userAccess, userPlan } from "../database/schema";
 import {
   getPurchasedCredits,
   logTransaction,
@@ -31,6 +31,28 @@ export type Metric = "chat" | "exercise" | "video" | "formulas";
  * gegen eine Überraschungsrechnung am Monatsende.
  */
 export const OUTPUT_TOKEN_CAP = 100_000;
+
+/**
+ * Deckel je Tarif. Zahlende Tarife höher: das adaptive "thinking" zählt mit,
+ * eine einzige lange Antwort kann 15 000 Tokens kosten. `null` = kein Deckel
+ * (Gründer und Admins — sie müssen testen können, ohne ausgesperrt zu werden).
+ */
+export const TOKEN_CAPS: Record<PlanId, number | null> = {
+  free: OUTPUT_TOKEN_CAP,
+  standard: 250_000,
+  premium: 250_000,
+  founder: null,
+};
+
+/** Admin-Rolle (user_access.role). Lesefehler → kein Admin. */
+async function isAdmin(userId: string): Promise<boolean> {
+  const rows = await db
+    .select({ role: userAccess.role })
+    .from(userAccess)
+    .where(eq(userAccess.userId, userId))
+    .limit(1);
+  return rows[0]?.role === "admin";
+}
 
 /** Metrik-Schlüssel des Token-Zählers in `usage_counter`. */
 export const TOKEN_METRIC = "tokens_out";
@@ -281,8 +303,14 @@ export async function withinTokenCap(userId: string): Promise<{
   cap: number;
 }> {
   try {
-    const used = await getOutputTokens(userId);
-    return { ok: used < OUTPUT_TOKEN_CAP, used, cap: OUTPUT_TOKEN_CAP };
+    const [used, plan, admin] = await Promise.all([
+      getOutputTokens(userId),
+      getPlan(userId),
+      isAdmin(userId),
+    ]);
+    const cap = admin ? null : TOKEN_CAPS[plan];
+    if (cap === null) return { ok: true, used, cap: Number.POSITIVE_INFINITY };
+    return { ok: used < cap, used, cap };
   } catch (error) {
     console.error("[plan] token cap read failed", error);
     return { ok: true, used: 0, cap: OUTPUT_TOKEN_CAP };
