@@ -94,135 +94,167 @@ export async function sendMail(opts: {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Gabarit : réinitialisation du mot de passe                                 */
+/* Gabarits — charte TRED (crème, encre, jaune), de / fr / en                  */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Le texte est en allemand : c'est la langue de l'écrasante majorité de tes
- * utilisateurs, et un e-mail transactionnel arrive AVANT toute connexion —
- * on ne connaît donc pas encore la langue choisie dans l'app.
- */
-export function resetPasswordMail(url: string, name?: string | null): {
-  subject: string;
-  html: string;
-  text: string;
-} {
-  const hello = name?.trim() ? `Hallo ${name.trim()},` : "Hallo,";
+export type MailLang = "de" | "fr" | "en";
 
-  const text = [
-    hello,
-    "",
-    "du hast ein neues Passwort für TRED angefordert. Öffne diesen Link, um es zu setzen:",
-    "",
-    url,
-    "",
-    "Der Link ist eine Stunde lang gültig und funktioniert nur einmal.",
-    "",
-    "Wenn du das nicht warst, kannst du diese E-Mail ignorieren — dein Passwort bleibt unverändert.",
-    "",
-    "TRED",
-  ].join("\n");
-
-  // HTML volontairement simple : tableaux et styles en ligne. Les clients de
-  // messagerie ignorent une bonne partie du CSS moderne, et Gmail supprime
-  // les balises <style>. Ce qui est écrit ici s'affiche partout.
-  const html = `<!doctype html>
-<html lang="de"><body style="margin:0;padding:0;background:#f6f6f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f6f6;padding:32px 12px;">
-    <tr><td align="center">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:12px;padding:32px;">
-        <tr><td style="font-size:20px;font-weight:800;letter-spacing:1px;color:#1A1A1A;padding-bottom:24px;">TRED</td></tr>
-        <tr><td style="font-size:15px;line-height:22px;color:#1A1A1A;">${escapeHtml(hello)}</td></tr>
-        <tr><td style="font-size:15px;line-height:22px;color:#444;padding-top:12px;">
-          du hast ein neues Passwort für TRED angefordert.
-        </td></tr>
-        <tr><td style="padding:24px 0;">
-          <a href="${escapeAttr(url)}" style="display:inline-block;background:#1A1A1A;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:8px;font-size:15px;font-weight:600;">Neues Passwort setzen</a>
-        </td></tr>
-        <tr><td style="font-size:13px;line-height:19px;color:#777;">
-          Der Link ist eine Stunde lang gültig und funktioniert nur einmal.
-        </td></tr>
-        <tr><td style="font-size:13px;line-height:19px;color:#777;padding-top:12px;">
-          Wenn du das nicht warst, ignoriere diese E-Mail — dein Passwort bleibt unverändert.
-        </td></tr>
-        <tr><td style="font-size:12px;color:#999;padding-top:24px;border-top:1px solid #eee;margin-top:24px;">
-          Falls der Knopf nicht funktioniert, kopiere diese Adresse:<br>
-          <span style="word-break:break-all;">${escapeHtml(url)}</span>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body></html>`;
-
-  return { subject: "Neues Passwort für TRED", html, text };
+/** La langue de l'interface choisie par l'étudiant → celle de l'e-mail. */
+export function mailLang(locale?: string | null): MailLang {
+  return locale === "fr" ? "fr" : locale === "de" || !locale ? "de" : "en";
 }
 
-/* -------------------------------------------------------------------------- */
-/* Gabarit : bienvenue + vérification de l'adresse                            */
-/* -------------------------------------------------------------------------- */
+const C = {
+  page: "#F6F1E7", // crème
+  card: "#FFFDF7",
+  border: "#EADFC8",
+  ink: "#0F172A", // encre (bleu nuit)
+  muted: "#475569",
+  faint: "#94A3B8",
+  yellow: "#EAB308",
+};
+
+interface Copy {
+  subject: string;
+  hello: (name: string | null) => string;
+  lines: string[];
+  button: string;
+  validity: string;
+  ignore: string;
+  fallback: string;
+}
 
 /**
- * Premier e-mail de l'étudiant : il dit bienvenue ET porte le lien de
- * vérification. Un seul e-mail plutôt que deux — le second finirait en spam.
- *
- * Le lien vient de Better Auth (`/api/auth/verify-email?token=…&callbackURL=…`) :
- * un clic vérifie l'adresse, ouvre la session et mène au Dashboard.
- * Allemand d'abord, une ligne en anglais pour les étudiants internationaux.
+ * Mise en page commune. HTML volontairement simple : tableaux et styles en
+ * ligne (Gmail supprime <style>, Outlook ignore le CSS moderne). Le logo est
+ * une image servie par l'app elle-même (icon-192.png) : un client qui bloque
+ * les images voit le mot « TRED » écrit juste à côté, rien ne manque.
  */
-export function verifyEmailMail(url: string, name?: string | null): {
-  subject: string;
-  html: string;
-  text: string;
-} {
-  const hello = name?.trim() && !name.includes("@") ? `Hallo ${name.trim()},` : "Hallo,";
+function render(url: string, name: string | null | undefined, lang: MailLang, copy: Copy) {
+  const first = name?.trim() && !name.includes("@") ? name.trim() : null;
+  const hello = copy.hello(first);
+  let origin = "";
+  try {
+    origin = new URL(url).origin;
+  } catch {
+    /* lien relatif : pas de logo, le mot TRED suffit */
+  }
+  const logo = origin
+    ? `<img src="${escapeAttr(`${origin}/icon-192.png`)}" width="40" height="40" alt="" style="display:block;border:0;border-radius:10px;">`
+    : "";
 
-  const text = [
-    hello,
-    "",
-    "willkommen bei TRED — deinem KI-Tutor fürs Ingenieurstudium.",
-    "Bestätige kurz deine E-Mail-Adresse, dann bist du direkt in deinem Dashboard:",
-    "",
-    url,
-    "",
-    "Der Link ist 24 Stunden gültig.",
-    "Welcome to TRED! Click the link above to confirm your email and open your dashboard.",
-    "",
-    "Wenn du dich nicht bei TRED registriert hast, ignoriere diese E-Mail einfach.",
-    "",
-    "TRED",
-  ].join("\n");
+  const text = [hello, "", ...copy.lines, "", url, "", copy.validity, copy.ignore, "", "TRED"].join("\n");
 
   const html = `<!doctype html>
-<html lang="de"><body style="margin:0;padding:0;background:#0F172A;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0F172A;padding:32px 12px;">
+<html lang="${lang}"><body style="margin:0;padding:0;background:${C.page};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.page};padding:32px 12px;">
     <tr><td align="center">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#FFFDF7;border-radius:12px;padding:32px;border:1px solid #F1E7CF;">
-        <tr><td style="font-size:20px;font-weight:800;letter-spacing:1px;color:#0F172A;padding-bottom:24px;">TRED</td></tr>
-        <tr><td style="font-size:15px;line-height:22px;color:#1A1A1A;">${escapeHtml(hello)}</td></tr>
-        <tr><td style="font-size:15px;line-height:22px;color:#444;padding-top:12px;">
-          willkommen bei TRED — deinem KI-Tutor fürs Ingenieurstudium.
-          Bestätige kurz deine E-Mail-Adresse, dann bist du direkt in deinem Dashboard.
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:${C.card};border:1px solid ${C.border};border-radius:14px;padding:32px;">
+        <tr><td style="padding-bottom:20px;">
+          <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+            ${logo ? `<td style="padding-right:10px;vertical-align:middle;">${logo}</td>` : ""}
+            <td style="vertical-align:middle;font-size:22px;font-weight:800;letter-spacing:1px;color:${C.ink};">TRED</td>
+          </tr></table>
+          <div style="height:3px;width:44px;background:${C.yellow};border-radius:2px;margin-top:14px;"></div>
         </td></tr>
-        <tr><td style="padding:24px 0;">
-          <a href="${escapeAttr(url)}" style="display:inline-block;background:#EAB308;color:#0F172A;text-decoration:none;padding:12px 24px;border-radius:8px;font-size:15px;font-weight:700;">E-Mail bestätigen &amp; loslegen</a>
+        <tr><td style="font-size:16px;line-height:24px;color:${C.ink};font-weight:600;">${escapeHtml(hello)}</td></tr>
+        ${copy.lines
+          .map((l) => `<tr><td style="font-size:15px;line-height:23px;color:${C.muted};padding-top:10px;">${escapeHtml(l)}</td></tr>`)
+          .join("\n        ")}
+        <tr><td style="padding:26px 0;">
+          <a href="${escapeAttr(url)}" style="display:inline-block;background:${C.yellow};color:${C.ink};text-decoration:none;padding:13px 26px;border-radius:10px;font-size:15px;font-weight:700;">${escapeHtml(copy.button)}</a>
         </td></tr>
-        <tr><td style="font-size:13px;line-height:19px;color:#777;">
-          Der Link ist 24 Stunden gültig.<br>
-          <span style="color:#999;">Welcome to TRED! Click the button to confirm your email and open your dashboard.</span>
-        </td></tr>
-        <tr><td style="font-size:13px;line-height:19px;color:#777;padding-top:12px;">
-          Wenn du dich nicht bei TRED registriert hast, ignoriere diese E-Mail einfach.
-        </td></tr>
-        <tr><td style="font-size:12px;color:#999;padding-top:24px;border-top:1px solid #eee;margin-top:24px;">
-          Falls der Knopf nicht funktioniert, kopiere diese Adresse:<br>
-          <span style="word-break:break-all;">${escapeHtml(url)}</span>
+        <tr><td style="font-size:13px;line-height:19px;color:${C.muted};">${escapeHtml(copy.validity)}</td></tr>
+        <tr><td style="font-size:13px;line-height:19px;color:${C.muted};padding-top:8px;">${escapeHtml(copy.ignore)}</td></tr>
+        <tr><td style="font-size:12px;line-height:18px;color:${C.faint};padding-top:22px;border-top:1px solid ${C.border};">
+          ${escapeHtml(copy.fallback)}<br>
+          <span style="word-break:break-all;color:${C.muted};">${escapeHtml(url)}</span>
         </td></tr>
       </table>
     </td></tr>
   </table>
 </body></html>`;
 
-  return { subject: "Willkommen bei TRED — bitte bestätige deine E-Mail", html, text };
+  return { subject: copy.subject, html, text };
+}
+
+const RESET: Record<MailLang, Copy> = {
+  de: {
+    subject: "Neues Passwort für TRED",
+    hello: (n) => (n ? `Hallo ${n},` : "Hallo,"),
+    lines: ["du hast ein neues Passwort für TRED angefordert. Öffne diesen Link, um es zu setzen:"],
+    button: "Neues Passwort setzen",
+    validity: "Der Link ist eine Stunde lang gültig und funktioniert nur einmal.",
+    ignore: "Wenn du das nicht warst, kannst du diese E-Mail ignorieren — dein Passwort bleibt unverändert.",
+    fallback: "Falls der Knopf nicht funktioniert, kopiere diese Adresse in deinen Browser:",
+  },
+  fr: {
+    subject: "Nouveau mot de passe pour TRED",
+    hello: (n) => (n ? `Bonjour ${n},` : "Bonjour,"),
+    lines: ["tu as demandé un nouveau mot de passe pour TRED. Ouvre ce lien pour le choisir :"],
+    button: "Choisir un nouveau mot de passe",
+    validity: "Le lien est valable une heure et ne fonctionne qu'une seule fois.",
+    ignore: "Si ce n'était pas toi, ignore cet e-mail : ton mot de passe ne change pas.",
+    fallback: "Si le bouton ne fonctionne pas, copie cette adresse dans ton navigateur :",
+  },
+  en: {
+    subject: "New password for TRED",
+    hello: (n) => (n ? `Hi ${n},` : "Hi,"),
+    lines: ["you asked for a new TRED password. Open this link to set it:"],
+    button: "Set a new password",
+    validity: "The link is valid for one hour and works only once.",
+    ignore: "If this wasn't you, just ignore this email — your password stays the same.",
+    fallback: "If the button doesn't work, copy this address into your browser:",
+  },
+};
+
+const VERIFY: Record<MailLang, Copy> = {
+  de: {
+    subject: "Willkommen bei TRED — bitte bestätige deine E-Mail",
+    hello: (n) => (n ? `Hallo ${n},` : "Hallo,"),
+    lines: [
+      "willkommen bei TRED — deinem KI-Tutor fürs Ingenieurstudium.",
+      "Bestätige kurz deine E-Mail-Adresse, dann bist du direkt in deinem Dashboard.",
+    ],
+    button: "E-Mail bestätigen & loslegen",
+    validity: "Der Link ist 24 Stunden gültig.",
+    ignore: "Wenn du dich nicht bei TRED registriert hast, ignoriere diese E-Mail einfach.",
+    fallback: "Falls der Knopf nicht funktioniert, kopiere diese Adresse in deinen Browser:",
+  },
+  fr: {
+    subject: "Bienvenue sur TRED — confirme ton e-mail",
+    hello: (n) => (n ? `Bonjour ${n},` : "Bonjour,"),
+    lines: [
+      "bienvenue sur TRED, ton tuteur IA pour tes études d'ingénieur.",
+      "Confirme ton adresse e-mail et tu arrives directement sur ton tableau de bord.",
+    ],
+    button: "Confirmer et commencer",
+    validity: "Le lien est valable 24 heures.",
+    ignore: "Si tu ne t'es pas inscrit sur TRED, ignore simplement cet e-mail.",
+    fallback: "Si le bouton ne fonctionne pas, copie cette adresse dans ton navigateur :",
+  },
+  en: {
+    subject: "Welcome to TRED — please confirm your email",
+    hello: (n) => (n ? `Hi ${n},` : "Hi,"),
+    lines: [
+      "welcome to TRED, your AI tutor for engineering studies.",
+      "Confirm your email address and you'll land straight in your dashboard.",
+    ],
+    button: "Confirm & get started",
+    validity: "The link is valid for 24 hours.",
+    ignore: "If you didn't sign up for TRED, simply ignore this email.",
+    fallback: "If the button doesn't work, copy this address into your browser:",
+  },
+};
+
+/** E-mail « mot de passe oublié ». Langue : celle de l'interface (défaut allemand). */
+export function resetPasswordMail(url: string, name?: string | null, lang: MailLang = "de") {
+  return render(url, name, lang, RESET[lang]);
+}
+
+/** Premier e-mail : bienvenue + lien de vérification (Better Auth). */
+export function verifyEmailMail(url: string, name?: string | null, lang: MailLang = "de") {
+  return render(url, name, lang, VERIFY[lang]);
 }
 
 function escapeHtml(s: string): string {

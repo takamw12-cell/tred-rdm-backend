@@ -1,5 +1,15 @@
 import { betterAuth } from "better-auth";
-import { mailCanReachAnyone, mailConfigured, sendMail, resetPasswordMail, verifyEmailMail } from "./lib/mail";
+import { eq } from "drizzle-orm";
+import {
+  mailCanReachAnyone,
+  mailConfigured,
+  mailLang,
+  sendMail,
+  resetPasswordMail,
+  verifyEmailMail,
+  type MailLang,
+} from "./lib/mail";
+import { userAccess } from "./database/schema";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { expo } from "@better-auth/expo";
 import { db } from "./database";
@@ -56,6 +66,26 @@ if (process.env.NODE_ENV === "production" && !verifyByMail) {
   );
 }
 
+/**
+ * Langue de l'e-mail : celle choisie dans l'app (user_access.locale), sinon
+ * celle du navigateur qui a fait la demande (une inscription n'a pas encore
+ * de réglage), sinon l'allemand. Ne lève jamais.
+ */
+async function langOf(userId: string, request?: Request): Promise<MailLang> {
+  try {
+    const rows = await db
+      .select({ locale: userAccess.locale })
+      .from(userAccess)
+      .where(eq(userAccess.userId, userId))
+      .limit(1);
+    if (rows[0]?.locale) return mailLang(rows[0].locale);
+  } catch {
+    /* table absente ou base indisponible : on passe au navigateur */
+  }
+  const accept = request?.headers.get("accept-language")?.slice(0, 2).toLowerCase();
+  return mailLang(accept);
+}
+
 export const auth = betterAuth({
   basePath: "/api/auth",
   baseURL: process.env.WEBSITE_URL,
@@ -64,8 +94,8 @@ export const auth = betterAuth({
     enabled: true,
     // Sans ceci, un étudiant qui se trompe de mot de passe à l'inscription
     // est bloqué DÉFINITIVEMENT : Better Auth n'envoie rien de lui-même.
-    sendResetPassword: async ({ user, url }) => {
-      const mail = resetPasswordMail(url, user.name);
+    sendResetPassword: async ({ user, url }, request) => {
+      const mail = resetPasswordMail(url, user.name, await langOf(user.id, request));
       await sendMail({ to: user.email, ...mail });
     },
     // Une heure. Assez pour aller chercher l'e-mail, assez court pour qu'un
@@ -83,8 +113,8 @@ export const auth = betterAuth({
     // Le clic ouvre la session et mène au callbackURL (le Dashboard).
     autoSignInAfterVerification: true,
     expiresIn: 60 * 60 * 24,
-    sendVerificationEmail: async ({ user, url }) => {
-      const mail = verifyEmailMail(url, user.name);
+    sendVerificationEmail: async ({ user, url }, request) => {
+      const mail = verifyEmailMail(url, user.name, await langOf(user.id, request));
       await sendMail({ to: user.email, ...mail });
     },
   },

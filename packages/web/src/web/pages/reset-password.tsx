@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { Loader2, CheckCircle2, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,17 +19,16 @@ export default function ResetPasswordPage() {
   const { t } = useT();
   const [, navigate] = useLocation();
 
-  const [token, setToken] = useState<string | null>(null);
+  // Lu au premier rendu (pas dans un effet) : sinon la page affichait une
+  // fraction de seconde « lien invalide » avant de trouver le jeton.
+  const [token] = useState<string | null>(() =>
+    typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("token"),
+  );
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setToken(params.get("token"));
-  }, []);
 
   const tooShort = password.length > 0 && password.length < 8;
   const mismatch = confirm.length > 0 && password !== confirm;
