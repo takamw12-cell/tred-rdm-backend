@@ -124,7 +124,12 @@ export interface Reaction {
   x: number;
   /** Vertikale Auflagerkraft in N, positiv nach oben. */
   force: number;
-  /** Einspannmoment in N·m (nur bei Einspannungen), sonst 0. */
+  /**
+   * Einspannmoment in N·m (nur bei Einspannungen), sonst 0 — in der
+   * Konvention von M(x): gleich M(0⁺) links, M(L⁻) rechts. Ein Kragarm oder
+   * ein beidseitig eingespannter Träger mit Last nach unten ist an beiden
+   * Rändern NEGATIV.
+   */
   moment: number;
 }
 
@@ -516,6 +521,9 @@ export function solveRdm(problem: BeamProblem): SolveResult {
 
   /* ── 6. Auflagerkräfte ──────────────────────────────────────────────── */
   // R = K·u − f, ausgewertet an den gehaltenen Freiheitsgraden.
+  // `moment` ist hier der SPRUNG von M(x) an der Einspannung (M(x⁺) − M(x⁻)).
+  // So rechnen M(x) und die Gleichgewichtskontrolle unten. Was der/die
+  // Studierende als Einspannmoment liest, steht erst in `published` (§ 6b).
   const reactions: Reaction[] = supports.map((s) => {
     const n = nodeIndexAt(s.x);
 
@@ -532,11 +540,20 @@ export function solveRdm(problem: BeamProblem): SolveResult {
       name: s.name,
       x: round(s.x, 6),
       force: round(rw, 4),
-      // Vorzeichen so gedreht, dass ein Einspannmoment dieselbe Konvention hat
-      // wie M(x): negativ am eingespannten Rand eines Kragarms mit Last nach unten.
       moment: round(-rphi, 4),
     };
   });
+
+  /* ── 6b. Einspannmoment in der Konvention von M(x) ──────────────────── */
+  // Der Sprung ist am LINKEN Rand gleich M(0⁺) — aber am RECHTEN Rand gleich
+  // −M(L⁻), weil M dort von M(L⁻) auf 0 springt. Ohne diese Umrechnung meldet
+  // ein rechts eingespannter Balken +21,6 N·m, während M(x) dort −21,6 N·m
+  // zeigt. Veröffentlicht wird daher M an der Einspannung, von der
+  // Balkenseite aus gelesen: links M(0⁺), rechts M(L⁻). Innenliegende
+  // Einspannungen (selten) behalten den Sprung.
+  const published: Reaction[] = reactions.map((r) =>
+    r.moment !== 0 && Math.abs(r.x - L) < 1e-9 ? { ...r, moment: round(-r.moment, 4) } : r,
+  );
 
   /* ── 7. Schnittgrößen in geschlossener Form ─────────────────────────── */
   const shearAt = (x: number): number => {
@@ -684,7 +701,7 @@ export function solveRdm(problem: BeamProblem): SolveResult {
     ok: true,
     length: round(L, 6),
     degreeOfIndeterminacy,
-    reactions,
+    reactions: published,
     shear,
     moment,
     extremes: {

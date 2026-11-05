@@ -85,3 +85,43 @@ describe("balkenstatik — Dreiecks- und Trapezlast (Module 2)", () => {
     expect(r.extremwerte.momentMin.y).toBeCloseTo(-(q0 * L * L) / 6, 4);
   });
 });
+
+describe("balkenstatik — signe du moment d'encastrement à droite", () => {
+  test("encastré-encastré, q = 10, L = 4 : M_A = M_B = −qL²/12 (même signe que M(x))", () => {
+    const r = ok({
+      laenge: 4,
+      lager: [
+        { x: 0, art: "einspannung", name: "A" },
+        { x: 4, art: "einspannung", name: "B" },
+      ],
+      streckenlasten: [{ von: 0, bis: 4, q: 10 }],
+    });
+    expect(reaction(r, "A").moment).toBeCloseTo(-160 / 12, 4);
+    expect(reaction(r, "B").moment).toBeCloseTo(-160 / 12, 4);
+  });
+
+  test("encastré-encastré, triangle 0 → 12, L = 6 : M_A = −q₀L²/30, M_B = −q₀L²/20", () => {
+    const r = ok({
+      laenge: 6,
+      lager: [
+        { x: 0, art: "einspannung", name: "A" },
+        { x: 6, art: "einspannung", name: "B" },
+      ],
+      streckenlasten: [{ von: 0, bis: 6, q: 0, qEnde: 12 }],
+    });
+    expect(reaction(r, "A").moment).toBeCloseTo(-14.4, 4);
+    expect(reaction(r, "B").moment).toBeCloseTo(-21.6, 4);
+    // La valeur publiée coïncide avec la courbe juste avant l'appui.
+    expect(r.extremwerte.momentMin.y).toBeCloseTo(-21.6, 4);
+  });
+
+  test("console encastrée à DROITE, F = 50 en x = 0, L = 2 : M_B = −100", () => {
+    const r = ok({
+      laenge: 2,
+      lager: [{ x: 2, art: "einspannung", name: "B" }],
+      einzellasten: [{ x: 0, F: 50 }],
+    });
+    expect(reaction(r, "B").force).toBeCloseTo(50, 6);
+    expect(reaction(r, "B").moment).toBeCloseTo(-100, 6);
+  });
+});
