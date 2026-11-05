@@ -57,6 +57,7 @@ import {
   documentRemoveManyOptions,
 } from "@/queries/documents";
 import { DocumentViewer } from "@/components/document-viewer";
+import { DynamicBackground } from "@/components/dynamic-background";
 import { client } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -288,6 +289,8 @@ export default function DashboardPage() {
 
   return (
     <PageContainer>
+      {/* Fond photo tournant — sur le dashboard uniquement pour l'instant. */}
+      <DynamicBackground />
       <Reveal className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           {/* Date du jour, dans la langue de l'interface — rien à traduire. */}
