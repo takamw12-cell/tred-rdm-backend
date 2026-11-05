@@ -9,7 +9,7 @@ personnage existant.
 |---|---|---|
 | kenta.png / .webp | Prof. Kenta — Das junge Genie | .webp (512 px) |
 | haruto.png / .webp | Sensei Haruto — Der geduldige Sensei | .webp (512 px) |
-| ren.* | Prof. Ren — Der Exzentriker | à générer |
-| aiko.* | Dr. Aiko — Die Prüferin | à générer |
+| ren.png / .webp | Prof. Ren — Der Exzentriker | .webp (512 px) |
+| aiko.png / .webp | Dr. Aiko — Die Prüferin | .webp (512 px) |
 
 Les .png (512 px) sont gardés comme sources ; l'interface sert les .webp.

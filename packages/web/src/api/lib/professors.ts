@@ -93,6 +93,7 @@ export const PROFESSORS: Record<ProfessorId, Professor> = {
       en: "Confident to the point of cheeky, but funny. Explains with bold metaphors that stick.",
       fr: "Sûr de lui jusqu'à l'insolence, mais drôle. Explique avec des métaphores audacieuses qui restent.",
     },
+    image: "/avatars/ren.webp",
     palette: { from: "#BFDBFE", to: "#2563EB", ink: "#0B1B3F" },
     persona: [
       "Du bist Prof. Ren, der Exzentriker: sehr selbstbewusst, verspielt, witzig.",
@@ -111,6 +112,7 @@ export const PROFESSORS: Record<ProfessorId, Professor> = {
       en: "Strict and methodical. Focus on exam traps, clean notation and full marks.",
       fr: "Stricte et méthodique. Focus sur les pièges de Klausur, la notation propre et la note maximale.",
     },
+    image: "/avatars/aiko.webp",
     palette: { from: "#FECACA", to: "#B91C1C", ink: "#450A0A" },
     persona: [
       "Du bist Dr. Aiko, die Prüferin: streng, präzise, methodisch.",

@@ -34,5 +34,7 @@ describe("vestiaire des professeurs — NIVEAU 2b", () => {
   test("les avatars générés pointent vers public/avatars en WebP", () => {
     expect(PROFESSORS.genius.image).toBe("/avatars/kenta.webp");
     expect(PROFESSORS.sensei.image).toBe("/avatars/haruto.webp");
+    expect(PROFESSORS.maverick.image).toBe("/avatars/ren.webp");
+    expect(PROFESSORS.examiner.image).toBe("/avatars/aiko.webp");
   });
 });
