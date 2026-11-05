@@ -25,7 +25,8 @@ export const GENERAL = [G(1), G(2), G(3), G(4), G(5), G(6), G(7), G(8)];
 /** Images propres à chaque catégorie. Vide = fond général uniquement. */
 export const CATEGORY_IMAGES: Record<BackgroundCategory, string[]> = {
   general: [],
-  aerospace: [1, 2, 3].map((n) => `/backgrounds/aerospace/aerospace-0${n}.webp`),
+  // La fusée d'abord : c'est la première image que voit un étudiant LRT.
+  aerospace: [2, 1, 3].map((n) => `/backgrounds/aerospace/aerospace-0${n}.webp`),
   mechatronics: [1, 2, 3].map((n) => `/backgrounds/mechatronics/mechatronics-0${n}.webp`),
   // Pas encore d'images dédiées : on privilégie les fonds généraux qui leur
   // parlent (ossature acier ; ponts et béton), en attendant leurs dossiers.
