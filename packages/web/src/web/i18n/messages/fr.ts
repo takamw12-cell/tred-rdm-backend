@@ -182,6 +182,13 @@ export const fr: Messages = {
       "Supprimer {n} document(s) ? Cette action est irréversible. Les explications liées seront perdues.",
     confirmDelete: "Confirmer la suppression",
   },
+  tafel: {
+    title: "Le tableau",
+    writing: "TRED écrit …",
+    progress: "Étapes au tableau",
+    solver: "Calculé avec le solveur",
+    showOnBoard: "Au tableau · {n} étapes",
+  },
   chat: {
     untitledConversation: "Nouvelle conversation",
     listen: "Écouter",

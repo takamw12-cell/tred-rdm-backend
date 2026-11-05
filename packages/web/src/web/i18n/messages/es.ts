@@ -194,6 +194,13 @@ export const es: Messages = {
       "¿Eliminar {n} documento(s)? Esta acción es irreversible. Se perderán las explicaciones asociadas.",
     confirmDelete: "Confirmar la eliminación",
   },
+  tafel: {
+    title: "La pizarra",
+    writing: "TRED está escribiendo …",
+    progress: "Pasos en la pizarra",
+    solver: "Calculado con el solucionador",
+    showOnBoard: "En la pizarra · {n} pasos",
+  },
   chat: {
     untitledConversation: "Nueva conversación",
     listen: "Escuchar",

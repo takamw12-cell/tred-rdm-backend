@@ -181,6 +181,13 @@ export const de = {
       "{n} Dokument(e) löschen? Diese Aktion ist unwiderruflich. Die verknüpften Erklärungen gehen verloren.",
     confirmDelete: "Löschen bestätigen",
   },
+  tafel: {
+    title: "Die Tafel",
+    writing: "TRED schreibt …",
+    progress: "Schritte an der Tafel",
+    solver: "Berechnet mit dem Löser",
+    showOnBoard: "An der Tafel · {n} Schritte",
+  },
   chat: {
     untitledConversation: "Neue Unterhaltung",
     listen: "Vorlesen",

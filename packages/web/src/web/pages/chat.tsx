@@ -34,11 +34,13 @@ import {
   PanelLeftOpen,
 } from "lucide-react";
 import { AiAnswer, ListenButton, SourceViewContext } from "@/components/ai-answer";
+import { TafelBoard } from "@/components/tafel-board";
+import { moveFencedToBoard, splitTafel, type TafelSplit } from "@/lib/tafel";
 import { ReportAnswer } from "@/components/report-answer";
 import { CodeExplainContext } from "@/components/code-block";
 import { DocumentViewer } from "@/components/document-viewer";
 import { ImageFrame } from "@/components/diagram-frame";
-import { beamBlockFromPart } from "@/components/beam-diagram";
+import { BEAM_LANG, beamBlockFromPart } from "@/components/beam-diagram";
 import { CameraCapture } from "@/components/camera-capture";
 import { Scratchpad } from "@/components/scratchpad";
 import { downscaleImageToDataUrl, downscaleDataUrl, isUsableDataUrl } from "@/lib/image";
@@ -440,6 +442,31 @@ export default function ChatPage() {
   function displayText(m: UIMessage): string {
     return overrides[m.id] ?? messageText(m);
   }
+
+  // ── Tuteur Actif : la Tafel ─────────────────────────────────────────────
+  // Chaque réponse du tuteur est découpée en deux voix : les étapes (format
+  // NIVEAU 7) vont au tableau, le reste est le commentaire du Professeur. Le
+  // schéma de poutre calculé par le code rejoint le tableau en tête.
+  const tafelById = new Map<string, TafelSplit & { solverUsed: boolean }>();
+  for (const m of messages) {
+    if (m.role !== "assistant") continue;
+    const split = moveFencedToBoard(splitTafel(displayText(m)), BEAM_LANG, "Skizze");
+    const solverUsed = m.parts.some(
+      (p) => p.type === "tool-rechnen" || p.type === "tool-balkenstatik",
+    );
+    tafelById.set(m.id, { ...split, solverUsed });
+  }
+  // La Tafel montre la réponse choisie, sinon la dernière qui a un tableau.
+  const [boardId, setBoardId] = useState<string | null>(null);
+  const lastBoardId =
+    [...messages].reverse().find((m) => (tafelById.get(m.id)?.steps.length ?? 0) > 0)?.id ?? null;
+  const activeBoardId =
+    boardId && (tafelById.get(boardId)?.steps.length ?? 0) > 0 ? boardId : lastBoardId;
+  const activeBoard = activeBoardId ? tafelById.get(activeBoardId) : undefined;
+  // Une nouvelle réponse avec tableau reprend la main sur un ancien choix.
+  useEffect(() => {
+    setBoardId(null);
+  }, [lastBoardId]);
 
   // Pull image attachments out of a UI message's file parts for rendering.
   function messageImages(m: UIMessage): { url: string; name?: string }[] {
@@ -1535,13 +1562,26 @@ export default function ChatPage() {
           </div>
         </div>
 
-        <div ref={listRef} className="flex-1 overflow-y-auto">
+        {/* Tuteur Actif : la Tafel à gauche (en haut sur mobile), le
+            Professeur à droite. Sans étape au tableau, la page reste le chat
+            habituel sur toute la largeur. */}
+        <div className={cn("flex min-h-0 flex-1 flex-col", activeBoard && "lg:flex-row")}>
+        {activeBoard && (
+          <div className="border-border max-h-[55vh] shrink-0 overflow-y-auto border-b p-3 sm:p-4 lg:max-h-none lg:w-[58%] lg:border-r lg:border-b-0 lg:p-5">
+            <TafelBoard
+              steps={activeBoard.steps}
+              solverUsed={activeBoard.solverUsed}
+              writing={busy && activeBoardId === lastMsg?.id}
+            />
+          </div>
+        )}
+        <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto">
           <div
             className={cn(
               "mx-auto px-4 py-6 sm:px-6",
               // Eingeklappt darf der Text breiter laufen; ganz ohne Grenze wird
-              // er auf 27-Zoll-Schirmen unlesbar.
-              railOpen ? "max-w-4xl" : "max-w-5xl",
+              // er auf 27-Zoll-Schirmen unlesbar. Neben der Tafel: schmaler.
+              activeBoard ? "max-w-2xl" : railOpen ? "max-w-4xl" : "max-w-5xl",
             )}
           >
             {messages.length === 0 ? (
@@ -1566,11 +1606,26 @@ export default function ChatPage() {
                       // Une bulle vide n'apprend rien : l'indicateur ou la
                       // bulle d'erreur ci-dessous prend sa place.
                       .filter((m) => m !== lastAssistantEmpty)
-                      .map((m) => (
+                      .map((m) => {
+                      const board = tafelById.get(m.id);
+                      const hasBoard = (board?.steps.length ?? 0) > 0;
+                      return (
                       <MessageBubble
                         key={m.id}
                         role={m.role}
-                        text={displayText(m)}
+                        // Le Professeur ne répète pas la Tafel : sa bulle ne
+                        // garde que son commentaire.
+                        text={hasBoard ? board!.commentary : displayText(m)}
+                        fullText={displayText(m)}
+                        tafel={
+                          hasBoard
+                            ? {
+                                label: t("tafel.showOnBoard", { n: board!.steps.length }),
+                                active: m.id === activeBoardId,
+                                onShow: () => setBoardId(m.id),
+                              }
+                            : undefined
+                        }
                         images={messageImages(m)}
                         youLabel={t("chat.you")}
                         aiLabel={t("chat.ai")}
@@ -1587,7 +1642,8 @@ export default function ChatPage() {
                           ytsearch: t("videoSearch.chip"),
                         }}
                       />
-                    ))}
+                      );
+                    })}
                   </CodeExplainContext.Provider>
                 </SourceViewContext.Provider>
                 {waitingForText && (
@@ -1674,6 +1730,7 @@ export default function ChatPage() {
               </div>
             )}
           </div>
+        </div>
         </div>
 
         {/* Composer */}
@@ -1992,9 +2049,15 @@ function MessageBubble({
   messageId,
   conversationId,
   locale,
+  fullText,
+  tafel,
 }: {
   role: string;
   text: string;
+  /** Réponse complète (Tafel comprise) : pour le signalement. */
+  fullText?: string;
+  /** Cette réponse a un tableau : pastille qui l'affiche dans la Tafel. */
+  tafel?: { label: string; active: boolean; onShow: () => void };
   images?: { url: string; name?: string }[];
   youLabel: string;
   aiLabel: string;
@@ -2051,7 +2114,7 @@ function MessageBubble({
             ))}
           </div>
         )}
-        {(text.trim() || !(images && images.length > 0)) && (
+        {(text.trim() || (!tafel && !(images && images.length > 0))) && (
           <div
             className={cn(
               "rounded-2xl px-4 py-2.5",
@@ -2066,7 +2129,24 @@ function MessageBubble({
           </div>
         )}
 
-        {showActions && onAction && actionLabels && text.trim() && (
+        {tafel && (
+          <button
+            type="button"
+            onClick={tafel.onShow}
+            aria-pressed={tafel.active}
+            className={cn(
+              "mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+              tafel.active
+                ? "border-signature bg-accent text-foreground"
+                : "border-border bg-card text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <span aria-hidden className="bg-signature size-1.5 rounded-full" />
+            {tafel.label}
+          </button>
+        )}
+
+        {showActions && onAction && actionLabels && (text.trim() || tafel) && (
           <div className="mt-2 flex flex-wrap gap-1.5">
             <ActionChip
               icon={<HelpCircle className="size-3.5" />}
@@ -2102,7 +2182,7 @@ function MessageBubble({
               <ReportAnswer
                 conversationId={conversationId}
                 messageId={messageId}
-                text={text}
+                text={fullText ?? text}
                 locale={locale ?? "de"}
               />
             )}

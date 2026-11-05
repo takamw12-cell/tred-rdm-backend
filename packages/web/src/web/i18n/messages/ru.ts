@@ -168,6 +168,13 @@ export const ru: PartialMessages = {
     styleFromUebung: "На основе твоего листа упражнений (Übungsblatt)",
     styleStandard: "Старый экзамен не найден — стандартный формат вузовского экзамена.",
   },
+  tafel: {
+    title: "Доска",
+    writing: "TRED пишет …",
+    progress: "Шаги на доске",
+    solver: "Рассчитано решателем",
+    showOnBoard: "На доске · шагов: {n}",
+  },
   chat: {
     untitledConversation: "Новый разговор",
     listen: "Прослушать",

@@ -168,6 +168,13 @@ export const ja: PartialMessages = {
     styleFromUebung: "あなたの演習シート（Übungsblatt）に基づく",
     styleStandard: "過去問が見つかりません — 大学試験の標準形式です。",
   },
+  tafel: {
+    title: "黒板",
+    writing: "TRED が書いています …",
+    progress: "黒板のステップ",
+    solver: "ソルバーで計算",
+    showOnBoard: "黒板 · {n} ステップ",
+  },
   chat: {
     untitledConversation: "新しい会話",
     listen: "読み上げ",

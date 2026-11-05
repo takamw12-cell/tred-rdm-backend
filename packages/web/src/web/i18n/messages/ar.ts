@@ -168,6 +168,13 @@ export const ar: PartialMessages = {
     styleFromUebung: "مبني على ورقة تمارينك (Übungsblatt)",
     styleStandard: "لم يُعثر على امتحان سابق — الصيغة القياسية لامتحان جامعي.",
   },
+  tafel: {
+    title: "السبورة",
+    writing: "TRED يكتب …",
+    progress: "الخطوات على السبورة",
+    solver: "محسوب بواسطة الحلّال",
+    showOnBoard: "على السبورة · {n} خطوات",
+  },
   chat: {
     untitledConversation: "محادثة جديدة",
     listen: "استمع",

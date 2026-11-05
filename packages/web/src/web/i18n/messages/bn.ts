@@ -168,6 +168,13 @@ export const bn: PartialMessages = {
     styleFromUebung: "তোমার অনুশীলন শিটের (Übungsblatt) ভিত্তিতে",
     styleStandard: "কোনো পুরোনো পরীক্ষা পাওয়া যায়নি — বিশ্ববিদ্যালয় পরীক্ষার মানক ফরম্যাট।",
   },
+  tafel: {
+    title: "বোর্ড",
+    writing: "TRED লিখছে …",
+    progress: "বোর্ডে ধাপগুলো",
+    solver: "সলভার দিয়ে হিসাব করা",
+    showOnBoard: "বোর্ডে · {n}টি ধাপ",
+  },
   chat: {
     untitledConversation: "নতুন কথোপকথন",
     listen: "শোনো",

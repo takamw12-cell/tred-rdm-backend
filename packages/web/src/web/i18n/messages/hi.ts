@@ -168,6 +168,13 @@ export const hi: PartialMessages = {
     styleFromUebung: "आपकी अभ्यास शीट (Übungsblatt) पर आधारित",
     styleStandard: "कोई पुरानी परीक्षा नहीं मिली – विश्वविद्यालय परीक्षा का मानक प्रारूप।",
   },
+  tafel: {
+    title: "बोर्ड",
+    writing: "TRED लिख रहा है …",
+    progress: "बोर्ड पर चरण",
+    solver: "सॉल्वर से गणना",
+    showOnBoard: "बोर्ड पर · {n} चरण",
+  },
   chat: {
     untitledConversation: "नई बातचीत",
     listen: "सुनें",

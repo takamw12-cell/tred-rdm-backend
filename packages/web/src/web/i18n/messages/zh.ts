@@ -168,6 +168,13 @@ export const zh: PartialMessages = {
     styleFromUebung: "基于你的练习题（Übungsblatt）",
     styleStandard: "未找到往年试卷——采用标准大学考试格式。",
   },
+  tafel: {
+    title: "黑板",
+    writing: "TRED 正在书写 …",
+    progress: "黑板上的步骤",
+    solver: "由求解器计算",
+    showOnBoard: "黑板上 · {n} 步",
+  },
   chat: {
     untitledConversation: "新对话",
     listen: "朗读",

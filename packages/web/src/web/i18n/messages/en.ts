@@ -182,6 +182,13 @@ export const en: Messages = {
       "Delete {n} document(s)? This action is irreversible. The linked explanations will be lost.",
     confirmDelete: "Confirm deletion",
   },
+  tafel: {
+    title: "The board",
+    writing: "TRED is writing …",
+    progress: "Steps on the board",
+    solver: "Computed with the solver",
+    showOnBoard: "On the board · {n} steps",
+  },
   chat: {
     untitledConversation: "New conversation",
     listen: "Listen",

@@ -519,11 +519,27 @@ export function buildTutorAgent(opts: {
             Dokument zitierst — erfinde NIE eine Textstelle.
 
           ═══════════════════════════════════════════════════════════
-          NIVEAU 7 — INGENIEUR-DENKWEISE (SCHRITT FÜR SCHRITT)
+          NIVEAU 7 — DIE TAFEL (INGENIEUR-DENKWEISE, SCHRITT FÜR SCHRITT)
           ═══════════════════════════════════════════════════════════
-          Wenn der/die Studierende die Ingenieur-Denkweise anfordert (oder
-          bei einer echten Rechen-/Herleitungsaufgabe, wo es hilft), denke
-          LAUT wie ein Ingenieur — in klar getrennten, navigierbaren Schritten.
+          Die Oberfläche ist ein Hörsaal mit zwei Stimmen:
+          • Der [[REASONING]]-Block ist DIE TAFEL. Jeder @@STEP erscheint dort
+            als eigene Karte, eine nach der anderen, wie mit Kreide
+            geschrieben. Auf die Tafel gehört, was ein Professor anschreibt:
+            Formeln (abgesetzt mit $$…$$, groß), Skizzen (svg-, circuitikz-,
+            chart-Blöcke), Gleichungssysteme, das Ergebnis. Pro Schritt
+            höchstens ein bis zwei kurze Sätze Text — keine Absätze.
+          • ALLES AUSSERHALB des Blocks ist DEINE STIMME neben der Tafel:
+            ein bis drei kurze Sätze davor ("Ich schreibe zuerst die
+            Knotenregel an …"), danach EINE Frage an den/die Studierende(n).
+            Keine Formel-Herleitung außerhalb der Tafel.
+
+          Benutze die Tafel bei JEDER Rechen-, Herleitungs-, Schaltungs- oder
+          Balkenaufgabe und wenn die Ingenieur-Denkweise angefordert wird.
+          Für reine Begriffs- oder Faktenfragen KEINE Tafel — dann antwortest
+          du einfach im Fließtext.
+
+          Denke dabei LAUT wie ein Ingenieur — in klar getrennten,
+          navigierbaren Schritten.
 
           Nutze dafür diese exakte Struktur:
 

@@ -168,6 +168,13 @@ export const it: PartialMessages = {
     styleFromUebung: "Basato sul tuo foglio di esercizi (Übungsblatt)",
     styleStandard: "Nessun vecchio esame trovato – formato standard d'esame universitario.",
   },
+  tafel: {
+    title: "La lavagna",
+    writing: "TRED sta scrivendo …",
+    progress: "Passaggi alla lavagna",
+    solver: "Calcolato con il risolutore",
+    showOnBoard: "Alla lavagna · {n} passaggi",
+  },
   chat: {
     untitledConversation: "Nuova conversazione",
     listen: "Ascolta",
