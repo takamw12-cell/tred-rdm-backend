@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { sanitizeSvg } from "@/lib/svg-sanitize";
+import { isCompleteTikz } from "@/lib/tikz-complete";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -206,38 +207,78 @@ export function SvgBlock({ code }: { code: string }) {
 // source — un étudiant à qui l'on montre du LaTeX brut au milieu d'une
 // explication croit à une panne. On affiche une ligne honnête, et le texte
 // autour du schéma continue d'enseigner.
+// ── Quand compiler ────────────────────────────────────────────────────
+//
+// Incident du 5 novembre 2026 (« Kirchhoff ») : pendant que la réponse
+// s'écrivait, ce composant recevait le bloc caractère par caractère et lançait
+// une compilation à CHAQUE fragment — du LaTeX incomplet, donc 422 — puis se
+// faisait bloquer par la limite de débit (une quinzaine de 429 en 300 ms).
+// Le code final, lui, n'était jamais compilé : « Diese Skizze konnte nicht
+// gezeichnet werden », alors que le schéma était correct.
+//
+// Désormais : on attend que le bloc soit COMPLET (\end{…} présent) et stable
+// depuis 600 ms ; un même code n'est compilé qu'une fois par page ; un 429 est
+// réessayé, ce n'est pas un échec.
+
+const TIKZ_SETTLE_MS = 600;
+const TIKZ_RETRIES = 3;
+/** Une compilation par code et par page : remontages et re-rendus réutilisent le résultat. */
+const tikzCache = new Map<string, Promise<string | null>>();
+
+async function compileTikz(code: string): Promise<string | null> {
+  for (let attempt = 0; attempt <= TIKZ_RETRIES; attempt++) {
+    const r = await fetch("/api/tikz/render", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ code }),
+    }).catch(() => null);
+    if (r?.ok) return ((await r.json()) as { svg?: string }).svg || null;
+    // Trop de demandes : patienter et réessayer. Toute autre réponse est un
+    // vrai échec de compilation, inutile d'insister.
+    if (r?.status !== 429 || attempt === TIKZ_RETRIES) return null;
+    await new Promise((res) => setTimeout(res, 800 * 2 ** attempt));
+  }
+  return null;
+}
+
+function compileTikzOnce(code: string): Promise<string | null> {
+  let p = tikzCache.get(code);
+  if (!p) {
+    p = compileTikz(code);
+    tikzCache.set(code, p);
+    // Un échec n'est pas mis en cache : rouvrir la conversation réessaie.
+    void p.then((svg) => {
+      if (!svg) tikzCache.delete(code);
+    });
+  }
+  return p;
+}
+
 export function TikzDiagram({ code }: { code: string }) {
   const [svg, setSvg] = useState<string>("");
   const [failed, setFailed] = useState(false);
+  const complete = isCompleteTikz(code);
 
   useEffect(() => {
     let cancelled = false;
     setSvg("");
     setFailed(false);
+    if (!complete) return; // encore en cours d'écriture : on patiente
 
-    fetch("/api/tikz/render", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ code }),
-    })
-      .then(async (r) => {
-        if (!r.ok) throw new Error(String(r.status));
-        return (await r.json()) as { svg?: string };
-      })
-      .then((data) => {
+    const timer = setTimeout(() => {
+      void compileTikzOnce(code).then((result) => {
         if (cancelled) return;
-        if (data.svg) setSvg(data.svg);
+        if (result) setSvg(result);
         else setFailed(true);
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
       });
+    }, TIKZ_SETTLE_MS);
 
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
-  }, [code]);
+  }, [code, complete]);
 
   if (failed) {
     return (

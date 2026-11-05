@@ -1592,7 +1592,16 @@ app.post("/api/tikz/render", async (c) => {
     return c.json({ error: "invalid body" }, 400);
   }
   const result = await renderTikz(String(body.code ?? ""));
-  if ("error" in result) return c.json({ error: result.error }, 422);
+  if ("error" in result) {
+    // Sans cette ligne, un schéma qui ne compile pas ne laisse AUCUNE trace
+    // côté serveur : l'erreur LaTeX partait au navigateur et s'arrêtait là.
+    const code = String(body.code ?? "");
+    const env = code.match(/\\begin\{(\w+)\}/)?.[1] ?? "?";
+    console.warn(
+      `[tikz] échec (${env}, ${code.length} car.) : ${result.error.replace(/\s+/g, " ").slice(0, 300)}`,
+    );
+    return c.json({ error: result.error }, 422);
+  }
   return c.json({ svg: result.svg });
 });
 
