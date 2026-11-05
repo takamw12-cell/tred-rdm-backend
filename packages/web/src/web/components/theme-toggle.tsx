@@ -1,5 +1,5 @@
 import { Monitor, Moon, Sun } from "lucide-react";
-import { useThemeStore, type Theme } from "@/stores/theme";
+import { LIGHT_ONLY, useThemeStore, type Theme } from "@/stores/theme";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +9,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { useT } from "@/i18n";
 
+/** Mode clair uniquement (voir LIGHT_ONLY) : le bouton disparaît partout. */
 export function ThemeToggle() {
+  return LIGHT_ONLY ? null : <ThemeToggleMenu />;
+}
+
+function ThemeToggleMenu() {
   const theme = useThemeStore((s) => s.theme);
   const setTheme = useThemeStore((s) => s.setTheme);
   const { t } = useT();

@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { restartGuide } from "@/components/onboarding-guide";
-import { useThemeStore, type Theme } from "@/stores/theme";
+import { LIGHT_ONLY, useThemeStore, type Theme } from "@/stores/theme";
 import { useFontSizeStore, type FontSize } from "@/stores/font-size";
 import { useUserStore } from "@/stores/user";
 import { client } from "@/lib/api";
@@ -213,17 +213,21 @@ export default function SettingsPage() {
         title={t("settings.appearanceSection")}
       >
         <div className="space-y-4">
-          <Row label={t("settings.themeLabel")}>
-            <Choice<Theme>
-              value={theme}
-              onChange={setTheme}
-              options={[
-                { value: "light", label: t("settings.themeLight"), icon: <Sun className="size-3.5" /> },
-                { value: "dark", label: t("settings.themeDark"), icon: <Moon className="size-3.5" /> },
-                { value: "system", label: t("settings.themeSystem"), icon: <Laptop className="size-3.5" /> },
-              ]}
-            />
-          </Row>
+          {/* Mode clair uniquement depuis la refonte premium : le choix du
+              thème est masqué tant que LIGHT_ONLY vaut true. */}
+          {!LIGHT_ONLY && (
+            <Row label={t("settings.themeLabel")}>
+              <Choice<Theme>
+                value={theme}
+                onChange={setTheme}
+                options={[
+                  { value: "light", label: t("settings.themeLight"), icon: <Sun className="size-3.5" /> },
+                  { value: "dark", label: t("settings.themeDark"), icon: <Moon className="size-3.5" /> },
+                  { value: "system", label: t("settings.themeSystem"), icon: <Laptop className="size-3.5" /> },
+                ]}
+              />
+            </Row>
+          )}
 
           <Row
             label={t("settings.fontSizeLabel")}

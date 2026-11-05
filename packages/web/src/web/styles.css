@@ -6,29 +6,35 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ═══════════════════════════════════════════════════════════════════════
-   TRED — Design System
+   TRED — Design System (Premium, 2026-11)
    ───────────────────────────────────────────────────────────────────────
-   Bildwelt: das annotierte Vorlesungsskript. Papier, Graphit, Textmarker.
-   Die Oberfläche verhält sich wie eine technische Zeichnung: dünne Linien,
-   knappe Beschriftungen in Mono, viel Weißraum, wenig Dekoration.
+   Bildwelt: das gute Notizbuch. Cremefarbenes Papier, satte Tinte, ein
+   einziger gelber Textmarker. Titel in einer Serife mit Charakter
+   (Fraunces), Fließtext in Inter.
 
    Farbrollen
-     primary    Tiefes Ingenieurgrün — alle Aktionen und Schaltflächen.
-     signature  Signalgelb. Der Textmarker: Fortschritt, Treffer, Hervor-
-                hebung. Nie als Textfarbe, immer als Fläche unter Text.
-     ink        Graphit statt Schwarz — Bleistift ist nie reines Schwarz.
+     primary    Tinte #1A1A1A — Hauptaktionen (gefüllte Schaltflächen).
+     signature  Gelb #EAB308. Der Textmarker: aktiver Zustand, Fortschritt,
+                Hervorhebung. Als Fläche oder Linie, nie als Textfarbe auf
+                Creme (Kontrast zu gering).
+     background Creme #FDFBF7; Karten heben sich weiß davon ab.
 
-   Der Dunkelmodus ist eigenständig entworfen (Zeichentisch bei Nacht),
-   nicht invertiert: das Papier wird zu Schiefer, das Gelb bleibt Gelb.
+   Nur HELL. Der Dunkelmodus ist abgeschaltet (stores/theme.ts); der Block
+   `.dark` unten bleibt stehen, damit er sich jederzeit reaktivieren lässt.
+   Die Variablennamen sind unverändert — die Komponenten in ui/ lesen sie
+   weiter wie bisher.
    ═══════════════════════════════════════════════════════════════════════ */
 
 @theme inline {
-  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "IBM Plex Sans Condensed", "IBM Plex Sans", ui-sans-serif, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  /* Technische Zeichnungen haben keine weichen Ecken. Radien bleiben klein
-     und abgestuft; die Kachel des App-Icons ist die einzige Ausnahme. */
+  /* `shadow-sm` (Karten in ui/card.tsx) wird zum weichen Premium-Schatten —
+     ohne eine einzige Komponente anzufassen. */
+  --shadow-sm: var(--shadow-card);
+
+  /* Weicher als zuvor, aber nicht verspielt: Karten 14px, Felder 10px. */
   --radius-sm: calc(var(--radius) - 3px);
   --radius-md: calc(var(--radius) - 1px);
   --radius-lg: var(--radius);
@@ -72,60 +78,66 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* ── Hell: Papier ──────────────────────────────────────────────────────── */
+/* ── Hell: Creme, Tinte, Textmarker ────────────────────────────────────── */
 :root {
-  --radius: 0.5rem;
+  --radius: 0.875rem;
 
-  --background: #f3f5f7;
-  --foreground: #15181b;
+  --background: #fdfbf7;
+  --foreground: #1a1a1a;
   --card: #ffffff;
-  --card-foreground: #15181b;
+  --card-foreground: #1a1a1a;
   --popover: #ffffff;
-  --popover-foreground: #15181b;
+  --popover-foreground: #1a1a1a;
 
-  --primary: #10427b;
-  --primary-foreground: #f5f7fa;
-  --signature: #f2b705;
-  --signature-foreground: #15181b;
+  /* Tinte als Hauptaktion: Creme auf Schwarz liest sich wie gedruckt. */
+  --primary: #1a1a1a;
+  --primary-foreground: #fdfbf7;
+  --signature: #eab308;
+  --signature-foreground: #1a1a1a;
 
-  --secondary: #e8ebf0;
-  --secondary-foreground: #2a3138;
-  --muted: #e8ebf0;
-  --muted-foreground: #59616b;
-  --accent: #e0e5ec;
-  --accent-foreground: #15181b;
+  /* Warme Grautöne statt kühlem Blaugrau — sie gehören zum Creme. */
+  --secondary: #f4f0e7;
+  --secondary-foreground: #1a1a1a;
+  --muted: #f4f0e7;
+  --muted-foreground: #6b6b6b; /* 5,2:1 auf Creme — AA für Fließtext */
+  --accent: #fbf3d6;           /* Gelb, stark verdünnt: Hover, aktive Zeile */
+  --accent-foreground: #1a1a1a;
   --destructive: #b3261e;
 
-  --border: #dde1e7;
-  --input: #d3d8e0;
-  --ring: #10427b;
+  --border: #ebe5d8;
+  --input: #e0d9c9;
+  /* Fokusring in Tinte: Gelb auf Creme erreicht keine 3:1. */
+  --ring: #1a1a1a;
 
   /* Wissensstände: erarbeitet / in Arbeit / unberührt */
-  --mastered: #0f7a5a;
-  --learning: #f2b705;
-  --new: #98a1ab;
+  --mastered: #15803d;
+  --learning: #eab308;
+  --new: #a8a29e;
 
-  --chart-1: #10427b;
-  --chart-2: #4a7cb8;
-  --chart-3: #f2b705;
+  --chart-1: #1a1a1a;
+  --chart-2: #eab308;
+  --chart-3: #6b6b6b;
   --chart-4: #b3261e;
-  --chart-5: #59616b;
+  --chart-5: #a8a29e;
 
-  --sidebar: #eef1f5;
-  --sidebar-foreground: #15181b;
-  --sidebar-primary: #10427b;
-  --sidebar-primary-foreground: #f5f7fa;
-  --sidebar-accent: #e0e5ec;
-  --sidebar-accent-foreground: #15181b;
-  --sidebar-border: #dde1e7;
-  --sidebar-ring: #10427b;
+  --sidebar: #f8f4ec;
+  --sidebar-foreground: #1a1a1a;
+  --sidebar-primary: #1a1a1a;
+  --sidebar-primary-foreground: #fdfbf7;
+  --sidebar-accent: #fbf3d6;
+  --sidebar-accent-foreground: #1a1a1a;
+  --sidebar-border: #ebe5d8;
+  --sidebar-ring: #1a1a1a;
 
   /* Millimeterpapier: Rasterfarbe und Teilung */
-  --grid-line: rgb(21 24 27 / 0.05);
+  --grid-line: rgb(26 26 26 / 0.045);
 
   /* Teinte du fond animé — voir components/ambient-background.tsx */
-  --amb: #1d4ed8;
+  --amb: #eab308;
   --grid-step: 28px;
+
+  /* Weicher, warmer Schatten für Karten (statt harter Kanten). */
+  --shadow-card: 0 1px 2px rgb(26 26 26 / 0.04), 0 8px 24px -12px rgb(26 26 26 / 0.10);
 }
 
 /* ── Dunkel: Zeichentisch bei Nacht ────────────────────────────────────── */
@@ -195,8 +207,10 @@
   }
   h1, h2, h3, h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.015em;
+    letter-spacing: -0.01em;
     font-weight: 600;
+    /* Fraunces hat eine opsz-Achse: große Titel werden feiner gezeichnet. */
+    font-optical-sizing: auto;
   }
 }
 
@@ -245,6 +259,14 @@
 
   /* Haarlinie im Zeichnungssinn: immer genau ein Gerätepixel. */
   .rule-hairline { border-top: 1px solid var(--border); }
+
+  /* Premium-Karte: weiß auf Creme, feiner Rand, weicher Schatten. */
+  .surface-card {
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) + 4px);
+    box-shadow: var(--shadow-card);
+  }
 }
 
 /* React Flow theming */

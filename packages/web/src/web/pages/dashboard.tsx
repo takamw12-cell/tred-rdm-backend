@@ -267,6 +267,18 @@ export default function DashboardPage() {
     }
   }
 
+  const today = useMemo(() => {
+    try {
+      return new Intl.DateTimeFormat(locale, {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+      }).format(new Date());
+    } catch {
+      return "";
+    }
+  }, [locale]);
+
   const quick = [
     { to: "/chat", icon: MessagesSquare, key: "nav.chat" },
     { to: "/dictionary", icon: BookMarked, key: "nav.dictionary" },
@@ -276,28 +288,26 @@ export default function DashboardPage() {
 
   return (
     <PageContainer>
-      <Reveal className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <Reveal className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
+          {/* Date du jour, dans la langue de l'interface — rien à traduire. */}
+          <p className="text-muted-foreground mb-2 text-sm capitalize">{today}</p>
+          <h1 className="font-display text-3xl leading-tight font-semibold sm:text-4xl">
             {t("dashboard.greeting", { name: profile.firstName })}
           </h1>
-          <p className="text-muted-foreground mt-1.5">{t("dashboard.subtitle")}</p>
+          <p className="text-muted-foreground mt-2 max-w-xl">{t("dashboard.subtitle")}</p>
         </div>
         <div className="flex gap-2">
           <Button
             variant="outline"
-            size="sm"
+            className="bg-card rounded-full"
             data-tour="upload"
             onClick={() => navigate("/chat")}
           >
             <Upload className="size-4" />
             {t("dashboard.importDocs")}
           </Button>
-          <Button
-            size="sm"
-            className="brand-gradient text-white"
-            onClick={() => setModalOpen(true)}
-          >
+          <Button className="rounded-full" onClick={() => setModalOpen(true)}>
             <Plus className="size-4" />
             {t("dashboard.newSemester")}
           </Button>
@@ -305,7 +315,7 @@ export default function DashboardPage() {
       </Reveal>
 
       {/* Semester selector */}
-      <Reveal className="mb-6">
+      <Reveal className="mb-8">
         <div className="flex flex-wrap items-center gap-2">
           <SemesterChip
             active={activeId === null}
@@ -329,12 +339,12 @@ export default function DashboardPage() {
             ))
           )}
           {activeId !== null && (
-            <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => void openShare()}>
+            <Button variant="ghost" size="sm" className="gap-1.5 rounded-full" onClick={() => void openShare()}>
               <Share2 className="size-4" />
               {t("share.button")}
             </Button>
           )}
-          <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => { setRedeemOpen(true); setRedeemState({ kind: "idle" }); }}>
+          <Button variant="ghost" size="sm" className="gap-1.5 rounded-full" onClick={() => { setRedeemOpen(true); setRedeemState({ kind: "idle" }); }}>
             <Ticket className="size-4" />
             {t("share.redeemTitle")}
           </Button>
@@ -359,11 +369,11 @@ export default function DashboardPage() {
       <EmptyStart hasDocuments={stats.docs > 0} />
 
       {/* Real stats */}
-      <Reveal className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard icon={<Layers className="text-primary size-4" />} value={String(stats.docs)} label={t("dashboard.materials")} />
-        <StatCard icon={<FileText className="text-learning size-4" />} value={String(stats.pages)} label={t("dashboard.pages")} />
-        <StatCard icon={<BookOpen className="text-mastered size-4" />} value={String(stats.byKind.vorlesung)} label={t("library.kindVorlesung")} />
-        <StatCard icon={<FileCheck className="text-primary size-4" />} value={String(stats.byKind.klausur)} label={t("library.kindKlausur")} />
+      <Reveal className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+        <StatCard icon={<Layers className="size-4" />} value={String(stats.docs)} label={t("dashboard.materials")} highlight />
+        <StatCard icon={<FileText className="size-4" />} value={String(stats.pages)} label={t("dashboard.pages")} />
+        <StatCard icon={<BookOpen className="size-4" />} value={String(stats.byKind.vorlesung)} label={t("library.kindVorlesung")} />
+        <StatCard icon={<FileCheck className="size-4" />} value={String(stats.byKind.klausur)} label={t("library.kindKlausur")} />
       </Reveal>
 
       {/* La révision passe AVANT la mémoire : l'une demande une action du
@@ -379,14 +389,14 @@ export default function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Materials of the selected scope */}
         <Reveal className="lg:col-span-2">
-          <Card>
+          <Card className="rounded-2xl">
             <CardContent className="pt-0">
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="font-display text-lg font-bold">
+                <h2 className="font-display text-xl font-semibold">
                   {t("dashboard.myDocuments")}
                 </h2>
                 <Link to="/chat">
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="rounded-full">
                     {t("dashboard.importDocs")}
                     <ArrowRight className="size-4" />
                   </Button>
@@ -395,7 +405,7 @@ export default function DashboardPage() {
 
               {/* Bulk-delete bar — appears once at least one doc is selected. */}
               {selectedDocs.size > 0 && (
-                <div className="border-primary/30 bg-primary/5 mb-3 flex items-center justify-between gap-2 rounded-xl border px-3 py-2">
+                <div className="border-signature/60 bg-accent mb-3 flex items-center justify-between gap-2 rounded-xl border px-3 py-2">
                   <span className="text-sm font-medium">
                     {t("dashboard.docsSelected", { n: selectedDocs.size })}
                   </span>
@@ -446,14 +456,14 @@ export default function DashboardPage() {
                 </div>
               ) : shownDocs.length === 0 ? (
                 <div className="flex flex-col items-center py-10 text-center">
-                  <span className="bg-secondary text-muted-foreground mb-3 grid size-12 place-items-center rounded-2xl">
+                  <span className="bg-accent text-foreground mb-3 grid size-12 place-items-center rounded-2xl">
                     <FileText className="size-6" />
                   </span>
                   <p className="text-muted-foreground max-w-xs text-sm">
                     {t("dashboard.noMaterials")}
                   </p>
                   <Link to="/chat">
-                    <Button size="sm" className="brand-gradient mt-4 text-white">
+                    <Button size="sm" className="mt-4 rounded-full">
                       <Upload className="size-4" />
                       {t("dashboard.importDocs")}
                     </Button>
@@ -470,8 +480,8 @@ export default function DashboardPage() {
                         className={cn(
                           "group flex items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors",
                           checked
-                            ? "border-primary/50 bg-primary/5"
-                            : "border-border hover:bg-accent",
+                            ? "border-signature bg-accent"
+                            : "border-border hover:border-signature/50 hover:bg-accent/60",
                         )}
                       >
                         <Checkbox
@@ -522,12 +532,14 @@ export default function DashboardPage() {
 
         {/* Continue / start learning */}
         <Reveal className="space-y-6">
-          <Card className="brand-gradient border-0 text-white">
+          {/* Carte d'appel : encre pleine, un seul bouton jaune. C'est la
+              seule surface sombre de l'écran — l'œil y va en premier. */}
+          <Card className="bg-primary text-primary-foreground rounded-2xl border-0">
             <CardContent className="pt-0">
-              <p className="text-xs font-semibold tracking-wide text-white/80 uppercase">
+              <p className="text-primary-foreground/70 text-xs font-medium tracking-wide uppercase">
                 {t("dashboard.continueTitle")}
               </p>
-              <p className="mt-2 text-sm leading-snug font-semibold">
+              <p className="font-display mt-2 text-lg leading-snug font-semibold">
                 {docs.length > 0
                   ? t("dashboard.startFromScope", {
                       scope: activeSem ? activeSem.name : t("dashboard.allCourses"),
@@ -535,7 +547,7 @@ export default function DashboardPage() {
                   : t("dashboard.startGeneral")}
               </p>
               <Link to="/chat">
-                <Button size="sm" className="text-primary mt-4 bg-white hover:bg-white/90">
+                <Button className="bg-signature text-signature-foreground hover:bg-signature/90 mt-5 rounded-full">
                   <MessagesSquare className="size-4" />
                   {t("nav.chat")}
                 </Button>
@@ -543,14 +555,14 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-2xl">
             <CardContent className="pt-0">
-              <h2 className="font-display mb-3 text-lg font-bold">{t("dashboard.quickAccess")}</h2>
+              <h2 className="font-display mb-3 text-xl font-semibold">{t("dashboard.quickAccess")}</h2>
               <div className="grid grid-cols-2 gap-2">
                 {quick.map(({ to, icon: Icon, key }) => (
                   <Link key={key + to} to={to}>
-                    <div className="border-border hover:bg-accent flex cursor-pointer items-center gap-2 rounded-xl border p-3 transition-colors">
-                      <span className="bg-primary/10 text-primary grid size-8 place-items-center rounded-lg">
+                    <div className="border-border hover:border-signature/60 hover:bg-accent/60 flex cursor-pointer items-center gap-2 rounded-xl border p-3 transition-colors">
+                      <span className="bg-accent text-foreground grid size-8 place-items-center rounded-lg">
                         <Icon className="size-4" />
                       </span>
                       <span className="text-xs font-semibold">{t(key)}</span>
@@ -598,7 +610,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <Button
-            className="brand-gradient w-full text-white"
+            className="w-full rounded-full"
             onClick={handleCreate}
             disabled={!name.trim() || createMut.isPending}
           >
@@ -748,20 +760,27 @@ function SemesterChip({
   return (
     <div
       className={cn(
-        "group flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm transition-colors",
+        "group flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm transition-colors",
         active
-          ? "border-primary/50 bg-primary/10 text-primary"
-          : "border-border hover:bg-accent cursor-pointer",
+          ? "border-primary bg-primary text-primary-foreground"
+          : "border-border bg-card hover:border-signature/60 cursor-pointer",
       )}
     >
       <button onClick={onClick} className="flex items-center gap-1.5">
         <span className="font-medium">{label}</span>
-        {sub && <span className="text-muted-foreground text-xs">· {sub}</span>}
+        {sub && (
+          <span className={cn("text-xs", active ? "text-primary-foreground/70" : "text-muted-foreground")}>
+            · {sub}
+          </span>
+        )}
       </button>
       {onDelete && (
         <button
           onClick={onDelete}
-          className="text-muted-foreground hover:text-destructive opacity-0 transition-opacity group-hover:opacity-100"
+          className={cn(
+            "hover:text-destructive opacity-0 transition-opacity group-hover:opacity-100",
+            active ? "text-primary-foreground/70" : "text-muted-foreground",
+          )}
           aria-label="delete"
         >
           <Trash2 className="size-3.5" />
@@ -775,20 +794,28 @@ function StatCard({
   icon,
   value,
   label,
+  highlight = false,
 }: {
   icon: React.ReactNode;
   value: string;
   label: string;
+  /** La pastille jaune : un seul compteur mis en avant, pas quatre. */
+  highlight?: boolean;
 }) {
   return (
-    <Card className="py-0">
-      <CardContent className="flex items-center gap-3 p-4">
-        <span className="bg-secondary grid size-10 shrink-0 place-items-center rounded-xl">
+    <Card className="rounded-2xl py-0">
+      <CardContent className="flex flex-col gap-3 p-5">
+        <span
+          className={cn(
+            "grid size-9 shrink-0 place-items-center rounded-full",
+            highlight ? "bg-signature text-signature-foreground" : "bg-secondary text-foreground",
+          )}
+        >
           {icon}
         </span>
         <div className="min-w-0">
-          <p className="font-display text-xl leading-none font-extrabold tabular-nums">{value}</p>
-          <p className="text-muted-foreground mt-1 truncate text-xs">{label}</p>
+          <p className="font-display text-3xl leading-none font-semibold tabular-nums">{value}</p>
+          <p className="text-muted-foreground mt-1.5 truncate text-sm">{label}</p>
         </div>
       </CardContent>
     </Card>
