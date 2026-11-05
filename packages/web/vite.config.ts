@@ -33,7 +33,6 @@ export default defineConfig(({ mode }) => {
 				output: {
 					manualChunks(id: string) {
 						if (!id.includes("node_modules")) return;
-						if (id.includes("mermaid")) return "vendor-mermaid";
 						if (id.includes("katex")) return "vendor-katex";
 						if (id.includes("highlight.js")) return "vendor-highlight";
 						if (id.includes("pdfjs-dist") || id.includes("unpdf")) return "vendor-pdf";
