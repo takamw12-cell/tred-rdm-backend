@@ -8,6 +8,8 @@ import { userAccess } from "../database/schema";
 import { deleteUserData, exportUserData, PERSONAL_DATA_TABLES } from "../lib/gdpr";
 import { getStripe } from "../lib/stripe";
 import { getPlanRow } from "../lib/billing";
+import { LEARNING_STYLES } from "../lib/learning-style";
+import { readLearningStyle } from "../lib/learning-style-store";
 
 /**
  * Konto: Sprache, Auskunft, Löschung.
@@ -53,6 +55,25 @@ export const account = {
           set: { locale: input.locale, updatedAt: new Date() },
         });
       return { locale: input.locale };
+    }),
+
+  /** Lernstil (VARK). `balanced`, solange nichts gewählt wurde. */
+  getLearningStyle: authed.handler(async ({ context }) => ({
+    learningStyle: await readLearningStyle(context.user.id),
+  })),
+
+  /** Lernstil setzen. Der Tutor liest ihn bei jeder Nachricht neu. */
+  setLearningStyle: authed
+    .input(z.object({ learningStyle: z.enum(LEARNING_STYLES) }))
+    .handler(async ({ input, context }) => {
+      await db
+        .insert(userAccess)
+        .values({ userId: context.user.id, learningStyle: input.learningStyle, isActive: true })
+        .onConflictDoUpdate({
+          target: userAccess.userId,
+          set: { learningStyle: input.learningStyle, updatedAt: new Date() },
+        });
+      return { learningStyle: input.learningStyle };
     }),
 
   /** DSGVO Art. 15 & 20 — Auskunft und Datenübertragbarkeit. */

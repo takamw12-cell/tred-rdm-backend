@@ -46,8 +46,11 @@ export interface AccessState {
  * Adressen aus ADMIN_EMAILS erhalten dabei einmalig die Admin-Rolle.
  */
 export async function getAccess(userId: string, email?: string): Promise<AccessState> {
+  // Colonnes EXPLICITES : cette lecture passe à chaque requête API. Un
+  // `select()` complet y lirait aussi toute colonne ajoutée au schéma — et si
+  // le code est déployé avant la migration, plus aucune requête ne passe.
   const rows = await db
-    .select()
+    .select({ isActive: userAccess.isActive, role: userAccess.role })
     .from(userAccess)
     .where(eq(userAccess.userId, userId))
     .limit(1);

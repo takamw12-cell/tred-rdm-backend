@@ -11,7 +11,9 @@ import {
   Loader2,
   Type,
   Compass,
+  GraduationCap,
 } from "lucide-react";
+import { LearningStylePicker } from "@/components/learning-style-picker";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -268,6 +270,14 @@ export default function SettingsPage() {
             </Button>
           </Row>
         </div>
+      </Section>
+
+      <Section
+        icon={<GraduationCap className="size-4" />}
+        title={t("settings.learningStyleSection")}
+        description={t("settings.learningStyleDesc")}
+      >
+        <LearningStylePicker />
       </Section>
 
       <Section

@@ -6,6 +6,7 @@ import { runBalkenstatik } from "../lib/beam-tool";
 import { renderDiagram, type DiagramSpec } from "../lib/diagrams";
 import type { Passage } from "../lib/document-search";
 import { ageLabel } from "../lib/memory-text";
+import type { LearningStyle } from "../lib/learning-style";
 import dedent from "dedent";
 import { gateway } from "./gateway";
 
@@ -54,8 +55,67 @@ export interface TutorMemory {
  * un gabarit imbriqué dans un autre devient illisible, et c'est exactement
  * le genre d'endroit où une accolade oubliée casse tout le prompt.
  */
-function buildMemoryBlock(memory?: TutorMemory): string {
-  if (!memory || memory.open.length === 0) return "";
+/**
+ * Règle pédagogique par style VARK. Elle dit COMMENT expliquer, jamais quoi :
+ * l'exactitude, les outils (balkenstatik, rechnen) et la langue restent
+ * prioritaires sur le style.
+ */
+const LEARNING_STYLE_RULES: Record<LearningStyle, string[]> = {
+  visual: [
+    "Lernstil: VISUELL. Zeige zuerst, erkläre danach.",
+    "- Beginne, wo immer es passt, mit einer Skizze, einem svg- oder",
+    "  chart-Block oder einer Tabelle; der Text kommentiert das Bild.",
+    "- Bei Abläufen und Zusammenhängen: Diagramm statt Aufzählung.",
+  ],
+  auditory: [
+    "Lernstil: AUDITIV. Erkläre so, wie man es im Gespräch erzählt.",
+    "- Gesprochener, flüssiger Stil, kurze Sätze, viele Alltagsanalogien",
+    "  (\"stell dir vor, der Balken ist ein Sprungbrett …\").",
+    "- Formeln sparsam und jede in Worten vorlesbar erklären (\"M ist F mal",
+    "  L durch vier\"). Keine Formelkaskaden ohne Satz dazwischen.",
+    "- Die Antwort wird oft vorgelesen: keine Tabellen als einziger Träger",
+    "  einer Information.",
+  ],
+  text: [
+    "Lernstil: TEXT. Lesen und Nachrechnen.",
+    "- Rechenwege vollständig, jeder Schritt in LaTeX, nummerierte Schritte",
+    "  mit kurzer Begründung (\"Schritt 2 — Momentengleichgewicht um A\").",
+    "- Definitionen und Annahmen ausdrücklich nennen; am Ende eine knappe",
+    "  Zusammenfassung der Formeln.",
+  ],
+  interactive: [
+    "Lernstil: INTERAKTIV. Lernen durch Tun.",
+    "- Stelle Fragen und WARTE auf die Antwort, bevor du weitergehst: ein",
+    "  Schritt pro Nachricht, dann eine Frage (\"Was ergibt ΣM um A?\").",
+    "- Biete kurze Quizfragen und Mini-Aufgaben an; gib die Lösung erst,",
+    "  wenn die Person es versucht hat oder darum bittet.",
+    "- Ausnahme: verlangt die Person ausdrücklich die komplette Lösung,",
+    "  bekommt sie sie.",
+  ],
+  balanced: [
+    "Lernstil: AUSGEWOGEN. Mische Bild, Rechnung, Erklärung in Worten und",
+    "eine Verständnisfrage — je nachdem, was die Frage am besten trägt.",
+  ],
+};
+
+function buildMemoryBlock(memory?: TutorMemory, learningStyle: LearningStyle = "balanced"): string {
+  const styleLines = [
+    "WIE DIESE PERSON AM BESTEN LERNT (in den Einstellungen gewählt):",
+    ...LEARNING_STYLE_RULES[learningStyle],
+    "- Der Lernstil bestimmt die FORM, nie die Richtigkeit: Werkzeugpflicht,",
+    "  Rechenergebnisse und Sprache gehen immer vor.",
+    "- Erwähne den Lernstil nicht; richte dich einfach danach.",
+    "",
+  ];
+  const header = [
+    "═".repeat(59),
+    "NIVEAU 2b — WAS DU ÜBER DIESE PERSON WEISST",
+    "═".repeat(59),
+  ];
+
+  if (!memory || memory.open.length === 0) {
+    return [...header, ...styleLines].join("\n");
+  }
 
   const lines = memory.open
     .map(
@@ -67,9 +127,8 @@ function buildMemoryBlock(memory?: TutorMemory): string {
     .join("\n");
 
   return [
-    "\u2550".repeat(59),
-    "NIVEAU 2b \u2014 WAS DU \u00dcBER DIESE PERSON WEISST",
-    "\u2550".repeat(59),
+    ...header,
+    ...styleLines,
     "Offene Denkl\u00fccken aus fr\u00fcheren Gespr\u00e4chen:",
     "",
     lines,
@@ -118,6 +177,8 @@ export function buildTutorAgent(opts: {
   codeLang?: string;
   /** Mémoire du tuteur. Absente = comportement d'avant, sans diagnostic. */
   memory?: TutorMemory;
+  /** Style d'apprentissage VARK (réglages). Absent = « balanced ». */
+  learningStyle?: LearningStyle;
   /**
    * La recherche dans TOUT le cours, pas seulement dans les extraits retenus.
    *
@@ -127,7 +188,7 @@ export function buildTutorAgent(opts: {
   search?: (requete: string, titre?: string) => Passage[];
 }) {
   const rule = langRule(opts.locale);
-  const memoryBlock = buildMemoryBlock(opts.memory);
+  const memoryBlock = buildMemoryBlock(opts.memory, opts.learningStyle);
   const lang = rule.label;
   const student = opts.studentName?.trim() || null;
   const uni = opts.university?.trim() || "FH Aachen";

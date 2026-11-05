@@ -35,6 +35,7 @@ import {
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { buildTutorAgent } from "./agent";
+import { readLearningStyle } from "./lib/learning-style-store";
 import {
   fileExtension,
   isSupported,
@@ -622,8 +623,11 @@ app.post("/api/agent/messages", async (c) => {
   // huit lignes : au-delà, le prompt s'allonge sans que la réponse gagne.
   const uid = session.user.id;
   const gaps = await openGaps(uid);
+  // Style VARK choisi dans les réglages. Ne lève jamais (→ « balanced »).
+  const learningStyle = await readLearningStyle(uid);
 
   const agent = buildTutorAgent({
+    learningStyle,
     sources,
     // L'inventaire complet, pas seulement les extraits retenus. `sources` peut
     // n'en contenir que cinq sur neuf selon la question ; sans cette liste, le

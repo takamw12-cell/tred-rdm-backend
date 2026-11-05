@@ -394,6 +394,10 @@ export const userAccess = sqliteTable("user_access", {
   // gehört Better Auth und wird von dessen Schema-Generator überschrieben —
   // eine dort ergänzte Spalte wäre beim nächsten Generieren wieder weg.
   locale: text("locale").notNull().default("de"), // de | en | fr
+  // Lernstil (VARK): visual | auditory | text | interactive | balanced.
+  // Steuert, WIE der Tutor erklärt — nicht, WAS er erklärt. Hier und nicht in
+  // `user`, aus demselben Grund wie `locale`. Migration: migre-learning-style.mjs
+  learningStyle: text("learning_style").notNull().default("balanced"),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
