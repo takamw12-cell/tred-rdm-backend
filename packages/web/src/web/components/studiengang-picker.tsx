@@ -1,5 +1,6 @@
 import { useUserStore } from "@/stores/user";
 import { useT } from "@/i18n";
+import { STUDIENGAENGE, studiengangLabel } from "@/lib/studiengaenge";
 import {
   Select,
   SelectContent,
@@ -15,27 +16,17 @@ import {
  * (DynamicBackground → lib/background-sets.ts) lit ce même champ : le
  * changement s'applique IMMÉDIATEMENT, sans rechargement.
  *
- * Les noms de filières restent en allemand dans toutes les langues : ce sont
- * des noms propres de Studiengänge, tels qu'ils figurent sur l'inscription.
+ * La liste et ses traductions (12 langues) sont dans lib/studiengaenge.ts :
+ * la valeur enregistrée reste le nom allemand, seul l'affichage est traduit.
  */
-export const STUDIENGAENGE = [
-  "Luft- und Raumfahrttechnik",
-  "Mechatronik",
-  "Elektrotechnik",
-  "Maschinenbau",
-  "Bauingenieurwesen",
-  "Informatik",
-  "Mathematik/Physik",
-] as const;
-
 const OTHER = "__other__";
 
 export function StudiengangPicker() {
-  const { t } = useT();
+  const { t, locale } = useT();
   const profile = useUserStore((s) => s.profile);
   const setProfile = useUserStore((s) => s.setProfile);
 
-  const known = (STUDIENGAENGE as readonly string[]).includes(profile.degree);
+  const known = STUDIENGAENGE.some((s) => s.value === profile.degree);
   // Une filière saisie à l'onboarding hors liste reste affichée telle quelle.
   const value = known ? profile.degree : profile.degree ? profile.degree : OTHER;
 
@@ -44,13 +35,13 @@ export function StudiengangPicker() {
       value={value}
       onValueChange={(v) => setProfile({ ...profile, degree: v === OTHER ? "" : v })}
     >
-      <SelectTrigger className="w-64 max-w-full" aria-label={t("settings.studiengangLabel")}>
+      <SelectTrigger className="w-72 max-w-full" aria-label={t("settings.studiengangLabel")}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        {STUDIENGAENGE.map((name) => (
-          <SelectItem key={name} value={name}>
-            {name}
+        {STUDIENGAENGE.map((s) => (
+          <SelectItem key={s.value} value={s.value}>
+            {studiengangLabel(s, locale)}
           </SelectItem>
         ))}
         {!known && profile.degree && <SelectItem value={profile.degree}>{profile.degree}</SelectItem>}

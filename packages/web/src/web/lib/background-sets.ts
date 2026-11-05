@@ -15,10 +15,18 @@ export type BackgroundCategory =
   | "general"
   | "aerospace"
   | "mechatronics"
+  | "robotics"
   | "mechanical"
   | "electrical"
   | "civil"
+  | "architecture"
+  | "industrial"
+  | "chemical"
+  | "environmental"
+  | "biomedical"
   | "informatics"
+  | "datascience"
+  | "mathematics"
   | "physics";
 
 const G = (n: number) => `/backgrounds/general/bg-0${n}.webp`;
@@ -26,35 +34,56 @@ const F = (folder: string, ns: number[]) =>
   ns.map((n) => `/backgrounds/${folder}/${folder}-0${n}.webp`);
 export const GENERAL = [G(1), G(2), G(3), G(4), G(5), G(6), G(7), G(8)];
 
-/** Images propres à chaque catégorie. Vide = fond général uniquement. */
+/**
+ * Images propres à chaque catégorie. Vide = fond général uniquement.
+ * Photos Unsplash (CREDITS.md) et, depuis nov. 2026, images générées
+ * (Replicate, Flux 1.1 Pro Ultra) pour les filières qui en manquaient.
+ */
 export const CATEGORY_IMAGES: Record<BackgroundCategory, string[]> = {
   general: [],
   // La fusée d'abord : c'est la première image que voit un étudiant LRT.
   aerospace: F("aerospace", [2, 1, 3]),
   mechatronics: F("mechatronics", [1, 2, 3]),
+  robotics: F("robotics", [1, 2, 3, 4]),
   electrical: F("electrical", [1, 2, 3]), // pylônes, éclair
-  // Moteurs + l'ossature acier du fond général.
-  mechanical: [...F("mechanical", [1, 2]), G(4)],
-  // Façade + les ponts du fond général : le génie civil, c'est eux.
-  civil: [...F("civil", [1]), G(3), G(6), G(7), G(8)],
+  mechanical: [...F("mechanical", [1, 2, 3, 4]), G(4)],
+  // Les ponts du fond général sont, eux aussi, du génie civil.
+  civil: [...F("civil", [1, 2, 3, 4]), G(3), G(6), G(7), G(8)],
+  architecture: F("architecture", [1, 2, 3, 4]),
+  industrial: F("industrial", [1, 2, 3, 4]),
+  chemical: F("chemical", [1, 2, 3, 4]),
+  environmental: F("environmental", [1, 2, 3, 4]),
+  biomedical: F("biomedical", [1, 2, 3, 4]),
   informatics: F("informatics", [1, 2, 3]), // code à l'écran
+  datascience: F("datascience", [1, 2, 3, 4]),
+  mathematics: F("mathematics", [1, 2, 3, 4]),
   physics: F("physics", [1, 2, 3]), // nébuleuse, Voie lactée, tableau
 };
 
 /**
  * Reconnaît la filière à partir du texte libre saisi par l'étudiant
- * (profil ou semestre). Ordre important : « Mechatronik » contient
- * « Mechan… », il doit passer AVANT le génie mécanique.
+ * (profil ou semestre). L'ORDRE compte : la règle la plus spécifique d'abord
+ * (« Robotik » avant « Mechatronik », « Data Science » avant « Informatik »,
+ * « Architektur » avant le génie civil, « Mathematik/Physik » avant
+ * « Physik »).
  */
 const RULES: [BackgroundCategory, RegExp][] = [
   ["aerospace", /luft|raumfahrt|aero|aviation|avion|flug|space|spatial/i],
-  ["mechatronics", /mechatron|robot/i],
+  ["biomedical", /biomedizin|biomedic|biomédical|medizintechnik|medical engineering/i],
+  ["robotics", /robot|autonome systeme|autonomous/i],
+  ["mechatronics", /mechatron/i],
+  ["datascience", /data science|datenwissenschaft|\bki\b|künstliche intelligenz|machine learning|\bai\b|\bia\b|intelligence artificielle/i],
+  ["industrial", /wirtschaftsingenieur|industrial engineering|génie industriel|ingeniería industrial/i],
+  ["chemical", /chemie|chemical|chimi|verfahrenstechnik|process engineering|procédés/i],
+  ["environmental", /umwelt|environment|environnement|ambiental|erneuerbare|renewable/i],
   ["electrical", /elektro|electr|informationstechnik|nachrichtentechnik/i],
-  ["civil", /bauingenieur|bauwesen|\bbau\b|civil|architekt|génie civil/i],
+  ["architecture", /architekt|architect|arquitect|architettura/i],
+  ["civil", /bauingenieur|bauwesen|\bbau\b|civil|génie civil/i],
   ["mechanical", /maschinenbau|mechanical|mécanique|mechanik|produktion/i],
   // Après l'électrotechnique : « Informationstechnik » y reste.
-  ["informatics", /informatik|informatique|computer|software|data science/i],
-  ["physics", /physik|physics|physique|mathe|math/i],
+  ["informatics", /informatik|informatique|computer|software/i],
+  ["mathematics", /mathe|math/i],
+  ["physics", /physik|physics|physique|física|fisica/i],
 ];
 
 export function categoryForProgram(program: string | null | undefined): BackgroundCategory {
@@ -63,10 +92,17 @@ export function categoryForProgram(program: string | null | undefined): Backgrou
   return RULES.find(([, re]) => re.test(p))?.[0] ?? "general";
 }
 
-/** Liste de rotation : images de la catégorie intercalées avec le fond général. */
+/**
+ * Liste de rotation.
+ * - Trois images propres ou plus : la filière tourne SUR ELLE-MÊME — un
+ *   étudiant en génie biomédical ne voit pas défiler des ponts.
+ * - Moins de trois : ses images intercalées avec le fond général, sinon la
+ *   rotation resterait figée sur une ou deux photos.
+ */
 export function backgroundsFor(category: BackgroundCategory): string[] {
   const own = CATEGORY_IMAGES[category];
   if (own.length === 0) return GENERAL;
+  if (own.length >= 3) return own;
   const rest = GENERAL.filter((g) => !own.includes(g));
   const out: string[] = [];
   for (let i = 0; i < Math.max(own.length, rest.length); i++) {
@@ -74,4 +110,14 @@ export function backgroundsFor(category: BackgroundCategory): string[] {
     if (i < rest.length) out.push(rest[i]);
   }
   return out;
+}
+
+/**
+ * Variante PORTRAIT (mobile) d'une image : même nom suivi de « -p ».
+ * Chaque image en a une (recadrage centré 1080×1920, plus légère) : un
+ * téléphone en portrait ne télécharge pas 1920 px de large pour en afficher
+ * le tiers.
+ */
+export function portraitOf(src: string): string {
+  return src.replace(/\.webp$/, "-p.webp");
 }
