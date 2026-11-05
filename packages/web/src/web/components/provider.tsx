@@ -7,6 +7,9 @@ import { useLocaleStore } from "@/stores/locale";
 
 const queryClient = new QueryClient();
 
+/** Langues écrites de droite à gauche parmi les 12 de l'interface. */
+const RTL_LOCALES = new Set(["ar"]);
+
 interface ProviderProps {
   children: React.ReactNode;
 }
@@ -28,6 +31,10 @@ export function Provider({ children }: ProviderProps) {
 
   useEffect(() => {
     document.documentElement.lang = locale;
+    // Sens de lecture. Sans lui, l'arabe s'affichait dans une mise en page de
+    // gauche à droite : seuls les mots étaient inversés, pas l'écran.
+    // Formules, code et schémas restent LTR (voir styles.css).
+    document.documentElement.dir = RTL_LOCALES.has(locale) ? "rtl" : "ltr";
   }, [locale]);
 
   useEffect(() => {
