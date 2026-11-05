@@ -96,6 +96,14 @@ function messageText(m: UIMessage): string {
     .join("");
 }
 
+// Une réponse peut passer de longues secondes en raisonnement ou en appels
+// d'outils sans un seul caractère de texte. `messageText()` ne les montre pas
+// (et ne doit pas : ce texte est sauvegardé et traduit). On les détecte à part
+// pour que l'écran ne reste jamais muet.
+function hasHiddenWork(m: UIMessage): boolean {
+  return m.parts.some((p) => p.type === "reasoning" || p.type.startsWith("tool-"));
+}
+
 export default function ChatPage() {
   /**
    * ── La langue de cette page ─────────────────────────────────────────────
@@ -398,6 +406,17 @@ export default function ChatPage() {
   const { messages, sendMessage, status, setMessages, error, regenerate, clearError } =
     useChat({ transport });
   const busy = status === "submitted" || status === "streaming";
+
+  // Dernière réponse du tuteur, si elle n'a encore (ou finalement) aucun texte.
+  const lastMsg = messages[messages.length - 1];
+  const lastAssistantEmpty =
+    lastMsg?.role === "assistant" && !messageText(lastMsg).trim() ? lastMsg : null;
+  // L'indicateur reste visible tant qu'aucun texte n'est arrivé — pas seulement
+  // pendant « submitted ». Raisonnement et outils passent le statut en
+  // « streaming » bien avant le premier mot.
+  const waitingForText = busy && (lastMsg?.role === "user" || lastAssistantEmpty !== null);
+  // Flux terminé sans un mot (boucle d'outils, coupure…) : on le dit.
+  const emptyAnswer = !busy && !error && lastAssistantEmpty !== null;
 
   // Latest messages, readable from callbacks/effects without stale closures.
   const messagesRef = useRef(messages);
@@ -1530,7 +1549,11 @@ export default function ChatPage() {
                 )}
                 <SourceViewContext.Provider value={showSource}>
                   <CodeExplainContext.Provider value={explainCode}>
-                    {messages.map((m) => (
+                    {messages
+                      // Une bulle vide n'apprend rien : l'indicateur ou la
+                      // bulle d'erreur ci-dessous prend sa place.
+                      .filter((m) => m !== lastAssistantEmpty)
+                      .map((m) => (
                       <MessageBubble
                         key={m.id}
                         role={m.role}
@@ -1554,7 +1577,7 @@ export default function ChatPage() {
                     ))}
                   </CodeExplainContext.Provider>
                 </SourceViewContext.Provider>
-                {status === "submitted" && (
+                {waitingForText && (
                   <motion.div
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1562,10 +1585,24 @@ export default function ChatPage() {
                   >
                     <LogoMark className="size-6" />
                     <span className="flex items-center gap-1">
-                      {t("chat.thinking")}
+                      {lastAssistantEmpty && hasHiddenWork(lastAssistantEmpty)
+                        ? t("chat.working")
+                        : t("chat.thinking")}
                       <Dots />
                     </span>
                   </motion.div>
+                )}
+                {emptyAnswer && (
+                  <div className="border-destructive/30 bg-destructive/5 flex flex-wrap items-center gap-2 rounded-xl border p-3 text-sm">
+                    <p className="text-destructive">{t("chat.emptyAnswer")}</p>
+                    <button
+                      type="button"
+                      onClick={retryNow}
+                      className="text-primary hover:bg-primary/10 rounded-md border border-current px-2 py-0.5 text-xs font-medium transition-colors"
+                    >
+                      {t("chat.retryNow")}
+                    </button>
+                  </div>
                 )}
                 {error && (
                   /* Trois refus distincts, trois messages distincts. Afficher

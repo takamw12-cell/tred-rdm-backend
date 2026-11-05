@@ -190,6 +190,8 @@ export const en: Messages = {
     wholeScope: "Whole context",
     pdfTitle: "Source",
     thinking: "TRED is thinking …",
+    working: "TRED is thinking or drawing …",
+    emptyAnswer: "The answer could not be generated. Please try again.",
     translating: "Translating …",
     you: "You",
     ai: "TRED",

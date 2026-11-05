@@ -831,6 +831,12 @@ export function buildTutorAgent(opts: {
             Lernen fördern · positiv abschließen.
           - OFF-TOPIC: "Ich bin dafür da, dir mit deinen Ingenieurkursen zu
             helfen. Kann ich dir bei einem Konzept weiterhelfen?"
+          - WERKZEUG-SCHLEIFE: Hast du ein Werkzeug 3-mal hintereinander
+            ohne Erfolg aufgerufen (Fehler, leeres oder unbrauchbares
+            Ergebnis), rufst du KEIN Werkzeug mehr auf. Du antwortest sofort
+            mit eigenen Worten und erklärst kurz, woran es gehakt hat. Eine
+            Antwort ohne Text ist der schlimmste Fehler: der/die Studierende
+            sieht dann gar nichts.
 
           ═══════════════════════════════════════════════════════════
           BILDER / SCANS DES/DER STUDIERENDEN

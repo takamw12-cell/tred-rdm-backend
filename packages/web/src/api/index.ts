@@ -672,8 +672,22 @@ app.post("/api/agent/messages", async (c) => {
     // Echte Abrechnung: jeder Schritt des Werkzeug-Loops meldet seinen
     // Verbrauch. Feuern und vergessen — ein Schreibfehler darf den laufenden
     // Stream nicht abbrechen.
-    onStepEnd: (step: { usage?: { outputTokens?: number }; text?: string }) => {
+    onStepEnd: (step: {
+      usage?: { outputTokens?: number };
+      text?: string;
+      finishReason?: string;
+      toolCalls?: ({ toolName?: string } | undefined)[];
+    }) => {
       void addOutputTokens(session.user.id, step.usage?.outputTokens ?? 0);
+
+      // Une ligne par étape : sans elle, une réponse vide (boucle d'outils
+      // jusqu'à stepCountIs(8)) ne laisse aucune trace dans les logs.
+      // Ni texte ni contenu des outils : seulement la forme de l'étape.
+      console.log(
+        `[agent] user=${session.user.id.slice(0, 8)} finish=${step.finishReason ?? "?"}` +
+          ` tools=${(step.toolCalls ?? []).map((tc) => tc?.toolName ?? "?").join(",") || "-"}` +
+          ` text=${(step.text ?? "").length}c out=${step.usage?.outputTokens ?? 0}tok`,
+      );
 
       // ── Le garde-fou ────────────────────────────────────────────────
       //

@@ -190,6 +190,8 @@ export const fr: Messages = {
     wholeScope: "Tout le contexte",
     pdfTitle: "Source",
     thinking: "TRED réfléchit …",
+    working: "TRED réfléchit ou dessine …",
+    emptyAnswer: "La réponse n'a pas pu être générée. Réessaie.",
     translating: "Traduction en cours …",
     you: "Toi",
     ai: "TRED",

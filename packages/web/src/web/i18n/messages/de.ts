@@ -189,6 +189,8 @@ export const de = {
     wholeScope: "Ganzer Kontext",
     pdfTitle: "Quelle",
     thinking: "TRED denkt nach …",
+    working: "TRED denkt nach oder zeichnet …",
+    emptyAnswer: "Die Antwort konnte nicht erzeugt werden. Versuch es noch einmal.",
     translating: "Wird übersetzt …",
     you: "Du",
     ai: "TRED",

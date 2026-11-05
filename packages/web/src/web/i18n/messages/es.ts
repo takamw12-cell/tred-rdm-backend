@@ -202,6 +202,8 @@ export const es: Messages = {
     wholeScope: "Todo el contexto",
     pdfTitle: "Fuente",
     thinking: "TRED está pensando …",
+    working: "TRED está pensando o dibujando …",
+    emptyAnswer: "No se pudo generar la respuesta. Inténtalo de nuevo.",
     translating: "Traduciendo …",
     you: "Tú",
     ai: "TRED",
