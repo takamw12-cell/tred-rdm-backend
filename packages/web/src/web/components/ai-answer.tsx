@@ -13,8 +13,9 @@ import {
 import { MarkdownContent } from "@/components/markdown-content";
 import { MathText } from "@/components/math-text";
 import { useT } from "@/i18n";
-import { answerToSpeech } from "@/lib/speech";
 import { speak, stopSpeaking } from "@/lib/voice";
+import { answerToSpeech, PROFESSOR_STYLE } from "@/lib/speech";
+import { useProfessor } from "@/lib/professors";
 import { cn } from "@/lib/utils";
 
 // Lets an [[OFFICIAL]] block's citation open the source document, scrolled to
@@ -107,6 +108,8 @@ const TTS_EVENT = "tred-tts-start";
  */
 export function ListenButton({ text, locale }: { text: string; locale: string }) {
   const { t } = useT();
+  // La voix suit le caractère du professeur choisi, sauf réglage explicite.
+  const professor = useProfessor();
   const [speaking, setSpeaking] = useState(false);
   const [id] = useState(() => Math.random().toString(36).slice(2));
   const supported = typeof window !== "undefined" && "speechSynthesis" in window;
@@ -139,7 +142,10 @@ export function ListenButton({ text, locale }: { text: string; locale: string })
     if (!spoken) return;
     window.dispatchEvent(new CustomEvent(TTS_EVENT, { detail: id }));
     setSpeaking(true);
-    void speak(spoken, locale, { onEnd: () => setSpeaking(false) }).then((ok) => {
+    void speak(spoken, locale, {
+      onEnd: () => setSpeaking(false),
+      defaultStyle: PROFESSOR_STYLE[professor.id],
+    }).then((ok) => {
       if (!ok) setSpeaking(false);
     });
   }

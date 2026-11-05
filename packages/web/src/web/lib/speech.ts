@@ -130,3 +130,46 @@ export function rankVoices<V extends VoiceLike>(voices: V[], locale: string): V[
     .sort((a, b) => b.s - a.s)
     .map((x) => x.v);
 }
+
+/* -------------------------------------------------------------------------- */
+/* Styles de voix (Calme / Énergique / Sévère)                                */
+/* -------------------------------------------------------------------------- */
+
+export type VoiceStyle = "calm" | "energetic" | "strict";
+export const VOICE_STYLES: readonly VoiceStyle[] = ["calm", "energetic", "strict"];
+
+/**
+ * Le style ne change pas la voix de l'appareil (impossible d'en connaître le
+ * timbre) : il change sa DICTION — débit et hauteur. Une voix ElevenLabs
+ * reçoit l'équivalent côté serveur (voice_settings).
+ */
+export const STYLE_PROSODY: Record<VoiceStyle, { rate: number; pitch: number }> = {
+  calm: { rate: 0.92, pitch: 0.96 },
+  energetic: { rate: 1.08, pitch: 1.08 },
+  strict: { rate: 0.98, pitch: 0.88 },
+};
+
+/** Style par défaut de chaque professeur du vestiaire. */
+export const PROFESSOR_STYLE: Record<string, VoiceStyle> = {
+  genius: "energetic",
+  sensei: "calm",
+  maverick: "energetic",
+  examiner: "strict",
+};
+
+/** Débit et hauteur d'une voix navigateur, bornés aux valeurs sûres. */
+export function prosodyFor(style: VoiceStyle, naturalVoice: boolean): { rate: number; pitch: number } {
+  // Les voix « Natural » sont justes à 1 ; les classiques gagnent à ralentir.
+  const base = naturalVoice ? 1 : 0.95;
+  const p = STYLE_PROSODY[style];
+  const clamp = (v: number) => Math.min(1.3, Math.max(0.7, Math.round(v * 100) / 100));
+  return { rate: clamp(base * p.rate), pitch: clamp(p.pitch) };
+}
+
+/** Préférence enregistrée « eleven:<slot> » = voix premium du serveur. */
+export const PREMIUM_PREFIX = "eleven:";
+
+/** L'emplacement premium qui correspond le mieux au style voulu. */
+export function premiumSlotFor<S extends { id: string; style: VoiceStyle }>(slots: S[], style: VoiceStyle): S | undefined {
+  return slots.find((s) => s.style === style) ?? slots[0];
+}

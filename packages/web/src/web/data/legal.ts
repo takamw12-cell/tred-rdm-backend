@@ -174,6 +174,15 @@ Anthropic PBC die Texterkennung. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO
 Grundlage der Standardvertragsklauseln der EU-Kommission (Art. 46 Abs. 2 lit. c
 DSGVO). Datenschutzerklärung von Mathpix: https://mathpix.com/privacy
 
+Vorlesen mit Premium-Stimme: Ist sie verfügbar und tippst du auf „Anhören“,
+übermitteln wir den Text der Antwort an ElevenLabs, Inc. (New York, USA), das
+daraus die Sprachausgabe erzeugt. Übermittelt wird nur dieser Text, ohne deinen
+Namen oder deine E-Mail-Adresse. Wählst du in den Einstellungen eine Stimme
+dieses Geräts, bleibt der Text auf deinem Gerät. Rechtsgrundlage: Art. 6 Abs. 1
+lit. b DSGVO. Drittlandtransfer auf Grundlage der Standardvertragsklauseln
+(Art. 46 Abs. 2 lit. c DSGVO). Datenschutzerklärung von ElevenLabs:
+https://elevenlabs.io/privacy-policy
+
 Lade keine besonders sensiblen Daten hoch (Gesundheitsdaten, Ausweisdokumente).
 Die Lernfunktion ist dafür nicht vorgesehen.
 

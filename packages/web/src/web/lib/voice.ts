@@ -1,4 +1,14 @@
-import { pickVoice, rankVoices, SPEECH_LANG, speechChunks } from "@/lib/speech";
+import {
+  pickVoice,
+  premiumSlotFor,
+  PREMIUM_PREFIX,
+  prosodyFor,
+  rankVoices,
+  SPEECH_LANG,
+  speechChunks,
+  VOICE_STYLES,
+  type VoiceStyle,
+} from "@/lib/speech";
 
 /**
  * La voix du professeur, côté navigateur.
@@ -12,6 +22,26 @@ import { pickVoice, rankVoices, SPEECH_LANG, speechChunks } from "@/lib/speech";
  */
 
 const PREF_KEY = "tred-voice-uri";
+const STYLE_KEY = "tred-voice-style";
+
+/** Style choisi dans les réglages ; null = celui du professeur. */
+export function getVoiceStyle(): VoiceStyle | null {
+  try {
+    const v = localStorage.getItem(STYLE_KEY);
+    return VOICE_STYLES.find((s) => s === v) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function setVoiceStyle(style: VoiceStyle | null) {
+  try {
+    if (style) localStorage.setItem(STYLE_KEY, style);
+    else localStorage.removeItem(STYLE_KEY);
+  } catch {
+    /* navigation privée */
+  }
+}
 
 export function getPreferredVoice(): string | null {
   try {
@@ -46,14 +76,23 @@ export async function voicesFor(locale: string): Promise<SpeechSynthesisVoice[]>
   return rankVoices(await loadVoices(), locale);
 }
 
-let premium: Promise<boolean> | null = null;
-/** Le serveur a-t-il une voix premium ? Demandé une fois par session. */
-export function premiumVoiceAvailable(): Promise<boolean> {
+export interface PremiumVoice {
+  id: string;
+  style: VoiceStyle;
+}
+
+let premium: Promise<PremiumVoice[]> | null = null;
+/** Voix premium du serveur (ElevenLabs). Demandé une fois par session. */
+export function premiumVoices(): Promise<PremiumVoice[]> {
   premium ??= fetch("/api/tts/status", { credentials: "include" })
-    .then((r) => (r.ok ? r.json() : { premium: false }))
-    .then((j: { premium?: boolean }) => j.premium === true)
-    .catch(() => false);
+    .then((r) => (r.ok ? r.json() : { voices: [] }))
+    .then((j: { voices?: PremiumVoice[] }) => (Array.isArray(j.voices) ? j.voices : []))
+    .catch(() => []);
   return premium;
+}
+
+export async function premiumVoiceAvailable(): Promise<boolean> {
+  return (await premiumVoices()).length > 0;
 }
 
 let current: { audio?: HTMLAudioElement; url?: string } = {};
@@ -68,58 +107,82 @@ export function stopSpeaking() {
 /**
  * Lit `text` (déjà nettoyé pour l'oral). `onEnd` est appelé à la fin ou en
  * cas d'erreur. Renvoie false si aucune voix n'est disponible.
+ *
+ * `voice` remplace le choix enregistré ("" = automatique,
+ * "eleven:<slot>" = voix premium, sinon voiceURI du navigateur).
+ * `style` : Calme / Énergique / Sévère ; sinon le réglage, sinon
+ * `defaultStyle` (le style du professeur), sinon calme.
  */
 export async function speak(
   text: string,
   locale: string,
-  { onEnd, voiceURI }: { onEnd?: () => void; voiceURI?: string | null } = {},
+  {
+    onEnd,
+    voice,
+    style,
+    defaultStyle,
+  }: { onEnd?: () => void; voice?: string; style?: VoiceStyle; defaultStyle?: VoiceStyle } = {},
 ): Promise<boolean> {
   stopSpeaking();
   if (!text.trim()) return false;
+  const pref = voice ?? getPreferredVoice() ?? "";
+  const st = style ?? getVoiceStyle() ?? defaultStyle ?? "calm";
 
-  if (voiceURI === undefined && (await premiumVoiceAvailable())) {
-    try {
-      const res = await fetch("/api/tts", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: text.slice(0, 2500), locale }),
-      });
-      if (res.ok) {
-        const url = URL.createObjectURL(await res.blob());
-        const audio = new Audio(url);
-        current = { audio, url };
-        audio.onended = () => {
-          stopSpeaking();
-          onEnd?.();
-        };
-        audio.onerror = () => {
-          stopSpeaking();
-          onEnd?.();
-        };
-        await audio.play();
-        return true;
-      }
-    } catch {
-      /* repli sur la voix du navigateur */
-    }
+  if (pref === "" || pref.startsWith(PREMIUM_PREFIX)) {
+    const slots = await premiumVoices();
+    const slot = pref ? slots.find((s) => s.id === pref.slice(PREMIUM_PREFIX.length)) : premiumSlotFor(slots, st);
+    if (slot && (await playPremium(text, locale, slot.id, st, onEnd))) return true;
   }
 
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return false;
   const synth = window.speechSynthesis;
-  const voice = pickVoice(await loadVoices(), locale, voiceURI ?? getPreferredVoice());
-  const lang = voice?.lang ?? SPEECH_LANG[locale] ?? locale;
+  const browserPref = pref.startsWith(PREMIUM_PREFIX) ? null : pref || null;
+  const v = pickVoice(await loadVoices(), locale, browserPref);
+  const lang = v?.lang ?? SPEECH_LANG[locale] ?? locale;
+  const { rate, pitch } = prosodyFor(st, !!v && /natural|neural|premium|enhanced|google/i.test(v.name));
   const chunks = speechChunks(text);
   chunks.forEach((chunk, i) => {
     const u = new SpeechSynthesisUtterance(chunk);
     u.lang = lang;
-    if (voice) u.voice = voice;
-    // Les voix « Natural » sont justes à 1 ; les voix classiques gagnent à
-    // ralentir un peu : moins hachées, plus faciles à suivre.
-    u.rate = voice && /natural|neural|premium|enhanced|google/i.test(voice.name) ? 1 : 0.95;
+    if (v) u.voice = v;
+    u.rate = rate;
+    u.pitch = pitch;
     if (i === chunks.length - 1) u.onend = () => onEnd?.();
     u.onerror = () => onEnd?.();
     synth.speak(u);
   });
   return true;
+}
+
+async function playPremium(
+  text: string,
+  locale: string,
+  slot: string,
+  style: VoiceStyle,
+  onEnd?: () => void,
+): Promise<boolean> {
+  try {
+    const res = await fetch("/api/tts", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: text.slice(0, 2500), locale, voice: slot, style }),
+    });
+    if (!res.ok) return false;
+    const url = URL.createObjectURL(await res.blob());
+    const audio = new Audio(url);
+    current = { audio, url };
+    audio.onended = () => {
+      stopSpeaking();
+      onEnd?.();
+    };
+    audio.onerror = () => {
+      stopSpeaking();
+      onEnd?.();
+    };
+    await audio.play();
+    return true;
+  } catch {
+    return false; // repli sur la voix du navigateur
+  }
 }

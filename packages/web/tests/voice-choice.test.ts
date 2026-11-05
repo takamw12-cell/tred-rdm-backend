@@ -33,3 +33,37 @@ describe("choix de la voix du professeur", () => {
     expect(scoreVoice(v("Anna", "de_DE"), "de")).toBeGreaterThan(0);
   });
 });
+
+import { PROFESSOR_STYLE, premiumSlotFor, prosodyFor } from "../src/web/lib/speech";
+import { PROFESSOR_IDS } from "../src/api/lib/professors";
+
+describe("panoplie de voix : styles", () => {
+  test("chaque professeur a un style de voix", () => {
+    for (const id of PROFESSOR_IDS) expect(["calm", "energetic", "strict"]).toContain(PROFESSOR_STYLE[id]);
+    expect(PROFESSOR_STYLE.sensei).toBe("calm");
+    expect(PROFESSOR_STYLE.examiner).toBe("strict");
+  });
+
+  test("énergique parle plus vite et plus haut que calme ; sévère plus grave", () => {
+    const calm = prosodyFor("calm", true);
+    const energetic = prosodyFor("energetic", true);
+    const strict = prosodyFor("strict", true);
+    expect(energetic.rate).toBeGreaterThan(calm.rate);
+    expect(energetic.pitch).toBeGreaterThan(calm.pitch);
+    expect(strict.pitch).toBeLessThan(calm.pitch);
+    for (const p of [calm, energetic, strict, prosodyFor("energetic", false)]) {
+      expect(p.rate).toBeGreaterThanOrEqual(0.7);
+      expect(p.rate).toBeLessThanOrEqual(1.3);
+    }
+  });
+
+  test("la voix premium suit le style, sinon la première disponible", () => {
+    const slots = [
+      { id: "senior", style: "calm" as const },
+      { id: "examiner", style: "strict" as const },
+    ];
+    expect(premiumSlotFor(slots, "strict")?.id).toBe("examiner");
+    expect(premiumSlotFor(slots, "energetic")?.id).toBe("senior");
+    expect(premiumSlotFor([], "calm")).toBeUndefined();
+  });
+});
