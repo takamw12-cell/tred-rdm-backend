@@ -344,6 +344,14 @@ html:lang(ar) body { line-height: 1.7; }
   unicode-bidi: isolate;
 }
 
+/* Les flèches de navigation, elles, suivent le sens de lecture : « retour »
+   pointe à droite en arabe. (Flèches de formules/schémas : non concernées,
+   ce ne sont pas des icônes lucide.) */
+[dir="rtl"] :is(.lucide-arrow-left, .lucide-arrow-right, .lucide-chevron-left,
+  .lucide-chevron-right, .lucide-arrow-up-right, .lucide-move-right) {
+  transform: scaleX(-1);
+}
+
 /* ── Verre dépoli (toute l'app, via le layout) ─────────────────────────
    Toutes les cartes ui/card d'une zone `.glass-scope` laissent deviner le
    fond photo (DynamicBackground) sans perdre le contraste du texte.

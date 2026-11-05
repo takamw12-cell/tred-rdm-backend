@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MotionConfig } from "framer-motion";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { applyTheme, useThemeStore } from "@/stores/theme";
 import { applyFontSize, useFontSizeStore } from "@/stores/font-size";
@@ -48,7 +49,10 @@ export function Provider({ children }: ProviderProps) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider delayDuration={150}>{children}</TooltipProvider>
+      {/* Respecte « réduire les animations » du système (vertiges, épilepsie). */}
+      <MotionConfig reducedMotion="user">
+        <TooltipProvider delayDuration={150}>{children}</TooltipProvider>
+      </MotionConfig>
     </QueryClientProvider>
   );
 }
