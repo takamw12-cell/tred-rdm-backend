@@ -314,6 +314,9 @@ export const de = {
     output: "Simulierte Ausgabe",
   },
   exercises: {
+    styleFromKlausur: "Basiert auf deiner Altklausur",
+    styleFromUebung: "Basiert auf deinem Übungsblatt",
+    styleStandard: "Keine Altklausur gefunden – Standardformat einer Hochschulklausur.",
     title: "Übungen & Klausuren",
     subtitle: "Generiere Übungen im Stil deines Kurses und exportiere sie als druckbares PDF.",
     tabGenerator: "Übung generieren",

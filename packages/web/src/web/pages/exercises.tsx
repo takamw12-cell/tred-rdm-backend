@@ -14,6 +14,7 @@ import {
   ClipboardList,
   Bookmark,
   Trash2,
+  FileCheck,
 } from "lucide-react";
 import { PageContainer, PageHeader, Reveal } from "@/components/page";
 import { Card, CardContent } from "@/components/ui/card";
@@ -45,6 +46,12 @@ interface GeneratedExercise {
   statement: string;
   solution: string;
   scale: string;
+  /**
+   * Document du Lehrender dont le style a été repris — posé par le SERVEUR,
+   * qui l'a injecté dans le prompt. null = aucune Altklausur trouvée.
+   * Absent sur les exercices d'avant cette fonction (historique).
+   */
+  styleSource?: { id: string; title: string; kind: string } | null;
 }
 
 type Difficulty = "easy" | "medium" | "hard";
@@ -90,6 +97,7 @@ async function generate(body: Record<string, unknown>): Promise<GeneratedExercis
           statement: String(msg.statement ?? ""),
           solution: String(msg.solution ?? ""),
           scale: String(msg.scale ?? ""),
+          styleSource: (msg as { styleSource?: GeneratedExercise["styleSource"] }).styleSource ?? null,
         };
       }
     }
@@ -240,7 +248,7 @@ function GeneratorTab({
                 </Select>
               </Field>
             </div>
-            <Button onClick={run} disabled={loading} className="brand-gradient text-white">
+            <Button onClick={run} disabled={loading} className="rounded-full">
               {loading ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
@@ -524,6 +532,11 @@ function ExerciseResult({
               </p>
               <h2 className="font-display text-lg font-bold">{result.title}</h2>
               {meta && <p className="text-muted-foreground text-xs">{meta}</p>}
+              {/* « Typiquement comme le prof » : l'origine du style, dite
+                  franchement — y compris quand il n'y avait rien. */}
+              {result.styleSource !== undefined && (
+                <StyleBadge source={result.styleSource} />
+              )}
             </div>
             {result.points > 0 && (
               <Badge variant="secondary">
@@ -594,6 +607,28 @@ function ExerciseResult({
         </CardContent>
       </Card>
     </Reveal>
+  );
+}
+
+function StyleBadge({ source }: { source: GeneratedExercise["styleSource"] }) {
+  const { t } = useT();
+  if (!source) {
+    return (
+      <p className="text-muted-foreground mt-1.5 text-xs">{t("exercises.styleStandard")}</p>
+    );
+  }
+  return (
+    <span
+      title={source.title}
+      className="bg-accent border-signature/60 mt-1.5 inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium"
+    >
+      <FileCheck className="size-3.5 shrink-0" />
+      <span className="truncate">
+        {t(source.kind === "klausur" ? "exercises.styleFromKlausur" : "exercises.styleFromUebung")}
+        {" · "}
+        {source.title}
+      </span>
+    </span>
   );
 }
 

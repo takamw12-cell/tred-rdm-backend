@@ -159,6 +159,11 @@ export const hi: PartialMessages = {
     programPlaceholder: "जैसे Luft- und Raumfahrttechnik",
     deleteSemester: "सेमेस्टर हटाएँ",
   },
+  exercises: {
+    styleFromKlausur: "आपकी पुरानी परीक्षा (Altklausur) पर आधारित",
+    styleFromUebung: "आपकी अभ्यास शीट (Übungsblatt) पर आधारित",
+    styleStandard: "कोई पुरानी परीक्षा नहीं मिली – विश्वविद्यालय परीक्षा का मानक प्रारूप।",
+  },
   chat: {
     untitledConversation: "नई बातचीत",
     listen: "सुनें",

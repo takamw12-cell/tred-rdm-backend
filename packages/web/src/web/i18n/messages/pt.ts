@@ -159,6 +159,11 @@ export const pt: PartialMessages = {
     programPlaceholder: "ex. Luft- und Raumfahrttechnik",
     deleteSemester: "Eliminar semestre",
   },
+  exercises: {
+    styleFromKlausur: "Baseado no teu exame antigo (Altklausur)",
+    styleFromUebung: "Baseado na tua folha de exercícios (Übungsblatt)",
+    styleStandard: "Nenhum exame antigo encontrado – formato padrão de exame universitário.",
+  },
   chat: {
     untitledConversation: "Nova conversa",
     listen: "Ouvir",

@@ -315,6 +315,9 @@ export const fr: Messages = {
     output: "Sortie simulée",
   },
   exercises: {
+    styleFromKlausur: "Basé sur ton ancien examen (Altklausur)",
+    styleFromUebung: "Basé sur ta feuille d'exercices (Übungsblatt)",
+    styleStandard: "Aucun ancien examen trouvé – format standard d'examen universitaire.",
     title: "Exercices & examens",
     subtitle: "Génère des exercices dans le style de ton cours et exporte-les en PDF imprimable.",
     tabGenerator: "Générer un exercice",

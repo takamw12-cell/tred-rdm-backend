@@ -159,6 +159,11 @@ export const ar: PartialMessages = {
     programPlaceholder: "مثلًا Luft- und Raumfahrttechnik",
     deleteSemester: "حذف الفصل الدراسي",
   },
+  exercises: {
+    styleFromKlausur: "مبني على امتحانك السابق (Altklausur)",
+    styleFromUebung: "مبني على ورقة تمارينك (Übungsblatt)",
+    styleStandard: "لم يُعثر على امتحان سابق — الصيغة القياسية لامتحان جامعي.",
+  },
   chat: {
     untitledConversation: "محادثة جديدة",
     listen: "استمع",

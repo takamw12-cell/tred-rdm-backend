@@ -159,6 +159,11 @@ export const zh: PartialMessages = {
     programPlaceholder: "例如 Luft- und Raumfahrttechnik",
     deleteSemester: "删除学期",
   },
+  exercises: {
+    styleFromKlausur: "基于你的往年试卷（Altklausur）",
+    styleFromUebung: "基于你的练习题（Übungsblatt）",
+    styleStandard: "未找到往年试卷——采用标准大学考试格式。",
+  },
   chat: {
     untitledConversation: "新对话",
     listen: "朗读",

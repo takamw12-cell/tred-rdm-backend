@@ -327,6 +327,9 @@ export const es: Messages = {
     output: "Salida simulada",
   },
   exercises: {
+    styleFromKlausur: "Basado en tu examen anterior (Altklausur)",
+    styleFromUebung: "Basado en tu hoja de ejercicios (Übungsblatt)",
+    styleStandard: "No se encontró ningún examen anterior – formato estándar de examen universitario.",
     title: "Ejercicios y Klausuren",
     subtitle: "Genera ejercicios al estilo de tu curso y expórtalos en PDF listo para imprimir.",
     tabGenerator: "Generar un ejercicio",

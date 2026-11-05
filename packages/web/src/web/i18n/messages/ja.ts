@@ -159,6 +159,11 @@ export const ja: PartialMessages = {
     programPlaceholder: "例：Luft- und Raumfahrttechnik",
     deleteSemester: "学期を削除",
   },
+  exercises: {
+    styleFromKlausur: "あなたの過去問（Altklausur）に基づく",
+    styleFromUebung: "あなたの演習シート（Übungsblatt）に基づく",
+    styleStandard: "過去問が見つかりません — 大学試験の標準形式です。",
+  },
   chat: {
     untitledConversation: "新しい会話",
     listen: "読み上げ",

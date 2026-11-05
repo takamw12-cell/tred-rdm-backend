@@ -315,6 +315,9 @@ export const en: Messages = {
     output: "Simulated output",
   },
   exercises: {
+    styleFromKlausur: "Based on your past exam (Altklausur)",
+    styleFromUebung: "Based on your exercise sheet (Übungsblatt)",
+    styleStandard: "No past exam found – standard university exam format.",
     title: "Exercises & exams",
     subtitle: "Generate exercises in your course's style and export them as a printable PDF.",
     tabGenerator: "Generate exercise",

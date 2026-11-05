@@ -36,6 +36,8 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { buildTutorAgent } from "./agent";
 import { readLearningStyle } from "./lib/learning-style-store";
+import { pickStyleReference, STYLE_SAMPLE_CHARS } from "./lib/style-reference";
+import { wellFormed } from "./lib/unicode-safe";
 import {
   fileExtension,
   isSupported,
@@ -955,6 +957,29 @@ app.post("/api/agent/exercise", async (c) => {
     .map((d) => `-- ${d.title} (${d.kind}) --\n${d.content}`)
     .join("\n\n");
 
+  // ── Stilvorlage : « typiquement comme le prof » ────────────────────────
+  // Le serveur cherche LUI-MÊME une Altklausur (à défaut un Übungsblatt) dans
+  // les documents visibles. Pas d'appel d'outil laissé au modèle : la
+  // recherche est garantie, instantanée, et c'est le serveur — pas le modèle —
+  // qui dit à l'interface si l'exercice repose vraiment sur un document.
+  const styleCandidates = (
+    targetId
+      ? rows
+      : await db
+          .select()
+          .from(document)
+          .where(
+            body.semesterId
+              ? and(lisibleEx, eq(document.semesterId, body.semesterId))
+              : lisibleEx,
+          )
+  ).filter((d) => d.kind === "klausur" || d.kind === "uebung");
+  const styleQuery = [body.subject, body.chapter].filter(Boolean).join(" ");
+  const styleDoc = pickStyleReference(styleCandidates, styleQuery);
+  const styleBlock = styleDoc
+    ? `STILVORLAGE — ${styleDoc.kind === "klausur" ? "Altklausur" : "Übungsblatt"} des Lehrenden: "${styleDoc.title}"\n${wellFormed(styleDoc.textContent.slice(0, STYLE_SAMPLE_CHARS))}`
+    : "";
+
   // « klausurnah » ne dit rien à un modèle : il produisait un exercice
   // d'application propre mais scolaire. Ce qui distingue une vraie épreuve
   // d'ingénieur, ce n'est pas la longueur du calcul — c'est qu'il faut
@@ -1019,12 +1044,31 @@ ANFORDERUNGEN:
 - Realistische Zahlenwerte mit Einheiten. Rechne die Musterlösung Schritt für Schritt und dimensionsrichtig durch.
 ${klausurRule}
 
+${
+  styleDoc
+    ? `STIL DES PROFS (PFLICHT) — unten steht eine STILVORLAGE aus den Unterlagen.
+Analysiere sie ZUERST und übernimm genau diesen Stil:
+- Notation: dieselben Formelzeichen, Indizes, Einheitenschreibweise, Vorzeichenkonvention.
+- Sprache: derselbe Ton und dieselben Aufgabenformulierungen ("Gegeben: … Gesucht: …",
+  "Berechnen Sie …", "Skizzieren Sie …" — was die Vorlage tatsächlich benutzt).
+- Aufbau: dieselbe Gliederung in Teilaufgaben, dieselbe Art der Punkteangabe je Teilaufgabe.
+- Niveau: derselbe Schwierigkeitsgrad und Umfang je Punkt.
+Die neue Aufgabe ist eine VARIATION dieser Vorlage: anderes System, andere Zahlen,
+anderer Kontext — aber unverkennbar derselbe Prüfer. NIEMALS eine Aufgabe der Vorlage
+abschreiben oder nur Zahlen austauschen.`
+    : `KEINE ALTKLAUSUR GEFUNDEN — in den Unterlagen liegt weder eine Altklausur noch ein
+Übungsblatt. Verwende das Standardformat einer deutschen Hochschulklausur:
+Kopf mit Bearbeitungszeit, Hilfsmitteln und Gesamtpunkten; Aufgaben mit Teilaufgaben
+a), b), c) und Punkten je Teilaufgabe; "Gegeben: … / Gesucht: …"; Skizze, wo sie hilft.`
+}
+
 Die Felder title/points/statement/solution/scale werden strukturiert zurückgegeben. In statement und solution nutzt du Markdown mit LaTeX ganz normal (Backslashes wie \\frac sind erlaubt) und \`\`\`svg-Codeblöcke für Skizzen — die JSON-Kodierung übernimmt das System.`;
 
   const prompt =
-    rows.length > 0
+    (styleBlock ? `${styleBlock}\n\n` : "") +
+    (rows.length > 0
       ? `KURSUNTERLAGEN:\n${docBlock}\n\nErstelle jetzt die ${modeWord}.`
-      : `Es liegen keine Kursunterlagen vor. Erstelle eine sinnvolle ${modeWord} zum Thema "${body.chapter || body.subject || "Technische Mechanik"}".`;
+      : `Es liegen keine Kursunterlagen vor. Erstelle eine sinnvolle ${modeWord} zum Thema "${body.chapter || body.subject || "Technische Mechanik"}".`);
 
   const exerciseSchema = z.object({
     title: z.string().describe("Kurzer Titel der Aufgabe/Klausur"),
@@ -1134,7 +1178,14 @@ Die Felder title/points/statement/solution/scale werden strukturiert zurückgege
         console.error("[exercise] auto-save failed", saveErr);
         savedId = null;
       }
-      await s.write(JSON.stringify({ type: "result", savedId, ...result }) + "\n");
+      // styleSource : posé par le SERVEUR (la Stilvorlage a bien été injectée),
+      // pas déduit de ce que le modèle affirme. C'est ce qu'affiche le badge.
+      const styleSource = styleDoc
+        ? { id: styleDoc.id, title: styleDoc.title, kind: styleDoc.kind }
+        : null;
+      await s.write(
+        JSON.stringify({ type: "result", savedId, styleSource, ...result }) + "\n",
+      );
 
       // Push erst NACH dem Schreiben des Ergebnisses und ohne await: der
       // Student soll die Antwort sofort sehen. Tippt er auf die Meldung, ist

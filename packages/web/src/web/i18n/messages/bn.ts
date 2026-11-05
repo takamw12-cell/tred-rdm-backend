@@ -159,6 +159,11 @@ export const bn: PartialMessages = {
     programPlaceholder: "যেমন Luft- und Raumfahrttechnik",
     deleteSemester: "সেমিস্টার মুছে ফেলো",
   },
+  exercises: {
+    styleFromKlausur: "তোমার পুরোনো পরীক্ষার (Altklausur) ভিত্তিতে",
+    styleFromUebung: "তোমার অনুশীলন শিটের (Übungsblatt) ভিত্তিতে",
+    styleStandard: "কোনো পুরোনো পরীক্ষা পাওয়া যায়নি — বিশ্ববিদ্যালয় পরীক্ষার মানক ফরম্যাট।",
+  },
   chat: {
     untitledConversation: "নতুন কথোপকথন",
     listen: "শোনো",
