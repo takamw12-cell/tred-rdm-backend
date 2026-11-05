@@ -338,6 +338,7 @@ export default function DashboardPage() {
                 sub={t("dashboard.docsCount", { count: s.docCount })}
                 onClick={() => setActive(s.id)}
                 onDelete={() => handleRemove(s.id)}
+                deleteLabel={t("dashboard.deleteSemester")}
               />
             ))
           )}
@@ -608,7 +609,7 @@ export default function DashboardPage() {
                 id="sem-prog"
                 value={program}
                 onChange={(e) => setProgram(e.target.value)}
-                placeholder="Luft- und Raumfahrttechnik"
+                placeholder={t("dashboard.programPlaceholder")}
               />
             </div>
           </div>
@@ -753,12 +754,15 @@ function SemesterChip({
   sub,
   onClick,
   onDelete,
+  deleteLabel,
 }: {
   active: boolean;
   label: string;
   sub?: string;
   onClick: () => void;
   onDelete?: () => void;
+  /** Lu par les lecteurs d'écran : le bouton n'a qu'une icône. */
+  deleteLabel?: string;
 }) {
   return (
     <div
@@ -784,7 +788,7 @@ function SemesterChip({
             "hover:text-destructive opacity-0 transition-opacity group-hover:opacity-100",
             active ? "text-primary-foreground/70" : "text-muted-foreground",
           )}
-          aria-label="delete"
+          aria-label={deleteLabel}
         >
           <Trash2 className="size-3.5" />
         </button>

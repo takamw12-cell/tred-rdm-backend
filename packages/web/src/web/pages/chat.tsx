@@ -776,7 +776,7 @@ export default function ChatPage() {
     if (sig === savedSigRef.current) return;
     savedSigRef.current = sig;
     const firstUser = snap.find((m) => m.role === "user");
-    const title = (firstUser?.content ?? "Neue Unterhaltung").slice(0, 80);
+    const title = (firstUser?.content ?? t("chat.untitledConversation")).slice(0, 80);
     saveMut.mutate(
       {
         id: convId,
