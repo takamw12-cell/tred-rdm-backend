@@ -60,3 +60,26 @@ describe("sanitizeSvg — vecteurs XSS par animation", () => {
     expect(out).not.toContain("evil");
   });
 });
+
+import { enforceTredPalette } from "../src/web/lib/svg-sanitize";
+
+describe("charte TRED — aucun violet dans un schéma", () => {
+  test("violets hex remplacés selon la clarté, autres couleurs intactes", () => {
+    const svg =
+      '<svg><rect fill="#ECECFF" stroke="#9370DB"/><text fill="#4c1d95">A</text>' +
+      '<line stroke="#2563EB"/><circle fill="#EF4444"/><rect fill="#8b5cf6"/></svg>';
+    const out = enforceTredPalette(svg);
+    expect(out).not.toMatch(/ECECFF|9370DB|4c1d95|8b5cf6/i);
+    expect(out).toContain('stroke="#EAB308"'); // #9370DB, violet moyen
+    expect(out).toContain('fill="#1A1A1A"'); // #4c1d95, violet sombre
+    expect(out).toContain('stroke="#2563EB"'); // bleu des forces : intact
+    expect(out).toContain('fill="#EF4444"'); // rouge : intact
+  });
+
+  test("noms de couleurs et CSS inline", () => {
+    const out = enforceTredPalette('<svg><rect fill="purple" style="stroke:violet;fill:#ffffff"/></svg>');
+    expect(out).toContain('fill="#1A1A1A"');
+    expect(out).toContain("stroke:#EAB308");
+    expect(out).toContain("fill:#ffffff");
+  });
+});

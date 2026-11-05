@@ -78,6 +78,58 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* ── Pas de violet dans TRED ──────────────────────────────────────────────
+   Les familles violet / purple / indigo / fuchsia de Tailwind sont
+   redirigées vers la charte : teintes claires → jaune pâle, moyennes → jaune
+   #EAB308, foncées → encre #1A1A1A. Un `bg-violet-600` écrit un jour (ou
+   hérité, comme sur la page Tarifs) donne donc un bouton encre, jamais violet. */
+@theme {
+  --color-violet-50: #fbf3d6;
+  --color-violet-100: #fbf3d6;
+  --color-violet-200: #f6e7a6;
+  --color-violet-300: #eab308;
+  --color-violet-400: #eab308;
+  --color-violet-500: #1a1a1a;
+  --color-violet-600: #1a1a1a;
+  --color-violet-700: #1a1a1a;
+  --color-violet-800: #1a1a1a;
+  --color-violet-900: #1a1a1a;
+  --color-violet-950: #1a1a1a;
+  --color-purple-50: #fbf3d6;
+  --color-purple-100: #fbf3d6;
+  --color-purple-200: #f6e7a6;
+  --color-purple-300: #eab308;
+  --color-purple-400: #eab308;
+  --color-purple-500: #1a1a1a;
+  --color-purple-600: #1a1a1a;
+  --color-purple-700: #1a1a1a;
+  --color-purple-800: #1a1a1a;
+  --color-purple-900: #1a1a1a;
+  --color-purple-950: #1a1a1a;
+  --color-indigo-50: #fbf3d6;
+  --color-indigo-100: #fbf3d6;
+  --color-indigo-200: #f6e7a6;
+  --color-indigo-300: #eab308;
+  --color-indigo-400: #eab308;
+  --color-indigo-500: #1a1a1a;
+  --color-indigo-600: #1a1a1a;
+  --color-indigo-700: #1a1a1a;
+  --color-indigo-800: #1a1a1a;
+  --color-indigo-900: #1a1a1a;
+  --color-indigo-950: #1a1a1a;
+  --color-fuchsia-50: #fbf3d6;
+  --color-fuchsia-100: #fbf3d6;
+  --color-fuchsia-200: #f6e7a6;
+  --color-fuchsia-300: #eab308;
+  --color-fuchsia-400: #eab308;
+  --color-fuchsia-500: #1a1a1a;
+  --color-fuchsia-600: #1a1a1a;
+  --color-fuchsia-700: #1a1a1a;
+  --color-fuchsia-800: #1a1a1a;
+  --color-fuchsia-900: #1a1a1a;
+  --color-fuchsia-950: #1a1a1a;
+}
+
 /* ── Hell: Creme, Tinte, Textmarker ────────────────────────────────────── */
 :root {
   --radius: 0.875rem;

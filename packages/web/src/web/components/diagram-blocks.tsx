@@ -96,10 +96,30 @@ export function MermaidDiagram({ code }: { code: string }) {
       // den <body> — sie hängt dann quer über der Oberfläche. Wir fangen den
       // Fehler unten selbst ab und zeigen stattdessen den Quelltext.
       suppressErrorRendering: true,
-      theme: dark ? "dark" : "default",
+      // Le thème « default » de mermaid dessine des boîtes lilas à bordure
+      // violette (#ECECFF / #9370DB) — étranger à TRED. Le prompt n'en
+      // produit plus, mais les anciennes conversations en contiennent :
+      // on les redessine dans la palette TRED (encre, bordure crème, jaune).
+      theme: dark ? "dark" : "base",
       themeVariables: dark
         ? { background: "transparent", primaryColor: "#1e293b" }
-        : { background: "transparent" },
+        : {
+            background: "transparent",
+            primaryColor: "#FFFFFF",
+            primaryTextColor: "#1A1A1A",
+            primaryBorderColor: "#E7E2D8",
+            secondaryColor: "#FBF3D6",
+            secondaryBorderColor: "#EAB308",
+            tertiaryColor: "#FDFBF7",
+            tertiaryBorderColor: "#E7E2D8",
+            lineColor: "#1A1A1A",
+            textColor: "#1A1A1A",
+            mainBkg: "#FFFFFF",
+            nodeBorder: "#E7E2D8",
+            clusterBkg: "#FDFBF7",
+            clusterBorder: "#E7E2D8",
+            edgeLabelBackground: "#FDFBF7",
+          },
     });
       // Erst prüfen, dann zeichnen. mermaid.parse() fasst das DOM nicht an —
       // render() dagegen legt seine Messknoten an, bevor es merkt, dass der
@@ -374,7 +394,9 @@ type ChartSpec = {
   series: Series[];
 };
 
-const PALETTE = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#0ea5e9", "#a855f7"];
+// Palette TRED : encre, jaune, gris, rouge, vert, gris clair. Plus d'indigo
+// ni de violet (#6366f1, #a855f7 jusqu'au 5 novembre 2026).
+const PALETTE = ["#1A1A1A", "#EAB308", "#6B6B6B", "#B3261E", "#15803D", "#A8A29E"];
 
 export function ChartBlock({ code }: { code: string }) {
   const dark = useDarkMode();
@@ -403,7 +425,9 @@ export function ChartBlock({ code }: { code: string }) {
   const type = spec.type ?? "line";
 
   const datasets = spec.series.map((s, i) => {
-    const color = s.color ?? PALETTE[i % PALETTE.length];
+    // La couleur proposée par le modèle (s.color) est ignorée : la charte
+    // TRED s'applique à tous les graphiques, sans exception.
+    const color = PALETTE[i % PALETTE.length];
     return {
       label: s.label ?? `Serie ${i + 1}`,
       data: s.data as never,

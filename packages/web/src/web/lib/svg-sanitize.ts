@@ -75,5 +75,65 @@ export function sanitizeSvg(raw: string): string {
     keepAnimation(tag, attrs) ? whole : "",
   );
 
-  return svg.trim();
+  return enforceTredPalette(svg).trim();
+}
+
+/* ── Charte TRED : aucun violet dans un schéma ─────────────────────────────
+ *
+ * Le modèle peut écrire fill="#8b5cf6" ou stroke="purple" malgré le prompt.
+ * Toute teinte violette (teinte 238°–330°, saturée — 238° pour attraper le
+ * lilas #ECECFF des boîtes mermaid) est remplacée par son
+ * rôle TRED selon sa clarté : sombre → encre, moyenne → jaune, claire → jaune
+ * très pâle. Les autres couleurs (bleu des forces, rouge, vert…) ne bougent pas.
+ */
+
+const VIOLET_NAMES =
+  /^(purple|violet|indigo|fuchsia|magenta|orchid|plum|lavender|thistle|mediumpurple|blueviolet|darkviolet|darkorchid|darkmagenta|mediumorchid|rebeccapurple|slateblue|mediumslateblue|darkslateblue)$/i;
+
+function hexToHsl(hex: string): { h: number; s: number; l: number } | null {
+  let h = hex.replace("#", "");
+  if (h.length === 3 || h.length === 4) h = h.slice(0, 3).split("").map((c) => c + c).join("");
+  if (h.length !== 6 && h.length !== 8) return null;
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return { h: 0, s: 0, l };
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  const hue =
+    max === r ? ((g - b) / d + (g < b ? 6 : 0)) * 60 : max === g ? ((b - r) / d + 2) * 60 : ((r - g) / d + 4) * 60;
+  return { h: hue, s, l };
+}
+
+function tredFor(color: string): string | null {
+  const c = color.trim();
+  if (VIOLET_NAMES.test(c)) {
+    return /^(lavender|thistle|plum)$/i.test(c) ? "#FBF3D6" : /^(purple|indigo|darkviolet|darkmagenta|darkslateblue|rebeccapurple)$/i.test(c) ? "#1A1A1A" : "#EAB308";
+  }
+  if (!c.startsWith("#")) return null;
+  const hsl = hexToHsl(c);
+  if (!hsl || hsl.s < 0.25 || hsl.h < 238 || hsl.h > 330) return null;
+  if (hsl.l < 0.38) return "#1A1A1A";
+  if (hsl.l > 0.82) return "#FBF3D6";
+  return "#EAB308";
+}
+
+export function enforceTredPalette(svg: string): string {
+  // Attributs fill/stroke/stop-color/color="…" et déclarations CSS inline.
+  return svg
+    .replace(
+      /\b(fill|stroke|stop-color|color|flood-color|lighting-color)\s*=\s*(["'])([^"']+)\2/gi,
+      (whole, attr: string, q: string, value: string) => {
+        const t = tredFor(value);
+        return t ? `${attr}=${q}${t}${q}` : whole;
+      },
+    )
+    .replace(
+      /\b(fill|stroke|stop-color|color)\s*:\s*(#[0-9a-f]{3,8}|[a-z]+)/gi,
+      (whole, prop: string, value: string) => {
+        const t = tredFor(value);
+        return t ? `${prop}:${t}` : whole;
+      },
+    );
 }

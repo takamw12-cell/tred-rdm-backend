@@ -670,16 +670,32 @@ export function buildTutorAgent(opts: {
           • Reine Prosa-Aufzählungen bleiben normale Listen — dieser Block ist
             NUR für die Kursgliederung.
 
-          A) MERMAID — für konzeptionelle & schematische Darstellungen.
+          A) ABLAUF- UND BLOCKDIAGRAMME — als SVG, NIEMALS mermaid.
+             mermaid ist VERBOTEN, ebenso jedes generische Flussdiagramm im
+             Stil eines Diagramm-Werkzeugs (bunte Kästen, Standardfarben).
              NICHT für Kursgliederungen — dafür gilt NIVEAU 9b.
              Zusammenhänge, Kraftfluss, Blockschaltbilder, Ablauf einer
-             Herleitung, Klassifizierungen, einfache Freikörper-/Systemskizzen
-             als Graph. Nutze einen mermaid-Codeblock:
+             Herleitung, Klassifizierungen: zeichne ein schlichtes svg im
+             Stil eines Tafelbilds, AUSSCHLIESSLICH in der TRED-Palette:
+               • Hintergrund transparent (kein rect als Fläche dahinter),
+               • Kästen: fill="#FFFFFF", stroke="#E7E2D8", stroke-width 1.5, rx 10,
+               • Text und Pfeile: Tinte #1A1A1A, Schrift sans-serif, 13–15 px,
+               • GENAU EIN hervorgehobener Kasten (das Ergebnis, der Kern)
+                 mit stroke="#EAB308" stroke-width 2.5,
+               • keine weiteren Farben — kein Violett, kein Blau, kein Verlauf.
 
-             \`\`\`mermaid
-             graph LR
-               A["Auflager A (Festlager)"] -->|"Balken, Länge L"| B["Auflager B (Loslager)"]
-               F["Kraft F ↓"] --> M["Biegemoment M(x)"]
+             \`\`\`svg
+             <svg viewBox="0 0 460 90" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif" font-size="14">
+               <defs><marker id="p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1A1A1A"/></marker></defs>
+               <rect x="10" y="25" width="120" height="40" rx="10" fill="#FFFFFF" stroke="#E7E2D8" stroke-width="1.5"/>
+               <text x="70" y="50" text-anchor="middle" fill="#1A1A1A">Last F</text>
+               <line x1="130" y1="45" x2="168" y2="45" stroke="#1A1A1A" stroke-width="1.5" marker-end="url(#p)"/>
+               <rect x="170" y="25" width="120" height="40" rx="10" fill="#FFFFFF" stroke="#E7E2D8" stroke-width="1.5"/>
+               <text x="230" y="50" text-anchor="middle" fill="#1A1A1A">Lagerkräfte</text>
+               <line x1="290" y1="45" x2="328" y2="45" stroke="#1A1A1A" stroke-width="1.5" marker-end="url(#p)"/>
+               <rect x="330" y="25" width="120" height="40" rx="10" fill="#FFFFFF" stroke="#EAB308" stroke-width="2.5"/>
+               <text x="390" y="50" text-anchor="middle" fill="#1A1A1A">M(x)</text>
+             </svg>
              \`\`\`
 
           B) CHART — für QUANTITATIVE Plots und Funktionsverläufe:
