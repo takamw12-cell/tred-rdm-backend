@@ -18,7 +18,12 @@ describe("fonds selon la filière", () => {
     ["Maschinenbau", "mechanical"],
     ["Elektrotechnik", "electrical"],
     ["Bauingenieurwesen", "civil"],
-    ["Wirtschaftsinformatik", "general"],
+    ["Wirtschaftsinformatik", "informatics"],
+    ["Informatik", "informatics"],
+    ["Informationstechnik", "electrical"],
+    ["Technische Physik", "physics"],
+    ["Mathematik", "physics"],
+    ["Betriebswirtschaft", "general"],
     ["", "general"],
   ] as const)("%s → %s", (program, category) => {
     expect(categoryForProgram(program)).toBe(category);
@@ -33,8 +38,16 @@ describe("fonds selon la filière", () => {
     expect(new Set(list).size).toBe(list.length);
   });
 
-  test("catégorie sans image dédiée → fond général", () => {
-    expect(backgroundsFor("electrical")).toEqual(GENERAL);
+  test("filière inconnue → fond général", () => {
+    expect(backgroundsFor(categoryForProgram("Betriebswirtschaft"))).toEqual(GENERAL);
+  });
+
+  test("chaque filière a au moins une image qui lui est propre en tête", () => {
+    for (const [cat, own] of Object.entries(CATEGORY_IMAGES)) {
+      if (cat === "general") continue;
+      expect(own.length).toBeGreaterThan(0);
+      expect(own[0]).not.toContain("/general/");
+    }
   });
 
   test("chaque image référencée existe dans public/", () => {

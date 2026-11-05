@@ -1,5 +1,5 @@
 /**
- * Fonds du dashboard selon la filière (V2).
+ * Fond de l'application selon la filière.
  *
  * Structure : public/backgrounds/<catégorie>/…  — une catégorie = un dossier.
  * Ajouter une image : la déposer dans le dossier, l'ajouter à CATEGORY_IMAGES,
@@ -17,22 +17,28 @@ export type BackgroundCategory =
   | "mechatronics"
   | "mechanical"
   | "electrical"
-  | "civil";
+  | "civil"
+  | "informatics"
+  | "physics";
 
 const G = (n: number) => `/backgrounds/general/bg-0${n}.webp`;
+const F = (folder: string, ns: number[]) =>
+  ns.map((n) => `/backgrounds/${folder}/${folder}-0${n}.webp`);
 export const GENERAL = [G(1), G(2), G(3), G(4), G(5), G(6), G(7), G(8)];
 
 /** Images propres à chaque catégorie. Vide = fond général uniquement. */
 export const CATEGORY_IMAGES: Record<BackgroundCategory, string[]> = {
   general: [],
   // La fusée d'abord : c'est la première image que voit un étudiant LRT.
-  aerospace: [2, 1, 3].map((n) => `/backgrounds/aerospace/aerospace-0${n}.webp`),
-  mechatronics: [1, 2, 3].map((n) => `/backgrounds/mechatronics/mechatronics-0${n}.webp`),
-  // Pas encore d'images dédiées : on privilégie les fonds généraux qui leur
-  // parlent (ossature acier ; ponts et béton), en attendant leurs dossiers.
-  mechanical: [G(4), G(2)],
-  electrical: [],
-  civil: [G(3), G(6), G(7), G(8), G(1), G(5)],
+  aerospace: F("aerospace", [2, 1, 3]),
+  mechatronics: F("mechatronics", [1, 2, 3]),
+  electrical: F("electrical", [1, 2, 3]), // pylônes, éclair
+  // Moteurs + l'ossature acier du fond général.
+  mechanical: [...F("mechanical", [1, 2]), G(4)],
+  // Façade + les ponts du fond général : le génie civil, c'est eux.
+  civil: [...F("civil", [1]), G(3), G(6), G(7), G(8)],
+  informatics: F("informatics", [1, 2, 3]), // code à l'écran
+  physics: F("physics", [1, 2, 3]), // nébuleuse, Voie lactée, tableau
 };
 
 /**
@@ -46,6 +52,9 @@ const RULES: [BackgroundCategory, RegExp][] = [
   ["electrical", /elektro|electr|informationstechnik|nachrichtentechnik/i],
   ["civil", /bauingenieur|bauwesen|\bbau\b|civil|architekt|génie civil/i],
   ["mechanical", /maschinenbau|mechanical|mécanique|mechanik|produktion/i],
+  // Après l'électrotechnique : « Informationstechnik » y reste.
+  ["informatics", /informatik|informatique|computer|software|data science/i],
+  ["physics", /physik|physics|physique|mathe|math/i],
 ];
 
 export function categoryForProgram(program: string | null | undefined): BackgroundCategory {

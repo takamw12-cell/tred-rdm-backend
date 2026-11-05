@@ -20,6 +20,18 @@ libre, attribution non obligatoire. Téléchargées le 2026-11-05, recadrées en
 | aerospace/aerospace-03.webp | Aile d'avion au-dessus des nuages — Laura Chouette | https://unsplash.com/photos/6yV-9vnU12g |
 | mechatronics/mechatronics-02.webp | Engrenages en acier (téléphérique du Pain de Sucre) | https://unsplash.com/photos/hsPFuudRg5I |
 | mechatronics/mechatronics-03.webp | Carte mère en macro — Magnus Engø | https://unsplash.com/photos/mbXEkW5ZyBQ |
+| electrical/electrical-01.webp | Pylône haute tension sur ciel bleu — Phil Hearing | https://unsplash.com/photos/ZbUHE8M33hs |
+| electrical/electrical-02.webp | Ligne haute tension sur ciel bleu — Colin Davis | https://unsplash.com/photos/DenjiRzIeUo |
+| electrical/electrical-03.webp | Éclair sur Taipei 101 — Timo Volz | https://unsplash.com/photos/43lD7E4f8fk |
+| mechanical/mechanical-01.webp | Moteur, filtre à air chromé | https://unsplash.com/photos/d9PeiNr58FM |
+| mechanical/mechanical-02.webp | Moteur et ses composants — blayne spires | https://unsplash.com/photos/D7gtK77zUzM |
+| civil/civil-01.webp | Façade géométrique, fenêtres bleues (Tirana) | https://unsplash.com/photos/w-nBFVS928I |
+| informatics/informatics-01.webp | Écran de code, éditeur sombre — Harshit Katiyar | https://unsplash.com/photos/5sLNGV2EFRM |
+| informatics/informatics-02.webp | Code coloré sur écran sombre — Mitchell Luo | https://unsplash.com/photos/FWoq_ldWlNQ |
+| informatics/informatics-03.webp | Extraits de code colorés — Jakub Żerdzicki | https://unsplash.com/photos/2DkNX2wVVY4 |
+| physics/physics-01.webp | Nébuleuse (NASA) | https://unsplash.com/photos/rTZW4f02zY8 |
+| physics/physics-02.webp | Voie lactée dans un ciel nocturne | https://unsplash.com/photos/oQR1B87HsNs |
+| physics/physics-03.webp | Équations au tableau — Vitaly Gariev | https://unsplash.com/photos/4dXO2xAzRQk |
 
 Une catégorie = un dossier. Le choix selon la filière est dans
 `src/web/lib/background-sets.ts`.
