@@ -489,6 +489,82 @@ html:lang(ar) body { line-height: 1.7; }
     inset 0 1px 0 rgb(255 255 255 / 0.85);
 }
 
+/* ── Tafel : les trois fonds (stores/board-theme.ts) ────────────────────
+   Chaque thème redéfinit les mêmes variables ; tout ce qui est écrit au
+   tableau (titres, feuilles, KaTeX via currentColor, tampon, coches) les
+   lit. Les schémas (SVG, graphiques) sont inversés sur fond sombre : un
+   trait noir devient blanc, les couleurs gardent leur teinte (hue-rotate),
+   et le fond blanc du schéma disparaît (mix-blend-mode: screen). */
+[data-slot="tafel-glass"][data-board-theme] {
+  color: var(--board-ink);
+  background: var(--board-surface);
+  box-shadow: var(--board-inset);
+}
+[data-board-theme="white"] {
+  --board-surface: linear-gradient(160deg, #ffffff 0%, #f6f8fb 45%, #eaeff5 100%);
+  --board-inset: inset 0 3px 14px rgb(15 23 42 / 0.22), inset 0 0 0 1px rgb(255 255 255 / 0.9), inset 0 -2px 6px rgb(15 23 42 / 0.08);
+  --board-ink: #1b2a4a;
+  --board-muted: #64748b;
+  --board-accent: #eab308;
+  --board-stamp: #1d4ed8;
+  --board-check: #16a34a;
+  --board-pill: rgb(15 23 42 / 0.06);
+}
+[data-board-theme="green"] {
+  /* Ardoise vert forêt + voile de craie mal effacée. */
+  --board-surface:
+    radial-gradient(ellipse 60% 18% at 30% 82%, rgb(255 255 255 / 0.06), transparent),
+    radial-gradient(ellipse 40% 12% at 75% 25%, rgb(255 255 255 / 0.05), transparent),
+    linear-gradient(160deg, #35543f 0%, #2e4a3a 50%, #263f31 100%);
+  --board-inset: inset 0 3px 18px rgb(0 0 0 / 0.45), inset 0 0 0 1px rgb(255 255 255 / 0.06);
+  --board-ink: #f5f1e6;
+  --board-muted: #c3d1c6;
+  --board-accent: #f4d35e;
+  --board-stamp: #fde68a;
+  --board-check: #bbf7d0;
+  --board-pill: rgb(255 255 255 / 0.1);
+}
+[data-board-theme="dark"] {
+  --board-surface: linear-gradient(160deg, #1b2740 0%, #0f172a 55%, #0b1222 100%);
+  --board-inset: inset 0 3px 18px rgb(0 0 0 / 0.55), inset 0 0 0 1px rgb(255 255 255 / 0.08);
+  --board-ink: #f8fafc;
+  --board-muted: #94a3b8;
+  --board-accent: #facc15;
+  --board-stamp: #facc15;
+  --board-check: #4ade80;
+  --board-pill: rgb(255 255 255 / 0.08);
+}
+[data-board-theme="green"] [data-slot="board-glare"] { opacity: 0.12; }
+[data-board-theme="dark"] [data-slot="board-glare"] { opacity: 0.25; }
+
+/* Sur l'ardoise et le verre sombre, la feuille de papier devient une zone
+   écrite directement au tableau, cernée d'un trait de craie. */
+:is([data-board-theme="green"], [data-board-theme="dark"]) [data-slot="tafel-note"] {
+  background: rgb(255 255 255 / 0.04);
+  box-shadow: none;
+  outline: 1.5px dashed rgb(255 255 255 / 0.28);
+  outline-offset: -1px;
+}
+:is([data-board-theme="green"], [data-board-theme="dark"]) [data-slot="tafel-note-lines"] { display: none; }
+[data-board-theme="green"] [data-slot="tafel-note"] .font-hand { letter-spacing: 0.01em; }
+
+/* Le texte du Markdown (gras, code, tableaux, liens) suit l'encre. */
+:is([data-board-theme="green"], [data-board-theme="dark"]) [data-slot="tafel-board"] :is(strong, a) { color: var(--board-accent); }
+:is([data-board-theme="green"], [data-board-theme="dark"]) [data-slot="tafel-board"] :is(.text-muted-foreground, .text-foreground) { color: var(--board-muted); }
+:is([data-board-theme="green"], [data-board-theme="dark"]) [data-slot="tafel-board"] code { background: rgb(255 255 255 / 0.1); color: var(--board-ink); }
+:is([data-board-theme="green"], [data-board-theme="dark"]) [data-slot="tafel-board"] :is(th, td) { border-color: rgb(255 255 255 / 0.25); }
+:is([data-board-theme="green"], [data-board-theme="dark"]) [data-slot="tafel-board"] th { background: rgb(255 255 255 / 0.08); }
+
+/* Schémas : transparents, et leurs traits inversés pour rester lisibles. */
+:is([data-board-theme="green"], [data-board-theme="dark"]) [data-slot="diagram"] {
+  background: transparent;
+  border-color: rgb(255 255 255 / 0.22);
+}
+:is([data-board-theme="green"], [data-board-theme="dark"]) [data-slot="diagram"] :is(svg, canvas, img):not(.lucide) {
+  filter: invert(1) hue-rotate(180deg);
+  mix-blend-mode: screen;
+}
+
 /* ── Salle sombre (Dashboard) ─────────────────────────────────────────
    Barre du haut en verre sombre, pied de page en clair sur sombre. Les
    boutons et menus gardent leurs propres couleurs (pastilles claires). */
@@ -504,6 +580,13 @@ html:lang(ar) body { line-height: 1.7; }
 [data-room="dark"] [data-slot="topbar"] kbd {
   color: rgb(255 255 255 / 0.75);
   border-color: rgb(255 255 255 / 0.25);
+}
+/* Boutons-icônes de la barre (menu ☰, déplier le menu) : blancs sur sombre. */
+[data-room="dark"] [data-slot="topbar"] .topbar-icon {
+  color: #fff;
+}
+[data-room="dark"] [data-slot="topbar"] .topbar-icon:hover {
+  background-color: rgb(255 255 255 / 0.1);
 }
 /* Le logo-manette de la barre suit l'encre du thème : en salle sombre, blanc. */
 [data-room="dark"] [data-slot="topbar"] svg.text-foreground {

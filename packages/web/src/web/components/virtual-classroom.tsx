@@ -196,7 +196,7 @@ function TafelPlaceholderContent() {
             }
           />
         </div>
-        <p className="font-hand mt-2 text-xl text-[#475569]">
+        <p className="font-hand mt-2 text-xl text-[color:var(--board-muted)]">
           R₂ ∥ R₃ — zwei gleiche Widerstände parallel ergeben die Hälfte.
         </p>
       </PaperNote>

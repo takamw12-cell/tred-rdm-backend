@@ -1,4 +1,5 @@
 import { Check, Maximize2, Undo2 } from "lucide-react";
+import { BOARD_THEMES, useBoardTheme, type BoardTheme } from "@/stores/board-theme";
 import { useState, type ReactNode } from "react";
 import { ProfessorPortrait } from "@/components/professor-portrait";
 import type { Professor } from "@/lib/professors";
@@ -15,8 +16,11 @@ import { cn } from "@/lib/utils";
  *   <ProfessorHalo> le portrait du professeur, halo jaune et ombre portée
  */
 
-/** Encre du feutre sur le verre. */
-export const INK = "#1B2A4A";
+/**
+ * Encre du feutre sur le tableau. Variable CSS : elle suit le thème choisi
+ * (bleu nuit sur « Weiß », craie blanche sur « Grün », blanc sur « Dunkel »).
+ */
+export const INK = "var(--board-ink, #1B2A4A)";
 
 /** Fond « salle sombre » : bleu nuit éclairé par le haut. */
 export const ROOM_BG =
@@ -47,6 +51,8 @@ export function GlassBoard({
   className?: string;
   "aria-label"?: string;
 }) {
+  const theme = useBoardTheme((s) => s.theme);
+  const setTheme = useBoardTheme((s) => s.setTheme);
   return (
     <section
       aria-label={ariaLabel}
@@ -65,11 +71,13 @@ export function GlassBoard({
       {/* Le verre */}
       <div
         data-slot="tafel-glass"
-        className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[14px] bg-[linear-gradient(160deg,#FFFFFF_0%,#F6F8FB_45%,#EAEFF5_100%)] text-[#0F172A] shadow-[inset_0_3px_14px_rgb(15_23_42/0.22),inset_0_0_0_1px_rgb(255_255_255/0.9),inset_0_-2px_6px_rgb(15_23_42/0.08)]"
+        data-board-theme={theme}
+        className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[14px] transition-[background] duration-500"
       >
         {/* Reflet diagonal : on sait tout de suite que c'est du verre */}
         <div
           aria-hidden
+          data-slot="board-glare"
           className="pointer-events-none absolute -top-1/3 -left-1/4 h-[160%] w-1/3 rotate-[18deg] bg-[linear-gradient(90deg,transparent,rgb(255_255_255/0.55),transparent)]"
         />
         {/* Trace de feutre mal effacée, très légère */}
@@ -82,7 +90,7 @@ export function GlassBoard({
         <header className="relative flex shrink-0 items-start justify-between gap-4 px-6 pt-6 sm:px-10 sm:pt-8">
           <div className="min-w-0">
             {eyebrow && (
-              <p className="truncate font-mono text-[11px] tracking-[0.16em] text-[#64748B] uppercase">
+              <p className="truncate font-mono text-[11px] tracking-[0.16em] text-[color:var(--board-muted)] uppercase">
                 {eyebrow}
               </p>
             )}
@@ -106,7 +114,7 @@ export function GlassBoard({
         </div>
       </div>
 
-      <ChalkLedge interactive={interactiveLedge} />
+      <ChalkLedge interactive={interactiveLedge} theme={theme} onTheme={setTheme} />
     </section>
   );
 }
@@ -114,7 +122,7 @@ export function GlassBoard({
 /** Pastille « le professeur écrit… » posée sur le verre. */
 export function BoardStatus({ children }: { children: ReactNode }) {
   return (
-    <span className="flex shrink-0 items-center gap-2 rounded-full bg-[#0F172A]/[0.06] px-3 py-1.5 text-xs font-medium text-[#334155] ring-1 ring-[#0F172A]/10 backdrop-blur">
+    <span className="flex shrink-0 items-center gap-2 rounded-full bg-[color:var(--board-pill)] px-3 py-1.5 text-xs font-medium text-[color:var(--board-muted)] ring-1 ring-[color:var(--board-pill)] backdrop-blur">
       <span className="size-2 rounded-full bg-[#EAB308] motion-safe:animate-pulse" />
       {children}
     </span>
@@ -128,7 +136,7 @@ export function HandUnderline() {
       <path
         d="M3 9 C 60 3, 120 12, 180 6 S 280 4, 316 8"
         fill="none"
-        stroke="#EAB308"
+        stroke="var(--board-accent, #EAB308)"
         strokeWidth="4"
         strokeLinecap="round"
         opacity="0.85"
@@ -148,7 +156,15 @@ const MARKERS = [
  * brosse — plutôt qu'une barre de boutons flottante. Hors maquette, il est
  * purement décoratif : on n'affiche pas de bouton qui ne fait rien.
  */
-function ChalkLedge({ interactive }: { interactive: boolean }) {
+function ChalkLedge({
+  interactive,
+  theme,
+  onTheme,
+}: {
+  interactive: boolean;
+  theme: BoardTheme;
+  onTheme: (t: BoardTheme) => void;
+}) {
   const [active, setActive] = useState(0);
 
   const marker = (m: (typeof MARKERS)[number], i: number) => {
@@ -192,7 +208,6 @@ function ChalkLedge({ interactive }: { interactive: boolean }) {
   return (
     <div
       data-slot="tafel-ledge"
-      aria-hidden={!interactive}
       className="relative mx-6 mt-2 -mb-[10px] flex h-12 shrink-0 items-center gap-4 rounded-b-xl bg-[linear-gradient(180deg,#B9C0C8_0%,#8E97A2_40%,#6B7480_100%)] px-5 shadow-[0_14px_24px_-10px_rgb(0_0_0/0.8),inset_0_1px_0_rgb(255_255_255/0.6)]"
     >
       {/* Gouttière où reposent les feutres */}
@@ -215,7 +230,7 @@ function ChalkLedge({ interactive }: { interactive: boolean }) {
           </button>
         </fieldset>
       ) : (
-        <div className="relative flex items-end gap-3">
+        <div aria-hidden className="relative flex items-end gap-3">
           {MARKERS.map(marker)}
           <span className="hidden h-5 w-16 items-end overflow-hidden rounded-md bg-[#1F2937] shadow-[0_2px_4px_rgb(0_0_0/0.5)] sm:flex">
             <span className="h-1.5 w-full bg-[#9CA3AF]" />
@@ -223,8 +238,10 @@ function ChalkLedge({ interactive }: { interactive: boolean }) {
         </div>
       )}
 
+      <ThemePicker theme={theme} onTheme={onTheme} />
+
       {interactive && (
-        <div className="relative ml-auto flex items-center gap-1">
+        <div className="relative flex items-center gap-1">
           {[
             { icon: Undo2, label: "Annuler" },
             { icon: Maximize2, label: "Plein écran" },
@@ -264,14 +281,16 @@ export function StepChecklist({
           key={`${i}-${s.label}`}
           className={cn(
             "flex items-center gap-1.5",
-            s.done ? "text-[#64748B] line-through decoration-[#EAB308]/70 decoration-2" : "font-bold",
+            s.done
+              ? "text-[color:var(--board-muted)] line-through decoration-[color:var(--board-accent)] decoration-2"
+              : "font-bold",
           )}
           style={s.done ? undefined : { color: INK }}
         >
           {s.done ? (
-            <Check className="size-5 text-[#16A34A]" strokeWidth={3} />
+            <Check className="size-5 text-[color:var(--board-check)]" strokeWidth={3} />
           ) : (
-            <span className="text-[#EAB308]">➜</span>
+            <span className="text-[color:var(--board-accent)]">➜</span>
           )}
           {i + 1}. {s.label}
         </li>
@@ -319,6 +338,7 @@ export function PaperNote({
       {/* Lignes du papier */}
       <div
         aria-hidden
+        data-slot="tafel-note-lines"
         className="pointer-events-none absolute inset-x-6 top-16 bottom-6 opacity-50 [background-image:repeating-linear-gradient(180deg,transparent_0px,transparent_31px,#DCE6F2_31px,#DCE6F2_32px)] sm:inset-x-8"
       />
 
@@ -345,7 +365,7 @@ export function SolverStamp({ label = "Berechnet", sublabel = "mit dem Löser" }
   return (
     <span
       data-slot="solver-stamp"
-      className="inline-flex shrink-0 rotate-[-6deg] flex-col items-center rounded-md border-[3px] border-double border-[#1D4ED8]/80 px-3 py-1 font-mono text-[10px] leading-tight font-bold tracking-[0.18em] text-[#1D4ED8]/80 uppercase [mask-image:radial-gradient(circle_at_30%_40%,#000_55%,rgb(0_0_0/0.75)_75%,#000_100%)]"
+      className="inline-flex shrink-0 rotate-[-6deg] flex-col items-center rounded-md border-[3px] border-double border-[color:var(--board-stamp)] px-3 py-1 font-mono text-[10px] leading-tight font-bold tracking-[0.18em] text-[color:var(--board-stamp)] uppercase opacity-85 [mask-image:radial-gradient(circle_at_30%_40%,#000_55%,rgb(0_0_0/0.75)_75%,#000_100%)]"
     >
       <span className="flex items-center gap-1">
         <Check className="size-3" strokeWidth={3} /> {label}
@@ -446,5 +466,42 @@ export function ProfessorStrip({
       </div>
       {action}
     </div>
+  );
+}
+
+const THEME_SWATCH: Record<BoardTheme, { label: string; bg: string; ring: string }> = {
+  white: { label: "Weiß", bg: "linear-gradient(135deg,#FFFFFF,#E2E8F0)", ring: "#94A3B8" },
+  green: { label: "Grün", bg: "linear-gradient(135deg,#3B5E4A,#2E4A3A)", ring: "#1F3328" },
+  dark: { label: "Dunkel", bg: "linear-gradient(135deg,#1E293B,#0F172A)", ring: "#020617" },
+};
+
+/**
+ * Le choix du fond, posé sur le rebord comme trois petits aimants de
+ * couleur. Toujours actif (maquette ET tuteur) : c'est un vrai réglage.
+ */
+function ThemePicker({ theme, onTheme }: { theme: BoardTheme; onTheme: (t: BoardTheme) => void }) {
+  return (
+    <fieldset className="relative ml-auto flex items-center gap-1.5 border-0 p-0">
+      <legend className="sr-only">Tafel-Hintergrund</legend>
+      {BOARD_THEMES.map((t) => {
+        const sw = THEME_SWATCH[t];
+        const active = theme === t;
+        return (
+          <button
+            key={t}
+            type="button"
+            title={sw.label}
+            aria-label={`Tafel: ${sw.label}`}
+            aria-pressed={active}
+            onClick={() => onTheme(t)}
+            className={cn(
+              "size-6 rounded-full shadow-[0_2px_4px_rgb(0_0_0/0.45),inset_0_1px_0_rgb(255_255_255/0.4)] transition-transform",
+              active ? "scale-110 ring-2 ring-[#EAB308] ring-offset-1 ring-offset-[#8E97A2]" : "hover:scale-105",
+            )}
+            style={{ background: sw.bg, boxShadow: active ? undefined : `inset 0 0 0 1px ${sw.ring}` }}
+          />
+        );
+      })}
+    </fieldset>
   );
 }

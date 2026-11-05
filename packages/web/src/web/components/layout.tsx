@@ -164,7 +164,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden"
+            className="topbar-icon lg:hidden"
             data-tour="nav"
             aria-label={t("nav.menu")}
             onClick={() => setMobileOpen(true)}
@@ -178,7 +178,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <Button
               variant="ghost"
               size="icon"
-              className="hidden lg:inline-flex"
+              className="topbar-icon hidden lg:inline-flex"
               aria-label={t("nav.showMenu")}
               title={t("nav.showMenu")}
               onClick={() => setNavOpen(true)}

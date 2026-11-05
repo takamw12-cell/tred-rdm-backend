@@ -248,6 +248,7 @@ export function SvgDiagramFrame({
   return (
     <>
       <div
+        data-slot="diagram"
         className={cn(
           "border-border group relative my-3 flex justify-center overflow-x-auto rounded-xl border p-4",
           background === "white" ? "bg-white" : "bg-card",
@@ -323,6 +324,7 @@ export function CanvasDiagramFrame({
     <>
       <div
         ref={ref}
+        data-slot="diagram"
         className={cn(
           "border-border bg-card group relative my-3 rounded-xl border p-3",
           className,
