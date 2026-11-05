@@ -10,6 +10,15 @@
  *
  * Module pur (aucun React, aucun DOM) : testé dans tests/background-sets.test.ts.
  */
+import MANIFEST from "../data/background-manifest.json";
+
+/**
+ * Images réellement présentes (paysage + variante portrait), écrites par
+ * scripts/generate-backgrounds.mjs. Une image PRÉVUE mais pas encore générée
+ * est simplement ignorée : jamais de fond vide.
+ */
+const PRESENT = new Set<string>(MANIFEST as string[]);
+const present = (list: string[]) => list.filter((src) => PRESENT.has(src));
 
 export type BackgroundCategory =
   | "general"
@@ -35,11 +44,11 @@ const F = (folder: string, ns: number[]) =>
 export const GENERAL = [G(1), G(2), G(3), G(4), G(5), G(6), G(7), G(8)];
 
 /**
- * Images propres à chaque catégorie. Vide = fond général uniquement.
- * Photos Unsplash (CREDITS.md) et, depuis nov. 2026, images générées
- * (Replicate, Flux 1.1 Pro Ultra) pour les filières qui en manquaient.
+ * Images propres à chaque catégorie (prévues). Photos Unsplash (CREDITS.md)
+ * et, depuis nov. 2026, images générées (Replicate, Flux 1.1 Pro) pour les
+ * filières qui en manquaient. Seules celles du manifeste sont servies.
  */
-export const CATEGORY_IMAGES: Record<BackgroundCategory, string[]> = {
+const PLANNED: Record<BackgroundCategory, string[]> = {
   general: [],
   // La fusée d'abord : c'est la première image que voit un étudiant LRT.
   aerospace: F("aerospace", [2, 1, 3]),
@@ -59,6 +68,28 @@ export const CATEGORY_IMAGES: Record<BackgroundCategory, string[]> = {
   mathematics: F("mathematics", [1, 2, 3, 4]),
   physics: F("physics", [1, 2, 3]), // nébuleuse, Voie lactée, tableau
 };
+
+/**
+ * Images VOISINES empruntées tant qu'une filière n'a pas encore ses trois
+ * images : un roboticien voit des robots, pas des ponts.
+ */
+const BORROWED: Partial<Record<BackgroundCategory, string[]>> = {
+  robotics: F("mechatronics", [1, 2, 3]),
+  datascience: F("informatics", [1, 2, 3]),
+  mathematics: [...F("physics", [3, 1, 2])],
+  architecture: [...F("civil", [1]), G(5), G(1), G(4)],
+  environmental: F("electrical", [1, 2]),
+  biomedical: F("mechatronics", [1, 3]),
+  mechanical: F("mechatronics", [2]),
+};
+
+export const CATEGORY_IMAGES: Record<BackgroundCategory, string[]> = Object.fromEntries(
+  (Object.keys(PLANNED) as BackgroundCategory[]).map((c) => {
+    const own = present(PLANNED[c]);
+    const list = own.length >= 3 ? own : [...new Set([...own, ...present(BORROWED[c] ?? [])])];
+    return [c, list];
+  }),
+) as Record<BackgroundCategory, string[]>;
 
 /**
  * Reconnaît la filière à partir du texte libre saisi par l'étudiant

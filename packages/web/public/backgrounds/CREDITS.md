@@ -35,3 +35,28 @@ libre, attribution non obligatoire. Téléchargées le 2026-11-05, recadrées en
 
 Une catégorie = un dossier. Le choix selon la filière est dans
 `src/web/lib/background-sets.ts`.
+
+## Images générées (5 nov. 2026)
+
+Générées avec Replicate — modèle **Flux 1.1 Pro** (Black Forest Labs), sortie
+utilisable commercialement selon les conditions de Replicate / BFL. Prompts
+neutres (aucune marque, aucun personnage, aucune personne), style commun :
+« photographie réaliste, éclairage cinématographique, étalonnage bleu nuit ».
+Carré 1440×1440 recadré au centre en **1920×1080** (`-0N.webp`, desktop) et
+**1080×1920** (`-0N-p.webp`, mobile portrait). Script : `scripts/generate-backgrounds.mjs`.
+
+| Dossier | Sujets |
+|---|---|
+| industrial/ (Wirtschaftsingenieurwesen) | entrepôt logistique automatisé, usine intelligente, port à conteneurs de nuit, salle de contrôle |
+| chemical/ (Chemieingenieurwesen / Verfahrenstechnik) | colonnes de distillation, bioréacteurs inox, raffinerie de nuit, verrerie de laboratoire |
+| environmental/ (Umwelttechnik) | éoliennes au crépuscule, ferme solaire, station d'épuration, barrage hydroélectrique |
+| biomedical/ (Biomedizinische Technik) | IRM, robot chirurgical, prothèse bionique, microscope et imagerie cellulaire |
+| robotics/ (Robotik / Autonome Systeme) | bras de soudage, robot quadrupède, cobots, essaim de drones |
+| datascience/ (Data Science / KI) | data center, réseau de neurones abstrait, cluster GPU, mur de visualisations |
+| mathematics/ (Mathematik/Physik) | tableau d'équations, fractale 3D, instruments de dessin, sculpture de surface minimale |
+| architecture/ (Architektur) | béton et verre à l'heure bleue, maquette urbaine, escalier en spirale, façade géométrique |
+| civil/ civil-02 → 04 | pont à haubans, chantier et grues, tunnelier |
+| mechanical/ mechanical-03, 04 | fraiseuse CNC, engrenages de réducteur |
+
+Les photos Unsplash existantes ont aussi reçu une variante portrait `-p.webp`
+(recadrage centré, même image, plus légère pour le mobile).
