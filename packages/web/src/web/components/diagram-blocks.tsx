@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { sanitizeSvg } from "@/lib/svg-sanitize";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -163,37 +164,8 @@ export function MermaidDiagram({ code }: { code: string }) {
 // mermaid/chart can't draw.
 //
 // SVG is injected via dangerouslySetInnerHTML (inside SvgDiagramFrame), so we
-// sanitize it first: strip <script> tags, inline event-handler attributes
-// (on*), and any external resource references (href/xlink:href) that could
-// leak requests or execute code.
-function sanitizeSvg(raw: string): string {
-  let svg = raw.trim();
-
-  // Keep only the <svg>…</svg> region if the model wrapped it in prose.
-  const start = svg.toLowerCase().indexOf("<svg");
-  const end = svg.toLowerCase().lastIndexOf("</svg>");
-  if (start >= 0 && end > start) svg = svg.slice(start, end + "</svg>".length);
-
-  // Drop <script>…</script> blocks entirely.
-  svg = svg.replace(/<script[\s\S]*?<\/script>/gi, "");
-  // Drop <foreignObject> (can embed arbitrary HTML/scripts).
-  svg = svg.replace(/<foreignObject[\s\S]*?<\/foreignObject>/gi, "");
-  // Strip inline event handlers: onload="…", onclick='…', onmouseover=… .
-  svg = svg.replace(/\son[a-z]+\s*=\s*"[^"]*"/gi, "");
-  svg = svg.replace(/\son[a-z]+\s*=\s*'[^']*'/gi, "");
-  svg = svg.replace(/\son[a-z]+\s*=\s*[^\s>]+/gi, "");
-  // Neutralise external / javascript references in href and xlink:href.
-  svg = svg.replace(
-    /\s(?:xlink:)?href\s*=\s*"(?!#)[^"]*"/gi,
-    "",
-  );
-  svg = svg.replace(
-    /\s(?:xlink:)?href\s*=\s*'(?!#)[^']*'/gi,
-    "",
-  );
-
-  return svg.trim();
-}
+// sanitize it first — see lib/svg-sanitize.ts (scripts, on*, external hrefs,
+// and SMIL animations restricted to presentation attributes).
 
 export function SvgBlock({ code }: { code: string }) {
   const svg = sanitizeSvg(code);

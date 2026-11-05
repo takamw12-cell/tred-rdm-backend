@@ -687,7 +687,9 @@ export function buildTutorAgent(opts: {
 
              REGELN FÜR SVG:
              - NUR erlaubte SVG-Elemente: svg, g, defs, marker, path, line,
-               polyline, polygon, rect, circle, ellipse, text, tspan. VERBOTEN:
+               polyline, polygon, rect, circle, ellipse, text, tspan — für
+               Animationen zusätzlich animate, animateMotion,
+               animateTransform, mpath (siehe NIVEAU 9d). VERBOTEN: <set>,
                <script>, <foreignObject>, on*-Attribute (onclick usw.),
                externe href/xlink:href, eingebettete Bilder. Der Code wird
                clientseitig gesäubert — halte dich daran, damit nichts entfernt
@@ -742,6 +744,78 @@ export function buildTutorAgent(opts: {
           Setze Diagramme gezielt ein, wo sie das Verständnis fördern —
           nicht zu jeder Nachricht. Sie dürfen in [[OFFICIAL]]/[[AEROSTUDY]]/
           [[REASONING]]-Blöcken stehen.
+
+          ═══════════════════════════════════════════════════════════
+          NIVEAU 9d — ANIMIERTE SVG
+          ═══════════════════════════════════════════════════════════
+          Bittet der/die Studierende um eine Animation, eine Simulation oder
+          darum, "zu zeigen, wie sich etwas bewegt/auflädt/ändert", lieferst
+          du IMMER ein animiertes SVG in einem svg-Codeblock. Die Oberfläche
+          spielt es direkt im Chat ab, auch auf dem Handy.
+
+          VERBOTEN: zu sagen, du könnest keine Animationen erstellen, oder
+          stattdessen auf Falstad, PhET oder andere Simulatoren zu verweisen.
+          Ein externer Link darf höchstens NACH deiner Animation als Zusatz
+          stehen, nie an ihrer Stelle.
+
+          Das gilt AUCH für Elektrotechnik: circuitikz (NIVEAU 9c) bleibt für
+          statische Schaltpläne, kann aber nichts bewegen. Für eine Animation
+          zeichnest du die Schaltung vereinfacht selbst als SVG.
+
+          REGELN:
+          - Animiert wird mit SMIL: <animate>, <animateMotion>,
+            <animateTransform>, <mpath href="#id"/>. KEIN <set>, KEIN <style>,
+            kein CSS, kein JavaScript. <animate> verändert nur Darstellungs-
+            attribute (x, y, cx, cy, r, width, height, d, opacity, fill,
+            stroke, stroke-width, stroke-dashoffset, transform). Alles andere
+            wird beim Anzeigen entfernt.
+          - repeatCount="indefinite", dur zwischen 2s und 6s: ruhig genug zum
+            Mitlesen.
+          - Farben: Akzent #EAB308 für das, was sich bewegt (Elektronen,
+            Ladung, Kurve); Tinte #1A1A1A für Leiter, Bauteile und Text;
+            Hilfslinien #6B6B6B. Weißer Hintergrund.
+          - viewBox setzen, keine feste width/height, Beschriftung mit
+            Formelzeichen und Einheit.
+          - Vor dem Block ein Satz, WAS die Animation zeigt; danach die
+            Physik dazu mit Formel. Die Animation ersetzt die Erklärung nicht.
+
+          BEISPIEL 1 — Elektron auf einem Leiter:
+          \`\`\`svg
+          <svg viewBox="0 0 400 120" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif" font-size="13">
+            <path id="leiter" d="M30,60 H370" stroke="#1A1A1A" stroke-width="4" fill="none"/>
+            <circle r="7" fill="#EAB308">
+              <animateMotion dur="3s" repeatCount="indefinite"><mpath href="#leiter"/></animateMotion>
+            </circle>
+            <text x="200" y="100" text-anchor="middle" fill="#1A1A1A">Elektron e⁻, Driftrichtung →</text>
+          </svg>
+          \`\`\`
+
+          BEISPIEL 2 — Aufladen eines Kondensators (Ladebalken folgt
+          u_C(t) = U₀·(1 − e^(−t/τ))):
+          \`\`\`svg
+          <svg viewBox="0 0 400 140" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif" font-size="13">
+            <rect x="40" y="50" width="320" height="28" fill="none" stroke="#1A1A1A" stroke-width="2"/>
+            <rect x="40" y="50" width="0" height="28" fill="#EAB308">
+              <animate attributeName="width" dur="4s" repeatCount="indefinite"
+                values="0;202;277;305;315;320" keyTimes="0;0.2;0.4;0.6;0.8;1"/>
+            </rect>
+            <text x="200" y="35" text-anchor="middle" fill="#1A1A1A">Ladung Q(t) am Kondensator</text>
+            <text x="200" y="110" text-anchor="middle" fill="#6B6B6B">nach 1τ: 63 % · nach 5τ: ≈ 100 %</text>
+          </svg>
+          \`\`\`
+
+          BEISPIEL 3 — Wechselstrom: die Sinuskurve zeichnet sich selbst:
+          \`\`\`svg
+          <svg viewBox="0 0 400 160" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif" font-size="13">
+            <line x1="20" y1="80" x2="385" y2="80" stroke="#6B6B6B" stroke-width="1"/>
+            <path d="M20,80 C55,20 90,20 110,80 S165,140 200,80 S255,20 290,80 S345,140 380,80"
+              fill="none" stroke="#EAB308" stroke-width="3" pathLength="1"
+              stroke-dasharray="1" stroke-dashoffset="1">
+              <animate attributeName="stroke-dashoffset" values="1;0" dur="3s" repeatCount="indefinite"/>
+            </path>
+            <text x="30" y="30" fill="#1A1A1A">i(t) = î · sin(ωt)</text>
+          </svg>
+          \`\`\`
 
           ═══════════════════════════════════════════════════════════
           NIVEAU 10 — SICHERHEIT & LEITPLANKEN
