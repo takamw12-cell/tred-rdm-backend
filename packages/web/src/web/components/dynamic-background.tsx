@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useUserStore } from "@/stores/user";
-import { backgroundsFor, categoryForProgram } from "@/lib/background-sets";
+import { backgroundsFor, categoryForProgram, portraitOf } from "@/lib/background-sets";
 
 /**
  * Fond photographique tournant, façon « Windows Spotlight ».
@@ -50,7 +50,7 @@ function readDebugSeconds(): number | null {
  * `calm`  : pages de lecture (chat, exercices…) — voile plus couvrant ; les
  *           cartes en verre assurent le contraste du texte.
  */
-const VEILS = {
+export const VEILS = {
   // Dashboard : l'amphithéâtre sombre du Hörsaal (validé le 5 nov. 2026).
   // La photo de la filière reste visible, assombrie ; les cartes en verre
   // ressortent comme des écrans éclairés. Le texte posé hors carte est blanc.
@@ -79,10 +79,26 @@ export function DynamicBackground({ variant = "calm" }: { variant?: keyof typeof
   const currentRef = useRef(current);
   currentRef.current = current;
 
-  // La filière change (réglages, onboarding) : on bascule sans attendre.
+  // La filière change (réglages, onboarding) : fondu IMMÉDIAT vers sa
+  // première image — même si l'image actuelle figure aussi dans la nouvelle
+  // liste — et le minuteur repart de zéro (dépendance `category` plus bas).
   useEffect(() => {
-    if (!images.includes(current)) setCurrent(images[0]);
-  }, [images, current]);
+    const first = imagesRef.current[0];
+    if (currentRef.current === first) return;
+    const run = { cancelled: false, timer: undefined as ReturnType<typeof setTimeout> | undefined };
+    void preload(first).then(() => {
+      if (run.cancelled) return;
+      setIncoming(first);
+      run.timer = setTimeout(() => {
+        setCurrent(first);
+        setIncoming(null);
+      }, FADE_MS);
+    });
+    return () => {
+      run.cancelled = true;
+      if (run.timer) clearTimeout(run.timer);
+    };
+  }, [category]);
 
   useEffect(() => {
     let fadeTimer: ReturnType<typeof setTimeout> | undefined;
@@ -92,12 +108,7 @@ export function DynamicBackground({ variant = "calm" }: { variant?: keyof typeof
       const list = imagesRef.current;
       const next = list[(list.indexOf(currentRef.current) + 1) % list.length];
       // Préchargement : le fondu ne démarre qu'une fois l'image décodée.
-      const img = new Image();
-      img.src = next;
-      img
-        .decode()
-        .catch(() => undefined)
-        .then(() => {
+      preload(next).then(() => {
           if (cancelled) return;
           setIncoming(next);
           fadeTimer = setTimeout(() => {
@@ -112,7 +123,7 @@ export function DynamicBackground({ variant = "calm" }: { variant?: keyof typeof
       clearInterval(interval);
       if (fadeTimer) clearTimeout(fadeTimer);
     };
-  }, [rotateMs]);
+  }, [rotateMs, category]);
 
   if (typeof document === "undefined") return null;
 
@@ -136,6 +147,20 @@ export function DynamicBackground({ variant = "calm" }: { variant?: keyof typeof
   );
 }
 
+/**
+ * Téléphone (ou tablette étroite) en portrait : on sert la variante
+ * portrait. Même requête pour le <source> et pour le préchargement, sinon on
+ * précharge une image que le navigateur n'affichera pas.
+ */
+const PORTRAIT_MEDIA = "(orientation: portrait) and (max-width: 1024px)";
+
+function preload(src: string): Promise<void> {
+  const img = new Image();
+  const portrait = typeof window !== "undefined" && window.matchMedia?.(PORTRAIT_MEDIA).matches;
+  img.src = portrait ? portraitOf(src) : src;
+  return img.decode().catch(() => undefined);
+}
+
 function Layer({ src, visible, fadeIn = false }: { src: string; visible: boolean; fadeIn?: boolean }) {
   // Monté à opacité 0 puis passé à 1 au rendu suivant : c'est ce qui
   // déclenche la transition CSS.
@@ -146,13 +171,18 @@ function Layer({ src, visible, fadeIn = false }: { src: string; visible: boolean
     return () => cancelAnimationFrame(id);
   }, [fadeIn]);
 
+  // object-cover : l'image remplit l'écran sans jamais être déformée, quel
+  // que soit le format ; object-center garde le sujet centré au recadrage.
   return (
-    <img
-      src={src}
-      alt=""
-      decoding="async"
-      className="absolute inset-0 size-full object-cover transition-opacity ease-in-out"
-      style={{ opacity: shown ? 1 : 0, transitionDuration: `${FADE_MS}ms` }}
-    />
+    <picture>
+      <source media={PORTRAIT_MEDIA} srcSet={portraitOf(src)} type="image/webp" />
+      <img
+        src={src}
+        alt=""
+        decoding="async"
+        className="absolute inset-0 size-full object-cover object-center transition-opacity ease-in-out"
+        style={{ opacity: shown ? 1 : 0, transitionDuration: `${FADE_MS}ms` }}
+      />
+    </picture>
   );
 }

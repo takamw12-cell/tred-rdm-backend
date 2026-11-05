@@ -205,7 +205,7 @@ export default function SecurityPage() {
             {tx.back}
           </Link>
           <div className="ml-auto text-white">
-            <Logo />
+            <Logo markClassName="text-white" />
           </div>
         </div>
       </header>

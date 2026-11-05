@@ -26,6 +26,14 @@ function hiddenNow(): boolean {
   }
 }
 
+function hideFor30Days() {
+  try {
+    localStorage.setItem(HIDE_KEY, String(Date.now() + 30 * 86_400_000));
+  } catch {
+    /* navigation privée : masqué pour cette visite seulement */
+  }
+}
+
 export function AdBanner({ className }: { className?: string }) {
   const program = useUserStore((s) => s.profile.degree);
   const [hidden, setHidden] = useState(hiddenNow);
@@ -36,11 +44,7 @@ export function AdBanner({ className }: { className?: string }) {
   const tag = import.meta.env.VITE_AMAZON_PARTNER_TAG as string | undefined;
 
   const hide = () => {
-    try {
-      localStorage.setItem(HIDE_KEY, String(Date.now() + 30 * 86_400_000));
-    } catch {
-      /* navigation privée : masqué pour cette visite seulement */
-    }
+    hideFor30Days();
     track("partner_hidden", { category });
     setHidden(true);
   };
@@ -78,7 +82,7 @@ export function AdBanner({ className }: { className?: string }) {
         ))}
       </ul>
 
-      <p className="mt-3 text-[11px] leading-snug text-white/55">
+      <p className="mt-3 text-[11px] leading-snug text-white/70">
         {tag
           ? "Als Amazon-Partner verdient TRED an qualifizierten Verkäufen — für dich ändert sich der Preis nicht."
           : "Unverbindliche Empfehlungen."}{" "}
@@ -106,7 +110,7 @@ function ResourceLink({ r, href, onClick }: { r: PartnerResource; href: string; 
           {r.title}
           <ExternalLink className="size-3 shrink-0 opacity-50 group-hover:opacity-90" aria-hidden />
         </span>
-        <span className="mt-1 block text-xs leading-snug text-white/70">{r.why}</span>
+        <span className="mt-1 block text-xs leading-snug text-white/75">{r.why}</span>
       </span>
     </a>
   );
