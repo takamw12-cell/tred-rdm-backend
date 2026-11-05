@@ -1,5 +1,5 @@
 import { betterAuth } from "better-auth";
-import { mailConfigured, sendMail, resetPasswordMail, verifyEmailMail } from "./lib/mail";
+import { mailCanReachAnyone, mailConfigured, sendMail, resetPasswordMail, verifyEmailMail } from "./lib/mail";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { expo } from "@better-auth/expo";
 import { db } from "./database";
@@ -42,13 +42,18 @@ if (process.env.NODE_ENV === "production" && !process.env.WEBSITE_URL) {
 }
 
 /**
- * Vérification de l'adresse à l'inscription — UNIQUEMENT si l'envoi d'e-mails
- * est configuré (RESEND_API_KEY). Sans clé, l'exiger enfermerait dehors tous
- * les nouveaux comptes : aucun lien ne partirait jamais.
+ * Vérification de l'adresse à l'inscription — UNIQUEMENT si un e-mail peut
+ * réellement partir vers n'importe qui (clé Resend + MAIL_FROM sur un domaine
+ * vérifié). Sinon l'exiger enfermerait dehors chaque nouvel inscrit : le
+ * lien ne partirait jamais (incident du 5 nov. 2026, adresse de test Resend).
  */
-const verifyByMail = mailConfigured();
+const verifyByMail = mailCanReachAnyone();
 if (process.env.NODE_ENV === "production" && !verifyByMail) {
-  console.warn("[auth] RESEND_API_KEY absente : inscription SANS vérification d'e-mail.");
+  console.warn(
+    mailConfigured()
+      ? "[auth] MAIL_FROM n'est pas sur un domaine vérifié : inscription SANS vérification d'e-mail, et les e-mails ne partent qu'au propriétaire du compte Resend."
+      : "[auth] RESEND_API_KEY absente : inscription SANS vérification d'e-mail.",
+  );
 }
 
 export const auth = betterAuth({

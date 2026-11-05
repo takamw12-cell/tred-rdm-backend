@@ -24,6 +24,24 @@ export function mailConfigured(): boolean {
   return !!process.env.RESEND_API_KEY;
 }
 
+/**
+ * Peut-on écrire à N'IMPORTE QUI ? Seulement avec un expéditeur sur un
+ * domaine vérifié chez Resend (MAIL_FROM). L'adresse de test
+ * « onboarding@resend.dev » n'écrit qu'au propriétaire du compte Resend :
+ * tout autre destinataire reçoit un refus 403 (incident du 5 nov. 2026 —
+ * des inscrits ne recevaient jamais leur lien et restaient bloqués).
+ */
+export function mailCanReachAnyone(): boolean {
+  const from = process.env.MAIL_FROM?.trim() ?? "";
+  return mailConfigured() && from.length > 0 && !/@resend\.dev\b/i.test(from);
+}
+
+/** « t***@gmail.com » : assez pour suivre un envoi, sans l'adresse en clair dans les logs. */
+export function maskEmail(email: string): string {
+  const [user, domain] = email.split("@");
+  return domain ? `${user.slice(0, 1)}***@${domain}` : "***";
+}
+
 export async function sendMail(opts: {
   to: string;
   subject: string;
@@ -35,7 +53,7 @@ export async function sendMail(opts: {
   if (!key) {
     // Pas de clé : on trace et on continue. Un serveur qui refuse de démarrer
     // parce qu'un e-mail ne partira pas est pire que l'e-mail manquant.
-    console.warn(`[mail] RESEND_API_KEY absente — e-mail non envoyé à ${opts.to}`);
+    console.warn(`[mail] RESEND_API_KEY absente — e-mail non envoyé à ${maskEmail(opts.to)}`);
     return { ok: false, error: "RESEND_API_KEY manquante" };
   }
 
@@ -60,11 +78,14 @@ export async function sendMail(opts: {
     const body = await res.text();
 
     if (!res.ok) {
-      console.error(`[mail] échec ${res.status} pour ${opts.to} — ${body.slice(0, 300)}`);
+      console.error(`[mail] échec ${res.status} pour ${maskEmail(opts.to)} — ${body.slice(0, 300)}`);
       return { ok: false, error: `HTTP ${res.status}` };
     }
 
     const json = JSON.parse(body) as { id?: string };
+    // Trace de succès : c'est elle qu'on cherche dans les logs Railway quand
+    // quelqu'un dit « je n'ai rien reçu ».
+    console.log(`[mail] envoyé à ${maskEmail(opts.to)} — « ${opts.subject} » (id ${json.id ?? "?"})`);
     return { ok: true, id: json.id };
   } catch (error) {
     console.error("[mail] erreur réseau", error);

@@ -41,7 +41,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { buildTutorAgent } from "./agent";
 import { detectDomain, domainHint } from "./lib/solvers/domain";
-import { mailConfigured } from "./lib/mail";
+import { mailCanReachAnyone } from "./lib/mail";
 import { registerAnalyticsRoutes } from "./analytics/routes";
 import { readLearningStyle } from "./lib/learning-style-store";
 import { pickStyleReference, STYLE_SAMPLE_CHARS } from "./lib/style-reference";
@@ -348,7 +348,7 @@ app.post("/api/errors", async (c) => {
 });
 
 app.get("/api/config", (c) =>
-  c.json({ publicSignup: true, inviteRequired: false, emailVerification: mailConfigured() }),
+  c.json({ publicSignup: true, inviteRequired: false, emailVerification: mailCanReachAnyone() }),
 );
 
 // ── Admin ─────────────────────────────────────────────────────────────────

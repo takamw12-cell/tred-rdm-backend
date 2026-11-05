@@ -80,3 +80,35 @@ suite("resetPasswordMail", () => {
     expect(mailOf(URL_OK, "Edwin").text).toContain("Stunde");
   });
 });
+
+import { mailCanReachAnyone, maskEmail } from "../src/api/lib/mail";
+
+describe("expéditeur : peut-on écrire à tout le monde ?", () => {
+  const keep = { key: process.env.RESEND_API_KEY, from: process.env.MAIL_FROM };
+  const set = (key?: string, from?: string) => {
+    if (key === undefined) delete process.env.RESEND_API_KEY;
+    else process.env.RESEND_API_KEY = key;
+    if (from === undefined) delete process.env.MAIL_FROM;
+    else process.env.MAIL_FROM = from;
+  };
+
+  test("adresse de test Resend : NON (incident du 5 nov. 2026)", () => {
+    set("re_x", undefined);
+    expect(mailCanReachAnyone()).toBe(false);
+    set("re_x", "TRED <onboarding@resend.dev>");
+    expect(mailCanReachAnyone()).toBe(false);
+  });
+
+  test("domaine propre : oui ; sans clé : non", () => {
+    set("re_x", "TRED <noreply@tred-app.de>");
+    expect(mailCanReachAnyone()).toBe(true);
+    set(undefined, "TRED <noreply@tred-app.de>");
+    expect(mailCanReachAnyone()).toBe(false);
+    set(keep.key, keep.from);
+  });
+
+  test("les logs ne contiennent jamais l'adresse en clair", () => {
+    expect(maskEmail("takam.w@gmail.com")).toBe("t***@gmail.com");
+    expect(maskEmail("bizarre")).toBe("***");
+  });
+});
