@@ -37,6 +37,7 @@ import { useFontSizeStore, type FontSize } from "@/stores/font-size";
 import { useUserStore } from "@/stores/user";
 import { client } from "@/lib/api";
 import { AnalyticsToggle } from "@/components/analytics-consent";
+import { TrustBadge } from "@/components/trust-badge";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
 
@@ -365,6 +366,9 @@ export default function SettingsPage() {
         title={t("settings.privacySection")}
         description={t("settings.privacyDesc")}
       >
+        <div className="mb-4">
+          <TrustBadge tone="light" />
+        </div>
         <div className="border-border mb-5 border-b pb-5 empty:hidden">
           <AnalyticsToggle />
         </div>

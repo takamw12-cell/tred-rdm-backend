@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Loader2, MailCheck } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { LegalFooter } from "@/components/legal-footer";
+import { TrustBadge } from "@/components/trust-badge";
 import { Button } from "@/components/ui/button";
 import { AmbientBackground } from "@/components/ambient-background";
 import { Input } from "@/components/ui/input";
@@ -257,6 +258,10 @@ export default function LoginPage() {
           </Button>
         </form>
         )}
+
+        <div className="mt-5 flex justify-center">
+          <TrustBadge tone="light" />
+        </div>
 
         <button
           type="button"

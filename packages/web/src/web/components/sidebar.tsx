@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useT } from "@/i18n";
 import { useUserStore } from "@/stores/user";
+import { TrustBadge } from "@/components/trust-badge";
 import { authClient } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
@@ -109,6 +110,9 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           >
             <LogOut className="size-4" />
           </button>
+        </div>
+        <div className="mt-3 flex justify-center">
+          <TrustBadge />
         </div>
       </div>
     </div>

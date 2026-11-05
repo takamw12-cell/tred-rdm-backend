@@ -174,6 +174,12 @@ Anthropic PBC die Texterkennung. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO
 Grundlage der Standardvertragsklauseln der EU-Kommission (Art. 46 Abs. 2 lit. c
 DSGVO). Datenschutzerklärung von Mathpix: https://mathpix.com/privacy
 
+Bilder und Videos: Bittest du den Tutor um ein Bild oder ein kurzes Video,
+übermitteln wir die daraus formulierte Bildbeschreibung (ohne Namen oder
+E-Mail-Adresse) an Replicate, Inc. (USA), das das Bild erzeugt. Rechtsgrundlage:
+Art. 6 Abs. 1 lit. b DSGVO; Drittlandtransfer auf Grundlage der
+Standardvertragsklauseln (Art. 46 Abs. 2 lit. c DSGVO).
+
 Vorlesen mit Premium-Stimme: Ist sie verfügbar und tippst du auf „Anhören“,
 übermitteln wir den Text der Antwort an ElevenLabs, Inc. (New York, USA), das
 daraus die Sprachausgabe erzeugt. Übermittelt wird nur dieser Text, ohne deinen
@@ -212,7 +218,9 @@ Railway Corp. (Hosting, EU), Turso / ChiselStrike Inc. (Datenbank, EU),
 Cloudflare Germany GmbH bzw. Cloudflare, Inc. (Objektspeicher R2,
 Originaldateien; Speicherregion EU),
 Anthropic PBC (Sprachmodell, USA), Mathpix, Inc. (Texterkennung bei
-hochgeladenen Fotos, USA), Resend (E-Mail-Versand, USA),
+hochgeladenen Fotos, USA), Replicate, Inc. (Bild-/Videoerzeugung, USA),
+ElevenLabs, Inc. (Sprachausgabe, nur bei Premium-Stimme, USA), PostHog Inc.
+(Produkt-Analyse, nur mit Einwilligung, Server EU), Resend (E-Mail-Versand, USA),
 Stripe Payments Europe Ltd. (Zahlungen, Irland), Expo / 650 Industries Inc.
 (Push-Benachrichtigungen, USA), OneDollarStats (Reichweitenmessung der App).
 
@@ -225,9 +233,12 @@ hier ausgewiesen.
 
 ## 7. Cookies und lokale Speicherung
 
-Wir setzen keine Werbe- oder Trackingcookies, weder auf der Website noch in der
-App. Verwendet werden das Anmelde-Cookie sowie die lokal gespeicherten
-Einstellungen für Sprache, Schriftgröße und Darstellung. In der mobilen App
+Wir setzen keine Werbecookies. Ohne deine Einwilligung auch keine Analyse-
+Cookies: verwendet werden dann nur das Anmelde-Cookie sowie die lokal
+gespeicherten Einstellungen (Sprache, Schriftgröße, Darstellung, Stimme und
+deine Entscheidung zur Analyse). Erst wenn du „Analyse erlauben“ wählst, legt
+PostHog ein eigenes Cookie bzw. einen Eintrag im lokalen Speicher an (siehe
+2.10); beim Widerruf wird er entfernt. In der mobilen App
 liegen Sitzungstoken, Sprache und Erscheinungsbild im gesicherten Speicher des
 Geräts (iOS-Schlüsselbund bzw. Android-Keystore).
 

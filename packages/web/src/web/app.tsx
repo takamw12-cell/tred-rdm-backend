@@ -1,5 +1,6 @@
 import { Route, Switch, Redirect, useSearch } from "wouter";
 import LegalPage from "@/pages/legal";
+import SecurityPage from "@/pages/security";
 import LandingPage from "@/pages/landing";
 import ResetPasswordPage from "@/pages/reset-password";
 import { ErrorBoundary, installGlobalErrorReporting } from "@/components/error-boundary";
@@ -151,6 +152,8 @@ function App() {
         <Route path="/datenschutz">{() => <LegalPage doc="datenschutz" />}</Route>
         <Route path="/widerruf">{() => <LegalPage doc="widerruf" />}</Route>
         <Route path="/agb">{() => <LegalPage doc="agb" />}</Route>
+        {/* Sécurité & RGPD : lisible AVANT de créer un compte. */}
+        <Route path="/security" component={SecurityPage} />
         <Route path="/reset-password" component={ResetPasswordPage} />
         {/* Page de vente : publique, un visiteur sans compte doit la voir. */}
         <Route path="/landing" component={LandingPage} />
