@@ -233,3 +233,9 @@ Sans clé, le bouton « Anhören » utilise la voix de l'appareil (souvent robot
 - Choisis une voix « Stimmen dieses Geräts » dans la liste → **Stimme testen** : c'est la voix robotique.
 - Puis, dans « Echte Professorenstimmen », clique **▶** sur Prof. Kenta, Prof. Ren, Dr. Aiko : c'est la voix premium.
 - Dans le chat, **Anhören** sous une réponse lit TOUTE la réponse avec la voix du professeur choisi dans le vestiaire.
+
+---
+
+## Hébergement : région UE (RGPD)
+
+Depuis le 5 nov. 2026, le service **TRED** tourne à **Amsterdam** (Railway *EU West*, `europe-west4-drams3a`), à côté de la base Turso (`aws-eu-west-1`, Irlande). Railway → service TRED → *Settings* → *Regions* : laisse **EU West** uniquement. Un simple *Redeploy* réutilise la région de l'ancien déploiement : après un changement de région, c'est un **nouveau commit** (ou *Deploy latest*) qui l'applique.
