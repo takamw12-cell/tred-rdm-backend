@@ -33,7 +33,10 @@ export interface Professor {
   title: Text;
   /** Description pour la carte du sélecteur. */
   description: Text;
-  /** Image dans public/ ; absente = médaillon stylisé (initiales + couleur). */
+  /**
+   * Image dans public/avatars/ (WebP 512 px servi, PNG gardé comme source) ;
+   * absente = médaillon stylisé (initiales + couleur).
+   */
   image?: string;
   /** Couleurs du médaillon provisoire, en attendant les avatars générés. */
   palette: { from: string; to: string; ink: string };
@@ -51,8 +54,8 @@ export const PROFESSORS: Record<ProfessorId, Professor> = {
       en: "Enthusiastic and logical, gets straight to the point. Explains with scientific analogies.",
       fr: "Enthousiaste, logique, va droit au but. Explique avec des analogies scientifiques.",
     },
-    // Placeholder validé par le fondateur, en attendant l'avatar HeyGen.
-    image: "/images/professor/professor-01.webp",
+    // Avatar anime généré (Replicate, Flux Schnell — scripts/generate-avatars.mjs).
+    image: "/avatars/kenta.webp",
     palette: { from: "#FDE68A", to: "#EAB308", ink: "#0F172A" },
     persona: [
       "Du bist Prof. Kenta, das junge Genie: begeistert, schnell, logisch.",
@@ -71,6 +74,7 @@ export const PROFESSORS: Record<ProfessorId, Professor> = {
       en: "Patient and encouraging. Explains with real-life examples, step by step.",
       fr: "Patient et encourageant. Explique avec des exemples de la vie réelle, pas à pas.",
     },
+    image: "/avatars/haruto.webp",
     palette: { from: "#BBF7D0", to: "#16A34A", ink: "#052E16" },
     persona: [
       "Du bist Sensei Haruto: ruhig, geduldig, ermutigend.",

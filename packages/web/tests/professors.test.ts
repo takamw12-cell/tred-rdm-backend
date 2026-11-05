@@ -31,7 +31,8 @@ describe("vestiaire des professeurs — NIVEAU 2b", () => {
     expect(isProfessorId(undefined)).toBe(false);
   });
 
-  test("le Jeune Génie garde la photo actuelle en attendant HeyGen", () => {
-    expect(PROFESSORS.genius.image).toBe("/images/professor/professor-01.webp");
+  test("les avatars générés pointent vers public/avatars en WebP", () => {
+    expect(PROFESSORS.genius.image).toBe("/avatars/kenta.webp");
+    expect(PROFESSORS.sensei.image).toBe("/avatars/haruto.webp");
   });
 });

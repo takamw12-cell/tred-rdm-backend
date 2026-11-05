@@ -71,8 +71,10 @@ export function ProfessorPicker() {
                   <Check className="size-3" strokeWidth={3} /> {ui.mine}
                 </span>
               )}
-              <div className="relative aspect-[4/3] overflow-hidden bg-[#0F172A]">
-                <ProfessorPortrait professor={p} className="text-5xl" />
+              {/* 5:4 et cadrage à 30 % du haut : un portrait carré garde la
+                  coiffure ET le menton. */}
+              <div className="relative aspect-[5/4] overflow-hidden bg-[#0F172A]">
+                <ProfessorPortrait professor={p} className="object-[center_30%] text-5xl" />
                 <AnimatePresence>
                   {confirmed === id && (
                     <motion.div
