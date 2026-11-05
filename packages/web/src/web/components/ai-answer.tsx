@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookMarked,
@@ -7,10 +7,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Quote,
+  Square,
+  Volume2,
 } from "lucide-react";
 import { MarkdownContent } from "@/components/markdown-content";
 import { MathText } from "@/components/math-text";
 import { useT } from "@/i18n";
+import { answerToSpeech, SPEECH_LANG, speechChunks } from "@/lib/speech";
 import { cn } from "@/lib/utils";
 
 // Lets an [[OFFICIAL]] block's citation open the source document, scrolled to
@@ -90,6 +93,89 @@ export function parseAnswer(raw: string): Segment[] {
   if (segments.length === 0 && raw.trim())
     segments.push({ kind: "plain", text: stripStrayMarkers(raw) });
   return segments;
+}
+
+// ── Lecture à voix haute ─────────────────────────────────────────────────
+/** Un seul bouton parle à la fois : les autres apprennent qu'ils doivent s'éteindre. */
+const TTS_EVENT = "tred-tts-start";
+
+/**
+ * Bouton « Écouter » : lit la réponse avec la synthèse vocale du navigateur
+ * (window.speechSynthesis). Gratuit, hors ligne pour la plupart des langues,
+ * aucune donnée envoyée à TRED. Absent si le navigateur ne la propose pas.
+ */
+export function ListenButton({ text, locale }: { text: string; locale: string }) {
+  const { t } = useT();
+  const [speaking, setSpeaking] = useState(false);
+  const [id] = useState(() => Math.random().toString(36).slice(2));
+  const supported = typeof window !== "undefined" && "speechSynthesis" in window;
+
+  useEffect(() => {
+    if (!supported) return;
+    const onOther = (e: Event) => {
+      if ((e as CustomEvent<string>).detail !== id) setSpeaking(false);
+    };
+    window.addEventListener(TTS_EVENT, onOther);
+    return () => window.removeEventListener(TTS_EVENT, onOther);
+  }, [id, supported]);
+
+  // Quitter la page ou la conversation coupe la lecture de ce bouton.
+  useEffect(() => {
+    return () => {
+      if (supported && speaking) window.speechSynthesis.cancel();
+    };
+  }, [speaking, supported]);
+
+  if (!supported) return null;
+
+  function toggle() {
+    const synth = window.speechSynthesis;
+    synth.cancel();
+    if (speaking) {
+      setSpeaking(false);
+      return;
+    }
+    const spoken = answerToSpeech(text);
+    if (!spoken) return;
+
+    const lang = SPEECH_LANG[locale] ?? locale;
+    const voice =
+      synth.getVoices().find((v) => v.lang === lang) ??
+      synth.getVoices().find((v) => v.lang.toLowerCase().startsWith(locale.toLowerCase()));
+
+    const chunks = speechChunks(spoken);
+    chunks.forEach((chunk, i) => {
+      const u = new SpeechSynthesisUtterance(chunk);
+      u.lang = lang;
+      if (voice) u.voice = voice;
+      u.rate = 1;
+      if (i === chunks.length - 1) u.onend = () => setSpeaking(false);
+      u.onerror = () => setSpeaking(false);
+      synth.speak(u);
+    });
+    window.dispatchEvent(new CustomEvent(TTS_EVENT, { detail: id }));
+    setSpeaking(true);
+  }
+
+  const label = speaking ? t("chat.stopListening") : t("chat.listen");
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-pressed={speaking}
+      aria-label={label}
+      title={label}
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium transition-colors",
+        speaking
+          ? "bg-signature text-signature-foreground"
+          : "text-muted-foreground hover:bg-accent hover:text-foreground",
+      )}
+    >
+      {speaking ? <Square className="size-3" /> : <Volume2 className="size-3.5" />}
+      <span>{label}</span>
+    </button>
+  );
 }
 
 // ── Renderer ─────────────────────────────────────────────────────────────

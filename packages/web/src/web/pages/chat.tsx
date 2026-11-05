@@ -33,7 +33,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
-import { AiAnswer, SourceViewContext } from "@/components/ai-answer";
+import { AiAnswer, ListenButton, SourceViewContext } from "@/components/ai-answer";
 import { ReportAnswer } from "@/components/report-answer";
 import { CodeExplainContext } from "@/components/code-block";
 import { DocumentViewer } from "@/components/document-viewer";
@@ -2015,9 +2015,16 @@ function MessageBubble({
         )}
       </div>
       <div className={cn("min-w-0 max-w-[92%]", isUser && "flex flex-col items-end")}>
-        <p className="text-muted-foreground mb-1 text-xs font-semibold">
-          {isUser ? youLabel : aiLabel}
-        </p>
+        <div className="mb-1 flex items-center gap-2">
+          <p className="text-muted-foreground text-xs font-semibold">
+            {isUser ? youLabel : aiLabel}
+          </p>
+          {/* Lecture à voix haute — une fois la réponse complète (showActions
+              est faux pendant la génération). */}
+          {!isUser && showActions && text.trim() && (
+            <ListenButton text={text} locale={locale ?? "de"} />
+          )}
+        </div>
         {images && images.length > 0 && (
           <div
             className={cn(
