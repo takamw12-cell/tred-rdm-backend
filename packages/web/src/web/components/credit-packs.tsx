@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { client } from "@/lib/api";
 import { creditsMeOptions } from "@/queries/credits";
 import { cn } from "@/lib/utils";
+import { useT } from "@/i18n";
 
 /**
  * Les recharges.
@@ -28,6 +29,7 @@ import { cn } from "@/lib/utils";
  * avant l'achat et pas seulement dans les conditions générales.
  */
 export function CreditPacks() {
+  const { t, locale } = useT();
   const [error, setError] = useState<string | null>(null);
   const { data, isLoading } = useQuery(creditsMeOptions());
 
@@ -36,21 +38,22 @@ export function CreditPacks() {
     onSuccess: (res) => {
       window.location.href = res.url;
     },
-    onError: () =>
-      setError("Der Kauf konnte nicht gestartet werden. Bitte später erneut versuchen."),
+    onError: () => setError(t("credits.buyError")),
   });
 
   if (isLoading) {
     return (
       <Card className="flex items-center gap-3 p-5">
         <Loader2 className="text-muted-foreground size-4 animate-spin" />
-        <p className="text-muted-foreground text-sm">Guthaben wird geladen …</p>
+        <p className="text-muted-foreground text-sm">{t("credits.loading")}</p>
       </Card>
     );
   }
 
   if (!data) return null;
 
+  const money = (v: number, currency?: string) =>
+    new Intl.NumberFormat(locale, { style: "currency", currency: currency || "EUR" }).format(v);
   const packs = data.packs ?? [];
   const low = data.total <= data.lowThreshold;
 
@@ -59,7 +62,7 @@ export function CreditPacks() {
       <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="font-display flex items-center gap-2 text-sm font-bold">
           <Zap className={cn("size-4", low ? "text-destructive" : "text-signature")} />
-          Dein Guthaben
+          {t("credits.balance")}
         </h2>
         <span
           className={cn(
@@ -76,25 +79,24 @@ export function CreditPacks() {
           de la même façon, et l'étudiant doit pouvoir le voir. */}
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="bg-secondary/50 rounded-lg p-3">
-          <p className="text-muted-foreground text-xs">Monatskontingent</p>
+          <p className="text-muted-foreground text-xs">{t("credits.monthlyQuota")}</p>
           <p className="mt-0.5 text-sm font-medium tabular-nums">
             {data.monthlyRemaining} / {data.monthlyLimit}
           </p>
           <p className="text-muted-foreground mt-1 text-[11px]">
-            Setzt sich am Monatsanfang zurück.
+            {t("credits.monthlyResets")}
           </p>
         </div>
         <div className="bg-secondary/50 rounded-lg p-3">
-          <p className="text-muted-foreground text-xs">Gekaufte Credits</p>
+          <p className="text-muted-foreground text-xs">{t("credits.purchased")}</p>
           <p className="mt-0.5 text-sm font-medium tabular-nums">{data.purchasedCredits}</p>
-          <p className="text-muted-foreground mt-1 text-[11px]">Verfallen nie.</p>
+          <p className="text-muted-foreground mt-1 text-[11px]">{t("credits.neverExpire")}</p>
         </div>
       </div>
 
       {low && (
         <p className="text-destructive mt-3 text-xs">
-          Dein Guthaben geht zur Neige. Lade auf, bevor du mitten in der
-          Klausurvorbereitung stehst.
+          {t("credits.lowWarning")}
         </p>
       )}
 
@@ -107,12 +109,11 @@ export function CreditPacks() {
 
       {packs.length === 0 ? (
         <p className="text-muted-foreground mt-4 text-xs">
-          Keine Credit-Pakete konfiguriert. Setze <code>STRIPE_PRICE_CREDITS_SMALL</code>,{" "}
-          <code>…_MEDIUM</code> und <code>…_LARGE</code>.
+          {t("credits.noPacks")}
         </p>
       ) : (
         <div className="mt-5">
-          <p className="text-muted-foreground mb-2.5 text-xs">Aufladen — einmalig, kein Abo</p>
+          <p className="text-muted-foreground mb-2.5 text-xs">{t("credits.topUp")}</p>
           <div className="grid gap-2.5 sm:grid-cols-3">
             {packs.map((pack) => (
               <button
@@ -128,18 +129,15 @@ export function CreditPacks() {
                 <span className="font-display text-lg font-bold tabular-nums">
                   {pack.credits}
                 </span>
-                <span className="text-muted-foreground text-xs">Credits</span>
+                <span className="text-muted-foreground text-xs">{t("credits.unit")}</span>
                 <span className="mt-2 text-sm font-medium">
-                  {new Intl.NumberFormat("de-DE", {
-                    style: "currency",
-                    currency: pack.currency || "EUR",
-                  }).format(pack.amount / 100)}
+                  {money(pack.amount / 100, pack.currency)}
                 </span>
                 {/* Le prix unitaire rend les paquets comparables d'un coup
                     d'œil. Sans lui, « lequel est le plus avantageux » demande
                     une division mentale que personne ne fait. */}
                 <span className="text-muted-foreground text-[11px] tabular-nums">
-                  {(pack.pricePerCredit / 100).toFixed(2).replace(".", ",")} € pro Credit
+                  {t("credits.perCredit", { price: money(pack.pricePerCredit / 100, pack.currency) })}
                 </span>
               </button>
             ))}
@@ -150,7 +148,7 @@ export function CreditPacks() {
       {buy.isPending && (
         <p className="text-muted-foreground mt-3 flex items-center gap-2 text-xs">
           <Loader2 className="size-3 animate-spin" />
-          Weiterleitung zu Stripe …
+          {t("credits.redirecting")}
         </p>
       )}
     </Card>
