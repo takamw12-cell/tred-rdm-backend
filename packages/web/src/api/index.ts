@@ -1307,6 +1307,21 @@ app.post("/api/agent/formulas", async (c) => {
     .map((d) => `-- ${d.title} (${d.kind}) --\n${d.content}`)
     .join("\n\n");
 
+  // ── Stilvorlage : la Formelsammlung DU PROF, si l'étudiant l'a déposée ──
+  // Même principe que pour les exercices (Altklausur) : le serveur choisit
+  // lui-même le document — garanti, instantané — au lieu de laisser le modèle
+  // décider s'il appelle un outil de recherche. Une Formelsammlung ou un
+  // Formelblatt du Lehrender fixe la notation, les noms de symboles, les
+  // unités et l'ordre des chapitres.
+  const FORMEL_RE = /formel(sammlung|blatt|zettel|übersicht)|formulary|formula sheet|formulaire/i;
+  const formelDoc =
+    rows
+      .filter((d) => FORMEL_RE.test(d.title) || FORMEL_RE.test(d.textContent.slice(0, 400)))
+      .sort((a, b) => b.textContent.length - a.textContent.length)[0] ?? null;
+  const formelStyle = formelDoc
+    ? `\n\nSTILVORLAGE — Formelsammlung des Lehrenden: "${formelDoc.title}". Übernimm daraus EXAKT: Symbolnamen und Indizes, Schreibweise der Einheiten, Vorzeichenkonventionen, Kapitelreihenfolge und Anordnung. Ergänze nur, was dort fehlt.\n${wellFormed(formelDoc.textContent.slice(0, 6000))}`
+    : "";
+
   const system = `Du bist TRED, ein Professor für Ingenieurwissenschaften. Erstelle eine kompakte, klausurtaugliche FORMELSAMMLUNG auf Basis der bereitgestellten Kursunterlagen.
 
 Sprache der Ausgabe: ${langLabel}. Deutsche Fachbegriffe bleiben immer auf Deutsch.
@@ -1317,8 +1332,11 @@ ANFORDERUNGEN:
 - Gliedere nach Kapiteln (## Überschriften) in der Reihenfolge des Kurses.
 - Jede Formel als LaTeX-Display ($$...$$), darunter eine Zeile pro Symbol: Symbol – Bedeutung – Einheit.
 - Nimm NUR Formeln auf, die im Kurs vorkommen bzw. klausurrelevant sind. Notation exakt wie im Kurs.
+- Deutsche Konventionen wie in deutschen Hochschulskripten: Dezimalkomma (2,5 statt 2.5),
+  SI-Einheiten mit schmalem Abstand (12\\,\\mathrm{V}), Einheiten aufrecht (\\mathrm{}),
+  Größen kursiv, Indizes wie im Kurs (z. B. $F_\\mathrm{A}$, $M_\\mathrm{b}$, $U_\\mathrm{q}$).
 - Kurze Hinweise (Gültigkeitsbereich, Sonderfälle) nur wo nötig, maximal eine Zeile.
-- KEINE Herleitungen, KEINE Beispiele — nur die Essenz zum Nachschlagen.`;
+- KEINE Herleitungen, KEINE Beispiele — nur die Essenz zum Nachschlagen.${formelStyle}`;
 
   const prompt =
     rows.length > 0

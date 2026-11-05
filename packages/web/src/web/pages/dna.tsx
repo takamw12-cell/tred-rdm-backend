@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -21,20 +22,43 @@ import type { Locale } from "@/i18n/types";
 import { dnaNodes, dnaEdges, type DnaNodeData } from "@/data/dna";
 import type { KnowState } from "@/stores/learning";
 import { cn } from "@/lib/utils";
+import { orpc } from "@/lib/api";
+import { masteryFor, type GapLike, type MasteryState } from "@/lib/mastery";
 import { pick } from "@/data/localized";
 
-const stateStyles: Record<KnowState, string> = {
-  mastered: "border-mastered/60 bg-mastered/10 text-foreground",
-  learning: "border-learning/60 bg-learning/10 text-foreground",
-  new: "border-border bg-card text-muted-foreground",
+/**
+ * Carte de maîtrise : la couleur d'un nœud vient des lacunes RÉELLES que le
+ * tuteur a diagnostiquées (lib/mastery.ts), plus d'un état écrit en dur.
+ */
+const stateStyles: Record<MasteryState, string> = {
+  mastered: "border-mastered/70 bg-mastered/10 text-foreground",
+  weak: "border-red-500/70 bg-red-500/10 text-foreground",
+  untested: "border-border bg-card text-muted-foreground",
 };
-const stateDot: Record<KnowState, string> = {
+const stateDot: Record<MasteryState, string> = {
   mastered: "bg-mastered",
-  learning: "bg-learning",
-  new: "bg-new",
+  weak: "bg-red-500",
+  untested: "bg-new",
+};
+const BADGE_STATE: Record<MasteryState, KnowState> = {
+  mastered: "mastered",
+  weak: "learning",
+  untested: "new",
+};
+const LEGEND_TEXT = {
+  de: { mastered: "Gemeistert", weak: "Offene Lücke", untested: "Noch nicht geprüft", gaps: "Offene Lücken", fixed: "Geschlossen", none: "Der Tutor hat hier noch nichts geprüft. Stell eine Frage dazu im Chat." },
+  en: { mastered: "Mastered", weak: "Open gap", untested: "Not checked yet", gaps: "Open gaps", fixed: "Closed", none: "The tutor hasn't checked this yet. Ask about it in the chat." },
+  fr: { mastered: "Maîtrisé", weak: "Lacune ouverte", untested: "Pas encore vérifié", gaps: "Lacunes ouvertes", fixed: "Résolues", none: "Le tuteur n'a encore rien vérifié ici. Pose une question dans le chat." },
 };
 
-type FlowNode = Node<DnaNodeData & { locale: Locale }>;
+type ConceptData = Omit<DnaNodeData, "state" | "mastery"> & {
+  state: MasteryState;
+  mastery: number;
+  open: GapLike[];
+  resolved: GapLike[];
+  locale: Locale;
+};
+type FlowNode = Node<ConceptData>;
 
 function ConceptNode({ data }: NodeProps<FlowNode>) {
   return (
@@ -61,7 +85,11 @@ function ConceptNode({ data }: NodeProps<FlowNode>) {
 export default function DnaPage() {
   const { t, locale } = useT();
   const [, navigate] = useLocation();
-  const [selected, setSelected] = useState<DnaNodeData | null>(null);
+  const [selected, setSelected] = useState<ConceptData | null>(null);
+  const lt = LEGEND_TEXT[locale === "de" || locale === "fr" ? locale : "en"];
+  // Toutes les lacunes, ouvertes ET résolues : la carte montre le progrès.
+  const gapsQuery = useQuery(orpc.memory.list.queryOptions({ input: { includeResolved: true } }));
+  const gaps = useMemo(() => gapsQuery.data ?? [], [gapsQuery.data]);
 
   const nodeTypes = useMemo(() => ({ concept: ConceptNode }), []);
 
@@ -71,9 +99,9 @@ export default function DnaPage() {
         id: n.id,
         type: "concept",
         position: n.position,
-        data: { ...n.data, locale },
+        data: { ...n.data, ...masteryFor(n.data.label, gaps), locale },
       })),
-    [locale],
+    [locale, gaps],
   );
 
   const edges: Edge[] = useMemo(
@@ -92,10 +120,10 @@ export default function DnaPage() {
     setSelected(node.data);
   }, []);
 
-  const legend: { state: KnowState; key: string }[] = [
-    { state: "mastered", key: "states.mastered" },
-    { state: "learning", key: "states.learning" },
-    { state: "new", key: "states.new" },
+  const legend: { state: MasteryState; label: string }[] = [
+    { state: "mastered", label: lt.mastered },
+    { state: "weak", label: lt.weak },
+    { state: "untested", label: lt.untested },
   ];
 
   return (
@@ -127,7 +155,7 @@ export default function DnaPage() {
             {legend.map((l) => (
               <div key={l.state} className="flex items-center gap-2 text-xs">
                 <span className={cn("size-2.5 rounded-full", stateDot[l.state])} />
-                {t(l.key)}
+                {l.label}
               </div>
             ))}
           </div>
@@ -156,15 +184,41 @@ export default function DnaPage() {
                   <X className="size-4" />
                 </button>
               </div>
-              <ConceptBadge state={selected.state} />
+              <ConceptBadge state={BADGE_STATE[selected.state]} />
               <p className="mt-3 text-sm leading-relaxed">{pick(selected.description, locale)}</p>
-              <div className="mt-4">
-                <div className="mb-1.5 flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground font-medium">{t("dna.mastery")}</span>
-                  <span className="tabular-nums font-semibold">{selected.mastery}%</span>
+              {selected.state === "untested" ? (
+                <p className="text-muted-foreground mt-4 text-xs">{lt.none}</p>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  <div>
+                    <div className="mb-1.5 flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground font-medium">{t("dna.mastery")}</span>
+                      <span className="tabular-nums font-semibold">{selected.mastery}%</span>
+                    </div>
+                    <Progress value={selected.mastery} />
+                  </div>
+                  {selected.open.length > 0 && (
+                    <div>
+                      <p className="mb-1 text-xs font-semibold text-red-600">{lt.gaps}</p>
+                      <ul className="space-y-1 text-xs">
+                        {selected.open.map((g) => (
+                          <li key={g.label} className="rounded-md bg-red-500/10 px-2 py-1">{g.label}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {selected.resolved.length > 0 && (
+                    <div>
+                      <p className="text-mastered mb-1 text-xs font-semibold">{lt.fixed}</p>
+                      <ul className="space-y-1 text-xs">
+                        {selected.resolved.map((g) => (
+                          <li key={g.label} className="bg-mastered/10 rounded-md px-2 py-1 line-through decoration-1">{g.label}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
-                <Progress value={selected.mastery} />
-              </div>
+              )}
               <Button
                 size="sm"
                 className="brand-gradient mt-5 w-full text-white"

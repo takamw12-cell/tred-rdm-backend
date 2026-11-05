@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, Clock, Check, RotateCcw, LogOut, X } from "lucide-react";
+import { AlertTriangle, Clock, Check, FileCheck, Loader2, RotateCcw, LogOut, X } from "lucide-react";
 import { MarkdownContent } from "@/components/markdown-content";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,10 +11,31 @@ import { LogoMark } from "@/components/logo";
 // Exam mode is ALWAYS in German — use the canonical de messages directly,
 // never the reactive locale.
 import { de } from "@/i18n/messages/de";
-import { examQuestions, examDurationSeconds, totalPoints } from "@/data/exam";
+import { examQuestions, examDurationSeconds } from "@/data/exam";
+import { generateExercise } from "@/lib/exercise-api";
+import { splitTasks, type ExamSheet } from "@/lib/exam-sheet";
+import { useReconciledSemester } from "@/hooks/use-reconciled-semester";
 import { cn } from "@/lib/utils";
 
-type Phase = "warning" | "active" | "result";
+type Phase = "warning" | "loading" | "active" | "result";
+
+/**
+ * Beispielklausur intégrée : seulement si la génération est impossible
+ * (pas de clé IA, quota épuisé, réseau). Elle est annoncée comme telle.
+ */
+const FALLBACK_SHEET: ExamSheet = {
+  title: "Beispielklausur Technische Mechanik",
+  tasks: examQuestions.map((q) => ({
+    id: q.id,
+    title: q.title,
+    points: q.points,
+    prompt: q.prompt,
+    solution: q.solution,
+  })),
+  totalPoints: examQuestions.reduce((s, q) => s + q.points, 0),
+  styleSource: null,
+  generated: false,
+};
 const m = de.exam;
 
 function formatTime(s: number): string {
@@ -29,6 +50,10 @@ export default function ExamPage() {
   const [phase, setPhase] = useState<Phase>("warning");
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [remaining, setRemaining] = useState(examDurationSeconds);
+  const [sheet, setSheet] = useState<ExamSheet>(FALLBACK_SHEET);
+  /** Points que l'étudiant s'attribue, tâche par tâche, barème en main. */
+  const [selfScore, setSelfScore] = useState<Record<string, number>>({});
+  const semesterId = useReconciledSemester();
   const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -48,22 +73,42 @@ export default function ExamPage() {
     };
   }, [phase]);
 
-  const score = useMemo(() => {
-    return examQuestions.reduce((sum, q) => {
-      const a = (answers[q.id] ?? "").trim();
-      if (a.length >= 20) return sum + q.points;
-      if (a.length > 0) return sum + Math.round(q.points / 2);
-      return sum;
-    }, 0);
-  }, [answers]);
+  // Selbstbewertung : plus de note « à la longueur de la réponse ». Ce sont
+  // les points que l'étudiant s'attribue en comparant à la Musterlösung et au
+  // Bewertungsschema — honnête, et c'est ainsi qu'on apprend à se corriger.
+  const totalPoints = sheet.totalPoints;
+  const score = useMemo(
+    () => sheet.tasks.reduce((sum, t) => sum + Math.min(t.points, selfScore[t.id] ?? 0), 0),
+    [sheet, selfScore],
+  );
 
-  function start() {
+  async function start() {
     setAnswers({});
+    setSelfScore({});
     setRemaining(examDurationSeconds);
+    setPhase("loading");
+    try {
+      // Klausur im Stil DEINER Altklausur : le serveur choisit lui-même
+      // l'Altklausur la plus pertinente et en reprend barème et formulation.
+      const k = await generateExercise({ mode: "klausur", semesterId, locale: "de" });
+      const tasks = splitTasks(k.statement, k.points);
+      setSheet({
+        title: k.title || "Klausur",
+        tasks,
+        totalPoints: tasks.reduce((s, t) => s + t.points, 0) || k.points,
+        solution: k.solution,
+        scale: k.scale,
+        styleSource: k.styleSource ?? null,
+        generated: true,
+      });
+    } catch {
+      setSheet(FALLBACK_SHEET);
+    }
     setPhase("active");
   }
   function retry() {
     setAnswers({});
+    setSelfScore({});
     setRemaining(examDurationSeconds);
     setPhase("warning");
   }
@@ -106,12 +151,29 @@ export default function ExamPage() {
                   <Button variant="outline" className="flex-1" onClick={() => navigate("/dashboard")}>
                     {de.common.cancel}
                   </Button>
-                  <Button className="brand-gradient flex-1 text-white" onClick={start}>
+                  <Button className="brand-gradient flex-1 text-white" onClick={() => void start()}>
                     {m.startExam}
                   </Button>
                 </div>
               </CardContent>
             </Card>
+          </motion.div>
+        )}
+
+        {phase === "loading" && (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center"
+          >
+            <Loader2 className="text-primary size-10 animate-spin" />
+            <p className="font-display text-xl font-bold">Deine Klausur wird erstellt …</p>
+            <p className="text-muted-foreground max-w-md text-sm">
+              Im Stil deiner Altklausur: gleiche Aufgabenarten, gleiche Formulierungen, gleiches
+              Bewertungsschema. Das dauert bis zu zwei Minuten — der Timer startet erst danach.
+            </p>
           </motion.div>
         )}
 
@@ -141,17 +203,18 @@ export default function ExamPage() {
 
             <div className="flex-1 overflow-y-auto">
               <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
+                <SheetOrigin sheet={sheet} />
                 <div className="text-muted-foreground mb-6 flex items-center justify-between text-sm">
                   <span>{m.timeLeft}: {formatTime(remaining)}</span>
                   <span>{totalPoints} {m.points}</span>
                 </div>
                 <div className="space-y-5">
-                  {examQuestions.map((q, i) => (
+                  {sheet.tasks.map((q, i) => (
                     <Card key={q.id}>
                       <CardContent className="pt-0">
                         <div className="mb-2 flex items-start justify-between gap-3">
                           <h2 className="font-display font-bold">
-                            {m.question} {i + 1} · {q.title.replace(/^Aufgabe \d+ — /, "")}
+                            {m.question} {i + 1} · {q.title.replace(/^Aufgabe \d+\s*[—:.-]?\s*/, "")}
                           </h2>
                           <Badge variant="secondary" className="shrink-0">
                             {q.points} {m.points}
@@ -191,22 +254,75 @@ export default function ExamPage() {
                 {/* Score */}
                 <Card className="brand-gradient mb-6 border-0 text-white">
                   <CardContent className="pt-0 text-center">
-                    <p className="text-sm font-semibold text-white/80 uppercase tracking-wide">{m.score}</p>
+                    <p className="text-sm font-semibold text-white/80 uppercase tracking-wide">
+                      {m.score} · Selbstbewertung
+                    </p>
                     <p className="font-display mt-2 text-5xl font-extrabold tabular-nums">
                       {score}
                       <span className="text-2xl text-white/70"> / {totalPoints}</span>
                     </p>
                     <div className="mx-auto mt-4 max-w-xs">
-                      <Progress value={(score / totalPoints) * 100} className="bg-white/25" />
+                      <Progress value={totalPoints ? (score / totalPoints) * 100 : 0} className="bg-white/25" />
                     </div>
                   </CardContent>
                 </Card>
 
+                <p className="text-muted-foreground mb-5 text-sm">
+                  Vergleiche jede Antwort mit der Musterlösung und dem Bewertungsschema und trage
+                  deine Punkte ein — so, wie es die Korrektur in der echten Klausur tun würde.
+                </p>
+
+                {sheet.generated && (sheet.scale || sheet.solution) && (
+                  <Card className="mb-5">
+                    <CardContent className="space-y-4 pt-0">
+                      {sheet.scale && (
+                        <div>
+                          <p className="text-muted-foreground mb-1 text-xs font-semibold tracking-wide uppercase">
+                            Bewertungsschema
+                          </p>
+                          <MarkdownContent content={sheet.scale} className="text-foreground" />
+                        </div>
+                      )}
+                      {sheet.solution && (
+                        <div className="border-mastered/30 bg-mastered/5 rounded-lg border p-3">
+                          <p className="text-mastered mb-1.5 flex items-center gap-1.5 text-xs font-semibold tracking-wide uppercase">
+                            <Check className="size-3.5" />
+                            {m.correction}
+                          </p>
+                          <MarkdownContent content={sheet.solution} className="text-foreground" />
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
                 <div className="space-y-5">
-                  {examQuestions.map((q) => (
+                  {sheet.tasks.map((q) => (
                     <Card key={q.id}>
                       <CardContent className="pt-0">
-                        <h2 className="font-display mb-3 font-bold">{q.title}</h2>
+                        <div className="mb-3 flex items-start justify-between gap-3">
+                          <h2 className="font-display font-bold">{q.title}</h2>
+                          <label className="flex shrink-0 items-center gap-1.5 text-sm">
+                            <input
+                              type="number"
+                              min={0}
+                              max={q.points}
+                              step={0.5}
+                              inputMode="decimal"
+                              aria-label={`Erreichte Punkte für ${q.title}`}
+                              value={selfScore[q.id] ?? ""}
+                              onChange={(e) => {
+                                const v = Number(e.target.value);
+                                setSelfScore((s) => ({
+                                  ...s,
+                                  [q.id]: Number.isFinite(v) ? Math.max(0, Math.min(q.points, v)) : 0,
+                                }));
+                              }}
+                              className="border-input w-16 rounded-lg border bg-card px-2 py-1 text-right tabular-nums"
+                            />
+                            <span className="text-muted-foreground">/ {q.points}</span>
+                          </label>
+                        </div>
                         <div className="mb-3">
                           <p className="text-muted-foreground mb-1 text-xs font-semibold tracking-wide uppercase">
                             {m.yourAnswer}
@@ -215,13 +331,15 @@ export default function ExamPage() {
                             {(answers[q.id] ?? "").trim() || "—"}
                           </p>
                         </div>
-                        <div className="border-mastered/30 bg-mastered/5 rounded-lg border p-3">
-                          <p className="text-mastered mb-1.5 flex items-center gap-1.5 text-xs font-semibold tracking-wide uppercase">
-                            <Check className="size-3.5" />
-                            {m.correction}
-                          </p>
-                          <MarkdownContent content={q.solution.replace(/\n/g, "\n\n")} className="text-foreground" />
-                        </div>
+                        {q.solution && (
+                          <div className="border-mastered/30 bg-mastered/5 rounded-lg border p-3">
+                            <p className="text-mastered mb-1.5 flex items-center gap-1.5 text-xs font-semibold tracking-wide uppercase">
+                              <Check className="size-3.5" />
+                              {m.correction}
+                            </p>
+                            <MarkdownContent content={q.solution.replace(/\n/g, "\n\n")} className="text-foreground" />
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   ))}
@@ -243,5 +361,34 @@ export default function ExamPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+/** D'où vient cette Klausur — dit franchement, y compris quand c'est l'exemple. */
+function SheetOrigin({ sheet }: { sheet: ExamSheet }) {
+  if (!sheet.generated) {
+    return (
+      <p className="bg-learning/10 text-foreground mb-4 rounded-xl px-3 py-2 text-sm">
+        Beispielklausur — deine eigene Klausur konnte gerade nicht erstellt werden.
+      </p>
+    );
+  }
+  if (!sheet.styleSource) {
+    return (
+      <p className="text-muted-foreground mb-4 text-sm">
+        Keine Altklausur gefunden – Standardformat einer Hochschulklausur.
+      </p>
+    );
+  }
+  return (
+    <span
+      title={sheet.styleSource.title}
+      className="mb-4 inline-flex max-w-full rotate-[-1.5deg] items-center gap-1.5 rounded-md border-[3px] border-double border-[#1D4ED8]/80 px-2.5 py-1 font-mono text-[11px] font-bold tracking-wide text-[#1D4ED8]/85 uppercase"
+    >
+      <FileCheck className="size-3.5 shrink-0" />
+      <span className="truncate">
+        Basiert auf deiner Altklausur · <span className="normal-case">{sheet.styleSource.title}</span>
+      </span>
+    </span>
   );
 }
