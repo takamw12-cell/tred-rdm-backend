@@ -9,16 +9,21 @@ import { stripLoneSurrogateEscapes } from "../lib/unicode-safe";
  * par U+FFFD ici, quel que soit le chemin qui l'a introduite.
  * Voir lib/unicode-safe.ts (incident du 5 novembre 2026).
  */
-const safeFetch: typeof fetch = (input, init) => {
-  if (init && typeof init.body === "string") {
-    const body = stripLoneSurrogateEscapes(init.body);
-    if (body !== init.body) {
-      console.warn("[gateway] moitié de caractère Unicode retirée de la requête");
-      init = { ...init, body };
+// `typeof fetch` sous Bun exige aussi `fetch.preconnect` : on part du fetch
+// d'origine (qui l'a) et on ne remplace que l'appel.
+const safeFetch: typeof fetch = Object.assign(
+  (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+    if (init && typeof init.body === "string") {
+      const body = stripLoneSurrogateEscapes(init.body);
+      if (body !== init.body) {
+        console.warn("[gateway] moitié de caractère Unicode retirée de la requête");
+        init = { ...init, body };
+      }
     }
-  }
-  return fetch(input, init);
-};
+    return fetch(input, init);
+  },
+  { preconnect: fetch.preconnect },
+);
 
 const anthropic = createAnthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,

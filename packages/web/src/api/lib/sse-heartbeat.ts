@@ -34,7 +34,7 @@ export function withSseHeartbeat(
 
   const body = new ReadableStream<Uint8Array>({
     start(controller) {
-      reader = upstream.getReader();
+      reader = upstream.getReader() as ReadableStreamDefaultReader<Uint8Array>;
       timer = setInterval(() => {
         if (atBoundary && Date.now() - lastWrite >= intervalMs) {
           try {

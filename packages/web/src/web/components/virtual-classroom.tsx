@@ -111,11 +111,12 @@ function Sidebar() {
 
       <nav className="flex flex-col gap-1">
         {NAV.map(({ icon: Icon, label, active }) => (
-          <a
+          <button
             key={label}
-            href="#"
+            type="button"
+            aria-current={active ? "page" : undefined}
             className={cn(
-              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+              "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors",
               active
                 ? "bg-[#EAB308] text-[#0F172A] shadow-[0_6px_20px_-8px_rgb(234_179_8/0.7)]"
                 : "text-white/70 hover:bg-white/10 hover:text-white",
@@ -123,18 +124,18 @@ function Sidebar() {
           >
             <Icon className="size-4" />
             {label}
-          </a>
+          </button>
         ))}
       </nav>
 
       <div className="mt-auto">
-        <a
-          href="#"
-          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-white/70 hover:bg-white/10 hover:text-white"
+        <button
+          type="button"
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-white/70 hover:bg-white/10 hover:text-white"
         >
           <Settings className="size-4" />
           Paramètres
-        </a>
+        </button>
         <div className="mt-4 flex items-center gap-3 rounded-xl bg-white/5 px-3 py-3 ring-1 ring-white/5">
           <span className="flex size-8 items-center justify-center rounded-full bg-white/15 text-xs font-semibold">
             RE

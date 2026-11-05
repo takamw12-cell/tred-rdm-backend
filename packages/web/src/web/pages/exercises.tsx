@@ -59,11 +59,12 @@ export default function ExercisesPage() {
       <PageHeader title={t("exercises.title")} subtitle={t("exercises.subtitle")} />
 
       {/* Tabs */}
-      <div className="bg-secondary mb-6 flex w-fit gap-0.5 rounded-xl p-0.5">
+      {/* Mobile : trois colonnes égales qui tiennent dans 390 px ; bureau : largeur naturelle. */}
+      <div className="bg-secondary mb-6 grid w-full grid-cols-3 gap-0.5 rounded-xl p-0.5 sm:flex sm:w-fit">
         <button
           onClick={() => setTab("generator")}
           className={cn(
-            "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+            "flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-center text-xs font-medium transition-colors sm:px-3 sm:text-sm",
             tab === "generator" ? "bg-background shadow-sm" : "text-muted-foreground",
           )}
         >
@@ -73,7 +74,7 @@ export default function ExercisesPage() {
         <button
           onClick={() => setTab("klausuren")}
           className={cn(
-            "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+            "flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-center text-xs font-medium transition-colors sm:px-3 sm:text-sm",
             tab === "klausuren" ? "bg-background shadow-sm" : "text-muted-foreground",
           )}
         >
@@ -83,7 +84,7 @@ export default function ExercisesPage() {
         <button
           onClick={() => setTab("saved")}
           className={cn(
-            "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+            "flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-center text-xs font-medium transition-colors sm:px-3 sm:text-sm",
             tab === "saved" ? "bg-background shadow-sm" : "text-muted-foreground",
           )}
         >
