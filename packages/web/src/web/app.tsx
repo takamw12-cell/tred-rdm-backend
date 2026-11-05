@@ -1,6 +1,7 @@
 import { Route, Switch, Redirect, useSearch } from "wouter";
 import LegalPage from "@/pages/legal";
 import LandingPage from "@/pages/landing";
+import VirtualClassroom from "@/components/virtual-classroom";
 import ResetPasswordPage from "@/pages/reset-password";
 import { ErrorBoundary, installGlobalErrorReporting } from "@/components/error-boundary";
 import { Loader2 } from "lucide-react";
@@ -117,6 +118,8 @@ function App() {
         <Route path="/reset-password" component={ResetPasswordPage} />
         {/* Page de vente : publique, un visiteur sans compte doit la voir. */}
         <Route path="/landing" component={LandingPage} />
+        {/* TEMPORAIRE : maquette « Digitaler Hörsaal », sans données. */}
+        <Route path="/classroom" component={VirtualClassroom} />
         <Route>
           <Gate />
         </Route>
