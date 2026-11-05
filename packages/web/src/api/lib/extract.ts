@@ -1,4 +1,5 @@
 import { extractText, getDocumentProxy, renderPageAsImage } from "unpdf";
+import { mathpixConfigured, mathpixOcr } from "./mathpix";
 import { generateText } from "ai";
 import { unzipSync, strFromU8 } from "fflate";
 import { gateway } from "../agent/gateway";
@@ -170,7 +171,31 @@ function extractPptx(bytes: Uint8Array): ExtractedDoc {
 
 // ── Bilder ─────────────────────────────────────────────────────────────────
 
+/** Formats que Mathpix lit directement ; il reçoit au plus 8 Mo. */
+const MATHPIX_TYPES = new Set(["image/png", "image/jpeg"]);
+const MATHPIX_MAX_BYTES = 8 * 1024 * 1024;
+
+/**
+ * Photo d'exercice ou de tableau → texte + LaTeX.
+ *
+ * Mathpix d'abord (quand MATHPIX_APP_ID/KEY sont posés) : c'est un OCR fait
+ * pour les formules, il rend du LaTeX exact là où une transcription
+ * générale approxime les indices et les fractions. Claude Vision reste le
+ * filet : sans clé, sur un format que Mathpix ne lit pas, en cas d'erreur,
+ * ou s'il ne trouve presque rien (photo de schéma sans texte).
+ */
 async function extractImage(bytes: Uint8Array, mediaType: string): Promise<ExtractedDoc> {
+  if (mathpixConfigured() && MATHPIX_TYPES.has(mediaType) && bytes.byteLength <= MATHPIX_MAX_BYTES) {
+    try {
+      const dataUrl = `data:${mediaType};base64,${Buffer.from(bytes).toString("base64")}`;
+      const { text } = await mathpixOcr(dataUrl);
+      if (text.trim().length >= 40) {
+        return { text: `[[SEITE 1]]\n${cleanPage(text)}`, pageCount: 1, ocr: true };
+      }
+    } catch (err) {
+      console.warn("[extract] Mathpix indisponible, repli sur la vision :", err instanceof Error ? err.message : err);
+    }
+  }
   const text = await visionTranscribe(bytes, mediaType);
   return { text: `[[SEITE 1]]\n${cleanPage(text)}`, pageCount: 1, ocr: true };
 }

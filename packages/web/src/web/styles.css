@@ -480,6 +480,45 @@ html:lang(ar) body { line-height: 1.7; }
   -webkit-backdrop-filter: blur(14px) saturate(1.2);
   backdrop-filter: blur(14px) saturate(1.2);
   border-color: rgb(255 255 255 / 0.6);
+  /* Profondeur du Hörsaal : la carte avance hors de la photo, comme le
+     tableau hors du mur — ombre longue et douce + liseré de lumière. */
+  box-shadow:
+    0 44px 80px -28px rgb(15 23 42 / 0.6),
+    0 18px 34px -16px rgb(15 23 42 / 0.32),
+    0 0 0 1px rgb(255 255 255 / 0.35),
+    inset 0 1px 0 rgb(255 255 255 / 0.85);
+}
+
+/* Une feuille posée sur la Tafel (exercice généré) : papier opaque, aimant
+   jaune, légère inclinaison — la même que dans le Hörsaal. */
+.glass-scope [data-slot="card"].paper-sheet {
+  position: relative;
+  background-color: #fffdf6;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-color: transparent;
+  border-radius: 4px;
+  transform: rotate(-0.3deg);
+  box-shadow:
+    0 1px 1px rgb(15 23 42 / 0.08),
+    0 26px 44px -20px rgb(15 23 42 / 0.5),
+    0 6px 12px -6px rgb(15 23 42 / 0.18);
+}
+.glass-scope [data-slot="card"].paper-sheet::before {
+  content: "";
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  width: 28px;
+  height: 28px;
+  translate: -50% 0;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 35% 30%, #fde68a, #eab308 55%, #a16207);
+  box-shadow: 0 4px 8px rgb(0 0 0 / 0.35);
+}
+@media print {
+  .glass-scope [data-slot="card"].paper-sheet { transform: none; box-shadow: none; }
+  .glass-scope [data-slot="card"].paper-sheet::before { display: none; }
 }
 /* Barre latérale, bulles du tuteur, pastilles : le même verre, posé à la main
    (classe `.glass` / `.glass-chip`) là où ce ne sont pas des ui/card. */

@@ -1,6 +1,6 @@
 /**
  * Mathpix Convert API — OCR des formules (photo d'un exercice → LaTeX/Markdown).
- * SQUELETTE : aucune route ne l'appelle encore. Sans clés, lève NotConfigured.
+ * Branchée sur l'import de documents (lib/extract.ts, photos PNG/JPEG). Sans clés, lève NotConfigured.
  *
  * Doc : https://docs.mathpix.com  ·  Prix : https://mathpix.com/pricing/api
  * Coût indicatif : 19,99 $ de frais d'activation (une fois), puis ~0,002 $/image.

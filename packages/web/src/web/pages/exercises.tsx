@@ -523,14 +523,16 @@ function ExerciseResult({
 
   return (
     <Reveal>
-      <Card>
-        <CardContent className="space-y-4 pt-0">
+      <Card className="paper-sheet">
+        <CardContent className="space-y-4 pt-4">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-muted-foreground text-xs font-semibold uppercase tracking-wide">
                 {heading}
               </p>
-              <h2 className="font-display text-lg font-bold">{result.title}</h2>
+              <h2 className="font-hand text-3xl leading-tight font-bold text-[#1B2A4A]">
+                {result.title}
+              </h2>
               {meta && <p className="text-muted-foreground text-xs">{meta}</p>}
               {/* « Typiquement comme le prof » : l'origine du style, dite
                   franchement — y compris quand il n'y avait rien. */}
@@ -617,16 +619,18 @@ function StyleBadge({ source }: { source: GeneratedExercise["styleSource"] }) {
       <p className="text-muted-foreground mt-1.5 text-xs">{t("exercises.styleStandard")}</p>
     );
   }
+  // Un tampon encreur, comme « Berechnet mit dem Löser » au Hörsaal : le
+  // style vient d'un vrai document du prof, et ça se voit.
   return (
     <span
       title={source.title}
-      className="bg-accent border-signature/60 mt-1.5 inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium"
+      className="mt-2 inline-flex max-w-full rotate-[-2deg] items-center gap-1.5 rounded-md border-[3px] border-double border-[#1D4ED8]/80 px-2.5 py-1 font-mono text-[11px] font-bold tracking-wide text-[#1D4ED8]/85 uppercase [mask-image:radial-gradient(circle_at_30%_40%,#000_55%,rgb(0_0_0/0.78)_75%,#000_100%)]"
     >
       <FileCheck className="size-3.5 shrink-0" />
       <span className="truncate">
         {t(source.kind === "klausur" ? "exercises.styleFromKlausur" : "exercises.styleFromUebung")}
         {" · "}
-        {source.title}
+        <span className="normal-case">{source.title}</span>
       </span>
     </span>
   );
