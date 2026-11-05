@@ -137,6 +137,15 @@ startEveningReminder();
 // limités : le premier sert aux sondes Railway, le deuxième vient de Stripe
 // et doit toujours passer, le troisième est déjà borné par les quotas.
 app.use("/api/auth/*", rateLimitMiddleware({ limit: 10, scope: "auth" }));
+// Connexion / inscription / mot de passe : compteur par IP SEULEMENT. Le cookie
+// n'y est vérifié par personne, donc un cookie forgé à chaque essai donnait un
+// compteur neuf (bruteforce illimité). get-session reste sur la règle ci-dessus
+// pour ne pas bloquer une Lerngruppe derrière le NAT du campus.
+for (const p of ["/api/auth/sign-in/*", "/api/auth/sign-up/*", "/api/auth/forget-password", "/api/auth/request-password-reset", "/api/auth/reset-password"]) {
+  app.use(p, rateLimitMiddleware({ limit: 20, scope: "auth-cred", by: "ip" }));
+}
+// Rapports d'erreurs du navigateur : publics, donc bornés (anti-spam de logs).
+app.use("/api/errors", rateLimitMiddleware({ limit: 20, scope: "errors", by: "ip" }));
 app.use("/api/agent/*", rateLimitMiddleware({ limit: 5, scope: "agent" }));
 app.use(
   "/api/documents/upload",
@@ -1568,34 +1577,6 @@ app.post("/api/youtube/search", async (c) => {
 // Compile a ```tikz block into an SVG. The tutor emits TikZ for exam-style
 // statics schemas (beams, supports, distributed loads, dimensions) that
 // mermaid/chart cannot draw. Result is cached by content hash server-side.
-// Passende Erklärvideos (Studyflix, simpleclub, Uni-Kanäle …) zum aktuellen
-// Chat-Thema. Ergänzt das generierte Erklärvideo: manchmal will man einfach
-// sehen, wie es jemand anders erklärt. Der API-Key bleibt serverseitig, die
-// Ergebnisse werden zwischengespeichert (siehe ./lib/youtube).
-app.post("/api/youtube/search", async (c) => {
-  const session = await auth.api.getSession({ headers: c.req.raw.headers });
-  if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);
-
-  let body: { topic?: string; locale?: string };
-  try {
-    body = (await c.req.json()) as { topic?: string; locale?: string };
-  } catch {
-    return c.json({ error: "invalid body" }, 400);
-  }
-
-  const result = await searchYoutube(
-    String(body.topic ?? "").slice(0, 4000),
-    String(body.locale ?? "de"),
-  );
-
-  if (!result.ok) {
-    const status = result.code === "not_configured" ? 503 : result.code === "quota" ? 429 : 502;
-    return c.json({ error: result.code }, status);
-  }
-
-  return c.json({ query: result.query, hits: result.hits, cached: result.cached });
-});
-
 app.post("/api/tikz/render", async (c) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);

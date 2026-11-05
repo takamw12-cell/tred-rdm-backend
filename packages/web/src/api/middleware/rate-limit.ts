@@ -28,6 +28,13 @@ export interface RateLimitOptions {
   /** Préfixe de clé — sépare les compteurs de deux règles différentes. */
   scope: string;
   windowMs?: number;
+  /**
+   * "ip" : ignorer le cookie de session. Obligatoire sur /api/auth/* — là, le
+   * cookie n'est vérifié par personne avant la tentative de connexion : un
+   * attaquant qui forge un cookie différent à chaque essai aurait un compteur
+   * neuf à chaque fois (bruteforce de mot de passe sans limite).
+   */
+  by?: "session" | "ip";
 }
 
 /**
@@ -43,10 +50,10 @@ export interface RateLimitOptions {
  * échapper au compteur ; il tombera alors sur le 401 de la route, qui ne
  * coûte qu'une lecture, jamais un appel au modèle. La dépense reste protégée.
  */
-function callerKey(headers: Headers): string {
+function callerKey(headers: Headers, by: "session" | "ip" = "session"): string {
   const cookie = headers.get("cookie") ?? "";
   const match = cookie.match(/(?:better-auth\.)?session[_.-]?token=([^;]+)/i);
-  if (match?.[1]) return `s:${fingerprint(match[1])}`;
+  if (by === "session" && match?.[1]) return `s:${fingerprint(match[1])}`;
 
   // Railway place l'IP du client en tête de x-forwarded-for.
   const xff = headers.get("x-forwarded-for") ?? "";
@@ -120,7 +127,7 @@ export function rateLimitMiddleware(opts: RateLimitOptions): MiddlewareHandler {
   return async (c, next) => {
     const now = Date.now();
     const windowStart = Math.floor(now / windowMs) * windowMs;
-    const key = `${opts.scope}:${callerKey(c.req.raw.headers)}`;
+    const key = `${opts.scope}:${callerKey(c.req.raw.headers, opts.by)}`;
 
     let count: number;
     try {
