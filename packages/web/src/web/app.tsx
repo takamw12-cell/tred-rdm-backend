@@ -51,6 +51,7 @@ const PricingPage = lazyPage(() => import("./pages/pricing"));
 const CreditsPage = lazyPage(() => import("./pages/credits"));
 const CoursesPage = lazyPage(() => import("./pages/courses"));
 const AdminPage = lazyPage(() => import("./pages/admin"));
+const ProfessorsPage = lazyPage(() => import("./pages/professors"));
 
 function RootRedirect() {
   const onboarded = useUserStore((s) => s.onboarded);
@@ -101,6 +102,7 @@ function AuthedApp() {
                 révise, et qui veut dix questions ce soir — pas un abonnement. */}
             <Route path="/credits" component={CreditsPage} />
             <Route path="/courses" component={CoursesPage} />
+            <Route path="/professors" component={ProfessorsPage} />
             {/* Serverseitig durch die Admin-Rolle geschützt, nicht durch Verstecken. */}
             <Route path="/admin" component={AdminPage} />
             <Route component={RootRedirect} />

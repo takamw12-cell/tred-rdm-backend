@@ -15,6 +15,8 @@ import {
   BookOpen,
 } from "lucide-react";
 import { LearningStylePicker } from "@/components/learning-style-picker";
+import { ProfessorPicker } from "@/components/professor-picker";
+import { professorUi } from "@/lib/professors";
 import { StudiengangPicker } from "@/components/studiengang-picker";
 import { Button } from "@/components/ui/button";
 import {
@@ -142,7 +144,7 @@ function Choice<T extends string>({
 }
 
 export default function SettingsPage() {
-  const { t } = useT();
+  const { t, locale } = useT();
   const [, setLocation] = useLocation();
 
   const theme = useThemeStore((s) => s.theme);
@@ -278,6 +280,14 @@ export default function SettingsPage() {
         <Row label={t("settings.studiengangLabel")} description={t("settings.studiengangDesc")}>
           <StudiengangPicker />
         </Row>
+      </Section>
+
+      <Section
+        icon={<GraduationCap className="size-4" />}
+        title={professorUi(locale).section}
+        description={professorUi(locale).sectionDesc}
+      >
+        <ProfessorPicker />
       </Section>
 
       <Section

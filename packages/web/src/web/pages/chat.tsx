@@ -49,6 +49,7 @@ import { readChatFailure } from "@/lib/chat-error";
 import { QuotaBanner } from "@/components/quota-banner";
 import { creditsMeKey } from "@/queries/credits";
 import { Link } from "wouter";
+import { Repeat2 } from "lucide-react";
 import { VideoExplainer, type VideoScript } from "@/components/video-explainer";
 import {
   VideoSearch,
@@ -65,6 +66,9 @@ import { usePreferencesStore } from "@/stores/preferences";
 import { DocumentLibrary } from "@/components/document-library";
 import { Button } from "@/components/ui/button";
 import { LogoMark } from "@/components/logo";
+import { ProfessorStrip, ROOM_BG } from "@/components/hoersaal";
+import { ProfessorPortrait } from "@/components/professor-portrait";
+import { professorText, professorUi, useProfessor } from "@/lib/professors";
 import { client } from "@/lib/api";
 import { useSemesterStore } from "@/stores/semester";
 import { useReconciledSemester } from "@/hooks/use-reconciled-semester";
@@ -142,6 +146,8 @@ export default function ChatPage() {
    * prévient ses abonnés.
    */
   const { t, locale } = useT();
+  // Le professeur choisi dans le vestiaire : son visage, son nom, son ton.
+  const professor = useProfessor();
 
   // ── A single selected document (null = whole scope: semester or all courses). ─
   const [activeDoc, setActiveDoc] = useState<{ id: string; title: string } | null>(null);
@@ -1573,16 +1579,40 @@ export default function ChatPage() {
         {/* Tuteur Actif : la Tafel à gauche (en haut sur mobile), le
             Professeur à droite. Sans étape au tableau, la page reste le chat
             habituel sur toute la largeur. */}
-        <div className={cn("flex min-h-0 flex-1 flex-col", activeBoard && "lg:flex-row")}>
-        {activeBoard && (
-          <div className="border-border max-h-[55vh] shrink-0 overflow-y-auto border-b p-3 sm:p-4 lg:max-h-none lg:w-[58%] lg:border-r lg:border-b-0 lg:p-5">
-            <TafelBoard
-              steps={activeBoard.steps}
-              solverUsed={activeBoard.solverUsed}
-              writing={busy && activeBoardId === lastMsg?.id}
-            />
-          </div>
-        )}
+        <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        {/* Le Hörsaal : la Tafel en verre, dans la salle sombre. Toujours là
+            sur grand écran (vide, elle invite à poser la question) ; sur
+            mobile, seulement quand le professeur a écrit quelque chose. */}
+        <div
+          className={cn(
+            "shrink-0 flex-col p-3 sm:p-4 lg:flex lg:w-[58%] lg:p-6",
+            ROOM_BG,
+            activeBoard ? "flex h-[55vh] lg:h-auto" : "hidden",
+          )}
+        >
+          <TafelBoard
+            steps={activeBoard?.steps ?? []}
+            solverUsed={activeBoard?.solverUsed ?? false}
+            writing={busy && activeBoardId === lastMsg?.id}
+          />
+        </div>
+        {/* Le Professeur : son portrait, sa parole, et ta réponse. */}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <ProfessorStrip
+          professor={professor}
+          subtitle={professorText(professor.title, locale)}
+          status={busy ? t("tafel.writing") : undefined}
+          action={
+            <Link
+              href="/professors"
+              title={professorUi(locale).change}
+              aria-label={professorUi(locale).change}
+              className="relative grid size-9 shrink-0 place-items-center rounded-lg text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <Repeat2 className="size-4" />
+            </Link>
+          }
+        />
         <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto">
           <div
             className={cn(
@@ -1738,7 +1768,6 @@ export default function ChatPage() {
               </div>
             )}
           </div>
-        </div>
         </div>
 
         {/* Composer */}
@@ -1925,6 +1954,8 @@ export default function ChatPage() {
             )}
           </div>
         </div>
+        </div>
+        </div>
       </div>
 
       {/* Scratchpad — desktop side panel (~40% → chat keeps ~60%) */}
@@ -2083,6 +2114,7 @@ function MessageBubble({
   };
 }) {
   const isUser = role === "user";
+  const professorForBubble = useProfessor();
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -2096,13 +2128,19 @@ function MessageBubble({
             {youLabel[0]}
           </span>
         ) : (
-          <LogoMark className="size-8" />
+          // Le professeur choisi parle, pas un logo.
+          <span
+            title={aiLabel}
+            className="block size-8 overflow-hidden rounded-full text-sm ring-2 ring-[#EAB308]/70"
+          >
+            <ProfessorPortrait professor={professorForBubble} />
+          </span>
         )}
       </div>
       <div className={cn("min-w-0 max-w-[92%]", isUser && "flex flex-col items-end")}>
         <div className="mb-1 flex items-center gap-2">
           <p className="text-muted-foreground text-xs font-semibold">
-            {isUser ? youLabel : aiLabel}
+            {isUser ? youLabel : professorForBubble.name}
           </p>
           {/* Lecture à voix haute — une fois la réponse complète (showActions
               est faux pendant la génération). */}

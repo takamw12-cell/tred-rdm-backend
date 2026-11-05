@@ -5,6 +5,7 @@ import { gateway } from "./agent/gateway";
 import { createApp } from "./__core/app";
 import { registerAvatarRoutes } from "./avatar/routes";
 import { registerMediaRoutes } from "./media/routes";
+import { readProfessor } from "./lib/professor-store";
 import { generateMedia, replicateConfigured } from "./lib/replicate-media";
 import { ping } from "./routes/ping";
 import { documents } from "./routes/documents";
@@ -645,9 +646,12 @@ app.post("/api/agent/messages", async (c) => {
   const gaps = await openGaps(uid);
   // Style VARK choisi dans les réglages. Ne lève jamais (→ « interactive »).
   const learningStyle = await readLearningStyle(uid);
+  // Professeur choisi (vestiaire). Ne lève jamais (→ « genius »).
+  const professor = await readProfessor(uid);
 
   const agent = buildTutorAgent({
     learningStyle,
+    professor,
     sources,
     // L'inventaire complet, pas seulement les extraits retenus. `sources` peut
     // n'en contenir que cinq sur neuf selon la question ; sans cette liste, le

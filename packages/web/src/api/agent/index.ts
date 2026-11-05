@@ -7,6 +7,7 @@ import { renderDiagram, type DiagramSpec } from "../lib/diagrams";
 import type { Passage } from "../lib/document-search";
 import { ageLabel } from "../lib/memory-text";
 import { DEFAULT_LEARNING_STYLE, type LearningStyle } from "../lib/learning-style";
+import { DEFAULT_PROFESSOR, PROFESSORS, type ProfessorId } from "../lib/professors";
 import dedent from "dedent";
 import { gateway } from "./gateway";
 
@@ -98,8 +99,22 @@ const LEARNING_STYLE_RULES: Record<LearningStyle, string[]> = {
   ],
 };
 
-function buildMemoryBlock(memory?: TutorMemory, learningStyle: LearningStyle = DEFAULT_LEARNING_STYLE): string {
+function buildMemoryBlock(
+  memory?: TutorMemory,
+  learningStyle: LearningStyle = DEFAULT_LEARNING_STYLE,
+  professor: ProfessorId = DEFAULT_PROFESSOR,
+): string {
+  // Personnalité du professeur choisi : le TON, jamais l'exactitude.
+  const personaLines = [
+    "DEINE ROLLE (vom Studierenden gewählter Professor):",
+    ...PROFESSORS[professor].persona,
+    "- Die Rolle bestimmt den TON, nie den Inhalt: Richtigkeit, Werkzeuge,",
+    "  Tafel-Format und Sprache gehen immer vor. Bleib in der Rolle, ohne sie",
+    "  zu kommentieren.",
+    "",
+  ];
   const styleLines = [
+    ...personaLines,
     "WIE DIESE PERSON AM BESTEN LERNT (in den Einstellungen gewählt):",
     ...LEARNING_STYLE_RULES[learningStyle],
     "- Der Lernstil bestimmt die FORM, nie die Richtigkeit: Werkzeugpflicht,",
@@ -177,8 +192,10 @@ export function buildTutorAgent(opts: {
   codeLang?: string;
   /** Mémoire du tuteur. Absente = comportement d'avant, sans diagnostic. */
   memory?: TutorMemory;
-  /** Style d'apprentissage VARK (réglages). Absent = « balanced ». */
+  /** Style d'apprentissage VARK (réglages). Absent = « interactive ». */
   learningStyle?: LearningStyle;
+  /** Professeur choisi (lib/professors.ts). Absent = « genius ». */
+  professor?: ProfessorId;
   /**
    * La recherche dans TOUT le cours, pas seulement dans les extraits retenus.
    *
@@ -194,7 +211,7 @@ export function buildTutorAgent(opts: {
   media?: (input: { prompt: string; type: "image" | "video"; dauer?: number }) => Promise<unknown>;
 }) {
   const rule = langRule(opts.locale);
-  const memoryBlock = buildMemoryBlock(opts.memory, opts.learningStyle);
+  const memoryBlock = buildMemoryBlock(opts.memory, opts.learningStyle, opts.professor);
   const lang = rule.label;
   const student = opts.studentName?.trim() || null;
   const uni = opts.university?.trim() || "FH Aachen";

@@ -155,6 +155,12 @@ Au lancement, Claude Code te demandera d'approuver le serveur `figma` du projet 
 
 *Alternative sans token : le serveur officiel de Figma via OAuth, `claude mcp add --transport http figma-official https://mcp.figma.com/mcp`, puis autorise dans le navigateur.*
 
+### 4.3 ter — Activer le vestiaire des professeurs (JUSTE APRÈS LE DÉPLOIEMENT)
+```powershell
+node C:\dev\tred-rdm\aerostudy-ai\migre-professeur.mjs
+```
+Ajoute la colonne `professor_id`. Tant qu'elle manque, le choix du professeur échoue (avec un message), le tuteur garde « Prof. Kenta », et l'export RGPD des données échoue.
+
 ### 4.3 bis — Passer les comptes existants en style « Interaktiv » (une fois)
 Les nouveaux comptes sont déjà en « Interaktiv ». Pour les comptes existants encore en « Ausgewogen » :
 ```powershell

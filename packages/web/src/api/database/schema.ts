@@ -398,6 +398,8 @@ export const userAccess = sqliteTable("user_access", {
   // Steuert, WIE der Tutor erklärt — nicht, WAS er erklärt. Hier und nicht in
   // `user`, aus demselben Grund wie `locale`. Migration: migre-learning-style.mjs
   learningStyle: text("learning_style").notNull().default("interactive"),
+    // Professeur choisi (lib/professors.ts). Ajoutée par migre-professeur.mjs.
+    professorId: text("professor_id").notNull().default("genius"),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

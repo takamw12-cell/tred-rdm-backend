@@ -10,6 +10,8 @@ import { getStripe } from "../lib/stripe";
 import { getPlanRow } from "../lib/billing";
 import { DEFAULT_LEARNING_STYLE, LEARNING_STYLES } from "../lib/learning-style";
 import { readLearningStyle } from "../lib/learning-style-store";
+import { PROFESSOR_IDS } from "../lib/professors";
+import { readProfessor } from "../lib/professor-store";
 
 /**
  * Konto: Sprache, Auskunft, Löschung.
@@ -79,6 +81,30 @@ export const account = {
           set: { learningStyle: input.learningStyle, updatedAt: new Date() },
         });
       return { learningStyle: input.learningStyle };
+    }),
+
+  /** Gewählter Professor (lib/professors.ts). `genius`, solange nichts gewählt wurde. */
+  getProfessor: authed.handler(async ({ context }) => ({
+    professorId: await readProfessor(context.user.id),
+  })),
+
+  /** Professor setzen. Der Tutor liest ihn bei jeder Nachricht neu. */
+  setProfessor: authed
+    .input(z.object({ professorId: z.enum(PROFESSOR_IDS) }))
+    .handler(async ({ input, context }) => {
+      await db
+        .insert(userAccess)
+        .values({
+          userId: context.user.id,
+          professorId: input.professorId,
+          isActive: true,
+          learningStyle: DEFAULT_LEARNING_STYLE,
+        })
+        .onConflictDoUpdate({
+          target: userAccess.userId,
+          set: { professorId: input.professorId, updatedAt: new Date() },
+        });
+      return { professorId: input.professorId };
     }),
 
   /** DSGVO Art. 15 & 20 — Auskunft und Datenübertragbarkeit. */
