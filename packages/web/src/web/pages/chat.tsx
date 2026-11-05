@@ -89,6 +89,7 @@ import {
   chatRestoreManyOptions,
   chatPurgeManyOptions,
 } from "@/queries/chats";
+import { startHoersaalTimer } from "@/lib/analytics";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
 
@@ -305,6 +306,9 @@ export default function ChatPage() {
   const [chatSubject, setChatSubject] = useState<string | null>(null);
   const { data: subjectData } = useQuery(subjectsListOptions(semesterId));
   const chatSubjects = subjectData?.subjects ?? [];
+  // Temps passé dans le Hörsaal (analyse, seulement avec consentement).
+  useEffect(() => startHoersaalTimer(), []);
+
   useEffect(() => {
     setChatSubject(null);
   }, [semesterId]);
@@ -1588,7 +1592,10 @@ export default function ChatPage() {
         {/* Tuteur Actif : la Tafel à gauche (en haut sur mobile), le
             Professeur à droite. Sans étape au tableau, la page reste le chat
             habituel sur toute la largeur. */}
-        <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        {/* data-ph-mask + ph-no-capture : la Tafel, les messages et la saisie
+            ne partent JAMAIS dans l'analyse (texte masqué dans les
+            enregistrements, aucun clic capturé avec son texte). */}
+        <div data-ph-mask className="ph-no-capture flex min-h-0 flex-1 flex-col lg:flex-row">
         {/* Le Hörsaal : la Tafel en verre, dans la salle sombre. Toujours là
             sur grand écran (vide, elle invite à poser la question) ; sur
             mobile, seulement quand le professeur a écrit quelque chose. */}

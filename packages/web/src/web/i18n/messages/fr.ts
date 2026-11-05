@@ -410,6 +410,16 @@ export const fr: Messages = {
     sourceNotFound: "Le passage cité est introuvable dans le document.",
     page: "Page {page}",
   },
+  consent: {
+    title: "Autoriser l'analyse ?",
+    body: "Nous aimerions comprendre quelles fonctions t'aident (clics, pages, temps dans le Hörsaal) – pseudonyme, serveurs dans l'UE, tes chats et documents restent toujours masqués. Facultatif, révocable à tout moment.",
+    more: "Confidentialité",
+    allow: "Autoriser l'analyse",
+    deny: "Refuser",
+    revoke: "Retirer",
+    stateOn: "Autorisé – merci ! Tu peux retirer ton accord à tout moment.",
+    stateOff: "Désactivé – aucune donnée d'analyse n'est collectée.",
+  },
   auth: {
     verifyTitle: "Presque fini !",
     verifySent: "Nous t'avons envoyé un e-mail à {email}. Clique sur le lien qu'il contient : tu arriveras directement sur ton tableau de bord.",

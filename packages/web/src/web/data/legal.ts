@@ -121,7 +121,8 @@ Stimmst du Benachrichtigungen zu, speichern wir die Gerätekennung
 (Push-Token). Sie wird bei Abmeldung gelöscht.
 
 ### 2.7 E-Mails
-Für das Zurücksetzen des Passworts übermitteln wir deine E-Mail-Adresse und
+Für die Willkommens-E-Mail mit dem Bestätigungslink bei der Registrierung und
+für das Zurücksetzen des Passworts übermitteln wir deine E-Mail-Adresse und
 deinen Namen an Resend (USA), unseren Versanddienstleister.
 Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO.
 
@@ -137,6 +138,19 @@ Tritt im Browser ein Anzeigefehler auf, übermitteln wir die Fehlermeldung, die
 aufgerufene Adresse und die IP-Adresse an unser Server-Protokoll. Diese
 Protokolle dienen ausschließlich der Fehlersuche.
 Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO.
+
+### 2.10 Produkt-Analyse (nur mit Einwilligung)
+Nur wenn du im Hinweis „Analyse erlauben“ wählst, nutzen wir PostHog (PostHog
+Inc., Server in der EU/Frankfurt), um zu verstehen, welche Funktionen genutzt
+werden: aufgerufene Seiten, Klicks auf Bedienelemente, Verweildauer im
+Hörsaal, Schritte beim Dokument-Import und pseudonyme Sitzungsaufzeichnungen.
+In Aufzeichnungen sind ALLE Eingabefelder sowie Chat, Tafel und Dokumente
+maskiert; deine Fragen, Antworten und Dateien werden nicht erfasst. Verknüpft
+wird mit einer pseudonymen Konto-ID, nie mit Name oder E-Mail-Adresse.
+Ohne Einwilligung wird PostHog nicht geladen und nichts auf deinem Gerät
+gespeichert. Widerruf jederzeit: Einstellungen → Datenschutz.
+Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO, § 25 Abs. 1 TDDDG.
+Datenschutzerklärung von PostHog: https://posthog.com/privacy
 
 ## 3. Verarbeitung durch Künstliche Intelligenz
 

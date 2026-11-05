@@ -21,6 +21,7 @@ import {
   documentRemoveOptions,
 } from "@/queries/documents";
 import { semestersListKey } from "@/queries/semesters";
+import { track } from "@/lib/analytics";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
 
@@ -81,8 +82,14 @@ export function DocumentLibrary({
     setUploadError(null);
     const file = files?.[0];
     if (!file) return;
+    // Trichter « import » (analyse, seulement avec consentement) : jamais le
+    // nom du fichier, seulement son type et sa taille.
+    const ext = (file.name.match(/\.([a-z0-9]{1,5})$/i)?.[1] ?? "?").toLowerCase();
+    const sizeMb = Math.round(file.size / 100_000) / 10;
+    track("upload_started", { ext, sizeMb });
     if (!hasAcceptedExtension(file.name)) {
       setUploadError(t("library.onlyPdf"));
+      track("upload_failed", { ext, reason: "format" });
       return;
     }
 
@@ -102,6 +109,7 @@ export function DocumentLibrary({
 
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
+        track("upload_failed", { ext, reason: data.error ?? `http_${res.status}` });
         if (data.error === "unsupported_format") {
           setUploadError(t("library.onlyPdf"));
         } else if (data.error === "no_text") {
@@ -113,11 +121,13 @@ export function DocumentLibrary({
       }
 
       const { id } = (await res.json()) as { id: string };
+      track("upload_completed", { ext, sizeMb });
       await qc.invalidateQueries({ queryKey: documentsListKey() });
       await qc.invalidateQueries({ queryKey: semestersListKey() });
       onSelect(id, cleanTitle);
     } catch (err) {
       console.error("[upload] failed", err);
+      track("upload_failed", { ext, reason: "network" });
       const msg = err instanceof Error ? err.message : String(err);
       setUploadError(t("library.uploadFailed", { msg }));
     } finally {
@@ -151,7 +161,10 @@ export function DocumentLibrary({
           onChange={(e) => handleFiles(e.target.files)}
         />
         <Button
-          onClick={() => inputRef.current?.click()}
+          onClick={() => {
+            track("upload_opened");
+            inputRef.current?.click();
+          }}
           disabled={busy}
           className="brand-gradient h-10 w-full gap-2 text-sm font-semibold text-white"
         >

@@ -422,6 +422,16 @@ export const es: Messages = {
     sourceNotFound: "No se ha encontrado el pasaje citado en el documento.",
     page: "Página {page}",
   },
+  consent: {
+    title: "¿Permitir análisis?",
+    body: "Queremos entender qué funciones te ayudan (clics, páginas, tiempo en el aula) – seudónimo, servidores en la UE, tus chats y documentos siempre quedan ocultos. Opcional, revocable en cualquier momento.",
+    more: "Privacidad",
+    allow: "Permitir análisis",
+    deny: "Rechazar",
+    revoke: "Revocar",
+    stateOn: "Permitido – ¡gracias! Puedes revocarlo cuando quieras.",
+    stateOff: "Desactivado – no se recopilan datos de análisis.",
+  },
   auth: {
     verifyTitle: "¡Casi listo!",
     verifySent: "Te enviamos un correo a {email}. Haz clic en el enlace y llegarás directamente a tu panel.",

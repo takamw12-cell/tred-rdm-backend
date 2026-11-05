@@ -36,6 +36,7 @@ import { LIGHT_ONLY, useThemeStore, type Theme } from "@/stores/theme";
 import { useFontSizeStore, type FontSize } from "@/stores/font-size";
 import { useUserStore } from "@/stores/user";
 import { client } from "@/lib/api";
+import { AnalyticsToggle } from "@/components/analytics-consent";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
 
@@ -364,6 +365,9 @@ export default function SettingsPage() {
         title={t("settings.privacySection")}
         description={t("settings.privacyDesc")}
       >
+        <div className="border-border mb-5 border-b pb-5 empty:hidden">
+          <AnalyticsToggle />
+        </div>
         <div className="space-y-3">
           <p className="text-sm font-medium">{t("settings.deleteAccount")}</p>
           <p className="text-muted-foreground text-xs">

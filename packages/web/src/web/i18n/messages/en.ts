@@ -410,6 +410,16 @@ export const en: Messages = {
     sourceNotFound: "The cited passage could not be found in the document.",
     page: "Page {page}",
   },
+  consent: {
+    title: "Allow analytics?",
+    body: "We'd like to understand which features help you (clicks, pages, time in the lecture hall) – pseudonymous, EU servers, your chats and documents are always hidden. Optional, revocable at any time.",
+    more: "Privacy policy",
+    allow: "Allow analytics",
+    deny: "Decline",
+    revoke: "Revoke",
+    stateOn: "Allowed – thank you! You can revoke at any time.",
+    stateOff: "Off – no analytics data is collected.",
+  },
   auth: {
     verifyTitle: "Almost there!",
     verifySent: "We sent an email to {email}. Click the link inside and you will land straight in your dashboard.",

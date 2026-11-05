@@ -1,3 +1,5 @@
+import { initAnalytics } from "./analytics";
+
 /**
  * Monitoring front : Sentry (erreurs) et PostHog (analytics produit).
  *
@@ -7,9 +9,8 @@
  *
  * RGPD (utilisateurs en Allemagne) :
  *  - Sentry : dataCollection tout à false (ni utilisateur, cookies, en-têtes, corps).
- *  - PostHog : hébergement EU par défaut et capture DÉSACTIVÉE par défaut.
- *    Rien n'est envoyé tant que l'utilisateur n'a pas consenti
- *    (`posthog.opt_in_capturing()` à appeler depuis la bannière de consentement).
+ *  - PostHog : hébergement EU, chargé UNIQUEMENT après consentement explicite
+ *    (bannière components/analytics-consent.tsx, logique lib/analytics.ts).
  */
 
 export function initObservability() {
@@ -35,14 +36,6 @@ export function initObservability() {
     );
   }
 
-  const posthogKey = env.VITE_POSTHOG_KEY;
-  if (posthogKey) {
-    void import("posthog-js").then(({ default: posthog }) =>
-      posthog.init(posthogKey, {
-        api_host: env.VITE_POSTHOG_HOST || "https://eu.i.posthog.com",
-        person_profiles: "identified_only",
-        opt_out_capturing_by_default: true,
-      }),
-    );
-  }
+  // PostHog : chargé SEULEMENT après consentement (lib/analytics.ts).
+  initAnalytics();
 }

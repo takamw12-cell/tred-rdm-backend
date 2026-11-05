@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Ban, RotateCcw, Check, Flag } from "lucide-react";
+import { Loader2, Ban, RotateCcw, Check, Flag, BarChart3 } from "lucide-react";
+import { Link } from "wouter";
 import { PageContainer, PageHeader } from "@/components/page";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -143,6 +144,15 @@ export default function AdminPage() {
         title="Zugang"
         subtitle={`${users.length} Konten · ${active} aktiv · ${users.length - active} gesperrt`}
       />
+      <Link
+        href="/admin/analytics"
+        className="border-border hover:bg-muted mb-6 flex items-center justify-between rounded-lg border p-4 text-sm font-medium transition-colors"
+      >
+        <span className="flex items-center gap-2">
+          <BarChart3 className="text-primary size-4" /> Analytics — Registrierungen, Retention, Hörsaal, Klicks, Import
+        </span>
+        <span aria-hidden>→</span>
+      </Link>
 
       {/* ── Gemeldete Antworten ───────────────────────────────────────── */}
       {/* En tête de page, et pas en bas : c'est la seule section qui appelle

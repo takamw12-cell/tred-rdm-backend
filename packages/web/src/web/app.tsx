@@ -12,7 +12,9 @@ import { LogoMark } from "./components/logo";
 import OnboardingPage from "./pages/onboarding";
 import LoginPage from "./pages/login";
 import DashboardPage from "./pages/dashboard";
-import { lazy, Suspense, type ComponentType } from "react";
+import { lazy, Suspense, useEffect, type ComponentType } from "react";
+import { identifyUser } from "./lib/analytics";
+import { AnalyticsConsent } from "./components/analytics-consent";
 
 /**
  * Performance (audit du 5 nov. 2026) : seules les pages d'entrée — Dashboard,
@@ -51,6 +53,7 @@ const PricingPage = lazyPage(() => import("./pages/pricing"));
 const CreditsPage = lazyPage(() => import("./pages/credits"));
 const CoursesPage = lazyPage(() => import("./pages/courses"));
 const AdminPage = lazyPage(() => import("./pages/admin"));
+const AdminAnalyticsPage = lazyPage(() => import("./pages/admin-analytics"));
 const ProfessorsPage = lazyPage(() => import("./pages/professors"));
 
 function RootRedirect() {
@@ -104,6 +107,7 @@ function AuthedApp() {
             <Route path="/courses" component={CoursesPage} />
             <Route path="/professors" component={ProfessorsPage} />
             {/* Serverseitig durch die Admin-Rolle geschützt, nicht durch Verstecken. */}
+            <Route path="/admin/analytics" component={AdminAnalyticsPage} />
             <Route path="/admin" component={AdminPage} />
             <Route component={RootRedirect} />
           </Switch>
@@ -116,6 +120,9 @@ function AuthedApp() {
 
 function Gate() {
   const { data: session, isPending } = authClient.useSession();
+  // ID pseudonyme pour l'analyse (no-op sans consentement). Jamais l'e-mail.
+  const userId = session?.user.id;
+  useEffect(() => identifyUser(userId), [userId]);
   if (isPending) return <LoadingScreen />;
   if (!session) return <LoginPage />;
   return <AuthedApp />;
@@ -153,6 +160,7 @@ function App() {
           <Gate />
         </Route>
       </Switch>
+      <AnalyticsConsent />
     </Provider>
   );
 }

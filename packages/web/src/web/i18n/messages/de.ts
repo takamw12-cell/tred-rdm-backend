@@ -409,6 +409,16 @@ export const de = {
     sourceNotFound: "Die zitierte Stelle konnte im Dokument nicht gefunden werden.",
     page: "Seite {page}",
   },
+  consent: {
+    title: "Analyse erlauben?",
+    body: "Wir möchten verstehen, welche Funktionen dir helfen (Klicks, Seiten, Zeit im Hörsaal) – pseudonym, EU-Server, Chat und Dokumente bleiben immer verborgen. Freiwillig, jederzeit widerrufbar.",
+    more: "Datenschutz",
+    allow: "Analyse erlauben",
+    deny: "Ablehnen",
+    revoke: "Widerrufen",
+    stateOn: "Erlaubt – danke! Du kannst jederzeit widerrufen.",
+    stateOff: "Aus – es werden keine Analysedaten erfasst.",
+  },
   auth: {
     verifyTitle: "Fast geschafft!",
     verifySent: "Wir haben dir eine E-Mail an {email} geschickt. Klick auf den Link darin – dann landest du direkt in deinem Dashboard.",

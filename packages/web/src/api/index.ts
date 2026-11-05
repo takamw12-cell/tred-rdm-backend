@@ -42,6 +42,7 @@ import { z } from "zod";
 import { buildTutorAgent } from "./agent";
 import { detectDomain, domainHint } from "./lib/solvers/domain";
 import { mailConfigured } from "./lib/mail";
+import { registerAnalyticsRoutes } from "./analytics/routes";
 import { readLearningStyle } from "./lib/learning-style-store";
 import { pickStyleReference, STYLE_SAMPLE_CHARS } from "./lib/style-reference";
 import { wellFormed } from "./lib/unicode-safe";
@@ -368,6 +369,8 @@ registerAvatarRoutes(app, requireAdmin);
 registerMediaRoutes(app);
 // Voix premium du professeur (ElevenLabs) — inerte sans clé.
 registerTtsRoutes(app);
+// Betreiber-Dashboard /admin/analytics (DB + PostHog), nur Rolle admin.
+registerAnalyticsRoutes(app, requireAdmin);
 
 app.get("/api/admin/users", async (c) => {
   const guard = await requireAdmin(c);
