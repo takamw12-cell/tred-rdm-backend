@@ -92,6 +92,15 @@ import {
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
 
+/** Outils de calcul : leur présence met le tampon « Berechnet mit dem Löser » sur la Tafel. */
+const SOLVER_TOOLS = new Set([
+  "tool-rechnen",
+  "tool-balkenstatik",
+  "tool-schaltung_berechnen",
+  "tool-thermo_berechnen",
+  "tool-mathe_berechnen",
+]);
+
 // Pull rendered text out of a UI message's parts.
 //
 // Le résultat de l'outil `balkenstatik` devient un bloc ```balkendiagramm à
@@ -466,7 +475,7 @@ export default function ChatPage() {
       "Skizze",
     );
     const solverUsed = m.parts.some(
-      (p) => p.type === "tool-rechnen" || p.type === "tool-balkenstatik",
+      (p) => SOLVER_TOOLS.has(p.type),
     );
     tafelById.set(m.id, { ...split, solverUsed });
   }

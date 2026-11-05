@@ -40,6 +40,7 @@ import {
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { buildTutorAgent } from "./agent";
+import { detectDomain, domainHint } from "./lib/solvers/domain";
 import { readLearningStyle } from "./lib/learning-style-store";
 import { pickStyleReference, STYLE_SAMPLE_CHARS } from "./lib/style-reference";
 import { wellFormed } from "./lib/unicode-safe";
@@ -654,7 +655,11 @@ app.post("/api/agent/messages", async (c) => {
   // Professeur choisi (vestiaire). Ne lève jamais (→ « genius »).
   const professor = await readProfessor(uid);
 
+  // Fachgebiet der Frage → welcher Fachlöser (oder ehrlich: keiner).
+  const fach = detectDomain(lastUserText, contextLabel);
+
   const agent = buildTutorAgent({
+    domainHint: domainHint(fach),
     learningStyle,
     professor,
     sources,

@@ -177,3 +177,31 @@ describe("l'inventaire ne casse rien quand il est absent", () => {
     }
   });
 });
+
+describe("Fachlöser : routage par matière", () => {
+  const agent = buildTutorAgent({ sources: [], locale: "de", domainHint: "ERKANNTES FACHGEBIET: Elektrotechnik" });
+  const p = JSON.stringify(agent);
+
+  test("les trois solveurs sont des outils et figurent dans le tableau du prompt", () => {
+    const tools = Object.keys((agent as unknown as { tools: Record<string, unknown> }).tools);
+    for (const name of ["schaltung_berechnen", "thermo_berechnen", "mathe_berechnen"]) {
+      expect(tools).toContain(name);
+      expect(p).toContain(name);
+    }
+  });
+
+  test("le prompt interdit de deviner quand un solveur échoue ou manque", () => {
+    expect(p).toContain("DU RECHNEST NIE SELBST");
+    expect(p).toContain("Rate dann KEIN Ergebnis");
+    expect(p).toContain("KEINEN Fachlöser");
+  });
+
+  test("l'indice de matière est un second message système, après le bloc mis en cache", () => {
+    const instr = (agent as unknown as { settings: { instructions: { content: string }[] } }).settings.instructions;
+    expect(instr).toHaveLength(2);
+    expect(instr[1].content).toContain("Elektrotechnik");
+    // Sans indice : un seul bloc, identique d'une question à l'autre (cache).
+    const plain = buildTutorAgent({ sources: [], locale: "de" }) as unknown as typeof agent;
+    expect((plain as unknown as { settings: { instructions: unknown[] } }).settings.instructions).toHaveLength(1);
+  });
+});

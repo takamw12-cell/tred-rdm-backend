@@ -3,6 +3,9 @@ import { langOf } from "../lib/languages";
 import { z } from "zod";
 import { calculate } from "../lib/calc";
 import { runBalkenstatik } from "../lib/beam-tool";
+import { circuitInputSchema, solveCircuit } from "../lib/solvers/solveCircuit";
+import { mathInputSchema, solveMath } from "../lib/solvers/solveMath";
+import { solveThermo, thermoInputSchema } from "../lib/solvers/solveThermo";
 import { renderDiagram, type DiagramSpec } from "../lib/diagrams";
 import type { Passage } from "../lib/document-search";
 import { ageLabel } from "../lib/memory-text";
@@ -209,6 +212,12 @@ export function buildTutorAgent(opts: {
    * dans le prompt : le tuteur ne promet rien qu'il ne peut pas tenir.
    */
   media?: (input: { prompt: string; type: "image" | "video"; dauer?: number }) => Promise<unknown>;
+  /**
+   * Fachgebiet der letzten Frage (lib/solvers/domain.ts → domainHint).
+   * Geht als ZWEITE System-Nachricht mit, damit der lange, gecachte Prompt
+   * davor unverändert bleibt und der Cache greift.
+   */
+  domainHint?: string | null;
 }) {
   const rule = langRule(opts.locale);
   const memoryBlock = buildMemoryBlock(opts.memory, opts.learningStyle, opts.professor);
@@ -296,7 +305,7 @@ export function buildTutorAgent(opts: {
             in einem Satz darauf hin, dass eine reale Auslegung von einer
             prüfberechtigten Person zu verantworten ist.
           • Erfinde keine Zahl. Rechenwerte kommen aus den Werkzeugen
-            (balkenstatik, rechnen), nie aus deinem Kopf. Fehlt eine
+            (Fachlöser, balkenstatik, rechnen), nie aus deinem Kopf. Fehlt eine
             Angabe, frage danach, statt zu schätzen.
 
           TON: professionell aber herzlich · streng aber nie kalt ·
@@ -491,6 +500,35 @@ export function buildTutorAgent(opts: {
           Du erklärst nur. Zahlenwerte und Sprünge nimmst du aus
           "kritischePunkte" und "extremwerte": an einem Sprung nennst du
           BEIDE Werte (links und rechts der Stelle).
+
+          FACHLÖSER — DU RECHNEST NIE SELBST (PFLICHT):
+          Für jedes Fachgebiet mit eigenem Löser rechnet der LÖSER, du erklärst.
+          | Fachgebiet          | Werkzeug             | deckt ab |
+          | Elektrotechnik      | schaltung_berechnen  | lineare Netzwerke DC/AC: Kirchhoff, Teiler, Impedanzen, Leistung, Thevenin/Norton, idealer OPV |
+          | Thermodynamik       | thermo_berechnen     | ideale Gase: Zustandsänderungen, Kreisprozesse, Carnot/2. Hauptsatz, Verdichter/Turbine |
+          | Mathematik          | mathe_berechnen      | Ableitung, Integral, DGL, Matrizen, Nullstellen |
+          | Techn. Mechanik     | balkenstatik         | Balken: Auflager, Q(x), M(x) |
+          | alles übrige        | rechnen              | einzelne Zahlenausdrücke |
+          Ablauf: (1) Ansatz aufstellen und in LaTeX zeigen (Ersatzschaltbild,
+          Zustandsänderung, DGL …), (2) den Fachlöser aufrufen, (3) mit SEINEN
+          Zahlen erklären — wörtlich übernommen, erst am Ende gerundet. Ein
+          Fachlöser hat Vorrang vor "rechnen"; "rechnen" bleibt für einzelne
+          Nebenrechnungen (z. B. Einheitenumrechnung für die Erklärung).
+          - Zählpfeile/Vorzeichen: der Löser nennt seine Konvention
+            ("zaehlpfeile", "vorzeichen"). Übernimm sie und nenne sie. Nutzt das
+            Skript eine andere (z. B. Q − W = ΔU oder Erzeugerzählpfeile),
+            rechne das Vorzeichen offen um und sag es.
+          - Stoffwerte: stehen in den Unterlagen andere Werte (z. B.
+            R = 287,1 J/(kg·K)), gib sie dem Löser mit — die Unterlagen gelten.
+          - Antwortet ein Löser mit ok:false, nenne den Grund ("fehler") in
+            einem Satz und korrigiere die Eingabe ODER sag ehrlich, dass dieser
+            Fall nicht abgedeckt ist ("hinweis"). Rate dann KEIN Ergebnis.
+          - Gibt es für ein Fachgebiet KEINEN Fachlöser (z. B. Strömungslehre,
+            Regelungstechnik, Werkstoffkunde, Wasserdampf/Dampftafel), sag das
+            zu Beginn des Rechenteils offen in einem Satz. Einzelne Zahlen dann
+            weiterhin nur mit "rechnen", und erfinde keine Tabellenwerte.
+          - "warnungen" eines Lösers (z. B. übersteuerter OPV) gibst du IMMER
+            weiter: das Ergebnis gilt dann so nicht.
 
           WERKZEUG "skizze" (VORRANG VOR EIGENEN ZEICHNUNGEN):
           Passt die Situation zu einem der Gerüst-Typen (spannungsteiler,
@@ -1059,6 +1097,9 @@ export function buildTutorAgent(opts: {
           }
         `,
       },
+      // Nach dem gecachten Block: ändert sich mit jeder Frage, darf also den
+      // Cache-Präfix davor nicht berühren.
+      ...(opts.domainHint ? [{ role: "system" as const, content: opts.domainHint }] : []),
     ],
     tools: {
       /**
@@ -1220,6 +1261,50 @@ export function buildTutorAgent(opts: {
             .describe("Kurz, wofür die Zahl steht, z. B. \"U- bei 29 °C\""),
         }),
         execute: async ({ ausdruck }) => calculate(ausdruck),
+      }),
+
+      // ── Fachlöser (lib/solvers) ────────────────────────────────────────
+      // Das Modell stellt auf, der Code rechnet und prüft sich selbst
+      // (Knotenregel, Energiebilanz, Zurückableiten). Jeder Löser antwortet
+      // mit ok:false + hinweis, wenn ein Fall nicht abgedeckt ist.
+      schaltung_berechnen: tool({
+        description:
+          "Elektrotechnik: berechnet ein lineares Netzwerk exakt (Modifizierte " +
+          "Knotenanalyse) — Knotenpotentiale, Spannung/Strom/Leistung jedes " +
+          "Elements, Probe Knotenregel + Leistungsbilanz, optional Thevenin/Norton. " +
+          "Gleichstrom (frequenz weglassen) oder Wechselstrom (frequenz in Hz, " +
+          "Quellen mit Betrag und phase in Grad). Elemente: R, L, C (wert mit " +
+          'Präfix, z. B. "4.7k", "100n", "10mH"), Z (re/im in Ohm), V (a = Pluspol), ' +
+          'I (speist in a ein), OPV (ideal, mit Gegenkopplung). Masse = Knoten "0". ' +
+          "Für Teiler, Kirchhoff, Impedanzen, Thevenin IMMER dieses Werkzeug, nie selbst rechnen.",
+        inputSchema: circuitInputSchema,
+        execute: async (input) => solveCircuit(input),
+      }),
+
+      thermo_berechnen: tool({
+        description:
+          "Thermodynamik idealer Gase, exakt und mit Probe des 1. Hauptsatzes: " +
+          "modus zustandsaenderung (Schritte isochor/isobar/isotherm/isentrop/polytrop), " +
+          "kreisprozess (letzter Schritt ziel.zurueck_zum_start = true; liefert η bzw. " +
+          "Leistungszahl und Carnot-Vergleich), carnot (T_warm, T_kalt, optional " +
+          "maschine zur Prüfung gegen den 2. Hauptsatz), stroemungsmaschine " +
+          '(Verdichter/Turbine mit eta_s). Werte mit Einheit: "1 bar", "20 °C", "2 L", "500 kJ". ' +
+          "Vorzeichen: zugeführt positiv. Wasserdampf/Kältemittel sind NICHT abgedeckt.",
+        inputSchema: thermoInputSchema,
+        execute: async (input) => solveThermo(input),
+      }),
+
+      mathe_berechnen: tool({
+        description:
+          "Mathematik, jedes Ergebnis selbstgeprüft: aufgabe ableitung (ordnung, stelle), " +
+          "integral (Stammfunktion per Regeltabelle oder dein stammfunktion_kandidat — " +
+          "wird durch Ableiten geprüft; von/bis = bestimmtes Integral), dgl " +
+          "(linear_konstant: koeffizienten [a1,a0] bzw. [a2,a1,a0], rechte_seite, y0, dy0; " +
+          "numerisch: gleichung für y' bzw. y'' mit y, dy, x), matrix (determinante, " +
+          "inverse, lgs, eigenwerte, rang, transponiert, produkt), nullstellen (von, bis), " +
+          'auswerten. Ausdrücke wie "x^3*sin(x)", "exp(-2*t)", ln = natürlicher Logarithmus.',
+        inputSchema: mathInputSchema,
+        execute: async (input) => solveMath(input),
       }),
 
       // Balkenstatik geschlossen rechnen statt formulieren. Auflagerkräfte und
@@ -1397,6 +1482,8 @@ export function buildTutorAgent(opts: {
         },
       }),
     },
-    stopWhen: [stepCountIs(8)],
+    // 10 statt 8: Suche + Fachlöser + gegebenenfalls ein zweiter Löseraufruf
+    // nach ok:false müssen in eine Antwort passen.
+    stopWhen: [stepCountIs(10)],
   });
 }
