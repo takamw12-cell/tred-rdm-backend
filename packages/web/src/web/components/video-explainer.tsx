@@ -6,6 +6,8 @@ import { SvgDiagramFrame } from "@/components/diagram-frame";
 import { MarkdownContent } from "@/components/markdown-content";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
+import { pickVoice } from "@/lib/speech";
+import { getPreferredVoice } from "@/lib/voice";
 
 export interface VideoScene {
   heading: string;
@@ -92,6 +94,9 @@ export function VideoExplainer({
     if (speechSupported && !muted && scene.narration.trim()) {
       const utter = new SpeechSynthesisUtterance(scene.narration);
       utter.lang = SPEECH_LANG[locale] ?? "de-DE";
+      // La voix la plus naturelle de l'appareil (ou celle des réglages).
+      const voice = pickVoice(window.speechSynthesis.getVoices(), locale, getPreferredVoice());
+      if (voice) utter.voice = voice;
       utter.rate = 0.98;
       utter.onend = () => {
         if (!cancelled) goNext();

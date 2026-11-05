@@ -5,6 +5,7 @@ import { gateway } from "./agent/gateway";
 import { createApp } from "./__core/app";
 import { registerAvatarRoutes } from "./avatar/routes";
 import { registerMediaRoutes } from "./media/routes";
+import { registerTtsRoutes } from "./tts/routes";
 import { readProfessor } from "./lib/professor-store";
 import { generateMedia, replicateConfigured } from "./lib/replicate-media";
 import { ping } from "./routes/ping";
@@ -162,6 +163,8 @@ app.use(
 // étroit pour qu'une boucle ne mette pas le serveur à genoux. Le cache par
 // empreinte absorbe les relectures, qui ne recompilent rien.
 app.use("/api/tikz/*", rateLimitMiddleware({ limit: 30, scope: "tikz" }));
+// Voix premium : facturée au caractère, donc bornée.
+app.use("/api/tts", rateLimitMiddleware({ limit: 20, scope: "tts" }));
 
 // Better Auth handler (Hono v4 uses single `*` wildcard).
 // ── Sperre: greift vor jeder API-Anfrage ──────────────────────────────────
@@ -398,6 +401,8 @@ async function requireAdmin(c: {
 registerAvatarRoutes(app, requireAdmin);
 // Images et vidéos générées par le tuteur, lues par leur seul propriétaire.
 registerMediaRoutes(app);
+// Voix premium du professeur (ElevenLabs) — inerte sans clé.
+registerTtsRoutes(app);
 
 app.get("/api/admin/users", async (c) => {
   const guard = await requireAdmin(c);

@@ -13,9 +13,11 @@ import {
   Compass,
   GraduationCap,
   BookOpen,
+  Volume2,
 } from "lucide-react";
 import { LearningStylePicker } from "@/components/learning-style-picker";
 import { ProfessorPicker } from "@/components/professor-picker";
+import { VoicePicker, voicePickerTitle } from "@/components/voice-picker";
 import { professorUi } from "@/lib/professors";
 import { StudiengangPicker } from "@/components/studiengang-picker";
 import { Button } from "@/components/ui/button";
@@ -288,6 +290,10 @@ export default function SettingsPage() {
         description={professorUi(locale).sectionDesc}
       >
         <ProfessorPicker />
+      </Section>
+
+      <Section icon={<Volume2 className="size-4" />} title={voicePickerTitle(locale)}>
+        <VoicePicker />
       </Section>
 
       <Section

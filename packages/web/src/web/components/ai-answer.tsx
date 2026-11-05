@@ -13,7 +13,8 @@ import {
 import { MarkdownContent } from "@/components/markdown-content";
 import { MathText } from "@/components/math-text";
 import { useT } from "@/i18n";
-import { answerToSpeech, SPEECH_LANG, speechChunks } from "@/lib/speech";
+import { answerToSpeech } from "@/lib/speech";
+import { speak, stopSpeaking } from "@/lib/voice";
 import { cn } from "@/lib/utils";
 
 // Lets an [[OFFICIAL]] block's citation open the source document, scrolled to
@@ -100,9 +101,9 @@ export function parseAnswer(raw: string): Segment[] {
 const TTS_EVENT = "tred-tts-start";
 
 /**
- * Bouton « Écouter » : lit la réponse avec la synthèse vocale du navigateur
- * (window.speechSynthesis). Gratuit, hors ligne pour la plupart des langues,
- * aucune donnée envoyée à TRED. Absent si le navigateur ne la propose pas.
+ * Bouton « Écouter » : lit la réponse avec la voix du professeur (lib/voice.ts)
+ * — ElevenLabs si le serveur en a une clé, sinon la voix la plus naturelle
+ * du navigateur (ou celle choisie dans les réglages).
  */
 export function ListenButton({ text, locale }: { text: string; locale: string }) {
   const { t } = useT();
@@ -122,39 +123,25 @@ export function ListenButton({ text, locale }: { text: string; locale: string })
   // Quitter la page ou la conversation coupe la lecture de ce bouton.
   useEffect(() => {
     return () => {
-      if (supported && speaking) window.speechSynthesis.cancel();
+      if (speaking) stopSpeaking();
     };
-  }, [speaking, supported]);
+  }, [speaking]);
 
   if (!supported) return null;
 
   function toggle() {
-    const synth = window.speechSynthesis;
-    synth.cancel();
     if (speaking) {
+      stopSpeaking();
       setSpeaking(false);
       return;
     }
     const spoken = answerToSpeech(text);
     if (!spoken) return;
-
-    const lang = SPEECH_LANG[locale] ?? locale;
-    const voice =
-      synth.getVoices().find((v) => v.lang === lang) ??
-      synth.getVoices().find((v) => v.lang.toLowerCase().startsWith(locale.toLowerCase()));
-
-    const chunks = speechChunks(spoken);
-    chunks.forEach((chunk, i) => {
-      const u = new SpeechSynthesisUtterance(chunk);
-      u.lang = lang;
-      if (voice) u.voice = voice;
-      u.rate = 1;
-      if (i === chunks.length - 1) u.onend = () => setSpeaking(false);
-      u.onerror = () => setSpeaking(false);
-      synth.speak(u);
-    });
     window.dispatchEvent(new CustomEvent(TTS_EVENT, { detail: id }));
     setSpeaking(true);
+    void speak(spoken, locale, { onEnd: () => setSpeaking(false) }).then((ok) => {
+      if (!ok) setSpeaking(false);
+    });
   }
 
   const label = speaking ? t("chat.stopListening") : t("chat.listen");

@@ -74,3 +74,59 @@ export const SPEECH_LANG: Record<string, string> = {
   ru: "ru-RU", ar: "ar-SA", zh: "zh-CN", hi: "hi-IN", bn: "bn-IN", ja: "ja-JP",
 };
 
+
+// ── Choix de la voix ─────────────────────────────────────────────────────
+//
+// La voix par défaut du navigateur est souvent la plus ancienne (eSpeak,
+// « compact ») : robotique. Les appareils récents en ont de bien meilleures
+// — « Microsoft Katja Online (Natural) » dans Edge, « Google Deutsch » dans
+// Chrome, les voix « Premium / Enhanced » de Safari. On les note et on
+// prend la meilleure de la bonne langue, sauf choix explicite de l'étudiant.
+
+export interface VoiceLike {
+  name: string;
+  lang: string;
+  voiceURI: string;
+  localService?: boolean;
+}
+
+/** Plus c'est haut, plus la voix est naturelle — pour cette langue. */
+export function scoreVoice(v: VoiceLike, locale: string): number {
+  const want = (SPEECH_LANG[locale] ?? locale).toLowerCase();
+  const lang = v.lang.toLowerCase().replace("_", "-");
+  let score = 0;
+  if (lang === want) score += 100;
+  else if (lang.startsWith(want.slice(0, 2))) score += 60;
+  else return -1000; // mauvaise langue : jamais
+
+  const name = v.name.toLowerCase();
+  if (/natural|neural/.test(name)) score += 45; // Edge (Azure)
+  if (/premium|enhanced|siri/.test(name)) score += 40; // Safari / iOS
+  if (/\bonline\b/.test(name)) score += 15;
+  if (/google/.test(name)) score += 30; // Chrome
+  if (/katja|conrad|amala|killian|seraphina|florian|anna|helena|marlene/.test(name)) score += 8;
+  if (/espeak|compact|robot|novelty|whisper|bad news|bells|zarvox/.test(name)) score -= 80;
+  return score;
+}
+
+/** La voix à utiliser : celle choisie si elle existe encore, sinon la meilleure. */
+export function pickVoice<V extends VoiceLike>(
+  voices: V[],
+  locale: string,
+  preferredURI?: string | null,
+): V | undefined {
+  if (preferredURI) {
+    const chosen = voices.find((v) => v.voiceURI === preferredURI);
+    if (chosen) return chosen;
+  }
+  return rankVoices(voices, locale)[0];
+}
+
+/** Voix de la langue, de la plus naturelle à la moins naturelle. */
+export function rankVoices<V extends VoiceLike>(voices: V[], locale: string): V[] {
+  return voices
+    .map((v) => ({ v, s: scoreVoice(v, locale) }))
+    .filter((x) => x.s > -1000)
+    .sort((a, b) => b.s - a.s)
+    .map((x) => x.v);
+}
