@@ -60,7 +60,19 @@ export function registerTtsRoutes(app: Hono) {
       remember(key, audio);
       return new Response(audio.slice(0), { headers });
     } catch (err) {
-      console.error("[tts] ElevenLabs a échoué", err instanceof Error ? err.message : err);
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/missing_permissions|text_to_speech/i.test(msg)) {
+        console.error(
+          "[tts] La clé ElevenLabs n'a PAS la permission « Text to Speech ». " +
+            "ElevenLabs → API Keys → modifier la clé → Text to Speech : Access (ou recréer la clé).",
+        );
+      } else if (/401|invalid_api_key|unauthorized/i.test(msg)) {
+        console.error("[tts] Clé ElevenLabs refusée (401) : vérifie ELEVENLABS_API_KEY sur Railway.");
+      } else if (/quota|credits|402|429/i.test(msg)) {
+        console.error("[tts] Quota ElevenLabs atteint ou limite de débit : voix de l'appareil en relais.", msg.slice(0, 200));
+      } else {
+        console.error("[tts] ElevenLabs a échoué", msg.slice(0, 300));
+      }
       return c.json({ error: "tts_failed" }, 502);
     }
   });
