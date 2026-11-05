@@ -150,15 +150,14 @@ export function VoicePicker() {
 
       <div>
         <p className="mb-1.5 text-xs font-medium">{ui.style}</p>
-        <div role="radiogroup" aria-label={ui.style} className="flex flex-wrap gap-1.5">
+        <div aria-label={ui.style} className="flex flex-wrap gap-1.5">
           {styleOptions.map((o) => {
             const active = style === o.value;
             return (
               <button
                 key={o.value ?? "auto"}
                 type="button"
-                role="radio"
-                aria-checked={active}
+                aria-pressed={active}
                 onClick={() => chooseStyle(o.value)}
                 className={cn(
                   "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",

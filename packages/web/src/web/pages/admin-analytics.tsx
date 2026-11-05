@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { Link } from "wouter";
 import { PageContainer, PageHeader } from "@/components/page";
@@ -44,26 +45,24 @@ const isErr = (v: unknown): v is { error: string } => !!v && typeof v === "objec
 const dayFmt = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit" });
 
 export default function AdminAnalyticsPage() {
-  const [data, setData] = useState<Analytics | null>(null);
-  const [denied, setDenied] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(async (refresh = false) => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/admin/analytics${refresh ? "?refresh=1" : ""}`);
-      if (res.status === 401 || res.status === 403) {
-        setDenied(true);
-        return;
-      }
-      setData((await res.json()) as Analytics);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-  useEffect(() => {
-    void load();
-  }, [load]);
+  // Chaque clic sur « Aktualisieren » change la clé : nouvelle requête, et
+  // le serveur ignore son cache de 5 min (?refresh=1).
+  const [tick, setTick] = useState(0);
+  const query = useQuery({
+    queryKey: ["admin-analytics", tick],
+    queryFn: async (): Promise<{ denied: true } | { denied: false; data: Analytics }> => {
+      const res = await fetch(`/api/admin/analytics${tick ? "?refresh=1" : ""}`);
+      if (res.status === 401 || res.status === 403) return { denied: true };
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return { denied: false, data: (await res.json()) as Analytics };
+    },
+    placeholderData: (prev) => prev,
+    staleTime: 60_000,
+  });
+  const denied = query.data?.denied === true;
+  const data = query.data && !query.data.denied ? query.data.data : null;
+  const loading = query.isFetching;
+  const load = () => setTick((n) => n + 1);
 
   if (denied) {
     return (
@@ -90,7 +89,7 @@ export default function AdminAnalyticsPage() {
         subtitle={`Stand ${new Date(data.generatedAt).toLocaleString("de-DE")} · ${core.totals.users} Konten`}
       />
       <div className="mb-6 flex flex-wrap items-center gap-2">
-        <Button variant="outline" size="sm" onClick={() => void load(true)} disabled={loading} className="gap-1.5">
+        <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-1.5">
           <RefreshCw className={loading ? "size-3.5 animate-spin" : "size-3.5"} />
           Aktualisieren
         </Button>
@@ -245,10 +244,12 @@ function SignupBars({ rows }: { rows: { day: string; count: number }[] }) {
           ))}
         </div>
       </div>
-      <div className="border-border text-muted-foreground mt-1 flex justify-between border-t pt-1 text-[10px] tabular-nums">
-        <span>{dayFmt.format(new Date(rows[0]?.day ?? Date.now()))}</span>
-        <span>{dayFmt.format(new Date(rows[rows.length - 1]?.day ?? Date.now()))}</span>
-      </div>
+      {rows.length > 0 && (
+        <div className="border-border text-muted-foreground mt-1 flex justify-between border-t pt-1 text-[10px] tabular-nums">
+          <span>{dayFmt.format(new Date(rows[0].day))}</span>
+          <span>{dayFmt.format(new Date(rows[rows.length - 1].day))}</span>
+        </div>
+      )}
     </div>
   );
 }

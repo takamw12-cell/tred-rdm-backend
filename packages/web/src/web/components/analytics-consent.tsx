@@ -20,8 +20,7 @@ export function AnalyticsConsent() {
   if (!analyticsAvailable() || choice !== null) return null;
 
   return (
-    <div
-      role="dialog"
+    <section
       aria-labelledby="consent-title"
       className="fixed inset-x-3 bottom-3 z-[60] mx-auto max-w-xl rounded-xl border border-[#F1E7CF]/60 bg-[#0F172A]/85 p-4 text-white shadow-[0_16px_40px_-12px_rgb(0_0_0/0.6)] backdrop-blur-md sm:bottom-5"
     >
@@ -50,7 +49,7 @@ export function AnalyticsConsent() {
           {t("consent.allow")}
         </Button>
       </div>
-    </div>
+    </section>
   );
 }
 

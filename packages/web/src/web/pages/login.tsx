@@ -174,7 +174,7 @@ export default function LoginPage() {
         )}
 
         {verifySent && !error ? (
-          <div className="space-y-4 text-center" role="status">
+          <div className="space-y-4 text-center" aria-live="polite">
             <MailCheck className="text-primary mx-auto size-10" aria-hidden />
             <h2 className="font-display text-xl font-semibold">{t("auth.verifyTitle")}</h2>
             <p className="text-sm leading-relaxed">{t("auth.verifySent", { email: verifySent })}</p>
