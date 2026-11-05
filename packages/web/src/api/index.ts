@@ -693,7 +693,10 @@ app.post("/api/agent/messages", async (c) => {
       console.log(
         `[agent] user=${session.user.id.slice(0, 8)} finish=${step.finishReason ?? "?"}` +
           ` tools=${(step.toolCalls ?? []).map((tc) => tc?.toolName ?? "?").join(",") || "-"}` +
-          ` text=${(step.text ?? "").length}c out=${step.usage?.outputTokens ?? 0}tok`,
+          ` text=${(step.text ?? "").length}c out=${step.usage?.outputTokens ?? 0}tok` +
+          // Tafel : le modèle a-t-il produit le format NIVEAU 7 ? (compte seulement)
+          ` reasoning=${/\[\[\s*REASONING\s*\]\]/i.test(step.text ?? "") ? "yes" : "no"}` +
+          ` steps=${((step.text ?? "").match(/^\s*@@STEP:/gm) ?? []).length}`,
       );
 
       // ── Le garde-fou ────────────────────────────────────────────────
