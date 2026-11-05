@@ -292,6 +292,25 @@ html:lang(ar) body { line-height: 1.7; }
   unicode-bidi: isolate;
 }
 
+/* ── Verre dépoli (dashboard) ──────────────────────────────────────────
+   Toutes les cartes ui/card d'une zone `.glass-scope` laissent deviner le
+   fond photo (DynamicBackground) sans perdre le contraste du texte.
+   80 % de blanc et non 70 : sur la photo la plus sombre (engrenages noirs),
+   70 % ramenait le texte secondaire #6B6B6B sous 4,5:1 ; 80 % le garde au-
+   dessus. La carte d'appel à l'action (bg-primary, encre pleine) est exclue. */
+.glass-scope [data-slot="card"]:not(.bg-primary) {
+  background-color: rgb(255 255 255 / 0.8);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  backdrop-filter: blur(14px) saturate(1.2);
+  border-color: rgb(255 255 255 / 0.6);
+}
+/* Les pastilles de semestre suivent le même verre. */
+.glass-scope .glass-chip {
+  background-color: rgb(255 255 255 / 0.8);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
 /* React Flow theming */
 .react-flow__attribution { display: none; }
 

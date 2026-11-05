@@ -288,17 +288,19 @@ export default function DashboardPage() {
   ];
 
   return (
-    <PageContainer>
+    <PageContainer className="glass-scope">
       {/* Fond photo tournant — sur le dashboard uniquement pour l'instant. */}
       <DynamicBackground />
       <Reveal className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           {/* Date du jour, dans la langue de l'interface — rien à traduire. */}
-          <p className="text-muted-foreground mb-2 text-sm capitalize">{today}</p>
+          {/* Encre à 75 % plutôt que le gris secondaire : ces deux lignes sont posées
+              directement sur la photo, sans carte en verre pour les protéger. */}
+          <p className="text-foreground/75 mb-2 text-sm capitalize">{today}</p>
           <h1 className="font-display text-3xl leading-tight font-semibold sm:text-4xl">
             {t("dashboard.greeting", { name: profile.firstName })}
           </h1>
-          <p className="text-muted-foreground mt-2 max-w-xl">{t("dashboard.subtitle")}</p>
+          <p className="text-foreground/75 mt-2 max-w-xl">{t("dashboard.subtitle")}</p>
         </div>
         <div className="flex gap-2">
           <Button
@@ -770,7 +772,7 @@ function SemesterChip({
         "group flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm transition-colors",
         active
           ? "border-primary bg-primary text-primary-foreground"
-          : "border-border bg-card hover:border-signature/60 cursor-pointer",
+          : "glass-chip border-border bg-card hover:border-signature/60 cursor-pointer",
       )}
     >
       <button onClick={onClick} className="flex items-center gap-1.5">

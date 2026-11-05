@@ -19,8 +19,9 @@ import { backgroundsFor, categoryForProgram } from "@/lib/background-sets";
  * - Mode test : `?bg=30` → rotation en 30 s + étiquette de diagnostic.
  * - L'image suivante est PRÉCHARGÉE avant le fondu : jamais de fondu vers un
  *   écran vide sur une connexion lente.
- * - Voile crème à 75 % + léger flou : l'image se perçoit, le texte reste
- *   lisible. Les cartes du dashboard sont blanches et opaques en plus.
+ * - Voile crème en dégradé (80 % en haut → 35 % en bas) : la photo se voit
+ *   nettement ; les cartes en verre dépoli (.glass-scope, styles.css)
+ *   gardent le texte lisible, même sur la photo la plus sombre.
  * - Rendu dans <body> par un portail : la page parente est animée
  *   (transform), ce qui casserait `position: fixed`.
  * - `prefers-reduced-motion` : la règle globale de styles.css ramène le
@@ -103,8 +104,10 @@ export function DynamicBackground() {
     <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
       <Layer key={current} src={current} visible />
       {incoming !== null && <Layer key={incoming} src={incoming} visible={false} fadeIn />}
-      {/* Le voile : c'est lui qui garantit la lisibilité. */}
-      <div className="bg-background/75 absolute inset-0 backdrop-blur-sm" />
+      {/* Le voile, en dégradé : plus dense en haut, où le titre et la date
+          sont posés directement sur la photo ; léger plus bas, où les cartes
+          en verre dépoli (.glass-scope) assurent elles-mêmes la lisibilité. */}
+      <div className="from-background/80 via-background/50 to-background/35 absolute inset-0 bg-gradient-to-b" />
       {debugSeconds !== null && (
         <div className="bg-primary text-primary-foreground absolute right-3 bottom-3 rounded-md px-2 py-1 font-mono text-[11px] leading-tight">
           {category} · {current.split("/").slice(-2).join("/")} · {debugSeconds}s
