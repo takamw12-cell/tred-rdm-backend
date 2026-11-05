@@ -174,7 +174,6 @@ export default function DashboardPage() {
     await qc.invalidateQueries({ queryKey: subjectsListKey() });
   }
 
-  const activeSem = sems.find((s) => s.id === activeId) ?? null;
 
   /**
    * Les documents effectivement affichés.
@@ -536,30 +535,11 @@ export default function DashboardPage() {
           </Card>
         </Reveal>
 
-        {/* Continue / start learning */}
+        {/* Accès rapides */}
         <Reveal className="space-y-6">
-          {/* Carte d'appel : encre pleine, un seul bouton jaune. C'est la
-              seule surface sombre de l'écran — l'œil y va en premier. */}
-          <Card className="bg-primary text-primary-foreground rounded-2xl border-0 ring-1 ring-white/10">
-            <CardContent className="pt-0">
-              <p className="text-primary-foreground/70 text-xs font-medium tracking-wide uppercase">
-                {t("dashboard.continueTitle")}
-              </p>
-              <p className="font-display mt-2 text-lg leading-snug font-semibold">
-                {docs.length > 0
-                  ? t("dashboard.startFromScope", {
-                      scope: activeSem ? activeSem.name : t("dashboard.allCourses"),
-                    })
-                  : t("dashboard.startGeneral")}
-              </p>
-              <Link to="/chat">
-                <Button className="bg-signature text-signature-foreground hover:bg-signature/90 mt-5 rounded-full">
-                  <MessagesSquare className="size-4" />
-                  {t("nav.chat")}
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+          {/* La carte « Weiterlernen → KI-Chat » a été retirée (décision du
+              fondateur, 5 nov. 2026) : le Dashboard reste un accueil — cours,
+              documents, stats. Le Hörsaal s'ouvre depuis le menu (KI-Chat). */}
 
           <Card className="rounded-2xl">
             <CardContent className="pt-0">
