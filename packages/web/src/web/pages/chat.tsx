@@ -1594,13 +1594,27 @@ export default function ChatPage() {
                   <motion.div
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-muted-foreground flex items-center gap-2 text-sm"
+                    className="space-y-2"
                   >
-                    <LogoMark className="size-6" />
-                    <span className="flex items-center gap-1">
-                      {working ? t("chat.working") : t("chat.thinking")}
-                      <Dots />
-                    </span>
+                    <div className="text-muted-foreground flex items-center gap-2 text-sm">
+                      <LogoMark className="size-6" />
+                      <span className="flex items-center gap-1">
+                        {working ? t("chat.working") : t("chat.thinking")}
+                        <Dots />
+                      </span>
+                    </div>
+                    {/* Squelette de réponse tant qu'AUCUN texte n'est arrivé :
+                        la place de la réponse est déjà là, l'attente se lit. */}
+                    {(lastMsg?.role !== "assistant" || lastAssistantEmpty) && (
+                      <div
+                        aria-hidden
+                        className="border-border bg-card/80 ms-9 max-w-xl animate-pulse space-y-2.5 rounded-2xl border px-4 py-3.5"
+                      >
+                        <div className="bg-secondary h-2.5 w-11/12 rounded-full" />
+                        <div className="bg-secondary h-2.5 w-4/5 rounded-full" />
+                        <div className="bg-secondary h-2.5 w-2/3 rounded-full" />
+                      </div>
+                    )}
                   </motion.div>
                 )}
                 {emptyAnswer && (

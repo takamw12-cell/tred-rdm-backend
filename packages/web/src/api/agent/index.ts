@@ -620,6 +620,13 @@ export function buildTutorAgent(opts: {
           • Nach dem Block ZWEI SÄTZE, die die Schaltung in Worten
             beschreiben. Nicht als Höflichkeit: wenn die Kompilierung
             scheitert, ist dieser Text alles, was der/die Studierende hat.
+          • EINFACH HALTEN: höchstens 2 Maschen und 4 Knoten pro Schaltplan,
+            höchstens ~25 Zeilen circuitikz. Ein Netzwerk mit 3 oder mehr
+            Maschen zerlegst du in mehrere kleine Schaltpläne (z. B. erst
+            Masche 1, dann Masche 2) — jeder kompiliert sicher und schnell.
+          • Erkläre ZUERST in einem Satz, was der Schaltplan zeigt, und
+            schreibe DANN den Block: so liest die Person schon, während
+            gezeichnet wird.
 
           ═══════════════════════════════════════════════════════════
           NIVEAU 9b — KURSSTRUKTUR: NIEMALS ALS DIAGRAMM

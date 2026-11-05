@@ -255,16 +255,62 @@ function compileTikzOnce(code: string): Promise<string | null> {
   return p;
 }
 
+/**
+ * Un bloc resté incomplet (flux coupé, réponse interrompue) ne doit pas
+ * afficher « en cours » pour toujours. S'il n'a pas bougé depuis 20 s, on le
+ * déclare non dessinable — le texte de la réponse, lui, reste affiché.
+ */
+const TIKZ_STALL_MS = 20_000;
+
+/** Squelette pendant l'écriture ou la compilation : la forme d'un schéma. */
+function TikzSkeleton({ label }: { label: string }) {
+  return (
+    <div
+      role="status"
+      aria-label={label}
+      className="border-border bg-card/80 my-3 overflow-hidden rounded-xl border p-5"
+    >
+      <div className="mx-auto flex max-w-sm animate-pulse flex-col gap-4">
+        <div className="flex items-center gap-3">
+          <span className="bg-secondary size-3 rounded-full" />
+          <span className="bg-secondary h-1.5 flex-1 rounded-full" />
+          <span className="bg-secondary h-5 w-10 rounded-md" />
+          <span className="bg-secondary h-1.5 flex-1 rounded-full" />
+          <span className="bg-secondary size-3 rounded-full" />
+        </div>
+        <div className="flex justify-between px-1.5">
+          <span className="bg-secondary h-14 w-1.5 rounded-full" />
+          <span className="bg-secondary h-14 w-1.5 rounded-full" />
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="bg-secondary size-3 rounded-full" />
+          <span className="bg-secondary h-1.5 flex-1 rounded-full" />
+          <span className="bg-secondary size-3 rounded-full" />
+        </div>
+      </div>
+      <p className="text-muted-foreground mt-3 flex items-center justify-center gap-1.5 text-xs">
+        <Loader2 className="size-3.5 animate-spin" /> {label}
+      </p>
+    </div>
+  );
+}
+
 export function TikzDiagram({ code }: { code: string }) {
   const [svg, setSvg] = useState<string>("");
   const [failed, setFailed] = useState(false);
+  const [stalled, setStalled] = useState(false);
   const complete = isCompleteTikz(code);
 
   useEffect(() => {
     let cancelled = false;
     setSvg("");
     setFailed(false);
-    if (!complete) return; // encore en cours d'écriture : on patiente
+    setStalled(false);
+    if (!complete) {
+      // Encore en cours d'écriture : on patiente — mais pas indéfiniment.
+      const stall = setTimeout(() => setStalled(true), TIKZ_STALL_MS);
+      return () => clearTimeout(stall);
+    }
 
     const timer = setTimeout(() => {
       void compileTikzOnce(code).then((result) => {
@@ -280,21 +326,22 @@ export function TikzDiagram({ code }: { code: string }) {
     };
   }, [code, complete]);
 
-  if (failed) {
+  if (failed || stalled) {
+    // Ligne discrète : la réponse continue autour, rien n'est bloqué.
     return (
       <div className="border-border bg-secondary/40 text-muted-foreground my-3 flex items-center gap-2 rounded-xl border p-3 text-xs">
         <AlertTriangle className="size-3.5 shrink-0" />
-        <span>Diese Skizze konnte nicht gezeichnet werden.</span>
+        <span>
+          {stalled
+            ? "Skizze unvollständig – die Erklärung im Text gilt weiter."
+            : "Diese Skizze konnte nicht gezeichnet werden – die Erklärung im Text gilt weiter."}
+        </span>
       </div>
     );
   }
 
   if (!svg) {
-    return (
-      <div className="border-border bg-card text-muted-foreground my-3 flex items-center justify-center gap-2 rounded-xl border p-6 text-xs">
-        <Loader2 className="size-4 animate-spin" /> Skizze wird gezeichnet …
-      </div>
-    );
+    return <TikzSkeleton label={complete ? "Skizze wird gezeichnet …" : "Skizze wird geschrieben …"} />;
   }
 
   // Le SVG vient de dvisvgm, donc de notre propre serveur — mais il est

@@ -38,6 +38,7 @@ import { buildTutorAgent } from "./agent";
 import { readLearningStyle } from "./lib/learning-style-store";
 import { pickStyleReference, STYLE_SAMPLE_CHARS } from "./lib/style-reference";
 import { wellFormed } from "./lib/unicode-safe";
+import { withSseHeartbeat } from "./lib/sse-heartbeat";
 import {
   fileExtension,
   isSupported,
@@ -672,7 +673,7 @@ app.post("/api/agent/messages", async (c) => {
       ),
   });
 
-  return createAgentUIStreamResponse({
+  const streamResponse = await createAgentUIStreamResponse({
     agent,
     uiMessages: pruneHistoryFiles(messages),
     // Echte Abrechnung: jeder Schritt des Werkzeug-Loops meldet seinen
@@ -728,6 +729,17 @@ app.post("/api/agent/messages", async (c) => {
              Le console.error ci-dessus reste, lui. */
         });
     },
+  });
+
+  // Battement toutes les 5 s pendant les silences (réflexion longue) : sans
+  // lui, la connexion tombait avant la fin de la première étape. Et une ligne
+  // de log si le navigateur coupe — c'est elle qui manquait pour diagnostiquer.
+  return withSseHeartbeat(streamResponse, 5000, ({ aborted, ms }) => {
+    if (aborted) {
+      console.warn(
+        `[agent] user=${session.user.id.slice(0, 8)} connexion fermée par le client après ${Math.round(ms / 1000)} s`,
+      );
+    }
   });
 });
 
