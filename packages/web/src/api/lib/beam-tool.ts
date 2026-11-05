@@ -25,7 +25,11 @@ export interface BalkenstatikInput {
   laenge: number;
   lager: { x: number; art: "loslager" | "festlager" | "einspannung"; name?: string }[];
   einzellasten?: { x: number; F: number }[];
-  streckenlasten?: { von: number; bis: number; q: number }[];
+  /**
+   * q = Intensität bei `von`. Mit `qEnde` linear bis `bis`:
+   * Dreieckslast (q = 0, qEnde = q₀) oder Trapezlast. Ohne `qEnde` konstant.
+   */
+  streckenlasten?: { von: number; bis: number; q: number; qEnde?: number }[];
   einzelmomente?: { x: number; M: number }[];
   einheiten?: { laenge?: LengthUnit; kraft?: ForceUnit };
 }
@@ -37,7 +41,8 @@ export interface BeamDiagramPayload {
     length: number;
     supports: { x: number; kind: SupportKind; name: string }[];
     pointLoads: { x: number; F: number }[];
-    distributedLoads: { from: number; to: number; q: number }[];
+    /** `qEnd` absent = charge constante (anciens blocs restent valides). */
+    distributedLoads: { from: number; to: number; q: number; qEnd?: number }[];
     pointMoments: { x: number; M: number }[];
   };
   /** Unités de l'énoncé, pour AFFICHER dans les unités de l'étudiant. */
@@ -132,6 +137,9 @@ export function toPayload(a: BalkenstatikInput): BeamDiagramPayload {
         from: len(d.von),
         to: len(d.bis),
         q: lineLoad(d.q),
+        // Seulement si différente : un bloc de charge constante reste identique
+        // à ceux déjà sauvegardés dans les conversations.
+        ...(d.qEnde !== undefined && d.qEnde !== d.q ? { qEnd: lineLoad(d.qEnde) } : {}),
       })),
       pointMoments: (a.einzelmomente ?? []).map((m) => ({ x: len(m.x), M: moment(m.M) })),
     },

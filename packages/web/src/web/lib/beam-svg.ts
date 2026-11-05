@@ -70,7 +70,10 @@ export function parseBeamPayload(raw: string): BeamDiagramPayload | null {
     const allFinite =
       p.supports.every((s) => finite(s.x)) &&
       p.pointLoads.every((f) => finite(f.x) && finite(f.F)) &&
-      p.distributedLoads.every((q) => finite(q.from) && finite(q.to) && finite(q.q)) &&
+      p.distributedLoads.every(
+        (q) =>
+          finite(q.from) && finite(q.to) && finite(q.q) && (q.qEnd === undefined || finite(q.qEnd)),
+      ) &&
       p.pointMoments.every((m) => finite(m.x) && finite(m.M));
     if (!allFinite) return null;
     return d;
@@ -169,12 +172,70 @@ function display(units: BeamDiagramPayload["units"]): Display {
   };
 }
 
+/**
+ * Dreiecks- oder Trapezlast : la hauteur des flèches suit l'intensité,
+ * comme au tableau. Une flèche par ~22 px ; celles trop courtes pour porter
+ * une pointe (près du zéro d'un triangle) sont omises.
+ */
+function linearLoadShape(
+  q: { from: number; to: number; q: number; qEnd: number },
+  d: Display,
+  sx: (x: number) => number,
+  yB: number,
+): string {
+  const H = 28;
+  const base = yB - 6;
+  const x1 = sx(q.from);
+  const x2 = sx(q.to);
+  const maxAbs = Math.max(Math.abs(q.q), Math.abs(q.qEnd)) || 1;
+  const h1 = (H * Math.abs(q.q)) / maxAbs;
+  const h2 = (H * Math.abs(q.qEnd)) / maxAbs;
+  let out =
+    `<polygon points="${x1},${base} ${x1},${base - h1} ${x2},${base - h2} ${x2},${base}" ` +
+    `fill="${COLOR.force}" fill-opacity="0.07"/>` +
+    `<line x1="${x1}" y1="${base - h1}" x2="${x2}" y2="${base - h2}" stroke="${COLOR.force}" stroke-width="1.4"/>`;
+
+  const n = Math.max(2, Math.round((x2 - x1) / 22));
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    const x = x1 + (x2 - x1) * t;
+    const qi = q.q + (q.qEnd - q.q) * t;
+    const h = (H * Math.abs(qi)) / maxAbs;
+    if (h < 7) continue;
+    out +=
+      qi < 0
+        ? `<line x1="${x}" y1="${yB - 4}" x2="${x}" y2="${base - h + 2}" stroke="${COLOR.force}" stroke-width="1.4" marker-end="url(#bArrF)"/>`
+        : `<line x1="${x}" y1="${base - h}" x2="${x}" y2="${yB - 3}" stroke="${COLOR.force}" stroke-width="1.4" marker-end="url(#bArrF)"/>`;
+  }
+
+  // Valeurs aux extrémités non nulles : q₀ pour un triangle, q₁ / q₂ pour un trapèze.
+  const yLabel = base - H - 6;
+  const triangle = q.q === 0 || q.qEnd === 0;
+  if (q.q !== 0) {
+    out += text(x1, yLabel, `${triangle ? "q₀" : "q₁"} = ${d.lineLoad(q.q)}`, {
+      color: COLOR.force,
+      anchor: "start",
+    });
+  }
+  if (q.qEnd !== 0) {
+    out += text(x2, yLabel, `${triangle ? "q₀" : "q₂"} = ${d.lineLoad(q.qEnd)}`, {
+      color: COLOR.force,
+      anchor: "end",
+    });
+  }
+  return out;
+}
+
 function systemPanel(p: BeamDiagramPayload["problem"], d: Display, sx: (x: number) => number) {
   const yB = 112; // arête supérieure de la poutre
   const out: string[] = [];
 
   // Charges réparties : bande de flèches au-dessus de la poutre.
   for (const q of p.distributedLoads) {
+    if (q.qEnd !== undefined && q.qEnd !== q.q) {
+      out.push(linearLoadShape(q as Required<typeof q>, d, sx, yB));
+      continue;
+    }
     const x1 = sx(Math.min(q.from, q.to));
     const x2 = sx(Math.max(q.from, q.to));
     const up = q.q < 0;

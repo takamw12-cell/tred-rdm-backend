@@ -74,8 +74,16 @@ export interface PointLoadInput {
 export interface DistributedLoadInput {
   from: Measure;
   to: Measure;
-  /** Konstante Streckenlast, positiv nach unten. */
+  /**
+   * Streckenlast am Beginn (`from`), positiv nach unten. Ohne `qEnd`
+   * konstant über die ganze Länge.
+   */
   q: Measure;
+  /**
+   * Streckenlast am Ende (`to`). Dazwischen LINEAR: Dreieckslast
+   * (q = 0, qEnd = q₀) oder Trapezlast (q ≠ qEnd).
+   */
+  qEnd?: Measure;
 }
 
 export interface PointMomentInput {
@@ -219,6 +227,75 @@ const DEFAULT_SAMPLES = 200;
 /** Abstand zum beidseitigen Abtasten an Sprungstellen. */
 const EPS = 1e-6;
 
+/** Streckenlast, linear von `q` (bei `from`) nach `qEnd` (bei `to`). SI. */
+interface LinearLoad {
+  from: number;
+  to: number;
+  q: number;
+  qEnd: number;
+}
+
+/** Intensität einer linearen Streckenlast an der Stelle s (innerhalb). */
+function intensityAt(d: LinearLoad, s: number): number {
+  return d.q + ((d.qEnd - d.q) * (s - d.from)) / (d.to - d.from);
+}
+
+/**
+ * Anteil einer linearen Streckenlast LINKS vom Schnitt x:
+ * Resultierende R = ∫ q ds und Moment um den Schnitt ∫ q(s)·(x − s) ds,
+ * beide in geschlossener Form. Kein Schwerpunkt mit Division: bleibt auch
+ * bei einer Last mit Vorzeichenwechsel (R = 0) exakt.
+ */
+function linearLoadLeftOf(d: LinearLoad, x: number): { R: number; Mx: number } {
+  const a = d.from;
+  const b = Math.min(d.to, x);
+  if (b <= a) return { R: 0, Mx: 0 };
+  const h = b - a;
+  const qa = d.q;
+  const k = (d.qEnd - d.q) / (d.to - d.from);
+  const R = qa * h + (k * h * h) / 2;
+  const Mx = qa * ((x - a) * h - (h * h) / 2) + k * (((x - a) * h * h) / 2 - (h * h * h) / 3);
+  return { R, Mx };
+}
+
+/**
+ * Reelle Nullstellen eines Polynoms höchstens 2. Grades auf [lo, hi], aus
+ * drei Funktionswerten exakt rekonstruiert (Lagrange). Q(x) ist zwischen zwei
+ * Ereignisstellen genau so ein Polynom: Konstante, lineare oder Dreieckslast.
+ */
+function rootsOnInterval(fn: (x: number) => number, lo: number, hi: number): number[] {
+  const span = hi - lo;
+  if (span <= 0) return [];
+  // Innen auswerten: an den Rändern sitzen Sprünge, die nicht zum Polynom gehören.
+  const e = Math.min(EPS, span / 4);
+  const x0 = lo + e;
+  const x2 = hi - e;
+  const x1 = (x0 + x2) / 2;
+  const [y0, y1, y2] = [fn(x0), fn(x1), fn(x2)];
+  const scale = Math.max(Math.abs(y0), Math.abs(y1), Math.abs(y2), 1e-12);
+
+  // y = A·t² + B·t + C mit t = x − x1, Stützstellen bei t = −h, 0, +h.
+  const h = x1 - x0;
+  const A = (y0 - 2 * y1 + y2) / (2 * h * h);
+  const B = (y2 - y0) / (2 * h);
+  const C = y1;
+
+  const ts: number[] = [];
+  if (Math.abs(A) * h * h < 1e-12 * scale) {
+    if (Math.abs(B) * h > 1e-12 * scale) ts.push(-C / B);
+  } else {
+    const disc = B * B - 4 * A * C;
+    if (disc >= 0) {
+      const s = Math.sqrt(disc);
+      // Numerisch stabile Form, ohne Auslöschung.
+      const qv = -0.5 * (B + Math.sign(B || 1) * s);
+      ts.push(qv / A);
+      if (qv !== 0) ts.push(C / qv);
+    }
+  }
+  return ts.map((t) => t + x1).filter((x) => x > lo + e / 2 && x < hi - e / 2);
+}
+
 export function solveRdm(problem: BeamProblem): SolveResult {
   const warnings: string[] = [];
 
@@ -226,7 +303,7 @@ export function solveRdm(problem: BeamProblem): SolveResult {
   let L: number;
   let supports: { x: number; kind: SupportKind; name: string }[];
   let pointLoads: { x: number; F: number; name?: string }[];
-  let udls: { from: number; to: number; q: number }[];
+  let udls: LinearLoad[];
   let moments: { x: number; M: number }[];
   let EI: number;
 
@@ -247,11 +324,18 @@ export function solveRdm(problem: BeamProblem): SolveResult {
     }));
 
     udls = (problem.distributedLoads ?? [])
-      .map((d, i) => ({
-        from: measure(d.from, "length", `Streckenlast ${i + 1} (Beginn)`),
-        to: measure(d.to, "length", `Streckenlast ${i + 1} (Ende)`),
-        q: measure(d.q, "lineLoad", `Streckenlast ${i + 1}`),
-      }))
+      .map((d, i) => {
+        const q = measure(d.q, "lineLoad", `Streckenlast ${i + 1}`);
+        return {
+          from: measure(d.from, "length", `Streckenlast ${i + 1} (Beginn)`),
+          to: measure(d.to, "length", `Streckenlast ${i + 1} (Ende)`),
+          q,
+          qEnd:
+            d.qEnd !== undefined
+              ? measure(d.qEnd, "lineLoad", `Streckenlast ${i + 1} (Ende)`)
+              : q,
+        };
+      })
       .filter((d) => d.to > d.from);
 
     moments = (problem.pointMoments ?? []).map((m, i) => ({
@@ -374,18 +458,25 @@ export function solveRdm(problem: BeamProblem): SolveResult {
       for (let j = 0; j < 4; j++) K[map[i]][map[j]] += ke[i][j];
     }
 
-    // Streckenlast als äquivalente Knotenlasten. q zeigt nach unten,
-    // der Lastvektor rechnet nach oben — daher das Minuszeichen.
-    let qOnElement = 0;
+    // Streckenlast als konsistente Knotenlasten (Hermite-Ansatz), linear
+    // veränderlich von q1 (linker Knoten) nach q2 (rechter Knoten). Für
+    // q1 = q2 ergibt das die bekannten q·l/2 und q·l²/12. q zeigt nach unten,
+    // der Lastvektor rechnet nach oben — daher die Minuszeichen.
+    let q1 = 0;
+    let q2 = 0;
     const mid = (nodes[e] + nodes[e + 1]) / 2;
-    for (const d of udls) if (mid > d.from - 1e-12 && mid < d.to + 1e-12) qOnElement += d.q;
+    for (const d of udls) {
+      if (mid > d.from - 1e-12 && mid < d.to + 1e-12) {
+        q1 += intensityAt(d, nodes[e]);
+        q2 += intensityAt(d, nodes[e + 1]);
+      }
+    }
 
-    if (qOnElement !== 0) {
-      const w0 = -qOnElement;
-      f[map[0]] += (w0 * le) / 2;
-      f[map[1]] += (w0 * le * le) / 12;
-      f[map[2]] += (w0 * le) / 2;
-      f[map[3]] += -(w0 * le * le) / 12;
+    if (q1 !== 0 || q2 !== 0) {
+      f[map[0]] -= (le * (7 * q1 + 3 * q2)) / 20;
+      f[map[1]] -= (le * le * (3 * q1 + 2 * q2)) / 60;
+      f[map[2]] -= (le * (3 * q1 + 7 * q2)) / 20;
+      f[map[3]] += (le * le * (2 * q1 + 3 * q2)) / 60;
     }
   }
 
@@ -448,18 +539,11 @@ export function solveRdm(problem: BeamProblem): SolveResult {
   });
 
   /* ── 7. Schnittgrößen in geschlossener Form ─────────────────────────── */
-  const udlLeftOf = (d: { from: number; to: number; q: number }, x: number): [number, number] => {
-    const a = Math.max(d.from, 0);
-    const b = Math.min(d.to, x);
-    if (b <= a) return [0, 0];
-    return [d.q * (b - a), (a + b) / 2];
-  };
-
   const shearAt = (x: number): number => {
     let Q = 0;
     for (const r of reactions) if (r.x <= x + 1e-12) Q += r.force;
     for (const p of pointLoads) if (p.x <= x + 1e-12) Q -= p.F;
-    for (const d of udls) Q -= udlLeftOf(d, x)[0];
+    for (const d of udls) Q -= linearLoadLeftOf(d, x).R;
     return Q;
   };
 
@@ -472,10 +556,7 @@ export function solveRdm(problem: BeamProblem): SolveResult {
       }
     }
     for (const p of pointLoads) if (p.x <= x + 1e-12) M -= p.F * (x - p.x);
-    for (const d of udls) {
-      const [R, c] = udlLeftOf(d, x);
-      M -= R * (x - c);
-    }
+    for (const d of udls) M -= linearLoadLeftOf(d, x).Mx;
     for (const m of moments) if (m.x <= x + 1e-12) M -= m.M;
     return M;
   };
@@ -502,6 +583,35 @@ export function solveRdm(problem: BeamProblem): SolveResult {
     xs.add(d.to);
   }
 
+  // EXAKTE Extremstellen statt Abtastung. Zwischen zwei Ereignisstellen ist
+  // Q(x) ein Polynom ≤ 2. Grades, also:
+  //   • M extrem, wo dM/dx = Q(x) = 0  → Nullstelle von Q,
+  //   • Q extrem, wo dQ/dx = −q(x) = 0 → Nullstelle der Streckenlast
+  //     (nur bei Trapezlasten mit Vorzeichenwechsel).
+  // Bei einer Dreieckslast liegt M_max bei L/√3 — ein Raster aus 200 Punkten
+  // trifft das nie genau.
+  const events = [
+    ...new Set([
+      0,
+      L,
+      ...reactions.map((r) => r.x),
+      ...pointLoads.map((p) => p.x),
+      ...moments.map((m) => m.x),
+      ...udls.flatMap((d) => [d.from, d.to]),
+    ]),
+  ]
+    .filter((x) => x >= 0 && x <= L)
+    .sort((a, b) => a - b);
+  const loadAt = (x: number) =>
+    udls.reduce((s, d) => (x >= d.from && x <= d.to ? s + intensityAt(d, x) : s), 0);
+  const exactExtrema: number[] = [];
+  for (let i = 0; i < events.length - 1; i++) {
+    const [lo, hi] = [events[i], events[i + 1]];
+    for (const x of rootsOnInterval(shearAt, lo, hi)) exactExtrema.push(x);
+    for (const x of rootsOnInterval(loadAt, lo, hi)) exactExtrema.push(x);
+  }
+  for (const x of exactExtrema) xs.add(x);
+
   const grid = [...xs].filter((x) => x >= 0 && x <= L).sort((a, b) => a - b);
 
   const shear: Point[] = grid.map((x) => ({ x: round(x, 6), y: round(shearAt(x), 4) }));
@@ -514,7 +624,8 @@ export function solveRdm(problem: BeamProblem): SolveResult {
   // Das ist der Punkt, an dem ein Rechenfehler auffällt, statt als plausible
   // Zahl in die Antwort zu wandern.
   const totalLoad =
-    pointLoads.reduce((s, p) => s + p.F, 0) + udls.reduce((s, d) => s + d.q * (d.to - d.from), 0);
+    pointLoads.reduce((s, p) => s + p.F, 0) +
+    udls.reduce((s, d) => s + ((d.q + d.qEnd) / 2) * (d.to - d.from), 0);
   const totalReaction = reactions.reduce((s, r) => s + r.force, 0);
   const sumForces = totalReaction - totalLoad;
 
@@ -527,7 +638,12 @@ export function solveRdm(problem: BeamProblem): SolveResult {
   // völlig korrekt gerechneten Kragarmen.
   const loadMomentAboutOrigin =
     pointLoads.reduce((s, p) => s + p.F * p.x, 0) +
-    udls.reduce((s, d) => s + d.q * (d.to - d.from) * ((d.from + d.to) / 2), 0) -
+    // ∫ q(s)·s ds über die lineare Last, geschlossen.
+    udls.reduce((s, d) => {
+      const h = d.to - d.from;
+      const k = (d.qEnd - d.q) / h;
+      return s + d.q * (d.from * h + (h * h) / 2) + k * ((d.from * h * h) / 2 + (h * h * h) / 3);
+    }, 0) -
     moments.reduce((s, m) => s + m.M, 0);
   const reactionMomentAboutOrigin = reactions.reduce(
     (s, r) => s + r.force * r.x - r.moment,

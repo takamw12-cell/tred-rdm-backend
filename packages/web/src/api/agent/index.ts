@@ -1082,9 +1082,22 @@ export function buildTutorAgent(opts: {
             .optional()
             .describe("Einzelkräfte, positiv nach unten"),
           streckenlasten: z
-            .array(z.object({ von: z.number(), bis: z.number(), q: z.number() }))
+            .array(
+              z.object({
+                von: z.number(),
+                bis: z.number(),
+                q: z.number().describe("Intensität bei 'von'"),
+                qEnde: z
+                  .number()
+                  .optional()
+                  .describe(
+                    "Intensität bei 'bis', linear dazwischen. Dreieckslast: q = 0, " +
+                      "qEnde = q₀ (oder umgekehrt). Trapezlast: beide ≠ 0. Weglassen = konstant.",
+                  ),
+              }),
+            )
             .optional()
-            .describe("Konstante Streckenlasten, positiv nach unten"),
+            .describe("Streckenlasten (konstant, Dreieck oder Trapez), positiv nach unten"),
           einzelmomente: z
             .array(z.object({ x: z.number(), M: z.number() }))
             .optional()
