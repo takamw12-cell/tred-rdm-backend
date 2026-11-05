@@ -10,6 +10,7 @@ import { Curriculum, parseCurriculum } from "./curriculum";
 import { MARK, rehypeEnrich } from "./enrich";
 import { DictionaryTooltip } from "./dictionary-tooltip";
 import { SourceCitation } from "./source-citation";
+import { BEAM_LANG, BeamDiagram, dropDuplicateBeamCharts } from "./beam-diagram";
 
 // Intercept fenced code blocks: ```mermaid renders a real diagram, ```chart
 // renders a plotted graph (Q/M curves, Mohr circle, …). Everything else keeps
@@ -76,6 +77,7 @@ const components: Components = {
       const curriculum = parseCurriculum(raw);
       if (curriculum) return <Curriculum data={curriculum} />;
     }
+    if (lang === BEAM_LANG) return <BeamDiagram code={raw} />;
     if (lang === "mermaid") return <MermaidDiagram code={raw} />;
     if (lang === "chart") return <ChartBlock code={raw} />;
     if (lang === "svg") return <SvgBlock code={raw} />;
@@ -97,6 +99,7 @@ const components: Components = {
     const { node, children } = props as { node?: unknown; children?: React.ReactNode };
     const lang = codeLang(node);
     if (
+      lang === BEAM_LANG ||
       lang === "mermaid" ||
       lang === "chart" ||
       lang === "svg" ||
@@ -364,7 +367,7 @@ export function MarkdownContent({
         rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }], rehypeEnrich]}
         components={components}
       >
-        {repairSvgFences(repairMath(splitGluedMath(content)))}
+        {repairSvgFences(repairMath(splitGluedMath(dropDuplicateBeamCharts(content))))}
       </Markdown>
     </div>
   );

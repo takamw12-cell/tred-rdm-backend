@@ -2,8 +2,7 @@ import { stepCountIs, tool, ToolLoopAgent } from "ai";
 import { langOf } from "../lib/languages";
 import { z } from "zod";
 import { calculate } from "../lib/calc";
-import { solveRdmSafe, type SupportKind } from "../lib/rdm-solver";
-import { toSI } from "../lib/units";
+import { runBalkenstatik } from "../lib/beam-tool";
 import { renderDiagram, type DiagramSpec } from "../lib/diagrams";
 import type { Passage } from "../lib/document-search";
 import { ageLabel } from "../lib/memory-text";
@@ -395,9 +394,19 @@ export function buildTutorAgent(opts: {
           dieselbe Richtung haben — ein Ablaufdiagramm, dessen Pfeile der
           Rechnung widersprechen, ist ein schwerer Fehler.
 
+          BALKEN: SKIZZE UND VERLÄUFE ZEICHNET DAS SYSTEM (PFLICHT):
+          Sobald du "balkenstatik" aufgerufen hast, erscheinen die Skizze des
+          Systems (Lager, Lasten, Bemaßung) sowie Q(x) und M(x) AUTOMATISCH an
+          der Stelle des Aufrufs — exakt aus der Rechnung gezeichnet. Du
+          zeichnest dann NICHTS davon selbst: kein chart-Block für Q(x) oder
+          M(x), kein svg-Block, kein mermaid, kein "skizze" mit typ=balken.
+          Du erklärst nur. Zahlenwerte und Sprünge nimmst du aus
+          "kritischePunkte" und "extremwerte": an einem Sprung nennst du
+          BEIDE Werte (links und rechts der Stelle).
+
           WERKZEUG "skizze" (VORRANG VOR EIGENEN ZEICHNUNGEN):
           Passt die Situation zu einem der Gerüst-Typen (spannungsteiler,
-          komparator_led, balken, querschnitt), rufst du IMMER das Werkzeug
+          komparator_led, querschnitt), rufst du IMMER das Werkzeug
           "skizze" auf und übernimmst das gelieferte SVG unverändert. Diese
           Gerüste sind geprüft: Lager, Potentiale, Bemaßung und Vektorpfeile
           sitzen dort garantiert richtig. Nur wenn KEIN Typ passt, zeichnest du
@@ -602,8 +611,7 @@ export function buildTutorAgent(opts: {
              \`\`\`
 
           B) CHART — für QUANTITATIVE Plots und Funktionsverläufe:
-             Querkraftverlauf Q(x), Momentenverlauf M(x), Biegelinie w(x),
-             Spannungs-Dehnungs-Diagramm, Bode, Kennlinien, MOHRSCHER
+             Biegelinie w(x), Spannungs-Dehnungs-Diagramm, Bode, Kennlinien, MOHRSCHER
              KREIS (als Parameterkurve). Nutze einen chart-Codeblock mit
              GÜLTIGEM JSON in genau diesem Schema:
 
@@ -618,6 +626,9 @@ export function buildTutorAgent(opts: {
                ]
              }
              \`\`\`
+
+             Q(x) und M(x) eines Balkens NIE als chart: die zeichnet
+             "balkenstatik" automatisch.
 
              REGELN FÜR CHART:
              - "type": "line" (Verläufe), "scatter" (Punkte/Mohr-Kreis),
@@ -634,8 +645,7 @@ export function buildTutorAgent(opts: {
              Statik-Systeme mit Lagern, Streckenlasten, Einzelkräften,
              Momenten und Bemaßung — genau so, wie ein Professor die Aufgabe
              an die Tafel/ins Skript zeichnet. IMMER SVG (NICHT mermaid,
-             NICHT chart) verwenden für: Balken/Träger mit Auflagern,
-             Freikörperbilder, Fachwerke, Querschnitte, bemaßte Skizzen.
+             NICHT chart) verwenden für: Freikörperbilder, Fachwerke, Querschnitte, bemaßte Skizzen.
              Gib reines, natives SVG-Markup in einem svg-Codeblock aus. Das
              SVG wird direkt vom Browser gerendert (KEINE TeX-/LaTeX-Engine),
              funktioniert also überall zuverlässig. Nutze IMMER ein
@@ -952,7 +962,8 @@ export function buildTutorAgent(opts: {
           "unbestimmte Systeme (Durchlaufträger). Lasten nach unten sind " +
           "positiv, Momente gegen den Uhrzeigersinn. Gib die Einheiten der " +
           "Aufgabe in 'einheiten' an und rechne NICHT selbst um. Fehlt eine " +
-          "Angabe, frage danach, statt zu schätzen.",
+          "Angabe, frage danach, statt zu schätzen. Skizze, Q(x) und M(x) " +
+          "werden aus dem Ergebnis AUTOMATISCH gezeichnet — zeichne sie NICHT.",
         inputSchema: z.object({
           laenge: z.number().describe("Balkenlänge"),
           lager: z
@@ -994,56 +1005,10 @@ export function buildTutorAgent(opts: {
                 "macht das Werkzeug — rechne sie NICHT selbst um.",
             ),
         }),
-        execute: async (a) => {
-          // Umrechnung im Werkzeug, nicht im Modell. Ein Sprachmodell, das
-          // kN in N umrechnet, liegt irgendwann um den Faktor 1000 daneben —
-          // und niemand merkt es, weil die Rechnung danach in sich stimmig ist.
-          const uL = a.einheiten?.laenge ?? "m";
-          const uF = a.einheiten?.kraft ?? "N";
-          const len = (v: number) => toSI(v, "length", uL);
-          const force = (v: number) => toSI(v, "force", uF);
-          const lineLoad = (v: number) => force(v) / len(1);
-          const moment = (v: number) => force(v) * len(1);
-
-          const r = solveRdmSafe({
-            length: len(a.laenge),
-            supports: a.lager.map((s) => ({
-              x: len(s.x),
-              kind: s.art as SupportKind,
-              name: s.name,
-            })),
-            pointLoads: a.einzellasten?.map((p) => ({ x: len(p.x), F: force(p.F) })),
-            distributedLoads: a.streckenlasten?.map((d) => ({
-              from: len(d.von),
-              to: len(d.bis),
-              q: lineLoad(d.q),
-            })),
-            pointMoments: a.einzelmomente?.map((m) => ({ x: len(m.x), M: moment(m.M) })),
-          });
-
-          if (!r.ok) return r;
-
-          // Die vollen Verläufe haben hunderte Punkte. Ausgedünnt reicht es,
-          // um daraus zu zeichnen, und hält den Kontext klein.
-          const thin = (pts: { x: number; y: number }[]) =>
-            pts.filter((_, i) => i % 4 === 0 || i === pts.length - 1);
-
-          return {
-            ok: true as const,
-            statischBestimmt: r.degreeOfIndeterminacy === 0,
-            gradDerUnbestimmtheit: r.degreeOfIndeterminacy,
-            auflagerkraefte: r.reactions,
-            extremwerte: r.extremes,
-            querkraftverlauf: thin(r.shear),
-            momentenverlauf: thin(r.moment),
-            // Selbstkontrolle des Lösers: beide Summen müssen ≈ 0 sein.
-            // Nenne sie dem Studierenden NICHT — sie belegen nur, dass die
-            // Zahlen stimmen.
-            gleichgewichtskontrolle: r.equilibrium,
-            hinweise: r.warnings,
-            einheiten: { kraft: "N", laenge: "m", moment: "N*m" },
-          };
-        },
+        // Logique dans lib/beam-tool.ts (testée) : conversion d'unités,
+        // points critiques AVEC les deux côtés de chaque saut, et le bloc
+        // `diagramm` que le navigateur dessine lui-même.
+        execute: async (a) => runBalkenstatik(a),
       }),
 
       // Geprüfte Standard-Skizzen. Das Modell zeichnet nicht mehr frei,
@@ -1055,7 +1020,6 @@ export function buildTutorAgent(opts: {
           "bevorzugt benutzen, wenn die Situation zu einem der Typen passt: " +
           "spannungsteiler, komparator_led (OP als Komparator mit LED), " +
           "reihenschaltung, parallelschaltung, rc_glied, rl_glied, " +
-          "balken (Träger mit Lagern, Streckenlast, Einzelkraft), " +
           "querschnitt (Rechteckquerschnitt). Das Ergebnis ist fertiges SVG, " +
           "das du unverändert in einen \`\`\`svg-Block setzt.",
         // Anthropic verlangt ein flaches Objekt-Schema (kein anyOf/union),
@@ -1065,7 +1029,7 @@ export function buildTutorAgent(opts: {
           typ: z
             .string()
             .describe(
-              "spannungsteiler | komparator_led | balken | querschnitt | " +
+              "spannungsteiler | komparator_led | querschnitt | " +
                 "reihenschaltung | parallelschaltung | rc_glied | rl_glied",
             ),
           // spannungsteiler + komparator_led
@@ -1112,9 +1076,18 @@ export function buildTutorAgent(opts: {
           // meurt sur un « Fehler » que l'étudiant ne comprend pas. Un
           // message de retour, lui, se rattrape.
           const BEKANNTE_TYPEN = [
-            "spannungsteiler", "komparator_led", "balken", "querschnitt",
+            "spannungsteiler", "komparator_led", "querschnitt",
             "reihenschaltung", "parallelschaltung", "rc_glied", "rl_glied",
           ];
+          // Ein Balken wird nicht mehr nach Gerüst gezeichnet, sondern aus
+          // der Rechnung: sonst kann die Skizze dem Ergebnis widersprechen.
+          if (String(i.typ) === "balken") {
+            return {
+              error:
+                "Balken zeichnet das Werkzeug balkenstatik automatisch, passend " +
+                "zur Rechnung. Rufe balkenstatik auf und zeichne nichts selbst.",
+            };
+          }
           if (!BEKANNTE_TYPEN.includes(String(i.typ))) {
             return {
               error:

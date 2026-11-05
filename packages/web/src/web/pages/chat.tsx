@@ -38,6 +38,7 @@ import { ReportAnswer } from "@/components/report-answer";
 import { CodeExplainContext } from "@/components/code-block";
 import { DocumentViewer } from "@/components/document-viewer";
 import { ImageFrame } from "@/components/diagram-frame";
+import { beamBlockFromPart } from "@/components/beam-diagram";
 import { CameraCapture } from "@/components/camera-capture";
 import { Scratchpad } from "@/components/scratchpad";
 import { downscaleImageToDataUrl, downscaleDataUrl, isUsableDataUrl } from "@/lib/image";
@@ -84,8 +85,15 @@ import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
 
 // Pull rendered text out of a UI message's parts.
+//
+// Le résultat de l'outil `balkenstatik` devient un bloc ```balkendiagramm à
+// l'endroit exact de l'appel. Écrit par le code, pas par le modèle : c'est ce
+// qui garantit que le schéma est celui du calcul. Et comme tout passe par ce
+// texte, la sauvegarde et la traduction le conservent sans autre changement.
 function messageText(m: UIMessage): string {
-  return m.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
+  return m.parts
+    .map((p) => (p.type === "text" ? p.text : (beamBlockFromPart(p) ?? "")))
+    .join("");
 }
 
 export default function ChatPage() {
