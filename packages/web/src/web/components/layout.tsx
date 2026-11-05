@@ -51,7 +51,7 @@ function SidebarPanel({
     <div className="sidebar-night flex h-full flex-col overflow-hidden rounded-2xl border text-white shadow-sm">
       <div className="flex items-center justify-between px-4 pt-4">
         <Link to="/dashboard" onClick={onNavigate} aria-label="TRED">
-          <LogoMark className="size-8" />
+          <LogoMark className="size-8 text-white" />
         </Link>
         <Button
           variant="ghost"
@@ -111,7 +111,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
     // Fond photo de la filière sur TOUTE l'app ; `.glass-scope` passe toutes
     // les cartes (et les éléments `.glass`) en verre dépoli. Le dashboard a un
     // voile plus léger : on y lit peu, on y vient pour l'ambiance.
-    <div className="glass-scope relative flex min-h-screen">
+    <div
+      className="glass-scope relative flex min-h-screen"
+      // Salle sombre : la barre du haut et le pied de page passent en clair
+      // sur sombre (styles.css, [data-room="dark"]).
+      data-room={location.startsWith("/dashboard") ? "dark" : undefined}
+    >
       <DynamicBackground variant={location.startsWith("/dashboard") ? "vivid" : "calm"} />
       {/* ── Colonne PC ────────────────────────────────────────────────
           `hidden lg:flex` sur le conteneur, jamais sur le panneau : c'est ce
@@ -155,7 +160,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
       {/* ── Colonne principale ───────────────────────────────────────── */}
       <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-        <header className="bg-background/80 border-border sticky top-0 z-20 flex h-16 items-center gap-3 border-b px-4 backdrop-blur-md sm:px-6">
+        <header data-slot="topbar" className="bg-background/80 border-border sticky top-0 z-20 flex h-16 items-center gap-3 border-b px-4 backdrop-blur-md sm:px-6">
           <Button
             variant="ghost"
             size="icon"
@@ -225,7 +230,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <OnboardingGuide />
 
         {/* « Ständig verfügbar » : joignable depuis chaque page. */}
-        <footer className="border-border border-t px-4 py-5 pb-20 lg:pb-5">
+        <footer data-slot="app-footer" className="border-border border-t px-4 py-5 pb-20 lg:pb-5">
           <LegalFooter />
         </footer>
       </div>

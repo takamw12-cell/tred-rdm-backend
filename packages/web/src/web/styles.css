@@ -489,6 +489,39 @@ html:lang(ar) body { line-height: 1.7; }
     inset 0 1px 0 rgb(255 255 255 / 0.85);
 }
 
+/* ── Salle sombre (Dashboard) ─────────────────────────────────────────
+   Barre du haut en verre sombre, pied de page en clair sur sombre. Les
+   boutons et menus gardent leurs propres couleurs (pastilles claires). */
+[data-room="dark"] [data-slot="topbar"] {
+  background-color: rgb(11 18 34 / 0.72);
+  border-color: rgb(255 255 255 / 0.08);
+}
+/* Seuls les libellés gris posés directement sur la barre passent en clair ;
+   les pastilles (langue, taille du texte) gardent leur encre. */
+[data-room="dark"] [data-slot="topbar"] > * > .text-muted-foreground,
+[data-room="dark"] [data-slot="topbar"] > .text-muted-foreground,
+[data-room="dark"] [data-slot="topbar"] button.text-muted-foreground,
+[data-room="dark"] [data-slot="topbar"] kbd {
+  color: rgb(255 255 255 / 0.75);
+  border-color: rgb(255 255 255 / 0.25);
+}
+/* Le logo-manette de la barre suit l'encre du thème : en salle sombre, blanc. */
+[data-room="dark"] [data-slot="topbar"] svg.text-foreground {
+  color: #fff;
+}
+/* Dans la salle sombre, les cartes sont des écrans éclairés : plus opaques,
+   sinon le blanc à 80 % sur le bleu nuit vire au gris. */
+[data-room="dark"] [data-slot="card"]:not(.bg-primary) {
+  background-color: rgb(255 255 255 / 0.94);
+}
+[data-room="dark"] [data-slot="app-footer"] {
+  border-color: rgb(255 255 255 / 0.08);
+  color: rgb(255 255 255 / 0.7);
+}
+[data-room="dark"] [data-slot="app-footer"] a:hover {
+  color: #fff;
+}
+
 /* Une feuille posée sur la Tafel (exercice généré) : papier opaque, aimant
    jaune, légère inclinaison — la même que dans le Hörsaal. */
 .glass-scope [data-slot="card"].paper-sheet {

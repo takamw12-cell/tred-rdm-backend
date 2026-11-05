@@ -151,6 +151,15 @@ NICHT übermittelt werden: dein Name, deine E-Mail-Adresse, deine Zahlungsdaten.
 Drittlandtransfer: Die Übermittlung in die USA erfolgt auf Grundlage der
 Standardvertragsklauseln der EU-Kommission (Art. 46 Abs. 2 lit. c DSGVO).
 
+Texterkennung bei Fotos: Lädst du ein Foto (PNG oder JPEG) als Dokument hoch,
+übermitteln wir das Bild an Mathpix, Inc. (San Francisco, USA), um Text und
+Formeln (LaTeX) daraus zu erkennen. Übermittelt wird nur das Bild selbst, ohne
+deinen Namen oder deine E-Mail-Adresse. Ist Mathpix nicht verfügbar, übernimmt
+Anthropic PBC die Texterkennung. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO
+(Bereitstellung der von dir gewünschten Funktion). Drittlandtransfer auf
+Grundlage der Standardvertragsklauseln der EU-Kommission (Art. 46 Abs. 2 lit. c
+DSGVO). Datenschutzerklärung von Mathpix: https://mathpix.com/privacy
+
 Lade keine besonders sensiblen Daten hoch (Gesundheitsdaten, Ausweisdokumente).
 Die Lernfunktion ist dafür nicht vorgesehen.
 
@@ -179,11 +188,12 @@ Löschung: sofortige und vollständige Entfernung, mit der Ausnahme oben.
 Railway Corp. (Hosting, EU), Turso / ChiselStrike Inc. (Datenbank, EU),
 Cloudflare Germany GmbH bzw. Cloudflare, Inc. (Objektspeicher R2,
 Originaldateien; Speicherregion EU),
-Anthropic PBC (Sprachmodell, USA), Resend (E-Mail-Versand, USA),
+Anthropic PBC (Sprachmodell, USA), Mathpix, Inc. (Texterkennung bei
+hochgeladenen Fotos, USA), Resend (E-Mail-Versand, USA),
 Stripe Payments Europe Ltd. (Zahlungen, Irland), Expo / 650 Industries Inc.
 (Push-Benachrichtigungen, USA), OneDollarStats (Reichweitenmessung der App).
 
-Drittlandtransfer: Anthropic PBC, Resend und Cloudflare, Inc. haben ihren Sitz
+Drittlandtransfer: Anthropic PBC, Mathpix, Inc., Resend und Cloudflare, Inc. haben ihren Sitz
 in den USA. Die Übermittlung erfolgt auf Grundlage der Standardvertragsklauseln
 der EU-Kommission (Art. 46 Abs. 2 lit. c DSGVO). Die Originaldateien selbst
 liegen in der EU-Region von Cloudflare R2; ein Zugriff durch die
@@ -211,7 +221,7 @@ Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einer
 funktionsfähigen, bedarfsgerechten Anwendung). Du kannst dem jederzeit
 widersprechen — eine E-Mail an uns genügt.
 
-Stand: 03.09.2026`,
+Stand: 05.11.2026`,
 
   /* ══════════════════════════════════════════════════════════════════════ */
 

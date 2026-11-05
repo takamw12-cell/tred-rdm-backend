@@ -46,7 +46,8 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     <div className="flex h-full flex-col">
       <div className="px-5 py-6">
         <Link to="/dashboard" onClick={onNavigate}>
-          <Logo />
+          {/* Sidebar bleu nuit : le corps de la manette passe en blanc. */}
+          <Logo markClassName="text-white" />
         </Link>
       </div>
 

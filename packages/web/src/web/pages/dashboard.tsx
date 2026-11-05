@@ -291,13 +291,13 @@ export default function DashboardPage() {
       <Reveal className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           {/* Date du jour, dans la langue de l'interface — rien à traduire. */}
-          {/* Encre à 75 % plutôt que le gris secondaire : ces deux lignes sont posées
-              directement sur la photo, sans carte en verre pour les protéger. */}
-          <p className="text-foreground/75 mb-2 text-sm capitalize">{today}</p>
-          <h1 className="font-display text-3xl leading-tight font-semibold sm:text-4xl">
+          {/* Salle sombre (comme le Hörsaal) : ces lignes sont posées sur la
+              photo assombrie, sans carte — donc en blanc. */}
+          <p className="mb-2 text-sm text-white/75 capitalize">{today}</p>
+          <h1 className="font-display text-3xl leading-tight font-semibold text-white drop-shadow-[0_2px_12px_rgb(0_0_0/0.5)] sm:text-4xl">
             {t("dashboard.greeting", { name: profile.firstName })}
           </h1>
-          <p className="text-foreground/75 mt-2 max-w-xl">{t("dashboard.subtitle")}</p>
+          <p className="mt-2 max-w-xl text-white/75">{t("dashboard.subtitle")}</p>
         </div>
         <div className="flex gap-2">
           <Button
@@ -309,7 +309,10 @@ export default function DashboardPage() {
             <Upload className="size-4" />
             {t("dashboard.importDocs")}
           </Button>
-          <Button className="rounded-full" onClick={() => setModalOpen(true)}>
+          <Button
+            className="rounded-full bg-[#EAB308] text-[#0F172A] shadow-[0_8px_24px_-10px_rgb(234_179_8/0.8)] hover:bg-[#FACC15]"
+            onClick={() => setModalOpen(true)}
+          >
             <Plus className="size-4" />
             {t("dashboard.newSemester")}
           </Button>
@@ -325,7 +328,7 @@ export default function DashboardPage() {
             onClick={() => setActive(null)}
           />
           {semsLoading ? (
-            <span className="text-muted-foreground flex items-center gap-2 text-sm">
+            <span className="flex items-center gap-2 text-sm text-white/60">
               <Loader2 className="size-4 animate-spin" />
             </span>
           ) : (
@@ -342,12 +345,12 @@ export default function DashboardPage() {
             ))
           )}
           {activeId !== null && (
-            <Button variant="ghost" size="sm" className="gap-1.5 rounded-full" onClick={() => void openShare()}>
+            <Button variant="ghost" size="sm" className="gap-1.5 rounded-full text-white hover:bg-white/10 hover:text-white" onClick={() => void openShare()}>
               <Share2 className="size-4" />
               {t("share.button")}
             </Button>
           )}
-          <Button variant="ghost" size="sm" className="gap-1.5 rounded-full" onClick={() => { setRedeemOpen(true); setRedeemState({ kind: "idle" }); }}>
+          <Button variant="ghost" size="sm" className="gap-1.5 rounded-full text-white hover:bg-white/10 hover:text-white" onClick={() => { setRedeemOpen(true); setRedeemState({ kind: "idle" }); }}>
             <Ticket className="size-4" />
             {t("share.redeemTitle")}
           </Button>
@@ -537,7 +540,7 @@ export default function DashboardPage() {
         <Reveal className="space-y-6">
           {/* Carte d'appel : encre pleine, un seul bouton jaune. C'est la
               seule surface sombre de l'écran — l'œil y va en premier. */}
-          <Card className="bg-primary text-primary-foreground rounded-2xl border-0">
+          <Card className="bg-primary text-primary-foreground rounded-2xl border-0 ring-1 ring-white/10">
             <CardContent className="pt-0">
               <p className="text-primary-foreground/70 text-xs font-medium tracking-wide uppercase">
                 {t("dashboard.continueTitle")}
@@ -768,14 +771,14 @@ function SemesterChip({
       className={cn(
         "group flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm transition-colors",
         active
-          ? "border-primary bg-primary text-primary-foreground"
+          ? "border-[#EAB308] bg-[#EAB308] text-[#0F172A] shadow-[0_6px_18px_-8px_rgb(234_179_8/0.8)]"
           : "glass-chip border-border bg-card hover:border-signature/60 cursor-pointer",
       )}
     >
       <button onClick={onClick} className="flex items-center gap-1.5">
         <span className="font-medium">{label}</span>
         {sub && (
-          <span className={cn("text-xs", active ? "text-primary-foreground/70" : "text-muted-foreground")}>
+          <span className={cn("text-xs", active ? "text-[#0F172A]/70" : "text-muted-foreground")}>
             · {sub}
           </span>
         )}
@@ -785,7 +788,7 @@ function SemesterChip({
           onClick={onDelete}
           className={cn(
             "hover:text-destructive opacity-0 transition-opacity group-hover:opacity-100",
-            active ? "text-primary-foreground/70" : "text-muted-foreground",
+            active ? "text-[#0F172A]/70" : "text-muted-foreground",
           )}
           aria-label={deleteLabel}
         >

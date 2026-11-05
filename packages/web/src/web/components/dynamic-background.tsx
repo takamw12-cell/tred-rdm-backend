@@ -51,7 +51,10 @@ function readDebugSeconds(): number | null {
  *           cartes en verre assurent le contraste du texte.
  */
 const VEILS = {
-  vivid: "from-background/70 via-background/35 to-background/20",
+  // Dashboard : l'amphithéâtre sombre du Hörsaal (validé le 5 nov. 2026).
+  // La photo de la filière reste visible, assombrie ; les cartes en verre
+  // ressortent comme des écrans éclairés. Le texte posé hors carte est blanc.
+  vivid: "from-[#070B14]/90 via-[#0B1222]/72 to-[#070B14]/85",
   // 80 % minimum : sur la photo la plus sombre, le texte gris posé hors des
   // bulles (nom « TRED », boutons d'action) reste vers 4:1.
   calm: "from-background/90 via-background/85 to-background/80",
