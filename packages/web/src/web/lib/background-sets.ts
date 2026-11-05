@@ -20,18 +20,18 @@ export type BackgroundCategory =
   | "civil";
 
 const G = (n: number) => `/backgrounds/general/bg-0${n}.webp`;
-export const GENERAL = [G(1), G(2), G(3), G(4), G(5)];
+export const GENERAL = [G(1), G(2), G(3), G(4), G(5), G(6), G(7), G(8)];
 
 /** Images propres à chaque catégorie. Vide = fond général uniquement. */
 export const CATEGORY_IMAGES: Record<BackgroundCategory, string[]> = {
   general: [],
-  aerospace: ["/backgrounds/aerospace/aerospace-01.webp"],
-  mechatronics: ["/backgrounds/mechatronics/mechatronics-01.webp"],
+  aerospace: [1, 2, 3].map((n) => `/backgrounds/aerospace/aerospace-0${n}.webp`),
+  mechatronics: [1, 2, 3].map((n) => `/backgrounds/mechatronics/mechatronics-0${n}.webp`),
   // Pas encore d'images dédiées : on privilégie les fonds généraux qui leur
   // parlent (ossature acier ; ponts et béton), en attendant leurs dossiers.
   mechanical: [G(4), G(2)],
   electrical: [],
-  civil: [G(3), G(1), G(5)],
+  civil: [G(3), G(6), G(7), G(8), G(1), G(5)],
 };
 
 /**

@@ -24,10 +24,13 @@ describe("fonds selon la filière", () => {
     expect(categoryForProgram(program)).toBe(category);
   });
 
-  test("une catégorie avec une seule image tourne quand même (intercalée avec le général)", () => {
+  test("images de la filière intercalées avec le général, sans doublon", () => {
+    const own = CATEGORY_IMAGES.aerospace;
     const list = backgroundsFor("aerospace");
-    expect(list[0]).toBe("/backgrounds/aerospace/aerospace-01.webp");
-    expect(list.length).toBe(1 + GENERAL.length);
+    expect(list[0]).toBe(own[0]);
+    expect(list[2]).toBe(own[1]); // une image de la filière sur deux au début
+    expect(list.length).toBe(own.length + GENERAL.length);
+    expect(new Set(list).size).toBe(list.length);
   });
 
   test("catégorie sans image dédiée → fond général", () => {
