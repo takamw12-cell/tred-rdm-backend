@@ -1,3 +1,5 @@
+import { wellFormed } from "./unicode-safe";
+
 // Relevanz-Auswahl für den Kurskontext.
 //
 // Vorher ging bei jeder Frage der komplette Text aller Dokumente an das Modell
@@ -52,7 +54,9 @@ function splitIntoChunks(docs: SourceDoc[]): Chunk[] {
     const text = doc.content ?? "";
     let order = 0;
     for (let start = 0; start < text.length; start += CHUNK_CHARS - CHUNK_OVERLAP) {
-      const slice = text.slice(start, start + CHUNK_CHARS);
+      // wellFormed : une coupure peut tomber au milieu d'un emoji ou d'un 𝑥 de
+      // PDF (deux unités UTF-16). Voir unicode-safe.ts.
+      const slice = wellFormed(text.slice(start, start + CHUNK_CHARS));
       if (slice.trim().length < 40) continue;
       const terms = new Map<string, number>();
       for (const t of tokenize(slice)) terms.set(t, (terms.get(t) ?? 0) + 1);
@@ -85,7 +89,7 @@ export function selectRelevantContext(
   if (queryTerms.size === 0) {
     const per = Math.floor(budgetChars / docs.length);
     return {
-      sources: docs.map((d) => ({ ...d, content: d.content.slice(0, per) })),
+      sources: docs.map((d) => ({ ...d, content: wellFormed(d.content.slice(0, per)) })),
       truncated: true,
     };
   }
@@ -130,7 +134,7 @@ export function selectRelevantContext(
   if (picked.length === 0) {
     const per = Math.floor(budgetChars / docs.length);
     return {
-      sources: docs.map((d) => ({ ...d, content: d.content.slice(0, per) })),
+      sources: docs.map((d) => ({ ...d, content: wellFormed(d.content.slice(0, per)) })),
       truncated: true,
     };
   }

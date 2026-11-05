@@ -1,9 +1,28 @@
 // Direct Anthropic provider (replaces the Runable AI gateway).
 // Call sites keep the same signature: gateway("anthropic/claude-sonnet-4.6").
 import { createAnthropic } from "@ai-sdk/anthropic";
+import { stripLoneSurrogateEscapes } from "../lib/unicode-safe";
+
+/**
+ * Dernier contrôle avant Anthropic : un corps JSON contenant une moitié de
+ * caractère Unicode est refusé (400) et le chat entier tombe. On la remplace
+ * par U+FFFD ici, quel que soit le chemin qui l'a introduite.
+ * Voir lib/unicode-safe.ts (incident du 5 novembre 2026).
+ */
+const safeFetch: typeof fetch = (input, init) => {
+  if (init && typeof init.body === "string") {
+    const body = stripLoneSurrogateEscapes(init.body);
+    if (body !== init.body) {
+      console.warn("[gateway] moitié de caractère Unicode retirée de la requête");
+      init = { ...init, body };
+    }
+  }
+  return fetch(input, init);
+};
 
 const anthropic = createAnthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
+  fetch: safeFetch,
 });
 
 const MODEL_MAP: Record<string, string> = {
