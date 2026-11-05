@@ -2,31 +2,13 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ORPCError } from "@orpc/client";
-import { AlertCircle, BookOpenCheck, Clock, Loader2, PenTool, ShieldCheck } from "lucide-react";
+import { AlertCircle, BookOpenCheck, Check, Clock, Loader2, PenTool, ShieldCheck } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { LegalFooter } from "@/components/legal-footer";
 import { WithdrawalConsent } from "@/components/consent";
 import { authClient } from "@/lib/auth";
 import { client } from "@/lib/api";
 import { subscriptionMeOptions } from "@/queries/subscriptions";
-
-/* -------------------------------------------------------------------------- */
-/* ⚠️  EXEMPLE TEMPORAIRE — À REMPLACER AVANT LA MISE EN LIGNE                 */
-/* -------------------------------------------------------------------------- */
-/*
- * Ce témoignage est INVENTÉ. Le publier tel quel serait un faux avis, interdit
- * dans l'UE (directive Omnibus 2019/2161, annexe I UCPD, § 5b UWG). Remplace
- * `quote`, `author` et `context` par le vrai retour d'un camarade (avec son
- * accord écrit), puis passe `isPlaceholder` à `false`.
- * Tant que `isPlaceholder` vaut `true`, la carte affiche un bandeau « Exemple ».
- */
-const PLACEHOLDER_TESTIMONIAL = {
-  isPlaceholder: true,
-  quote:
-    "Texte d'exemple : remplace-moi par le vrai retour d'un étudiant qui a testé TRED avant le partiel de RDM.",
-  author: "Prénom N.",
-  context: "Early Tester · Maschinenbau, FH Aachen",
-} as const;
 
 /** Affiché aux visiteurs déconnectés. Connecté, le montant vient de Stripe. */
 const FALLBACK_PRICE = "9,99 €";
@@ -51,6 +33,16 @@ const BENEFITS = [
     title: "Gain de temps",
     text: "Fini les deux heures à chercher où ChatGPT s'est trompé de signe. Tu vérifies ta méthode en quelques minutes.",
   },
+] as const;
+
+/** Section « Rejoignez les premiers étudiants » : ce qui est vrai dès le jour 1. */
+const FEATURE_BADGES = [
+  "Zéro hallucination",
+  "Schémas parfaits",
+  "Gain de temps",
+  "Ton propre polycopié",
+  "Diagrammes N, T, M exacts",
+  "Disponible 24 h/24",
 ] as const;
 
 function money(cents: number, currency: string) {
@@ -120,14 +112,14 @@ export default function LandingPage() {
     : `Débloquer mon accès Pro — ${price}/mois`;
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-slate-100">
+    <div className="min-h-screen bg-[#FDFBF7] text-[#1A1A1A]">
       {/* ── En-tête ───────────────────────────────────────────────────── */}
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
         <Logo />
         <button
           type="button"
           onClick={() => navigate(loggedIn ? "/dashboard" : "/login?redirect=/landing")}
-          className="rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-white"
+          className="rounded-full border border-[#E7E2D8] bg-white px-4 py-2 text-sm font-medium text-[#1A1A1A] transition-colors hover:border-[#1A1A1A]"
         >
           {loggedIn ? "Ouvrir l'app" : "Se connecter"}
         </button>
@@ -136,22 +128,25 @@ export default function LandingPage() {
       <main>
         {/* ── Hero ────────────────────────────────────────────────────── */}
         <section className="mx-auto max-w-4xl px-4 pt-12 pb-16 text-center sm:px-6 sm:pt-20">
-          <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#3fbfa8]/30 bg-[#3fbfa8]/10 px-3 py-1 text-xs font-medium text-[#3fbfa8]">
-            <span className="size-1.5 rounded-full bg-[#ffc93c]" />
+          <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#E7E2D8] bg-white px-3 py-1 text-xs font-medium text-[#6B6B6B]">
+            <span className="size-1.5 rounded-full bg-[#EAB308]" />
             Résistance des matériaux · Technische Mechanik
           </p>
 
-          <h1 className="font-display text-4xl leading-tight font-bold tracking-tight text-white sm:text-5xl md:text-6xl">
+          <h1 className="font-display text-4xl leading-tight font-semibold tracking-tight text-[#1A1A1A] sm:text-5xl md:text-6xl">
             Ne rate plus ton partiel de RDM à cause d'une{" "}
-            <span className="bg-[linear-gradient(transparent_60%,#ffc93c66_60%)] px-1">
+            <span className="bg-[linear-gradient(transparent_58%,#EAB30866_58%)] px-1">
               erreur de ChatGPT
             </span>
             .
           </h1>
 
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-300 sm:text-xl">
+          <p className="mx-auto mt-6 max-w-2xl text-lg text-[#3A3A3A] sm:text-xl">
             Le premier tuteur IA qui lit ton propre polycopié et trace les diagrammes d'efforts
             exacts.
+          </p>
+          <p className="mt-3 text-sm font-medium text-[#6B6B6B]">
+            Conçu pour les étudiants en ingénierie en Allemagne.
           </p>
 
           <CtaBlock
@@ -189,41 +184,56 @@ export default function LandingPage() {
             {BENEFITS.map(({ icon: Icon, title, text }) => (
               <article
                 key={title}
-                className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition-colors hover:border-[#3fbfa8]/40"
+                className="rounded-2xl border border-[#E7E2D8] bg-white p-6 shadow-[0_1px_2px_rgb(26_26_26/0.04),0_8px_24px_-12px_rgb(26_26_26/0.10)] transition-colors hover:border-[#EAB308]"
               >
-                <div className="mb-4 flex size-11 items-center justify-center rounded-xl bg-[#3fbfa8]/15 text-[#3fbfa8]">
+                <div className="mb-4 flex size-11 items-center justify-center rounded-full bg-[#FBF3D6] text-[#1A1A1A]">
                   <Icon className="size-5" />
                 </div>
-                <h2 className="font-display text-lg font-bold text-white">{title}</h2>
-                <p className="mt-2 text-sm leading-relaxed text-slate-400">{text}</p>
+                <h2 className="font-display text-xl font-semibold text-[#1A1A1A]">{title}</h2>
+                <p className="mt-2 text-sm leading-relaxed text-[#5A5A5A]">{text}</p>
               </article>
             ))}
           </div>
         </section>
 
-        {/* ── Témoignage ──────────────────────────────────────────────── */}
-        <section className="mx-auto max-w-3xl px-4 pb-24 sm:px-6">
-          <figure className="relative rounded-2xl border border-[#ffc93c]/25 bg-[#ffc93c]/[0.04] p-8">
-            {PLACEHOLDER_TESTIMONIAL.isPlaceholder && (
-              <span className="absolute -top-3 left-6 rounded-md bg-red-500 px-2 py-0.5 text-[11px] font-bold tracking-wide text-white uppercase">
-                Exemple — témoignage à remplacer
-              </span>
-            )}
-            <blockquote className="text-lg leading-relaxed text-slate-200">
-              « {PLACEHOLDER_TESTIMONIAL.quote} »
-            </blockquote>
-            <figcaption className="mt-5 flex items-center gap-3 text-sm">
-              <span className="font-semibold text-white">{PLACEHOLDER_TESTIMONIAL.author}</span>
-              <span className="rounded-full bg-[#3fbfa8]/15 px-2 py-0.5 text-xs font-medium text-[#3fbfa8]">
-                {PLACEHOLDER_TESTIMONIAL.context}
-              </span>
-            </figcaption>
-          </figure>
+        {/* ── Premiers étudiants ──────────────────────────────────────────
+            Pas de témoignage tant qu'aucun vrai retour n'existe : un avis
+            inventé est interdit dans l'UE (directive Omnibus, § 5b UWG). */}
+        <section className="mx-auto max-w-3xl px-4 pb-24 text-center sm:px-6">
+          <div className="rounded-3xl border border-[#E7E2D8] bg-white px-6 py-10 sm:px-10">
+            <h2 className="font-display text-3xl font-semibold text-[#1A1A1A] sm:text-4xl">
+              Rejoignez les premiers étudiants
+            </h2>
+            <p className="mx-auto mt-3 max-w-xl text-[#5A5A5A]">
+              TRED ouvre ses portes avant les partiels. Ce que tu obtiens dès le premier jour :
+            </p>
+            <ul className="mt-6 flex flex-wrap justify-center gap-2.5">
+              {FEATURE_BADGES.map((label) => (
+                <li
+                  key={label}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#E7E2D8] bg-[#FDFBF7] px-3.5 py-1.5 text-sm font-medium text-[#1A1A1A]"
+                >
+                  <Check className="size-3.5 text-[#1A1A1A]" aria-hidden />
+                  {label}
+                </li>
+              ))}
+            </ul>
+            <div className="mt-8">
+              <button
+                type="button"
+                onClick={onCta}
+                disabled={busy}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1A1A1A] px-6 py-3 text-sm font-semibold text-[#FDFBF7] transition hover:bg-[#333] disabled:opacity-70"
+              >
+                {ctaLabel}
+              </button>
+            </div>
+          </div>
         </section>
       </main>
 
-      <footer className="border-t border-white/10 py-8">
-        <LegalFooter className="text-slate-500" />
+      <footer className="border-t border-[#E7E2D8] py-8">
+        <LegalFooter className="text-[#6B6B6B]" />
       </footer>
     </div>
   );
@@ -255,9 +265,7 @@ function CtaBlock({
   return (
     <div className="mx-auto mt-10 max-w-md">
       {showConsent && (
-        // `dark` force les tokens sombres du design system, quel que soit le
-        // thème choisi dans l'app : la landing est toujours sombre.
-        <div className="dark mb-4 text-left">
+        <div className="mb-4 text-left">
           <WithdrawalConsent {...consent} />
         </div>
       )}
@@ -266,7 +274,7 @@ function CtaBlock({
         type="button"
         onClick={onClick}
         disabled={busy}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#3fbfa8] px-6 py-4 text-base font-bold text-[#0f172a] shadow-lg shadow-[#3fbfa8]/20 transition hover:bg-[#5fd4bf] focus-visible:ring-4 focus-visible:ring-[#ffc93c]/60 focus-visible:outline-none disabled:cursor-wait disabled:opacity-70"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#EAB308] px-6 py-4 text-base font-semibold text-[#1A1A1A] shadow-[0_10px_30px_-12px_rgb(234_179_8/0.6)] transition hover:bg-[#d9a406] focus-visible:ring-4 focus-visible:ring-[#1A1A1A]/40 focus-visible:outline-none disabled:cursor-wait disabled:opacity-70"
       >
         {busy && <Loader2 className="size-4 animate-spin" />}
         {label}
@@ -275,7 +283,7 @@ function CtaBlock({
       {error && (
         <p
           role="alert"
-          className="mt-4 flex items-start gap-2 rounded-lg border border-red-400/30 bg-red-500/10 p-3 text-left text-sm text-red-200"
+          className="mt-4 flex items-start gap-2 rounded-xl border border-[#B3261E]/30 bg-[#B3261E]/5 p-3 text-left text-sm text-[#B3261E]"
         >
           <AlertCircle className="mt-0.5 size-4 shrink-0" />
           {error}
@@ -283,7 +291,7 @@ function CtaBlock({
       )}
 
       {note && (
-        <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-slate-400">
+        <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-[#6B6B6B]">
           <ShieldCheck className="size-3.5" />
           {note}
         </p>
