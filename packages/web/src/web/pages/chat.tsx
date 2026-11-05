@@ -104,6 +104,15 @@ function hasHiddenWork(m: UIMessage): boolean {
   return m.parts.some((p) => p.type === "reasoning" || p.type.startsWith("tool-"));
 }
 
+// Le tuteur est-il en train d'ÉCRIRE du texte visible en ce moment ?
+// Faux pendant un raisonnement ou un appel d'outil — y compris APRÈS une
+// première phrase déjà affichée (« Voici l'animation 👇 » puis recherche).
+function isStreamingText(m: UIMessage): boolean {
+  const parts = m.parts.filter((p) => p.type !== "step-start");
+  const last = parts[parts.length - 1] as { type: string; state?: string } | undefined;
+  return last?.type === "text" && last.state !== "done";
+}
+
 export default function ChatPage() {
   /**
    * ── La langue de cette page ─────────────────────────────────────────────
@@ -411,10 +420,13 @@ export default function ChatPage() {
   const lastMsg = messages[messages.length - 1];
   const lastAssistantEmpty =
     lastMsg?.role === "assistant" && !messageText(lastMsg).trim() ? lastMsg : null;
-  // L'indicateur reste visible tant qu'aucun texte n'est arrivé — pas seulement
-  // pendant « submitted ». Raisonnement et outils passent le statut en
-  // « streaming » bien avant le premier mot.
-  const waitingForText = busy && (lastMsg?.role === "user" || lastAssistantEmpty !== null);
+  // L'indicateur reste visible pendant TOUTE la génération, sauf quand du texte
+  // s'écrit sous les yeux de l'étudiant. Raisonnement et outils peuvent durer
+  // longtemps, avant comme après une première phrase.
+  const waitingForText =
+    busy && (lastMsg?.role !== "assistant" || !isStreamingText(lastMsg));
+  // Libellé : « réfléchit ou dessine » dès qu'un raisonnement ou un outil a eu lieu.
+  const working = busy && lastMsg?.role === "assistant" && hasHiddenWork(lastMsg);
   // Flux terminé sans un mot (boucle d'outils, coupure…) : on le dit.
   const emptyAnswer = !busy && !error && lastAssistantEmpty !== null;
 
@@ -1585,9 +1597,7 @@ export default function ChatPage() {
                   >
                     <LogoMark className="size-6" />
                     <span className="flex items-center gap-1">
-                      {lastAssistantEmpty && hasHiddenWork(lastAssistantEmpty)
-                        ? t("chat.working")
-                        : t("chat.thinking")}
+                      {working ? t("chat.working") : t("chat.thinking")}
                       <Dots />
                     </span>
                   </motion.div>

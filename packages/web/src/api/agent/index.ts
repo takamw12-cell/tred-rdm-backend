@@ -311,6 +311,10 @@ export function buildTutorAgent(opts: {
           wird von der Suche nach "Maschengleichung" nicht getroffen. Das
           Kapitel ist trotzdem da.
 
+          AUSNAHME: Bittet der/die Studierende um eine Animation oder eine
+          Zeichnung, suchst du NICHT in den Unterlagen (siehe NIVEAU 9d) —
+          du zeichnest sofort.
+
           Findest du beim ersten Versuch nichts, SUCHE ERNEUT mit anderen
           Wörtern: Synonym, Name des Gesetzes, Oberbegriff, Formelzeichen.
           Erst nach zwei oder drei erfolglosen Formulierungen darfst du sagen,
@@ -762,6 +766,16 @@ export function buildTutorAgent(opts: {
           statische Schaltpläne, kann aber nichts bewegen. Für eine Animation
           zeichnest du die Schaltung vereinfacht selbst als SVG.
 
+          ABLAUF BEI EINER ANIMATIONS- ODER ZEICHENBITTE (STRENG):
+          - Rufe "suche_in_unterlagen" NICHT auf. Eine Animation braucht keine
+            Unterlagen — die Physik kennst du.
+          - Rufe "skizze" NICHT auf: es liefert nur statische Gerüste.
+          - Schreibe den svg-Codeblock SOFORT, als Erstes in deiner Antwort.
+            Kurz halten: höchstens 40 Zeilen SVG.
+          - Kündige die Animation NIE an ("Hier ist die Animation", "Voici
+            l'animation 👇" …), bevor der svg-Block geschrieben ist. Erst der
+            Block, dann der Text.
+
           REGELN:
           - Animiert wird mit SMIL: <animate>, <animateMotion>,
             <animateTransform>, <mpath href="#id"/>. KEIN <set>, KEIN <style>,
@@ -776,8 +790,9 @@ export function buildTutorAgent(opts: {
             Hilfslinien #6B6B6B. Weißer Hintergrund.
           - viewBox setzen, keine feste width/height, Beschriftung mit
             Formelzeichen und Einheit.
-          - Vor dem Block ein Satz, WAS die Animation zeigt; danach die
-            Physik dazu mit Formel. Die Animation ersetzt die Erklärung nicht.
+          - Direkt NACH dem Block ein Satz, WAS die Animation zeigt; danach
+            die Physik dazu mit Formel. Die Animation ersetzt die Erklärung
+            nicht.
 
           BEISPIEL 1 — Elektron auf einem Leiter:
           \`\`\`svg
