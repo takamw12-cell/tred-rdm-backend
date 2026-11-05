@@ -35,10 +35,11 @@ import { FontSize, Radius, Space } from "@/constants/theme";
  *
  * ── Le code d'invitation vient du serveur ─────────────────────────────────
  *
- * `/api/config` dit si l'inscription est ouverte. Tant que la réponse n'est
- * pas là, on considère qu'elle est fermée : afficher le champ puis le retirer
- * donne l'impression d'un formulaire qui bouge tout seul, et le contraire —
- * le cacher puis le montrer — fait rater le champ à celui qui a déjà tapé.
+ * `/api/config` dit si l'inscription est fermée. Le champ n'apparaît QUE si
+ * le serveur répond correctement avec `inviteRequired: true`. Si la requête
+ * échoue (réseau, statut HTTP, JSON illisible), le formulaire reste ouvert :
+ * quand la porte est vraiment fermée, le serveur refuse de toute façon
+ * l'inscription sans code (403). L'erreur est journalisée pour le diagnostic.
  */
 
 type Mode = "signin" | "signup";
@@ -56,17 +57,21 @@ export default function SignIn() {
   const [error, setError] = useState<string | null>(null);
   const [forgotSent, setForgotSent] = useState(false);
 
-  const [inviteRequired, setInviteRequired] = useState(true);
+  const [inviteRequired, setInviteRequired] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`${API_URL}/api/config`)
-      .then((r) => r.json())
-      .then((d: { inviteRequired?: boolean }) => {
-        if (!cancelled) setInviteRequired(d.inviteRequired !== false);
+    const url = `${API_URL}/api/config`;
+    fetch(url)
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status} on ${url}`);
+        return r.json();
       })
-      .catch(() => {
-        /* hors ligne : on garde « fermé », l'utilisateur verra le champ */
+      .then((d: { inviteRequired?: unknown }) => {
+        if (!cancelled) setInviteRequired(d.inviteRequired === true);
+      })
+      .catch((err) => {
+        console.error("[sign-in] /api/config indisponible, inscription laissée ouverte :", err);
       });
     return () => {
       cancelled = true;
@@ -101,9 +106,15 @@ export default function SignIn() {
 
       if (result.error) {
         const code = result.error.status;
+        // 403 à l'inscription = porte fermée (INVITE_REQUIRED ou INVITE_INVALID).
+        // On affiche le champ pour que l'utilisateur puisse saisir son code,
+        // même si /api/config n'a pas pu être lu plus tôt.
+        if (isSignup && code === 403) setInviteRequired(true);
         setError(
           code === 403
-            ? t("auth.inviteInvalid")
+            ? isSignup && !invite.trim()
+              ? t("auth.inviteRequired")
+              : t("auth.inviteInvalid")
             : code === 401
               ? t("auth.invalidCredentials")
               : code === 422

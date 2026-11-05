@@ -11,6 +11,7 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { authClient, googleAuthEnabled, appleAuthEnabled } from "@/lib/auth";
 import { useT } from "@/i18n";
+import { fetchInviteRequired } from "@/lib/signup-config";
 
 export default function LoginPage() {
   const { t } = useT();
@@ -46,15 +47,20 @@ export default function LoginPage() {
     setBusy(false);
     setForgotSent(true);
   }
-  // Der Server entscheidet, ob überhaupt registriert werden darf. Bis die
-  // Antwort da ist, gilt "geschlossen" — so blitzt das Formular nicht kurz auf.
-  const [inviteRequired, setInviteRequired] = useState(true);
+  // Der Server entscheidet, ob überhaupt registriert werden darf. Das Feld
+  // erscheint nur, wenn /api/config erfolgreich "inviteRequired: true" meldet.
+  // Schlägt der Abruf fehl, bleibt das Formular offen — der Server lehnt eine
+  // Registrierung ohne Code ohnehin mit 403 ab, falls sie geschlossen ist.
+  const [inviteRequired, setInviteRequired] = useState(false);
 
   useEffect(() => {
-    void fetch("/api/config")
-      .then((r) => r.json())
-      .then((d: { inviteRequired?: boolean }) => setInviteRequired(d.inviteRequired !== false))
-      .catch(() => setInviteRequired(true));
+    let cancelled = false;
+    void fetchInviteRequired().then((required) => {
+      if (!cancelled) setInviteRequired(required);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const isSignup = mode === "signup";
@@ -97,9 +103,17 @@ export default function LoginPage() {
         : await authClient.signIn.email({ email, password });
       if (res.error) {
         const code = (res.error as { code?: string; status?: number }).status;
-        setError(
-          code === 403 ? t("auth.inviteInvalid") : res.error.message ?? t("auth.errorGeneric"),
-        );
+        // 403 bei der Registrierung = die Tür ist zu (INVITE_REQUIRED oder
+        // INVITE_INVALID). Das Codefeld einblenden, damit der Nutzer einen
+        // Code eingeben kann — auch wenn /api/config vorher nicht erreichbar war.
+        if (isSignup && code === 403) {
+          setInviteRequired(true);
+          setError(invite.trim() ? t("auth.inviteInvalid") : t("auth.inviteHint"));
+        } else {
+          setError(
+            code === 403 ? t("auth.inviteInvalid") : res.error.message ?? t("auth.errorGeneric"),
+          );
+        }
       }
     } catch {
       setError(t("auth.errorGeneric"));
