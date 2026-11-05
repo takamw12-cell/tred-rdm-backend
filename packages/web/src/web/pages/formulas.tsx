@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MarkdownContent } from "@/components/markdown-content";
 import { printElement } from "@/lib/pdf-print";
-import { useSemesterStore } from "@/stores/semester";
+import { useReconciledSemester } from "@/hooks/use-reconciled-semester";
 import { useT } from "@/i18n";
 
 type GeneratedFormulas = { title: string; content: string };
@@ -57,7 +57,7 @@ async function generate(body: Record<string, unknown>): Promise<GeneratedFormula
 
 export default function FormulasPage() {
   const { t, locale } = useT();
-  const semesterId = useSemesterStore((s) => s.activeId);
+  const semesterId = useReconciledSemester();
 
   const [subject, setSubject] = useState("");
   const [focus, setFocus] = useState("");

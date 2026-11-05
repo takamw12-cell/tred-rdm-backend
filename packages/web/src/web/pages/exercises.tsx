@@ -34,7 +34,7 @@ import {
   savedExerciseRemoveOptions,
 } from "@/queries/saved-exercises";
 import { client } from "@/lib/api";
-import { useSemesterStore } from "@/stores/semester";
+import { useReconciledSemester } from "@/hooks/use-reconciled-semester";
 import { printElement } from "@/lib/pdf-print";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
@@ -101,7 +101,7 @@ async function generate(body: Record<string, unknown>): Promise<GeneratedExercis
 export default function ExercisesPage() {
   const { t, locale } = useT();
   const [tab, setTab] = useState<"generator" | "klausuren" | "saved">("generator");
-  const semesterId = useSemesterStore((s) => s.activeId);
+  const semesterId = useReconciledSemester();
   const { data: docs = [] } = useQuery(documentsListOptions());
   const klausuren = useMemo(() => docs.filter((d) => d.kind === "klausur"), [docs]);
 

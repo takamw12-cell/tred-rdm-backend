@@ -64,6 +64,7 @@ import { Button } from "@/components/ui/button";
 import { LogoMark } from "@/components/logo";
 import { client } from "@/lib/api";
 import { useSemesterStore } from "@/stores/semester";
+import { useReconciledSemester } from "@/hooks/use-reconciled-semester";
 import { semestersListOptions } from "@/queries/semesters";
 import { documentsListOptions } from "@/queries/documents";
 import { subjectsListOptions } from "@/queries/subjects";
@@ -265,7 +266,7 @@ export default function ChatPage() {
     setAttachments((prev) => prev.filter((a) => a.id !== id));
   }
 
-  const semesterId = useSemesterStore((s) => s.activeId);
+  const semesterId = useReconciledSemester();
   const setActiveSemester = useSemesterStore((s) => s.setActive);
   const { data: sems = [] } = useQuery(semestersListOptions());
   const activeSem = sems.find((s) => s.id === semesterId) ?? null;

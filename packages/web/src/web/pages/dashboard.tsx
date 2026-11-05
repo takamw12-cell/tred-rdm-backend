@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -35,6 +35,7 @@ import { Modal } from "@/components/modal";
 import { useT } from "@/i18n";
 import { useUserStore } from "@/stores/user";
 import { useSemesterStore } from "@/stores/semester";
+import { useReconciledSemester } from "@/hooks/use-reconciled-semester";
 import { useLocaleStore } from "@/stores/locale";
 import {
   semestersListOptions,
@@ -74,22 +75,11 @@ export default function DashboardPage() {
   const qc = useQueryClient();
   const profile = useUserStore((s) => s.profile);
   const locale = useLocaleStore((s) => s.locale);
-  const activeId = useSemesterStore((s) => s.activeId);
+  // activeId vient du localStorage : le hook le confronte aux semestres réels.
+  const activeId = useReconciledSemester();
   const setActive = useSemesterStore((s) => s.setActive);
-  const reconcile = useSemesterStore((s) => s.reconcile);
 
-  const {
-    data: sems = [],
-    isLoading: semsLoading,
-    isSuccess: semsLoaded,
-  } = useQuery(semestersListOptions());
-
-  // activeId vient du localStorage : il peut viser un semestre disparu. On le
-  // confronte aux semestres réels, mais seulement après un chargement RÉUSSI —
-  // en cas d'erreur, `sems` vaut [] et effacerait un choix valide.
-  useEffect(() => {
-    if (semsLoaded) reconcile(sems.map((s) => s.id));
-  }, [semsLoaded, sems, reconcile]);
+  const { data: sems = [], isLoading: semsLoading } = useQuery(semestersListOptions());
 
   // null → documents.list reçoit {} : semesterId undefined = « tous les cours ».
   const { data: docs = [], isLoading: docsLoading } = useQuery(
