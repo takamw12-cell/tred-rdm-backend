@@ -11,6 +11,8 @@ import { MARK, rehypeEnrich } from "./enrich";
 import { DictionaryTooltip } from "./dictionary-tooltip";
 import { SourceCitation } from "./source-citation";
 import { BEAM_LANG, BeamDiagram, dropDuplicateBeamCharts } from "./beam-diagram";
+import { MarkdownMedia, MediaCard } from "./media-card";
+import { MEDIA_LANG } from "@/lib/media-block";
 
 // Intercept fenced code blocks: ```mermaid renders a real diagram, ```chart
 // renders a plotted graph (Q/M curves, Mohr circle, …). Everything else keeps
@@ -31,6 +33,11 @@ function rawCode(node: unknown): string {
 }
 
 const components: Components = {
+  // ![image](url) : image paresseuse ; nos vidéos générées → lecteur vidéo.
+  img(props) {
+    const { src, alt } = props as { src?: string; alt?: string };
+    return <MarkdownMedia src={typeof src === "string" ? src : undefined} alt={alt} />;
+  },
   /**
    * `rehypeEnrich` marque les termes techniques et les citations de source
    * avec des `data-tred-*`. C'est ici qu'ils redeviennent des composants.
@@ -78,6 +85,7 @@ const components: Components = {
       if (curriculum) return <Curriculum data={curriculum} />;
     }
     if (lang === BEAM_LANG) return <BeamDiagram code={raw} />;
+    if (lang === MEDIA_LANG) return <MediaCard code={raw} />;
     if (lang === "mermaid") return <MermaidDiagram code={raw} />;
     if (lang === "chart") return <ChartBlock code={raw} />;
     if (lang === "svg") return <SvgBlock code={raw} />;
@@ -100,6 +108,7 @@ const components: Components = {
     const lang = codeLang(node);
     if (
       lang === BEAM_LANG ||
+      lang === MEDIA_LANG ||
       lang === "mermaid" ||
       lang === "chart" ||
       lang === "svg" ||

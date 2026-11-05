@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "figma": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "figma-developer-mcp@0.13.2",
+        "--stdio"
+      ],
+      "env": {
+        "FIGMA_API_KEY": "${FIGMA_PERSONAL_ACCESS_TOKEN:-}"
+      }
+    },
+    "replicate": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "replicate-mcp@0.9.0"
+      ],
+      "env": {
+        "REPLICATE_API_TOKEN": "${REPLICATE_API_TOKEN:-}"
+      }
+    }
+  }
+}

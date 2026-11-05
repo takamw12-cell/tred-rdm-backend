@@ -29,7 +29,7 @@ export function LearningStylePicker() {
   const save = useMutation(orpc.account.setLearningStyle.mutationOptions());
   const [failed, setFailed] = useState(false);
 
-  const current: Style = (save.variables?.learningStyle ?? query.data?.learningStyle ?? "balanced") as Style;
+  const current: Style = (save.variables?.learningStyle ?? query.data?.learningStyle ?? "interactive") as Style;
 
   function choose(value: Style) {
     if (value === current || save.isPending) return;

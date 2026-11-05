@@ -7,7 +7,7 @@ import { backgroundsFor, categoryForProgram } from "@/lib/background-sets";
  * Fond photographique tournant, façon « Windows Spotlight ».
  *
  * Photos sous licence Unsplash dans /public/backgrounds/<catégorie>/ — voir
- * CREDITS.md. Une nouvelle image toutes les 10 minutes, en fondu.
+ * CREDITS.md. Une nouvelle image toutes les 5 minutes, en fondu.
  *
  * V2 : les images suivent la filière du profil (« Luft- und Raumfahrttechnik »
  * → réacteurs, « Mechatronik » → robots…). Le choix est dans
@@ -29,13 +29,13 @@ import { backgroundsFor, categoryForProgram } from "@/lib/background-sets";
  *   fondu à ~0 ms, l'image change donc sans animation.
  */
 
-const DEFAULT_ROTATE_MS = 10 * 60 * 1000;
+const DEFAULT_ROTATE_MS = 5 * 60 * 1000;
 const FADE_MS = 1500;
 
 /**
  * Mode test : `?bg=30` dans l'URL → rotation toutes les 30 s et étiquette
  * « filière · image » en bas à droite. Rien ne change pour les autres
- * utilisateurs ; on vérifie ainsi une filière sans attendre 10 minutes.
+ * utilisateurs ; on vérifie ainsi une filière sans attendre 5 minutes.
  */
 function readDebugSeconds(): number | null {
   if (typeof window === "undefined") return null;

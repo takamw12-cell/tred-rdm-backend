@@ -64,9 +64,10 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
               onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                // Bleu nuit / jaune TRED (décision fondateur, 5 nov. 2026).
                 active
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                  ? "bg-[#EAB308] text-[#0F172A] shadow-sm"
+                  : "text-white/75 hover:bg-white/10 hover:text-white",
               )}
             >
               <Icon className="size-[18px]" />
@@ -85,23 +86,23 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           <Sparkles className="size-4" />
           {t("nav.pricing")}
         </Link>
-        <div className="bg-secondary/60 flex items-center gap-3 rounded-xl p-2.5">
+        <div className="flex items-center gap-3 rounded-xl bg-white/5 p-2.5">
           <Avatar>
             <AvatarFallback className="brand-gradient text-xs font-bold text-white">
               {initials.toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold">
+            <p className="truncate text-sm font-semibold text-white">
               {profile.firstName} {profile.lastName}
             </p>
-            <Badge variant="secondary" className="mt-0.5 capitalize">
+            <Badge variant="secondary" className="mt-0.5 border-0 bg-white/10 text-white/80 capitalize">
               {plan}
             </Badge>
           </div>
           <button
             onClick={() => authClient.signOut()}
-            className="text-muted-foreground hover:text-destructive shrink-0 transition-colors"
+            className="shrink-0 text-white/60 transition-colors hover:text-red-400"
             aria-label={t("auth.signOut")}
             title={t("auth.signOut")}
           >

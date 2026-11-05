@@ -1,6 +1,7 @@
 import { eq, sql } from "drizzle-orm";
 import { db } from "../database";
 import { userAccess, inviteCode } from "../database/schema";
+import { DEFAULT_LEARNING_STYLE } from "./learning-style";
 import { session as sessionTable, user as userTable } from "../database/auth-schema";
 
 /**
@@ -61,7 +62,7 @@ export async function getAccess(userId: string, email?: string): Promise<AccessS
     const role = shouldBeAdmin ? "admin" : "user";
     await db
       .insert(userAccess)
-      .values({ userId, isActive: true, role })
+      .values({ userId, isActive: true, role, learningStyle: DEFAULT_LEARNING_STYLE })
       .onConflictDoNothing();
     return { isActive: true, role };
   }
@@ -90,7 +91,7 @@ export async function setActive(
 ): Promise<void> {
   await db
     .insert(userAccess)
-    .values({ userId, isActive, note: note ?? null })
+    .values({ userId, isActive, note: note ?? null, learningStyle: DEFAULT_LEARNING_STYLE })
     .onConflictDoUpdate({
       target: userAccess.userId,
       set: { isActive, note: note ?? null, updatedAt: new Date() },
@@ -217,7 +218,12 @@ export async function setCodeDisabled(code: string, disabled: boolean) {
 export async function tagInvite(userId: string, code: string) {
   await db
     .insert(userAccess)
-    .values({ userId, invitedWith: normalizeCode(code), isActive: true })
+    .values({
+      userId,
+      invitedWith: normalizeCode(code),
+      isActive: true,
+      learningStyle: DEFAULT_LEARNING_STYLE,
+    })
     .onConflictDoUpdate({
       target: userAccess.userId,
       set: { invitedWith: normalizeCode(code), updatedAt: new Date() },

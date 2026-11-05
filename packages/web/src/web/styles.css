@@ -373,6 +373,18 @@ html:lang(ar) body { line-height: 1.7; }
   backdrop-filter: blur(10px);
 }
 
+/* Barre latérale bleu nuit (#0F172A), en verre sombre : la photo de fond
+   transparaît à peine, le texte blanc garde un contraste > 12:1.
+   Identique en thème clair et sombre — c'est la signature de l'app. */
+.sidebar-night,
+.glass-scope .sidebar-night {
+  background-color: rgb(15 23 42 / 0.92);
+  border-color: rgb(255 255 255 / 0.08);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  backdrop-filter: blur(16px) saturate(1.2);
+  color: #fff;
+}
+
 /* React Flow theming */
 .react-flow__attribution { display: none; }
 

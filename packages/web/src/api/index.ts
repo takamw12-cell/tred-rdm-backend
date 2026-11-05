@@ -3,6 +3,9 @@ import { createAgentUIStreamResponse, generateText, generateObject } from "ai";
 import { stream } from "hono/streaming";
 import { gateway } from "./agent/gateway";
 import { createApp } from "./__core/app";
+import { registerAvatarRoutes } from "./avatar/routes";
+import { registerMediaRoutes } from "./media/routes";
+import { generateMedia, replicateConfigured } from "./lib/replicate-media";
 import { ping } from "./routes/ping";
 import { documents } from "./routes/documents";
 import { savedExercises } from "./routes/saved-exercises";
@@ -390,6 +393,11 @@ async function requireAdmin(c: {
   return { ok: true, userId: session.user.id };
 }
 
+// Professeur virtuel : LiveKit + stockage des médias. Répond 503 sans clés.
+registerAvatarRoutes(app, requireAdmin);
+// Images et vidéos générées par le tuteur, lues par leur seul propriétaire.
+registerMediaRoutes(app);
+
 app.get("/api/admin/users", async (c) => {
   const guard = await requireAdmin(c);
   if (!guard.ok) return c.json({ error: "FORBIDDEN" }, guard.status);
@@ -635,7 +643,7 @@ app.post("/api/agent/messages", async (c) => {
   // huit lignes : au-delà, le prompt s'allonge sans que la réponse gagne.
   const uid = session.user.id;
   const gaps = await openGaps(uid);
-  // Style VARK choisi dans les réglages. Ne lève jamais (→ « balanced »).
+  // Style VARK choisi dans les réglages. Ne lève jamais (→ « interactive »).
   const learningStyle = await readLearningStyle(uid);
 
   const agent = buildTutorAgent({
@@ -656,6 +664,10 @@ app.post("/api/agent/messages", async (c) => {
     examMode: examMode === true,
     calcMode: calcMode === true,
     codeLang: codeLang === "matlab" ? "matlab" : "python",
+    // Bild-/Videogenerierung (Replicate) — nur wenn REPLICATE_API_TOKEN gesetzt ist.
+    media: replicateConfigured()
+      ? (input) => generateMedia({ userId: uid, ...input })
+      : undefined,
     memory: {
       open: gaps,
       note: (input) => noteGap(uid, { ...input, semesterId: semesterId ?? null }),

@@ -6,7 +6,7 @@ import { runBalkenstatik } from "../lib/beam-tool";
 import { renderDiagram, type DiagramSpec } from "../lib/diagrams";
 import type { Passage } from "../lib/document-search";
 import { ageLabel } from "../lib/memory-text";
-import type { LearningStyle } from "../lib/learning-style";
+import { DEFAULT_LEARNING_STYLE, type LearningStyle } from "../lib/learning-style";
 import dedent from "dedent";
 import { gateway } from "./gateway";
 
@@ -98,7 +98,7 @@ const LEARNING_STYLE_RULES: Record<LearningStyle, string[]> = {
   ],
 };
 
-function buildMemoryBlock(memory?: TutorMemory, learningStyle: LearningStyle = "balanced"): string {
+function buildMemoryBlock(memory?: TutorMemory, learningStyle: LearningStyle = DEFAULT_LEARNING_STYLE): string {
   const styleLines = [
     "WIE DIESE PERSON AM BESTEN LERNT (in den Einstellungen gewählt):",
     ...LEARNING_STYLE_RULES[learningStyle],
@@ -186,6 +186,12 @@ export function buildTutorAgent(opts: {
    * choisi pour lui. Présente, il peut aller lire.
    */
   search?: (requete: string, titre?: string) => Passage[];
+  /**
+   * Génération d'image ou de vidéo (Replicate). Absente = l'outil
+   * `generiere_bild_oder_video` n'existe pas et la règle NIVEAU 9e n'est pas
+   * dans le prompt : le tuteur ne promet rien qu'il ne peut pas tenir.
+   */
+  media?: (input: { prompt: string; type: "image" | "video"; dauer?: number }) => Promise<unknown>;
 }) {
   const rule = langRule(opts.locale);
   const memoryBlock = buildMemoryBlock(opts.memory, opts.learningStyle);
@@ -932,6 +938,32 @@ export function buildTutorAgent(opts: {
           </svg>
           \`\`\`
 
+          ${
+            opts.media
+              ? dedent`
+          ═══════════════════════════════════════════════════════════
+          NIVEAU 9e — REALISTISCHE BILDER UND VIDEOS (GENERIERUNG)
+          ═══════════════════════════════════════════════════════════
+          Bittet der/die Studierende um ein REALISTISCHES Bild oder um ein
+          komplexes Erklärvideo (z. B. "generiere mir ein Video vom Antrieb
+          eines Flugzeugs", "zeig mir ein echtes Foto einer Turbinenschaufel"),
+          rufst du das Werkzeug "generiere_bild_oder_video" auf, statt eine
+          einfache SVG-Zeichnung zu machen.
+          - Technische Schemata, Schaltpläne, Kraftskizzen, Graphen und
+            Diagramme: weiterhin SVG / chart / circuitikz (NIVEAU 9–9d).
+            Ein generiertes Bild ist dort UNGENAU und daher verboten.
+          - Formuliere den Prompt auf Englisch, präzise und sachlich (Motiv,
+            Perspektive, Stil "photorealistic" oder "technical illustration").
+          - Videos sind teuer und auf 2 pro Tag begrenzt: nur, wenn Bewegung
+            wirklich etwas erklärt; sonst ein Bild. dauer höchstens 5.
+          - Die Oberfläche zeigt das Ergebnis selbst an. Schreibe KEINE URL
+            und keinen Markdown-Bildlink dazu, sondern 1–2 Sätze, worauf man
+            achten soll — und im interaktiven Lernstil eine Frage dazu.
+          - Meldet das Werkzeug "daily_limit_reached", sag das freundlich und
+            biete eine SVG-Skizze an. Bei "generation_failed" ebenso.`
+              : ""
+          }
+
           ═══════════════════════════════════════════════════════════
           NIVEAU 10 — SICHERHEIT & LEITPLANKEN
           ═══════════════════════════════════════════════════════════
@@ -1121,6 +1153,34 @@ export function buildTutorAgent(opts: {
               execute: async ({ kurzform }) => ({
                 geschlossen: await opts.memory!.resolve(kurzform),
               }),
+            }),
+          }
+        : {}),
+
+      ...(opts.media
+        ? {
+            generiere_bild_oder_video: tool({
+              description:
+                "Generiert ein REALISTISCHES Bild oder ein kurzes Video (max. 5 s) " +
+                "mit einem KI-Modell. Nur für realistische Darstellungen oder " +
+                "komplexe Erklärvideos — NIE für Schemata, Schaltpläne, Graphen " +
+                "oder Diagramme (dafür SVG). Videos: höchstens 2 pro Tag.",
+              inputSchema: z.object({
+                prompt: z
+                  .string()
+                  .min(3)
+                  .max(1500)
+                  .describe("Beschreibung des Bildes/Videos, auf Englisch, präzise"),
+                type: z.enum(["image", "video"]).describe('"image" oder "video"'),
+                dauer: z
+                  .number()
+                  .int()
+                  .min(1)
+                  .max(5)
+                  .optional()
+                  .describe("Nur für Videos: Dauer in Sekunden, höchstens 5"),
+              }),
+              execute: async (input) => opts.media!(input),
             }),
           }
         : {}),

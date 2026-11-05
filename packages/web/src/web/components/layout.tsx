@@ -48,7 +48,7 @@ function SidebarPanel({
   const { t } = useT();
 
   return (
-    <div className="glass bg-sidebar border-sidebar-border flex h-full flex-col overflow-hidden rounded-2xl border shadow-sm">
+    <div className="sidebar-night flex h-full flex-col overflow-hidden rounded-2xl border text-white shadow-sm">
       <div className="flex items-center justify-between px-4 pt-4">
         <Link to="/dashboard" onClick={onNavigate} aria-label="TRED">
           <LogoMark className="size-8" />
@@ -56,6 +56,7 @@ function SidebarPanel({
         <Button
           variant="ghost"
           size="icon"
+          className="text-white/70 hover:bg-white/10 hover:text-white"
           onClick={onClose}
           aria-label={t("nav.hideMenu")}
           title={t("nav.hideMenu")}

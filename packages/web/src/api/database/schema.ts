@@ -397,7 +397,7 @@ export const userAccess = sqliteTable("user_access", {
   // Lernstil (VARK): visual | auditory | text | interactive | balanced.
   // Steuert, WIE der Tutor erklärt — nicht, WAS er erklärt. Hier und nicht in
   // `user`, aus demselben Grund wie `locale`. Migration: migre-learning-style.mjs
-  learningStyle: text("learning_style").notNull().default("balanced"),
+  learningStyle: text("learning_style").notNull().default("interactive"),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -623,3 +623,27 @@ export const courseMember = sqliteTable(
 );
 
 export type CourseMember = typeof courseMember.$inferSelect;
+
+// ── Professeur virtuel : suivi des coûts ───────────────────────────────────
+//
+// Une ligne par session d'avatar (HeyGen LiveAvatar + TTS éventuel). Le coût
+// est une ESTIMATION calculée par lib/avatar-cost.ts au moment de l'écriture,
+// figée en centimes : si les prix changent ensuite, l'historique reste lisible
+// tel qu'il a été facturé à l'époque.
+// Créée sur Turso par migre-avatar-usage.mjs (à la racine du dépôt).
+export const avatarUsage = sqliteTable(
+  "avatar_usage",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    durationSec: integer("duration_sec").notNull(),
+    ttsChars: integer("tts_chars").notNull().default(0),
+    costCents: integer("cost_cents").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("avatar_usage_user_idx").on(t.userId, t.createdAt)],
+);
+
+export type AvatarUsage = typeof avatarUsage.$inferSelect;

@@ -33,8 +33,9 @@ describe("learning style — prompt NIVEAU 2b", () => {
     });
   }
 
-  test("sans style transmis → balanced (comportement d'avant)", () => {
-    expect(prompt()).toContain("Lernstil: AUSGEWOGEN");
+  test("sans style transmis → interactive (défaut fondateur : une question par étape)", () => {
+    expect(prompt()).toContain("Lernstil: INTERAKTIV");
+    expect(prompt()).not.toContain("Lernstil: AUSGEWOGEN");
   });
 
   test("le style ne prime jamais sur l'exactitude ni les outils", () => {

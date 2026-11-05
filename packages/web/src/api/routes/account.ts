@@ -8,7 +8,7 @@ import { userAccess } from "../database/schema";
 import { deleteUserData, exportUserData, PERSONAL_DATA_TABLES } from "../lib/gdpr";
 import { getStripe } from "../lib/stripe";
 import { getPlanRow } from "../lib/billing";
-import { LEARNING_STYLES } from "../lib/learning-style";
+import { DEFAULT_LEARNING_STYLE, LEARNING_STYLES } from "../lib/learning-style";
 import { readLearningStyle } from "../lib/learning-style-store";
 
 /**
@@ -49,7 +49,12 @@ export const account = {
     .handler(async ({ input, context }) => {
       await db
         .insert(userAccess)
-        .values({ userId: context.user.id, locale: input.locale, isActive: true })
+        .values({
+          userId: context.user.id,
+          locale: input.locale,
+          isActive: true,
+          learningStyle: DEFAULT_LEARNING_STYLE,
+        })
         .onConflictDoUpdate({
           target: userAccess.userId,
           set: { locale: input.locale, updatedAt: new Date() },
@@ -57,7 +62,7 @@ export const account = {
       return { locale: input.locale };
     }),
 
-  /** Lernstil (VARK). `balanced`, solange nichts gewählt wurde. */
+  /** Lernstil (VARK). `interactive`, solange nichts gewählt wurde. */
   getLearningStyle: authed.handler(async ({ context }) => ({
     learningStyle: await readLearningStyle(context.user.id),
   })),

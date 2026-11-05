@@ -1,7 +1,6 @@
 import { Route, Switch, Redirect, useSearch } from "wouter";
 import LegalPage from "@/pages/legal";
 import LandingPage from "@/pages/landing";
-import VirtualClassroom from "@/components/virtual-classroom";
 import ResetPasswordPage from "@/pages/reset-password";
 import { ErrorBoundary, installGlobalErrorReporting } from "@/components/error-boundary";
 import { Loader2 } from "lucide-react";
@@ -13,17 +12,45 @@ import { LogoMark } from "./components/logo";
 import OnboardingPage from "./pages/onboarding";
 import LoginPage from "./pages/login";
 import DashboardPage from "./pages/dashboard";
-import ChatPage from "./pages/chat";
-import DictionaryPage from "./pages/dictionary";
-import DnaPage from "./pages/dna";
-import ExercisesPage from "./pages/exercises";
-import FormulasPage from "./pages/formulas";
-import ExamPage from "./pages/exam";
-import SettingsPage from "./pages/settings";
-import PricingPage from "./pages/pricing";
-import CreditsPage from "./pages/credits";
-import CoursesPage from "./pages/courses";
-import AdminPage from "./pages/admin";
+import { lazy, Suspense, type ComponentType } from "react";
+
+/**
+ * Performance (audit du 5 nov. 2026) : seules les pages d'entrée — Dashboard,
+ * connexion, onboarding, landing, mentions légales — sont dans le bundle
+ * initial. Les autres se chargent à la première visite. Avant, le chat
+ * (2 200 lignes), l'admin et l'examen pesaient sur l'ouverture du Dashboard.
+ */
+function lazyPage<P extends object>(load: () => Promise<{ default: ComponentType<P> }>) {
+  const Page = lazy(load);
+  return function LazyPage(props: P) {
+    return (
+      <Suspense fallback={<PageFallback />}>
+        <Page {...props} />
+      </Suspense>
+    );
+  };
+}
+
+function PageFallback() {
+  return (
+    <div className="flex min-h-[50vh] items-center justify-center">
+      <Loader2 className="text-muted-foreground size-6 animate-spin" />
+    </div>
+  );
+}
+
+const VirtualClassroom = lazyPage(() => import("@/components/virtual-classroom"));
+const ChatPage = lazyPage(() => import("./pages/chat"));
+const DictionaryPage = lazyPage(() => import("./pages/dictionary"));
+const DnaPage = lazyPage(() => import("./pages/dna"));
+const ExercisesPage = lazyPage(() => import("./pages/exercises"));
+const FormulasPage = lazyPage(() => import("./pages/formulas"));
+const ExamPage = lazyPage(() => import("./pages/exam"));
+const SettingsPage = lazyPage(() => import("./pages/settings"));
+const PricingPage = lazyPage(() => import("./pages/pricing"));
+const CreditsPage = lazyPage(() => import("./pages/credits"));
+const CoursesPage = lazyPage(() => import("./pages/courses"));
+const AdminPage = lazyPage(() => import("./pages/admin"));
 
 function RootRedirect() {
   const onboarded = useUserStore((s) => s.onboarded);

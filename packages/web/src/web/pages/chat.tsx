@@ -41,6 +41,7 @@ import { CodeExplainContext } from "@/components/code-block";
 import { DocumentViewer } from "@/components/document-viewer";
 import { ImageFrame } from "@/components/diagram-frame";
 import { BEAM_LANG, beamBlockFromPart } from "@/components/beam-diagram";
+import { MEDIA_LANG, mediaBlockFromPart } from "@/lib/media-block";
 import { CameraCapture } from "@/components/camera-capture";
 import { Scratchpad } from "@/components/scratchpad";
 import { downscaleImageToDataUrl, downscaleDataUrl, isUsableDataUrl } from "@/lib/image";
@@ -95,7 +96,9 @@ import { cn } from "@/lib/utils";
 // texte, la sauvegarde et la traduction le conservent sans autre changement.
 function messageText(m: UIMessage): string {
   return m.parts
-    .map((p) => (p.type === "text" ? p.text : (beamBlockFromPart(p) ?? "")))
+    .map((p) =>
+      p.type === "text" ? p.text : (beamBlockFromPart(p) ?? mediaBlockFromPart(p) ?? ""),
+    )
     .join("");
 }
 
@@ -450,7 +453,12 @@ export default function ChatPage() {
   const tafelById = new Map<string, TafelSplit & { solverUsed: boolean }>();
   for (const m of messages) {
     if (m.role !== "assistant") continue;
-    const split = moveFencedToBoard(splitTafel(displayText(m)), BEAM_LANG, "Skizze");
+    // Le schéma de poutre et les médias générés vont au tableau, en tête.
+    const split = moveFencedToBoard(
+      moveFencedToBoard(splitTafel(displayText(m)), MEDIA_LANG, "Medium"),
+      BEAM_LANG,
+      "Skizze",
+    );
     const solverUsed = m.parts.some(
       (p) => p.type === "tool-rechnen" || p.type === "tool-balkenstatik",
     );
