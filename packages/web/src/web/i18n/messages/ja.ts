@@ -86,6 +86,10 @@ export const ja: PartialMessages = {
     errorGeneric: "ログインに失敗しました。入力内容をご確認ください。",
   },
   settings: {
+    studySection: "学業",
+    studiengangLabel: "専攻（Studiengang）",
+    studiengangDesc: "アプリの背景画像もこれで決まります。",
+    studiengangOther: "その他",
     learningStyleSection: "学習スタイル",
     learningStyleDesc: "TRED が説明の仕方を合わせます。内容は変わりません。",
     lsVisual: "視覚型",

@@ -477,6 +477,10 @@ export const de = {
     points: "Punkte",
   },
   settings: {
+    studySection: "Studium",
+    studiengangLabel: "Studiengang",
+    studiengangDesc: "Bestimmt unter anderem das Hintergrundbild der App.",
+    studiengangOther: "Andere",
     learningStyleSection: "Lernstil",
     learningStyleDesc: "TRED passt die Form seiner Erklärungen an. Die Inhalte bleiben gleich.",
     lsVisual: "Visuell",

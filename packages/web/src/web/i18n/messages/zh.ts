@@ -86,6 +86,10 @@ export const zh: PartialMessages = {
     errorGeneric: "登录失败，请检查你的信息。",
   },
   settings: {
+    studySection: "学业",
+    studiengangLabel: "专业（Studiengang）",
+    studiengangDesc: "同时决定应用的背景图片。",
+    studiengangOther: "其他",
     learningStyleSection: "学习风格",
     learningStyleDesc: "TRED 会调整讲解方式，内容保持不变。",
     lsVisual: "视觉型",

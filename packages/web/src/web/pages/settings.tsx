@@ -12,8 +12,10 @@ import {
   Type,
   Compass,
   GraduationCap,
+  BookOpen,
 } from "lucide-react";
 import { LearningStylePicker } from "@/components/learning-style-picker";
+import { StudiengangPicker } from "@/components/studiengang-picker";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -270,6 +272,12 @@ export default function SettingsPage() {
             </Button>
           </Row>
         </div>
+      </Section>
+
+      <Section icon={<BookOpen className="size-4" />} title={t("settings.studySection")}>
+        <Row label={t("settings.studiengangLabel")} description={t("settings.studiengangDesc")}>
+          <StudiengangPicker />
+        </Row>
       </Section>
 
       <Section

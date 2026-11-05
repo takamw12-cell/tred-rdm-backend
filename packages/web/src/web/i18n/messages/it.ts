@@ -86,6 +86,10 @@ export const it: PartialMessages = {
     errorGeneric: "Accesso non riuscito. Controlla i tuoi dati.",
   },
   settings: {
+    studySection: "Studi",
+    studiengangLabel: "Corso di laurea (Studiengang)",
+    studiengangDesc: "Determina anche l'immagine di sfondo dell'app.",
+    studiengangOther: "Altro",
     learningStyleSection: "Stile di apprendimento",
     learningStyleDesc: "TRED adatta la forma delle spiegazioni. Il contenuto resta lo stesso.",
     lsVisual: "Visivo",

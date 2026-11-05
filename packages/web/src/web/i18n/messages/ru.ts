@@ -86,6 +86,10 @@ export const ru: PartialMessages = {
     errorGeneric: "Не удалось войти. Проверьте введённые данные.",
   },
   settings: {
+    studySection: "Учёба",
+    studiengangLabel: "Направление (Studiengang)",
+    studiengangDesc: "Также задаёт фоновое изображение приложения.",
+    studiengangOther: "Другое",
     learningStyleSection: "Стиль обучения",
     learningStyleDesc: "TRED подстраивает форму объяснений. Содержание остаётся тем же.",
     lsVisual: "Визуальный",

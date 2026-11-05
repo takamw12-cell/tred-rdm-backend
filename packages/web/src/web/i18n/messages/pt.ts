@@ -86,6 +86,10 @@ export const pt: PartialMessages = {
     errorGeneric: "Início de sessão falhou. Verifica os teus dados.",
   },
   settings: {
+    studySection: "Estudos",
+    studiengangLabel: "Curso (Studiengang)",
+    studiengangDesc: "Também define a imagem de fundo da aplicação.",
+    studiengangOther: "Outro",
     learningStyleSection: "Estilo de aprendizagem",
     learningStyleDesc: "O TRED adapta a forma das explicações. O conteúdo continua o mesmo.",
     lsVisual: "Visual",

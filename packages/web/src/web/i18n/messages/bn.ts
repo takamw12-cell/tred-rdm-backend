@@ -86,6 +86,10 @@ export const bn: PartialMessages = {
     errorGeneric: "সাইন-ইন ব্যর্থ। তথ্য যাচাই করুন।",
   },
   settings: {
+    studySection: "পড়াশোনা",
+    studiengangLabel: "প্রোগ্রাম (Studiengang)",
+    studiengangDesc: "এটি অ্যাপের পটভূমির ছবিও ঠিক করে।",
+    studiengangOther: "অন্যান্য",
     learningStyleSection: "শেখার ধরন",
     learningStyleDesc: "TRED তোমার মতো করে ব্যাখ্যার ধরন বদলায়, বিষয়বস্তু একই থাকে।",
     lsVisual: "দৃশ্যমান",

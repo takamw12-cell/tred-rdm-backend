@@ -86,6 +86,10 @@ export const hi: PartialMessages = {
     errorGeneric: "साइन-इन विफल रहा। कृपया अपनी जानकारी जाँचें।",
   },
   settings: {
+    studySection: "पढ़ाई",
+    studiengangLabel: "पाठ्यक्रम (Studiengang)",
+    studiengangDesc: "यह ऐप की पृष्ठभूमि छवि भी तय करता है।",
+    studiengangOther: "अन्य",
     learningStyleSection: "सीखने की शैली",
     learningStyleDesc: "TRED समझाने का तरीका आपके अनुसार बदलता है, विषय-वस्तु वही रहती है।",
     lsVisual: "दृश्य",

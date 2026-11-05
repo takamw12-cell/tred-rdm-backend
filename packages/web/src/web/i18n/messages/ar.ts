@@ -86,6 +86,10 @@ export const ar: PartialMessages = {
     errorGeneric: "فشل تسجيل الدخول. تحقّق من بياناتك.",
   },
   settings: {
+    studySection: "الدراسة",
+    studiengangLabel: "التخصص (Studiengang)",
+    studiengangDesc: "يحدد أيضًا صورة خلفية التطبيق.",
+    studiengangOther: "آخر",
     learningStyleSection: "أسلوب التعلّم",
     learningStyleDesc: "يكيّف TRED طريقة شرحه، ويبقى المحتوى كما هو.",
     lsVisual: "بصري",

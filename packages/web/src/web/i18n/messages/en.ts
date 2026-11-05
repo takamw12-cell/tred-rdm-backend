@@ -478,6 +478,10 @@ export const en: Messages = {
     points: "points",
   },
   settings: {
+    studySection: "Studies",
+    studiengangLabel: "Degree programme (Studiengang)",
+    studiengangDesc: "Also sets the app's background image.",
+    studiengangOther: "Other",
     learningStyleSection: "Learning style",
     learningStyleDesc: "TRED adapts how it explains. The content stays the same.",
     lsVisual: "Visual",
