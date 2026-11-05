@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -76,8 +76,22 @@ export default function DashboardPage() {
   const locale = useLocaleStore((s) => s.locale);
   const activeId = useSemesterStore((s) => s.activeId);
   const setActive = useSemesterStore((s) => s.setActive);
+  const reconcile = useSemesterStore((s) => s.reconcile);
 
-  const { data: sems = [], isLoading: semsLoading } = useQuery(semestersListOptions());
+  const {
+    data: sems = [],
+    isLoading: semsLoading,
+    isSuccess: semsLoaded,
+  } = useQuery(semestersListOptions());
+
+  // activeId vient du localStorage : il peut viser un semestre disparu. On le
+  // confronte aux semestres réels, mais seulement après un chargement RÉUSSI —
+  // en cas d'erreur, `sems` vaut [] et effacerait un choix valide.
+  useEffect(() => {
+    if (semsLoaded) reconcile(sems.map((s) => s.id));
+  }, [semsLoaded, sems, reconcile]);
+
+  // null → documents.list reçoit {} : semesterId undefined = « tous les cours ».
   const { data: docs = [], isLoading: docsLoading } = useQuery(
     documentsListOptions(activeId),
   );
