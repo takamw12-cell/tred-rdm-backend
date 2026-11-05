@@ -25,6 +25,8 @@ export const fr: Translations = {
   },
 
   auth: {
+    verifySent: "Bienvenue ! Nous t'avons envoyé un e-mail. Clique sur le lien qu'il contient, puis connecte-toi ici.",
+    verifyRequired: "Confirme d'abord ton adresse e-mail. Nous venons de te renvoyer le lien.",
     signInTitle: "Bon retour",
     signInSubtitle: "Connecte-toi pour continuer à réviser.",
     signUpTitle: "Créer un compte",
@@ -38,8 +40,6 @@ export const fr: Translations = {
     signOut: "Se déconnecter",
     noAccount: "Pas encore de compte ?",
     hasAccount: "Déjà inscrit ?",
-    inviteCode: "Code d'invitation",
-    inviteRequired: "L'inscription nécessite pour l'instant un code d'invitation.",
     invalidCredentials: "E-mail ou mot de passe incorrect.",
     emailTaken: "Cette adresse est déjà utilisée.",
     signOutConfirm: "Se déconnecter ?",
@@ -47,7 +47,6 @@ export const fr: Translations = {
     forgotSent:
       "Si un compte existe pour cette adresse, le courriel est parti.",
     errorGeneric: "Cela n'a pas fonctionné. Réessaie.",
-    inviteInvalid: "Ce code d'invitation n'est pas valide.",
   },
 
   tabs: {

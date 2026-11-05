@@ -41,6 +41,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { buildTutorAgent } from "./agent";
 import { detectDomain, domainHint } from "./lib/solvers/domain";
+import { mailConfigured } from "./lib/mail";
 import { readLearningStyle } from "./lib/learning-style-store";
 import { pickStyleReference, STYLE_SAMPLE_CHARS } from "./lib/style-reference";
 import { wellFormed } from "./lib/unicode-safe";
@@ -62,13 +63,6 @@ import {
   getAccess,
   setActive,
   listUsers,
-  listCodes,
-  createCode,
-  setCodeDisabled,
-  checkCode,
-  consumeCode,
-  tagInvite,
-  publicSignupAllowed,
 } from "./lib/access";
 import {
   addOutputTokens,
@@ -196,40 +190,10 @@ app.use("/api/*", async (c, next) => {
   return next();
 });
 
-// ── Registrierung: nur mit gültigem Einladungscode ────────────────────────
-// Der Code reist im Rumpf der Better-Auth-Anfrage mit. Geprüft wird davor,
-// verbraucht erst danach — nur eine tatsächlich angelegte Anmeldung soll
-// einen Code aufbrauchen.
-app.use("/api/auth/sign-up/*", async (c, next) => {
-  let body: { inviteCode?: string; email?: string } = {};
-  try {
-    body = (await c.req.raw.clone().json()) as typeof body;
-  } catch {
-    /* kein JSON-Rumpf: unten als fehlender Code behandelt */
-  }
-
-  const raw = String(body.inviteCode ?? "");
-
-  if (!publicSignupAllowed()) {
-    if (!raw) return c.json({ error: "INVITE_REQUIRED" }, 403);
-    const check = await checkCode(raw);
-    if (!check.ok) return c.json({ error: "INVITE_INVALID", reason: check.reason }, 403);
-  }
-
-  await next();
-
-  // Nur bei erfolgreicher Registrierung verbrauchen.
-  if (raw && c.res.status >= 200 && c.res.status < 300) {
-    await consumeCode(raw);
-    try {
-      const s = await auth.api.getSession({ headers: c.req.raw.headers });
-      if (s) await tagInvite(s.user.id, raw);
-    } catch {
-      /* Zuordnung ist nur Protokoll, kein Grund die Anmeldung scheitern zu lassen */
-    }
-  }
-});
-
+// ── Registrierung: offen ──────────────────────────────────────────────────
+// Kein Einladungscode mehr (offene Beta). Schutz vor Missbrauch: die
+// E-Mail-Bestätigung (auth.ts), das Rate-Limit auf /api/auth und die
+// Guthaben-/Kontingentgrenzen pro Konto.
 app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
 // ── Stripe-Webhook ────────────────────────────────────────────────────────
@@ -383,7 +347,7 @@ app.post("/api/errors", async (c) => {
 });
 
 app.get("/api/config", (c) =>
-  c.json({ publicSignup: publicSignupAllowed(), inviteRequired: !publicSignupAllowed() }),
+  c.json({ publicSignup: true, inviteRequired: false, emailVerification: mailConfigured() }),
 );
 
 // ── Admin ─────────────────────────────────────────────────────────────────
@@ -450,38 +414,6 @@ app.post("/api/admin/reports/resolve", async (c) => {
   const body = (await c.req.json().catch(() => ({}))) as { id?: string };
   if (!body.id) return c.json({ error: "invalid body" }, 400);
   await resolveReport(body.id);
-  return c.json({ ok: true });
-});
-
-app.get("/api/admin/invites", async (c) => {
-  const guard = await requireAdmin(c);
-  if (!guard.ok) return c.json({ error: "FORBIDDEN" }, guard.status);
-  return c.json({ codes: await listCodes() });
-});
-
-app.post("/api/admin/invites", async (c) => {
-  const guard = await requireAdmin(c);
-  if (!guard.ok) return c.json({ error: "FORBIDDEN" }, guard.status);
-  const body = (await c.req.json().catch(() => ({}))) as {
-    label?: string;
-    maxUses?: number;
-    expiresInDays?: number | null;
-  };
-  const code = await createCode(body);
-  return c.json({ code });
-});
-
-app.post("/api/admin/invites/disable", async (c) => {
-  const guard = await requireAdmin(c);
-  if (!guard.ok) return c.json({ error: "FORBIDDEN" }, guard.status);
-  const body = (await c.req.json().catch(() => ({}))) as {
-    code?: string;
-    disabled?: boolean;
-  };
-  if (!body.code || typeof body.disabled !== "boolean") {
-    return c.json({ error: "invalid body" }, 400);
-  }
-  await setCodeDisabled(body.code, body.disabled);
   return c.json({ ok: true });
 });
 

@@ -136,6 +136,74 @@ export function resetPasswordMail(url: string, name?: string | null): {
   return { subject: "Neues Passwort für TRED", html, text };
 }
 
+/* -------------------------------------------------------------------------- */
+/* Gabarit : bienvenue + vérification de l'adresse                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Premier e-mail de l'étudiant : il dit bienvenue ET porte le lien de
+ * vérification. Un seul e-mail plutôt que deux — le second finirait en spam.
+ *
+ * Le lien vient de Better Auth (`/api/auth/verify-email?token=…&callbackURL=…`) :
+ * un clic vérifie l'adresse, ouvre la session et mène au Dashboard.
+ * Allemand d'abord, une ligne en anglais pour les étudiants internationaux.
+ */
+export function verifyEmailMail(url: string, name?: string | null): {
+  subject: string;
+  html: string;
+  text: string;
+} {
+  const hello = name?.trim() && !name.includes("@") ? `Hallo ${name.trim()},` : "Hallo,";
+
+  const text = [
+    hello,
+    "",
+    "willkommen bei TRED — deinem KI-Tutor fürs Ingenieurstudium.",
+    "Bestätige kurz deine E-Mail-Adresse, dann bist du direkt in deinem Dashboard:",
+    "",
+    url,
+    "",
+    "Der Link ist 24 Stunden gültig.",
+    "Welcome to TRED! Click the link above to confirm your email and open your dashboard.",
+    "",
+    "Wenn du dich nicht bei TRED registriert hast, ignoriere diese E-Mail einfach.",
+    "",
+    "TRED",
+  ].join("\n");
+
+  const html = `<!doctype html>
+<html lang="de"><body style="margin:0;padding:0;background:#0F172A;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0F172A;padding:32px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#FFFDF7;border-radius:12px;padding:32px;border:1px solid #F1E7CF;">
+        <tr><td style="font-size:20px;font-weight:800;letter-spacing:1px;color:#0F172A;padding-bottom:24px;">TRED</td></tr>
+        <tr><td style="font-size:15px;line-height:22px;color:#1A1A1A;">${escapeHtml(hello)}</td></tr>
+        <tr><td style="font-size:15px;line-height:22px;color:#444;padding-top:12px;">
+          willkommen bei TRED — deinem KI-Tutor fürs Ingenieurstudium.
+          Bestätige kurz deine E-Mail-Adresse, dann bist du direkt in deinem Dashboard.
+        </td></tr>
+        <tr><td style="padding:24px 0;">
+          <a href="${escapeAttr(url)}" style="display:inline-block;background:#EAB308;color:#0F172A;text-decoration:none;padding:12px 24px;border-radius:8px;font-size:15px;font-weight:700;">E-Mail bestätigen &amp; loslegen</a>
+        </td></tr>
+        <tr><td style="font-size:13px;line-height:19px;color:#777;">
+          Der Link ist 24 Stunden gültig.<br>
+          <span style="color:#999;">Welcome to TRED! Click the button to confirm your email and open your dashboard.</span>
+        </td></tr>
+        <tr><td style="font-size:13px;line-height:19px;color:#777;padding-top:12px;">
+          Wenn du dich nicht bei TRED registriert hast, ignoriere diese E-Mail einfach.
+        </td></tr>
+        <tr><td style="font-size:12px;color:#999;padding-top:24px;border-top:1px solid #eee;margin-top:24px;">
+          Falls der Knopf nicht funktioniert, kopiere diese Adresse:<br>
+          <span style="word-break:break-all;">${escapeHtml(url)}</span>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+
+  return { subject: "Willkommen bei TRED — bitte bestätige deine E-Mail", html, text };
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")

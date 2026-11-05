@@ -1,5 +1,5 @@
 import { betterAuth } from "better-auth";
-import { sendMail, resetPasswordMail } from "./lib/mail";
+import { mailConfigured, sendMail, resetPasswordMail, verifyEmailMail } from "./lib/mail";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { expo } from "@better-auth/expo";
 import { db } from "./database";
@@ -41,6 +41,16 @@ if (process.env.NODE_ENV === "production" && !process.env.WEBSITE_URL) {
   );
 }
 
+/**
+ * Vérification de l'adresse à l'inscription — UNIQUEMENT si l'envoi d'e-mails
+ * est configuré (RESEND_API_KEY). Sans clé, l'exiger enfermerait dehors tous
+ * les nouveaux comptes : aucun lien ne partirait jamais.
+ */
+const verifyByMail = mailConfigured();
+if (process.env.NODE_ENV === "production" && !verifyByMail) {
+  console.warn("[auth] RESEND_API_KEY absente : inscription SANS vérification d'e-mail.");
+}
+
 export const auth = betterAuth({
   basePath: "/api/auth",
   baseURL: process.env.WEBSITE_URL,
@@ -56,6 +66,22 @@ export const auth = betterAuth({
     // Une heure. Assez pour aller chercher l'e-mail, assez court pour qu'un
     // lien retrouvé dans une boîte partagée ne serve plus à rien.
     resetPasswordTokenExpiresIn: 3600,
+    // Pas de session avant le clic sur le lien : une adresse inventée ne
+    // donne pas accès au tuteur (et donc pas aux crédits d'IA).
+    requireEmailVerification: verifyByMail,
+  },
+  emailVerification: {
+    sendOnSignUp: verifyByMail,
+    // Un compte non vérifié qui tente de se connecter reçoit un nouveau lien :
+    // personne ne reste bloqué parce que le premier e-mail s'est perdu.
+    sendOnSignIn: verifyByMail,
+    // Le clic ouvre la session et mène au callbackURL (le Dashboard).
+    autoSignInAfterVerification: true,
+    expiresIn: 60 * 60 * 24,
+    sendVerificationEmail: async ({ user, url }) => {
+      const mail = verifyEmailMail(url, user.name);
+      await sendMail({ to: user.email, ...mail });
+    },
   },
   secret: process.env.BETTER_AUTH_SECRET,
   ...(googleEnabled || appleEnabled

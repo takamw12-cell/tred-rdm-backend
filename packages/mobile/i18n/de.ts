@@ -27,6 +27,8 @@ export const de = {
   },
 
   auth: {
+    verifySent: "Willkommen! Wir haben dir eine E-Mail geschickt. Klick auf den Link darin und melde dich dann hier an.",
+    verifyRequired: "Bitte bestätige zuerst deine E-Mail-Adresse. Wir haben dir den Link gerade noch einmal geschickt.",
     signInTitle: "Willkommen zurück",
     signInSubtitle: "Melde dich an, um weiterzulernen.",
     signUpTitle: "Konto erstellen",
@@ -40,8 +42,6 @@ export const de = {
     signOut: "Abmelden",
     noAccount: "Noch kein Konto?",
     hasAccount: "Bereits registriert?",
-    inviteCode: "Einladungscode",
-    inviteRequired: "Die Registrierung ist derzeit nur mit Einladungscode möglich.",
     invalidCredentials: "E-Mail oder Passwort stimmt nicht.",
     emailTaken: "Diese E-Mail ist bereits registriert.",
     signOutConfirm: "Wirklich abmelden?",
@@ -49,7 +49,6 @@ export const de = {
     forgotSent:
       "Falls ein Konto zu dieser Adresse existiert, ist die E-Mail unterwegs.",
     errorGeneric: "Das hat nicht geklappt. Versuch es bitte noch einmal.",
-    inviteInvalid: "Dieser Einladungscode gilt nicht.",
   },
 
   tabs: {

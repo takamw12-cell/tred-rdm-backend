@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -33,13 +33,12 @@ import { FontSize, Radius, Space } from "@/constants/theme";
  * Comme sur le web. Deux écrans séparés obligent à retaper l'adresse quand on
  * s'est trompé de porte, ce qui est le cas une fois sur deux.
  *
- * ── Le code d'invitation vient du serveur ─────────────────────────────────
+ * ── Inscription ouverte, adresse vérifiée ─────────────────────────────────
  *
- * `/api/config` dit si l'inscription est fermée. Le champ n'apparaît QUE si
- * le serveur répond correctement avec `inviteRequired: true`. Si la requête
- * échoue (réseau, statut HTTP, JSON illisible), le formulaire reste ouvert :
- * quand la porte est vraiment fermée, le serveur refuse de toute façon
- * l'inscription sans code (403). L'erreur est journalisée pour le diagnostic.
+ * Plus de code d'invitation (bêta ouverte). Quand l'envoi d'e-mails est
+ * configuré, l'inscription crée le compte SANS session : l'étudiant reçoit
+ * un e-mail de bienvenue, clique, et peut se connecter. Une connexion avant
+ * le clic renvoie un nouveau lien (403 EMAIL_NOT_VERIFIED).
  */
 
 type Mode = "signin" | "signup";
@@ -52,31 +51,10 @@ export default function SignIn() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [invite, setInvite] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [forgotSent, setForgotSent] = useState(false);
-
-  const [inviteRequired, setInviteRequired] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    const url = `${API_URL}/api/config`;
-    fetch(url)
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status} on ${url}`);
-        return r.json();
-      })
-      .then((d: { inviteRequired?: unknown }) => {
-        if (!cancelled) setInviteRequired(d.inviteRequired === true);
-      })
-      .catch((err) => {
-        console.error("[sign-in] /api/config indisponible, inscription laissée ouverte :", err);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const [verifySent, setVerifySent] = useState(false);
 
   const isSignup = mode === "signup";
   const canSubmit =
@@ -95,9 +73,7 @@ export default function SignIn() {
             name: name.trim(),
             email: email.trim().toLowerCase(),
             password,
-            ...(invite.trim()
-              ? ({ inviteCode: invite.trim() } as Record<string, string>)
-              : {}),
+            callbackURL: "/dashboard",
           })
         : await authClient.signIn.email({
             email: email.trim().toLowerCase(),
@@ -106,21 +82,21 @@ export default function SignIn() {
 
       if (result.error) {
         const code = result.error.status;
-        // 403 à l'inscription = porte fermée (INVITE_REQUIRED ou INVITE_INVALID).
-        // On affiche le champ pour que l'utilisateur puisse saisir son code,
-        // même si /api/config n'a pas pu être lu plus tôt.
-        if (isSignup && code === 403) setInviteRequired(true);
+        const errCode = (result.error as { code?: string }).code;
         setError(
-          code === 403
-            ? isSignup && !invite.trim()
-              ? t("auth.inviteRequired")
-              : t("auth.inviteInvalid")
+          errCode === "EMAIL_NOT_VERIFIED" || (!isSignup && code === 403)
+            ? t("auth.verifyRequired")
             : code === 401
               ? t("auth.invalidCredentials")
               : code === 422
                 ? t("auth.emailTaken")
                 : (result.error.message ?? t("auth.errorGeneric")),
         );
+      } else if (isSignup && !(result.data as { token?: string | null } | null)?.token) {
+        // Compte créé sans session : le lien de bienvenue est dans la boîte mail.
+        setError(null);
+        setVerifySent(true);
+        setMode("signin");
       }
       // Pas de navigation ici : `SessionGate` observe la session et bascule
       // vers `/(tabs)` de lui-même. Rediriger aussi depuis cet écran ferait
@@ -208,22 +184,17 @@ export default function SignIn() {
               textContentType={isSignup ? "newPassword" : "password"}
             />
 
-            {isSignup && inviteRequired ? (
-              <Field
-                label={t("auth.inviteCode")}
-                hint={t("auth.inviteRequired")}
-                value={invite}
-                onChangeText={setInvite}
-                autoCapitalize="characters"
-              />
-            ) : null}
-
             {error ? (
               <Text style={[styles.error, { color: c.destructive }]}>{error}</Text>
             ) : null}
             {forgotSent ? (
               <Text style={[styles.notice, { color: c.mutedForeground }]}>
                 {t("auth.forgotSent")}
+              </Text>
+            ) : null}
+            {verifySent ? (
+              <Text style={[styles.notice, { color: c.mutedForeground }]}>
+                {t("auth.verifySent")}
               </Text>
             ) : null}
 

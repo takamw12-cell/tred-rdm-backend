@@ -25,6 +25,8 @@ export const en: Translations = {
   },
 
   auth: {
+    verifySent: "Welcome! We sent you an email. Click the link inside, then sign in here.",
+    verifyRequired: "Please confirm your email address first. We have just sent you the link again.",
     signInTitle: "Welcome back",
     signInSubtitle: "Sign in to keep learning.",
     signUpTitle: "Create account",
@@ -38,15 +40,12 @@ export const en: Translations = {
     signOut: "Sign out",
     noAccount: "No account yet?",
     hasAccount: "Already registered?",
-    inviteCode: "Invite code",
-    inviteRequired: "Sign-up currently requires an invite code.",
     invalidCredentials: "Email or password is incorrect.",
     emailTaken: "That email is already registered.",
     signOutConfirm: "Sign out?",
     forgot: "Forgot your password?",
     forgotSent: "If an account exists for that address, the email is on its way.",
     errorGeneric: "That didn't work. Please try again.",
-    inviteInvalid: "That invitation code is not valid.",
   },
 
   tabs: {

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import { Loader2, MailCheck } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { LegalFooter } from "@/components/legal-footer";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,6 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { authClient, googleAuthEnabled, appleAuthEnabled } from "@/lib/auth";
 import { useT } from "@/i18n";
-import { fetchInviteRequired } from "@/lib/signup-config";
 
 export default function LoginPage() {
   const { t } = useT();
@@ -21,8 +20,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [invite, setInvite] = useState("");
   const [forgotSent, setForgotSent] = useState(false);
+  /** Adresse à laquelle le lien de bienvenue est parti (inscription réussie). */
+  const [verifySent, setVerifySent] = useState<string | null>(null);
 
   /**
    * Envoie le lien de réinitialisation.
@@ -47,22 +47,6 @@ export default function LoginPage() {
     setBusy(false);
     setForgotSent(true);
   }
-  // Der Server entscheidet, ob überhaupt registriert werden darf. Das Feld
-  // erscheint nur, wenn /api/config erfolgreich "inviteRequired: true" meldet.
-  // Schlägt der Abruf fehl, bleibt das Formular offen — der Server lehnt eine
-  // Registrierung ohne Code ohnehin mit 403 ab, falls sie geschlossen ist.
-  const [inviteRequired, setInviteRequired] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    void fetchInviteRequired().then((required) => {
-      if (!cancelled) setInviteRequired(required);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const isSignup = mode === "signup";
 
   async function handleGoogle() {
@@ -97,23 +81,24 @@ export default function LoginPage() {
             email,
             password,
             name: name || email,
-            // Reist im Rumpf mit und wird serverseitig vor der Anlage geprüft.
-            ...(invite ? ({ inviteCode: invite.trim() } as Record<string, string>) : {}),
+            // Le lien de l'e-mail de bienvenue vérifie l'adresse, ouvre la
+            // session et mène ici.
+            callbackURL: "/dashboard",
           })
-        : await authClient.signIn.email({ email, password });
+        : await authClient.signIn.email({ email, password, callbackURL: "/dashboard" });
       if (res.error) {
-        const code = (res.error as { code?: string; status?: number }).status;
-        // 403 bei der Registrierung = die Tür ist zu (INVITE_REQUIRED oder
-        // INVITE_INVALID). Das Codefeld einblenden, damit der Nutzer einen
-        // Code eingeben kann — auch wenn /api/config vorher nicht erreichbar war.
-        if (isSignup && code === 403) {
-          setInviteRequired(true);
-          setError(invite.trim() ? t("auth.inviteInvalid") : t("auth.inviteHint"));
+        const err = res.error as { code?: string; status?: number; message?: string };
+        // Compte pas encore vérifié : Better Auth vient de renvoyer un lien.
+        if (err.code === "EMAIL_NOT_VERIFIED" || (!isSignup && err.status === 403)) {
+          setVerifySent(email.trim());
+          setError(t("auth.verifyRequired"));
         } else {
-          setError(
-            code === 403 ? t("auth.inviteInvalid") : res.error.message ?? t("auth.errorGeneric"),
-          );
+          setError(err.message ?? t("auth.errorGeneric"));
         }
+      } else if (isSignup && !(res.data as { token?: string | null } | null)?.token) {
+        // Inscription créée SANS session : la vérification par e-mail est
+        // active, l'étudiant doit cliquer sur le lien reçu.
+        setVerifySent(email.trim());
       }
     } catch {
       setError(t("auth.errorGeneric"));
@@ -187,23 +172,26 @@ export default function LoginPage() {
           </>
         )}
 
+        {verifySent && !error ? (
+          <div className="space-y-4 text-center" role="status">
+            <MailCheck className="text-primary mx-auto size-10" aria-hidden />
+            <h2 className="font-display text-xl font-semibold">{t("auth.verifyTitle")}</h2>
+            <p className="text-sm leading-relaxed">{t("auth.verifySent", { email: verifySent })}</p>
+            <p className="text-muted-foreground text-xs">{t("auth.verifySpam")}</p>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setVerifySent(null);
+                setMode("signin");
+              }}
+            >
+              {t("auth.backToLogin")}
+            </Button>
+          </div>
+        ) : (
         <form onSubmit={handleEmail} className="space-y-4">
-          {isSignup && inviteRequired && (
-            <div className="space-y-1.5">
-              <Label htmlFor="invite">{t("auth.inviteCode")}</Label>
-              <Input
-                id="invite"
-                required
-                value={invite}
-                onChange={(e) => setInvite(e.target.value.toUpperCase())}
-                placeholder="XXXXXXXX"
-                autoComplete="off"
-                spellCheck={false}
-                className="font-mono tracking-[0.2em]"
-              />
-              <p className="text-muted-foreground text-xs">{t("auth.inviteHint")}</p>
-            </div>
-          )}
           {isSignup && (
             <div className="space-y-1.5">
               <Label htmlFor="name">{t("auth.name")}</Label>
@@ -268,6 +256,7 @@ export default function LoginPage() {
             {isSignup ? t("auth.signUpBtn") : t("auth.signInBtn")}
           </Button>
         </form>
+        )}
 
         <button
           type="button"
