@@ -13,8 +13,9 @@
  *      s'il est défini (sinon public/ads.txt reste tel quel).
  *
  * Le serveur (src/__server.ts) sert dist/prerendered/<page>.html pour
- * /<page>. dist/index.html n'est PAS touché : c'est le repli de toutes les
- * routes de l'app.
+ * /<page>, et prerendered/index.html pour `/` aux requêtes sans session.
+ * dist/index.html n'est PAS touché : c'est le repli de toutes les routes de
+ * l'app.
  *
  * Échec « doux » par défaut : sans Chromium (machine de dev, image sans
  * navigateur), le build continue et le site reste une SPA classique — le
@@ -35,7 +36,8 @@ const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 /* ── Fichiers SEO, indépendants du navigateur ───────────────────────────── */
 
 async function writeSeoFiles() {
-  const urls = ROUTES.map(
+  const listed = ROUTES.filter((r) => r.sitemap !== false);
+  const urls = listed.map(
     (r) => `  <url>\n    <loc>${esc(SITE + r.path)}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>${r.priority}</priority>\n  </url>`,
   ).join("\n");
   await writeFile(
@@ -52,7 +54,7 @@ async function writeSeoFiles() {
   } else {
     log("ads.txt : VITE_ADSENSE_CLIENT_ID absent — public/ads.txt (modèle) conservé");
   }
-  log(`sitemap.xml : ${ROUTES.length} pages (${SITE})`);
+  log(`sitemap.xml : ${listed.length} pages (${SITE})`);
 }
 
 /* ── Serveur local du build ─────────────────────────────────────────────── */
@@ -81,7 +83,7 @@ function startServer() {
 /* ── Assemblage : shell d'origine + contenu + métadonnées ───────────────── */
 
 export function assemble(shell, route, rootHtml) {
-  const url = SITE + route.path;
+  const url = SITE + (route.canonical ?? route.path);
   let html = shell
     .replace(/<html lang="[^"]*"/, `<html lang="${route.lang}"`)
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(route.title)}</title>`)

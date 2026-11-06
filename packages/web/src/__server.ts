@@ -62,6 +62,20 @@ async function handle(request: Request): Promise<Response> {
     }
   }
 
+  // `/` : la landing pré-rendue pour qui n'a pas de session (robots, AdSense,
+  // visiteurs) ; le shell vide pour un étudiant connecté — sinon la landing
+  // clignoterait avant son Dashboard. La réponse dépend du cookie : Vary.
+  if (url.pathname === "/") {
+    const rootPage = `${distDir}/prerendered/index.html`;
+    const page = Bun.file(rootPage);
+    const res =
+      !hasSessionCookie(request) && (await page.exists())
+        ? await serveFile(request, rootPage, page, false, "text/html; charset=utf-8")
+        : await serveFile(request, indexPath, Bun.file(indexPath), false, "text/html; charset=utf-8");
+    res.headers.append("Vary", "Cookie");
+    return res;
+  }
+
   const filePath = getStaticFilePath(url.pathname);
   const file = Bun.file(filePath);
 
@@ -121,6 +135,15 @@ async function serveFile(
 function getPrerenderedPath(pathname: string): string | null {
   const name = pathname.replace(/\/+$/, "").slice(1);
   return /^[a-z0-9-]+$/.test(name) ? `${distDir}/prerendered/${name}.html` : null;
+}
+
+/**
+ * Cookie de session Better Auth (préfixe « __Secure- » en HTTPS). Sa validité
+ * n'est pas vérifiée ici : un cookie périmé reçoit le shell, puis la landing
+ * côté client — rien de privé n'en dépend.
+ */
+function hasSessionCookie(request: Request): boolean {
+  return /(?:^|;\s*)(?:__Secure-)?better-auth\.session_token=/.test(request.headers.get("cookie") ?? "");
 }
 
 function getStaticFilePath(pathname: string) {

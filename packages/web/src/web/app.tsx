@@ -1,4 +1,4 @@
-import { Route, Switch, Redirect, useSearch } from "wouter";
+import { Route, Switch, Redirect, useLocation, useSearch } from "wouter";
 import LegalPage from "@/pages/legal";
 import SecurityPage from "@/pages/security";
 import LandingPage from "@/pages/landing";
@@ -119,13 +119,26 @@ function AuthedApp() {
   );
 }
 
+/**
+ * Le serveur n'envoie la landing pré-rendue sur `/` qu'à une requête sans
+ * cookie de session (src/__server.ts). Lu AVANT le premier rendu de React,
+ * qui remplace ce contenu : dans ce cas, pendant la vérification de session,
+ * on garde la landing à l'écran plutôt qu'un écran de chargement.
+ */
+const ROOT_PRERENDERED =
+  typeof document !== "undefined" && document.getElementById("root")?.dataset.prerendered === "/";
+
 function Gate() {
   const { data: session, isPending } = authClient.useSession();
+  const [location] = useLocation();
   // ID pseudonyme pour l'analyse (no-op sans consentement). Jamais l'e-mail.
   const userId = session?.user.id;
   useEffect(() => identifyUser(userId), [userId]);
-  if (isPending) return <LoadingScreen />;
-  if (!session) return <LoginPage />;
+  // `/` sans session : la page d'accueil publique (robots et AdSense la
+  // lisent aussi). Connecté : AuthedApp renvoie vers le Dashboard.
+  const atRoot = location === "/";
+  if (isPending) return atRoot && ROOT_PRERENDERED ? <LandingPage /> : <LoadingScreen />;
+  if (!session) return atRoot ? <LandingPage /> : <LoginPage />;
   return <AuthedApp />;
 }
 

@@ -33,11 +33,32 @@ describe("pré-rendu : assemblage du HTML", () => {
 describe("routes pré-rendues", () => {
   test("uniquement des pages publiques, noms de fichiers sûrs", () => {
     for (const r of ROUTES as Route[]) {
-      expect(["/dashboard", "/chat", "/exercises", "/settings", "/"]).not.toContain(r.path);
+      expect(["/dashboard", "/chat", "/exercises", "/settings"]).not.toContain(r.path);
       expect(fileNameFor(r.path)).toMatch(/^[a-z0-9-]+$/);
       expect(r.description.length).toBeGreaterThan(50);
       expect(r.description.length).toBeLessThanOrEqual(200);
     }
+  });
+});
+
+describe("page d'accueil `/`", () => {
+  const root: Route = ROUTES.find((r: Route) => r.path === "/");
+  const landing: Route & { canonical?: string; sitemap?: boolean } = ROUTES.find((r: Route) => r.path === "/landing");
+
+  test("pré-rendue dans prerendered/index.html, jamais dans dist/index.html", () => {
+    expect(fileNameFor("/")).toBe("index");
+    expect(root.lang).toBe("fr");
+  });
+  test("canonical sur la racine du site", () => {
+    const html: string = assemble(shell, root, "<main><h1>TRED</h1></main>");
+    expect(html).toContain('<link rel="canonical" href="https://www.tred-tutor.de/" />');
+    expect(html).toContain('data-prerendered="/"');
+  });
+  test("/landing : même page, canonical vers `/`, hors du sitemap", () => {
+    expect(landing.canonical).toBe("/");
+    expect(landing.sitemap).toBe(false);
+    const html: string = assemble(shell, landing, "<main><h1>TRED</h1></main>");
+    expect(html).toContain('<link rel="canonical" href="https://www.tred-tutor.de/" />');
   });
 });
 

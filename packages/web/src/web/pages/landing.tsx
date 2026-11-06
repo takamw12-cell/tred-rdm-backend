@@ -50,7 +50,11 @@ function money(cents: number, currency: string) {
 }
 
 export default function LandingPage() {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
+  // Servie sur `/` (page d'accueil des visiteurs) et sur /landing. Depuis `/`,
+  // « Se connecter » mène au Dashboard ; depuis /landing, on y revient payer.
+  const loginPath = location === "/" ? "/login" : "/login?redirect=/landing";
+  const signupPath = location === "/" ? "/login?mode=signup" : "/login?mode=signup&redirect=/landing";
   const { data: session, isPending: sessionPending } = authClient.useSession();
   const loggedIn = !!session;
 
@@ -88,7 +92,7 @@ export default function LandingPage() {
     setError(null);
 
     if (!loggedIn) {
-      navigate("/login?redirect=/landing");
+      navigate(location === "/" ? "/login?mode=signup&redirect=/landing" : "/login?redirect=/landing");
       return;
     }
     if (isPaid) {
@@ -116,13 +120,24 @@ export default function LandingPage() {
       {/* ── En-tête ───────────────────────────────────────────────────── */}
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
         <Logo />
-        <button
-          type="button"
-          onClick={() => navigate(loggedIn ? "/dashboard" : "/login?redirect=/landing")}
-          className="rounded-full border border-[#E7E2D8] bg-white px-4 py-2 text-sm font-medium text-[#1A1A1A] transition-colors hover:border-[#1A1A1A]"
-        >
-          {loggedIn ? "Ouvrir l'app" : "Se connecter"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => navigate(loggedIn ? "/dashboard" : loginPath)}
+            className="rounded-full border border-[#E7E2D8] bg-white px-4 py-2 text-sm font-medium text-[#1A1A1A] transition-colors hover:border-[#1A1A1A]"
+          >
+            {loggedIn ? "Ouvrir l'app" : "Se connecter"}
+          </button>
+          {!loggedIn && (
+            <button
+              type="button"
+              onClick={() => navigate(signupPath)}
+              className="rounded-full bg-[#1A1A1A] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#333]"
+            >
+              S'inscrire
+            </button>
+          )}
+        </div>
       </header>
 
       <main>

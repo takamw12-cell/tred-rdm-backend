@@ -6,13 +6,26 @@
  * robot n'y verrait que ce formulaire — et un pré-rendu connecté figerait
  * les données d'un compte dans un fichier public. Elles restent en SPA.
  *
- * `/` (l'écran de connexion pour un visiteur) n'est pas pré-rendu non plus :
- * dist/index.html est la page de repli de TOUTES les routes de l'app ; y
- * figer du contenu le ferait clignoter à chaque ouverture du Dashboard.
+ * `/` montre la landing à un visiteur sans session (le Dashboard sinon). Son
+ * pré-rendu va dans dist/prerendered/index.html — PAS dans dist/index.html,
+ * le repli de toutes les routes de l'app — et le serveur ne le sert qu'aux
+ * requêtes sans cookie de session (robots, visiteurs) : un étudiant connecté
+ * reçoit le shell vide, sans landing qui clignote avant son Dashboard.
+ *
+ * /landing affiche la même page : canonical vers `/`, hors du sitemap
+ * (`sitemap: false`), pour que Google n'y voie pas un doublon.
  */
 export const SITE = (process.env.VITE_WEBSITE_URL || process.env.SITE_URL || "https://www.tred-tutor.de").replace(/\/+$/, "");
 
 export const ROUTES = [
+  {
+    path: "/",
+    lang: "fr",
+    title: "TRED — le tuteur IA des étudiants en ingénierie en Allemagne",
+    description:
+      "TRED lit ton propre polycopié, cite la page de cours de chaque réponse et trace les diagrammes N, T, M exacts avec un solveur RDM. Conçu pour les étudiants en ingénierie en Allemagne.",
+    priority: "1.0",
+  },
   {
     path: "/landing",
     lang: "fr",
@@ -20,6 +33,8 @@ export const ROUTES = [
     description:
       "TRED lit ton propre polycopié, cite la page de cours de chaque réponse et trace les diagrammes N, T, M exacts avec un solveur RDM. Conçu pour les étudiants en ingénierie en Allemagne.",
     priority: "1.0",
+    canonical: "/",
+    sitemap: false,
   },
   {
     path: "/security",

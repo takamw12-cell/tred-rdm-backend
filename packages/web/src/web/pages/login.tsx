@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearch } from "wouter";
 import { motion } from "framer-motion";
 import { Loader2, MailCheck } from "lucide-react";
 import { Logo } from "@/components/logo";
@@ -15,7 +16,11 @@ import { useT } from "@/i18n";
 
 export default function LoginPage() {
   const { t } = useT();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  // « S'inscrire » sur la page d'accueil : /login?mode=signup ouvre l'inscription.
+  const search = useSearch();
+  const [mode, setMode] = useState<"signin" | "signup">(() =>
+    new URLSearchParams(search).get("mode") === "signup" ? "signup" : "signin",
+  );
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
