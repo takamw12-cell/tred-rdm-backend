@@ -20,6 +20,7 @@ import { search } from "./routes/search";
 import { subscriptions } from "./routes/subscriptions";
 import { notifications } from "./routes/notifications";
 import { credits } from "./routes/credits";
+import { ads } from "./routes/ads";
 import { account } from "./routes/account";
 import { reports, listOpenReports, resolveReport } from "./routes/reports";
 import { subjects } from "./routes/subjects";
@@ -99,6 +100,7 @@ export const router = {
   subscriptions,
   notifications,
   credits,
+  ads,
   account,
   reports,
   subjects,

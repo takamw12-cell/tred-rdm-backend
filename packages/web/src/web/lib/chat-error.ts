@@ -32,6 +32,8 @@ export type ChatFailure =
       plan?: string;
       used?: number;
       limit?: number;
+      /** Paywall intelligent : vidéo de N s contre M crédit(s), si proposée. */
+      rewardedAd?: { seconds: number; credits: number } | null;
     }
   | {
       /** Trop vite. Se libère tout seul. */
@@ -79,6 +81,7 @@ export function readChatFailure(error: Error | undefined): ChatFailure {
           : typeof body.cap === "number"
             ? body.cap
             : undefined,
+      rewardedAd: readRewarded(body.rewardedAd),
     };
   }
 
@@ -95,4 +98,10 @@ export function readChatFailure(error: Error | undefined): ChatFailure {
   }
 
   return { kind: "transient" };
+}
+
+function readRewarded(v: unknown): { seconds: number; credits: number } | null {
+  if (!v || typeof v !== "object") return null;
+  const { seconds, credits } = v as Record<string, unknown>;
+  return typeof seconds === "number" && typeof credits === "number" ? { seconds, credits } : null;
 }

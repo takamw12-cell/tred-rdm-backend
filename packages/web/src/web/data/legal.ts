@@ -152,6 +152,25 @@ gespeichert. Widerruf jederzeit: Einstellungen → Datenschutz.
 Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO, § 25 Abs. 1 TDDDG.
 Datenschutzerklärung von PostHog: https://posthog.com/privacy
 
+### 2.11 Werbung im Gratis-Tarif
+Im Gratis-Tarif zeigen wir Werbung NUR im Dashboard, auf einem Bildschirm nach
+dem Ende einer Lernsession und — freiwillig — als Video gegen 1 Credit. Im
+Hörsaal, im Chat und während einer Klausur gibt es keine Werbung, in den
+bezahlten Tarifen nie.
+Partner-Empfehlungen im Dashboard sind einfache Links: es wird kein Skript eines
+Dritten geladen und nichts an Partner übermittelt.
+Für das Werbevideo speichern wir, wann du einen Credit erhalten hast (höchstens
+drei pro Tag), im Credit-Verlauf deines Kontos. Damit der Bildschirm nach einer
+Session nicht zu oft erscheint, merkt sich dein Gerät die Uhrzeiten der letzten
+Anzeigen (lokaler Speicher, kein Cookie).
+Google-Werbung (Google AdSense bzw. Google Ad Manager, Google Ireland Ltd.)
+wird erst geladen, wenn sie aktiviert ist; dann holt Googles
+Einwilligungsdialog vorher deine Einwilligung ein, und nur mit ihr wird
+personalisierte Werbung ausgespielt.
+Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (werbefinanziertes Gratis-Angebot);
+für Google-Werbung Art. 6 Abs. 1 lit. a DSGVO, § 25 Abs. 1 TDDDG.
+Datenschutzerklärung von Google: https://policies.google.com/privacy
+
 ## 3. Verarbeitung durch Künstliche Intelligenz
 
 Zur Beantwortung deiner Fragen übermitteln wir den relevanten Ausschnitt deiner
@@ -221,7 +240,8 @@ Anthropic PBC (Sprachmodell, USA), Mathpix, Inc. (Texterkennung bei
 hochgeladenen Fotos, USA), Replicate, Inc. (Bild-/Videoerzeugung, USA),
 ElevenLabs, Inc. (Sprachausgabe, nur bei Premium-Stimme, USA), PostHog Inc.
 (Produkt-Analyse, nur mit Einwilligung, Server EU), Resend (E-Mail-Versand, USA),
-Stripe Payments Europe Ltd. (Zahlungen, Irland), Expo / 650 Industries Inc.
+Stripe Payments Europe Ltd. (Zahlungen, Irland), Google Ireland Ltd.
+(Werbung im Gratis-Tarif, nur wenn aktiviert, siehe 2.11), Expo / 650 Industries Inc.
 (Push-Benachrichtigungen, USA), OneDollarStats (Reichweitenmessung der App).
 
 Drittlandtransfer: Anthropic PBC, Mathpix, Inc., Resend und Cloudflare, Inc. haben ihren Sitz
@@ -233,7 +253,8 @@ hier ausgewiesen.
 
 ## 7. Cookies und lokale Speicherung
 
-Wir setzen keine Werbecookies. Ohne deine Einwilligung auch keine Analyse-
+Wir setzen keine Werbecookies, solange keine Google-Werbung aktiviert ist
+(siehe 2.11) — und auch dann nur mit deiner Einwilligung. Ohne Einwilligung keine Analyse-
 Cookies: verwendet werden dann nur das Anmelde-Cookie sowie die lokal
 gespeicherten Einstellungen (Sprache, Schriftgröße, Darstellung, Stimme und
 deine Entscheidung zur Analyse). Erst wenn du „Analyse erlauben“ wählst, legt
