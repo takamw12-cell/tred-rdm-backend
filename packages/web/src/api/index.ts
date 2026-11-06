@@ -43,6 +43,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { buildTutorAgent } from "./agent";
 import { detectDomain, domainHint } from "./lib/solvers/domain";
+import { studyProfileHint, type StudyProfileInput } from "./lib/study-profile";
 import { mailCanReachAnyone } from "./lib/mail";
 import { registerAnalyticsRoutes } from "./analytics/routes";
 import { readLearningStyle } from "./lib/learning-style-store";
@@ -464,7 +465,9 @@ app.post("/api/agent/messages", async (c) => {
     examMode,
     calcMode,
     codeLang,
+    studyProfile,
   } = body as {
+      studyProfile?: StudyProfileInput | null;
       messages: unknown[];
       documentId?: string | null;
       subjectId?: string | null;
@@ -599,6 +602,7 @@ app.post("/api/agent/messages", async (c) => {
 
   const agent = buildTutorAgent({
     domainHint: domainHint(fach),
+    studyProfile: studyProfileHint(studyProfile),
     learningStyle,
     professor,
     sources,
@@ -1030,6 +1034,7 @@ ANFORDERUNGEN:
   • Farb-Konvention: Kräfte/Lasten Blau #2563EB; Druck Rot #EF4444; Zug Grün #10B981; neutrale Achse/Bemaßung Grau #64748B (Achse gestrichelt \`stroke-dasharray="5 4"\`); Körper/Balken #1e293b.
   • Pfeilspitzen als <marker> in <defs> (\`<path d="M0,0 L10,5 L0,10 z"/>\`), Kraftpfeile stroke-width 3; Bemaßung mit marker-start UND marker-end.
   • Beschriftungen NIE überlappend, mit \`text-anchor\` und ≥16 px Abstand; sauber wie im Lehrbuch.
+- TECHNISCHES ZEICHNEN / BAUTEILE: Du darfst als räumliche Hilfe einen \`\`\`3d-json-Block beifügen — NUR JSON, nie Code: eine Liste von Formen {"type": "box"|"cylinder"|"hex"|"cone"|"sphere"|"torus"|"hole", Maße in mm, "position": [x,y,z] = Mittelpunkt, "axis": "x"|"y"|"z"}, z. B. [{"type":"cylinder","radius":20,"height":60,"position":[0,30,0]},{"type":"hole","radius":5,"position":[0,30,0]}].
 - Realistische Zahlenwerte mit Einheiten. Rechne die Musterlösung Schritt für Schritt und dimensionsrichtig durch.
 ${klausurRule}
 

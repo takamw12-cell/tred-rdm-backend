@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useUserStore } from "@/stores/user";
 import { useChat } from "@ai-sdk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DefaultChatTransport, type UIMessage } from "ai";
@@ -135,6 +136,10 @@ function isStreamingText(m: UIMessage): boolean {
   const parts = m.parts.filter((p) => p.type !== "step-start");
   const last = parts[parts.length - 1] as { type: string; state?: string } | undefined;
   return last?.type === "text" && last.state !== "done";
+}
+
+function pickStudyProfile(p: { degree: string; university: string; semester: string }) {
+  return { degree: p.degree, university: p.university, semester: p.semester };
 }
 
 export default function ChatPage() {
@@ -436,6 +441,9 @@ export default function ChatPage() {
           locale: localeRef.current,
           calcMode: calcModeRef.current,
           codeLang: codeLangRef.current,
+          // Filière, Hochschule, semestre : le tuteur adapte ses exemples
+          // (LRT, Maschinenbau …). Lu au moment de l'envoi.
+          studyProfile: pickStudyProfile(useUserStore.getState().profile),
         }),
       }),
     [],
