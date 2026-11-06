@@ -14,7 +14,6 @@ import { OnboardingGuide } from "@/components/onboarding-guide";
 import { cn } from "@/lib/utils";
 import { useT } from "@/i18n";
 import { LanguageSwitcher } from "@/components/language-switcher";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { FontSizeToggle } from "@/components/font-size-toggle";
 import { LogoMark } from "@/components/logo";
 import { Button } from "@/components/ui/button";
@@ -216,7 +215,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <span data-tour="language">
               <LanguageSwitcher />
             </span>
-            <ThemeToggle />
           </div>
         </header>
 

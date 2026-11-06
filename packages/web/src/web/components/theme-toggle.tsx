@@ -1,51 +1,48 @@
-import { Monitor, Moon, Sun } from "lucide-react";
-import { LIGHT_ONLY, useThemeStore, type Theme } from "@/stores/theme";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Moon, Sun } from "lucide-react";
+import { isDark, LIGHT_ONLY, useThemeStore } from "@/stores/theme";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/i18n";
+import { cn } from "@/lib/utils";
 
-/** Mode clair uniquement (voir LIGHT_ONLY) : le bouton disparaît partout. */
-export function ThemeToggle() {
-  return LIGHT_ONLY ? null : <ThemeToggleMenu />;
-}
-
-function ThemeToggleMenu() {
+/**
+ * Bascule clair ↔ sombre en un clic. Le choix est gardé sur l'appareil
+ * (zustand persist, clé « aerostudy-theme ») ; « System » se règle dans
+ * Paramètres → Erscheinungsbild.
+ *
+ *   variant="outline" : en-têtes clairs (connexion, onboarding)
+ *   variant="sidebar" : à côté de l'avatar, sur la barre latérale bleu nuit
+ */
+export function ThemeToggle({ variant = "outline" }: { variant?: "outline" | "sidebar" }) {
   const theme = useThemeStore((s) => s.theme);
-  const setTheme = useThemeStore((s) => s.setTheme);
+  const toggle = useThemeStore((s) => s.toggle);
   const { t } = useT();
+  if (LIGHT_ONLY) return null;
 
-  const items: { value: Theme; icon: typeof Sun; label: string }[] = [
-    { value: "light", icon: Sun, label: t("common.light") },
-    { value: "dark", icon: Moon, label: t("common.dark") },
-    { value: "system", icon: Monitor, label: t("common.system") },
-  ];
+  const dark = isDark(theme);
+  const label = `${t("common.theme")}: ${dark ? t("common.dark") : t("common.light")}`;
+  const Icon = dark ? Sun : Moon;
+
+  if (variant === "sidebar") {
+    return (
+      <button
+        type="button"
+        onClick={toggle}
+        aria-pressed={dark}
+        aria-label={label}
+        title={label}
+        className={cn(
+          "grid size-8 shrink-0 place-items-center rounded-lg text-white/70 transition-colors hover:bg-white/10 hover:text-[#EAB308]",
+          dark && "text-[#EAB308]",
+        )}
+      >
+        <Icon className="size-4" />
+      </button>
+    );
+  }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon" aria-label={t("common.theme")}>
-          {theme === "dark" ? (
-            <Moon className="size-4" />
-          ) : theme === "light" ? (
-            <Sun className="size-4" />
-          ) : (
-            <Monitor className="size-4" />
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {items.map(({ value, icon: Icon, label }) => (
-          <DropdownMenuItem key={value} onClick={() => setTheme(value)}>
-            <Icon className="size-4" />
-            {label}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button variant="outline" size="icon" onClick={toggle} aria-pressed={dark} aria-label={label} title={label}>
+      <Icon className="size-4" />
+    </Button>
   );
 }

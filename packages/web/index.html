@@ -38,6 +38,19 @@
 	</head>
 	<body>
 		<div id="root"></div>
+		<!-- Thème appliqué AVANT le premier rendu : pas d'éclair blanc en mode sombre.
+		     Même clé que stores/theme.ts (« aerostudy-theme », version 1). -->
+		<script>
+			try {
+				var s = JSON.parse(localStorage.getItem("aerostudy-theme") || "{}");
+				var t = s.version >= 1 && s.state ? s.state.theme : "light";
+				var d = t === "dark" || (t === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+				if (d) {
+					document.documentElement.classList.add("dark");
+					document.documentElement.style.colorScheme = "dark";
+				}
+			} catch (e) {}
+		</script>
 		<script type="module" src="/src/web/main.tsx"></script>
 	</body>
 </html>

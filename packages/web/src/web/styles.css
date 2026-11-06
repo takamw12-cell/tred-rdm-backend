@@ -133,8 +133,8 @@
                 Creme (Kontrast zu gering).
      background Creme #FDFBF7; Karten heben sich weiß davon ab.
 
-   Nur HELL. Der Dunkelmodus ist abgeschaltet (stores/theme.ts); der Block
-   `.dark` unten bleibt stehen, damit er sich jederzeit reaktivieren lässt.
+   Hell als Standard; Dunkel auf Wunsch (stores/theme.ts, Block `.dark`
+   unten).
    Die Variablennamen sind unverändert — die Komponenten in ui/ lesen sie
    weiter wie bisher.
    ═══════════════════════════════════════════════════════════════════════ */
@@ -308,59 +308,70 @@
   --shadow-card: 0 1px 2px rgb(26 26 26 / 0.04), 0 8px 24px -12px rgb(26 26 26 / 0.10);
 }
 
-/* ── Dunkel: Zeichentisch bei Nacht ────────────────────────────────────── */
+/* ── Dunkel: der Hörsaal bei Nacht (2026-11-06) ──────────────────────────
+   Bleu nuit #0F172A, cartes en VERRE sombre (translucides + flou, voir
+   plus bas), texte blanc cassé, et le même Textmarker jaune #EAB308.
+   Kontraste (WCAG): foreground/background 16.3:1 · muted-foreground auf
+   background 7.0:1, auf secondary 5.7:1 · Tinte #0F172A auf Gelb 9.3:1. */
 .dark {
-  --background: #0f1215;
-  --foreground: #e7eaef;
-  --card: #171a1f;
-  --card-foreground: #e7eaef;
-  --popover: #171a1f;
-  --popover-foreground: #e7eaef;
+  --background: #0f172a;
+  --foreground: #f1f5f9;
+  /* Verre : laisse passer le fond (photos, grille) sans perdre la lecture. */
+  --card: rgb(30 41 59 / 0.72);
+  --card-foreground: #f1f5f9;
+  /* Les menus restent OPAQUES : un menu translucide se lit mal sur du texte. */
+  --popover: #1e293b;
+  --popover-foreground: #f1f5f9;
 
-  /* Auf Schiefer trägt das tiefe Blau nicht mehr — es wird zu hellem Blau,
-     damit Schaltflächen den Kontrast für dunkle Schrift behalten. */
-  --primary: #72aaf2;
-  --primary-foreground: #06182e;
-  --signature: #ffc93c;
-  --signature-foreground: #15181b;
+  /* Sur bleu nuit, l'action principale devient le jaune, texte encre. */
+  --primary: #eab308;
+  --primary-foreground: #0f172a;
+  --signature: #eab308;
+  --signature-foreground: #0f172a;
 
-  --secondary: #1f242c;
-  --secondary-foreground: #e7eaef;
-  --muted: #1f242c;
-  --muted-foreground: #99a1ad;
-  --accent: #282f38;
-  --accent-foreground: #e7eaef;
-  --destructive: #ef5350;
+  --secondary: #1e293b;
+  --secondary-foreground: #f1f5f9;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --accent: #334155;
+  --accent-foreground: #f1f5f9;
+  --destructive: #f87171;
 
-  --border: rgb(231 234 239 / 0.12);
-  --input: rgb(231 234 239 / 0.18);
-  --ring: #72aaf2;
+  --border: rgb(241 245 249 / 0.1);
+  --input: rgb(241 245 249 / 0.16);
+  --ring: #eab308;
 
-  --mastered: #4fc38f;
-  --learning: #ffc93c;
-  --new: #6b7480;
+  --mastered: #4ade80;
+  --learning: #eab308;
+  --new: #64748b;
 
-  --chart-1: #72aaf2;
-  --chart-2: #a8c9f8;
-  --chart-3: #ffc93c;
-  --chart-4: #ef5350;
-  --chart-5: #99a1ad;
+  --chart-1: #eab308;
+  --chart-2: #60a5fa;
+  --chart-3: #f1f5f9;
+  --chart-4: #f87171;
+  --chart-5: #94a3b8;
 
-  --sidebar: #12161b;
-  --sidebar-foreground: #e7eaef;
-  --sidebar-primary: #72aaf2;
-  --sidebar-primary-foreground: #06182e;
-  --sidebar-accent: #282f38;
-  --sidebar-accent-foreground: #e7eaef;
-  --sidebar-border: rgb(231 234 239 / 0.12);
-  --sidebar-ring: #72aaf2;
+  --sidebar: #0b1222;
+  --sidebar-foreground: #f1f5f9;
+  --sidebar-primary: #eab308;
+  --sidebar-primary-foreground: #0f172a;
+  --sidebar-accent: #1e293b;
+  --sidebar-accent-foreground: #f1f5f9;
+  --sidebar-border: rgb(241 245 249 / 0.08);
+  --sidebar-ring: #eab308;
 
-  --grid-line: rgb(231 234 239 / 0.045);
-
+  --grid-line: rgb(241 245 249 / 0.04);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 12px 32px -16px rgb(0 0 0 / 0.6);
 
   /* Teinte du fond animé — voir components/ambient-background.tsx */
+  --amb: #eab308;
+}
 
-  --amb: #7aa7ff;
+/* Cartes en verre sombre : flou derrière la transparence de --card. */
+.dark [data-slot="card"] {
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), var(--shadow-card);
 }
 
 @layer base {
@@ -655,6 +666,31 @@ html:lang(ar) body { line-height: 1.7; }
   -webkit-backdrop-filter: blur(16px) saturate(1.2);
   backdrop-filter: blur(16px) saturate(1.2);
   color: #fff;
+}
+
+/* ── Verre dépoli, version sombre ──────────────────────────────────────
+   Même principe que le verre blanc, en bleu nuit : la photo transparaît,
+   le texte clair garde son contraste. Les feuilles d'exercice restent du
+   PAPIER (on les pose sur la Tafel) : encre foncée forcée dessus. */
+.dark .glass-scope [data-slot="card"]:not(.bg-primary) {
+  background-color: rgb(15 23 42 / 0.74);
+  border-color: rgb(255 255 255 / 0.08);
+  box-shadow:
+    0 44px 80px -28px rgb(0 0 0 / 0.7),
+    0 18px 34px -16px rgb(0 0 0 / 0.45),
+    0 0 0 1px rgb(255 255 255 / 0.06),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+.dark .glass-scope .glass,
+.dark .glass-scope .glass-chip {
+  background-color: rgb(15 23 42 / 0.74);
+}
+.dark .paper-sheet {
+  --foreground: #0f172a;
+  --card-foreground: #0f172a;
+  --muted-foreground: #475569;
+  --border: rgb(15 23 42 / 0.12);
+  color: var(--foreground);
 }
 
 /* React Flow theming */

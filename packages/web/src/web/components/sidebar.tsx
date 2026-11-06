@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { useT } from "@/i18n";
 import { useUserStore } from "@/stores/user";
@@ -102,6 +103,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
               {plan}
             </Badge>
           </div>
+          <ThemeToggle variant="sidebar" />
           <button
             onClick={() => authClient.signOut()}
             className="shrink-0 text-white/60 transition-colors hover:text-red-400"
