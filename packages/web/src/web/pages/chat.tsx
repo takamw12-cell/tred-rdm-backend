@@ -47,6 +47,8 @@ import { Scratchpad } from "@/components/scratchpad";
 import { downscaleImageToDataUrl, downscaleDataUrl, isUsableDataUrl } from "@/lib/image";
 import { readChatFailure } from "@/lib/chat-error";
 import { QuotaBanner } from "@/components/quota-banner";
+import { useAdStore } from "@/stores/ads";
+import { INTERSTITIAL_RULES } from "@/lib/ad-mediation";
 import { creditsMeKey } from "@/queries/credits";
 import { Link } from "wouter";
 import { Repeat2 } from "lucide-react";
@@ -933,6 +935,26 @@ export default function ChatPage() {
     if (status !== "ready") return;
     void qc.invalidateQueries({ queryKey: creditsMeKey() });
   }, [status, qc]);
+
+  /**
+   * Longue conversation : les réponses terminées PENDANT cette visite. Aucune
+   * pub ici — c'est en QUITTANT le chat après 12 réponses que l'écran de fin
+   * de session est demandé ; il s'affiche sur la page suivante
+   * (components/InterstitialAdScreen.tsx), jamais sur /chat.
+   */
+  const answersThisVisit = useRef(0);
+  const prevStatus = useRef(status);
+  useEffect(() => {
+    if (prevStatus.current === "streaming" && status === "ready") answersThisVisit.current += 1;
+    prevStatus.current = status;
+  }, [status]);
+  const requestInterstitial = useAdStore((st) => st.request);
+  useEffect(
+    () => () => {
+      if (answersThisVisit.current >= INTERSTITIAL_RULES.longChatAnswers) requestInterstitial("long_chat");
+    },
+    [requestInterstitial],
+  );
 
   // Streaming answers occasionally fail for transient reasons — a proxy idle
   // timeout, a dropped mobile connection, or a brief gateway hiccup — which

@@ -32,7 +32,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Modal } from "@/components/modal";
-import { AdBanner } from "@/components/AdBanner";
+import { NativeAdSlot } from "@/components/NativeAdSlot";
 import { useT } from "@/i18n";
 import { useUserStore } from "@/stores/user";
 import { useSemesterStore } from "@/stores/semester";
@@ -562,8 +562,9 @@ export default function DashboardPage() {
         </Reveal>
       </div>
 
-      {/* Ressources partenaires (Anzeige) : tout en bas, jamais dans le chat. */}
-      <AdBanner className="mt-8" />
+      {/* Ressource partenaire (Anzeige) : tout en bas, jamais dans le chat ;
+          rien pour les abonnés (lib/ad-mediation.ts). */}
+      <NativeAdSlot className="mt-8" />
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={t("dashboard.newSemester")}>
         <div className="space-y-4">

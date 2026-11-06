@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 const HIDE_KEY = "tred-partner-hidden-until";
 const ICONS = { calculator: Calculator, book: BookOpen, tool: Wrench } as const;
 
-function hiddenNow(): boolean {
+export function hiddenNow(): boolean {
   try {
     return Number(localStorage.getItem(HIDE_KEY) ?? 0) > Date.now();
   } catch {
@@ -26,7 +26,7 @@ function hiddenNow(): boolean {
   }
 }
 
-function hideFor30Days() {
+export function hideFor30Days() {
   try {
     localStorage.setItem(HIDE_KEY, String(Date.now() + 30 * 86_400_000));
   } catch {
@@ -92,7 +92,7 @@ export function AdBanner({ className }: { className?: string }) {
   );
 }
 
-function ResourceLink({ r, href, onClick }: { r: PartnerResource; href: string; onClick: () => void }) {
+export function ResourceLink({ r, href, onClick }: { r: PartnerResource; href: string; onClick: () => void }) {
   const Icon = ICONS[r.icon];
   return (
     <a

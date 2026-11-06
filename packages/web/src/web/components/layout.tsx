@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { LegalFooter } from "@/components/legal-footer";
 import { DynamicBackground } from "@/components/dynamic-background";
 import { SearchDialog, useSearchShortcut } from "@/components/search-dialog";
+import { InterstitialHost } from "@/components/InterstitialAdScreen";
 
 const PANEL_W = "17rem";
 
@@ -236,6 +237,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
       </div>
 
       <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
+      {/* Écran de fin de session : jamais sur /chat ni /classroom (la route décide). */}
+      <InterstitialHost />
 
       <BottomNav />
     </div>

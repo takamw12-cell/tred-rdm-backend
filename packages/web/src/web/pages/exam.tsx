@@ -16,6 +16,8 @@ import { generateExercise } from "@/lib/exercise-api";
 import { splitTasks, type ExamSheet } from "@/lib/exam-sheet";
 import { useReconciledSemester } from "@/hooks/use-reconciled-semester";
 import { cn } from "@/lib/utils";
+import { InterstitialHost } from "@/components/InterstitialAdScreen";
+import { useAdStore } from "@/stores/ads";
 
 type Phase = "warning" | "loading" | "active" | "result";
 
@@ -55,6 +57,13 @@ export default function ExamPage() {
   const [selfScore, setSelfScore] = useState<Record<string, number>>({});
   const semesterId = useReconciledSemester();
   const timerRef = useRef<number | null>(null);
+
+  // Examen rendu (bouton ou fin du temps) = fin de session : l'écran de fin
+  // peut s'afficher AVANT le résultat — jamais pendant l'examen.
+  const requestInterstitial = useAdStore((st) => st.request);
+  useEffect(() => {
+    if (phase === "result") requestInterstitial("exam_end");
+  }, [phase, requestInterstitial]);
 
   useEffect(() => {
     if (phase !== "active") return;
@@ -117,6 +126,7 @@ export default function ExamPage() {
 
   return (
     <div className="bg-background fixed inset-0 z-50 flex flex-col" lang="de">
+      <InterstitialHost working={phase !== "result"} />
       <AnimatePresence mode="wait">
         {phase === "warning" && (
           <motion.div
