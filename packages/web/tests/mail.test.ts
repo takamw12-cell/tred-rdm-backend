@@ -81,7 +81,30 @@ suite("resetPasswordMail", () => {
   });
 });
 
-import { mailCanReachAnyone, maskEmail } from "../src/api/lib/mail";
+import { linkOnWebsite, mailCanReachAnyone, maskEmail } from "../src/api/lib/mail";
+
+describe("liens d'e-mail sur le site public (WEBSITE_URL)", () => {
+  const OLD =
+    "https://aerostudy-production-0c66.up.railway.app/api/auth/reset-password/tok123?callbackURL=https%3A%2F%2Fwww.tred-tutor.de%2Freset-password";
+
+  test("l'ancienne URL Railway passe sur le domaine, jeton et callback intacts", () => {
+    expect(linkOnWebsite(OLD, "https://www.tred-tutor.de")).toBe(
+      "https://www.tred-tutor.de/api/auth/reset-password/tok123?callbackURL=https%3A%2F%2Fwww.tred-tutor.de%2Freset-password",
+    );
+    expect(linkOnWebsite(OLD, "https://www.tred-tutor.de/")).toStartWith("https://www.tred-tutor.de/api/");
+  });
+
+  test("sans WEBSITE_URL (ou invalide) : lien inchangé", () => {
+    expect(linkOnWebsite(OLD, undefined)).toBe(OLD);
+    expect(linkOnWebsite(OLD, "pas une url")).toBe(OLD);
+  });
+
+  test("local : le port est conservé", () => {
+    expect(linkOnWebsite("https://x.app/api/auth/verify-email?token=a", "http://localhost:4571")).toBe(
+      "http://localhost:4571/api/auth/verify-email?token=a",
+    );
+  });
+});
 
 describe("expéditeur : peut-on écrire à tout le monde ?", () => {
   const keep = { key: process.env.RESEND_API_KEY, from: process.env.MAIL_FROM };

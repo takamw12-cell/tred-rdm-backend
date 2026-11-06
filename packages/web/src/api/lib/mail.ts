@@ -36,6 +36,25 @@ export function mailCanReachAnyone(): boolean {
   return mailConfigured() && from.length > 0 && !/@resend\.dev\b/i.test(from);
 }
 
+/**
+ * Place un lien d'e-mail (réinitialisation, vérification) sur le site public
+ * WEBSITE_URL. Better Auth construit ce lien sur son baseURL ; si les deux
+ * divergent (ancienne URL Railway, domaine personnalisé…), c'est le site que
+ * l'étudiant connaît qui gagne. Chemin, jeton et callbackURL restent intacts.
+ */
+export function linkOnWebsite(url: string, website = process.env.WEBSITE_URL): string {
+  if (!website?.trim()) return url;
+  try {
+    const target = new URL(website.trim());
+    const link = new URL(url);
+    link.protocol = target.protocol;
+    link.host = target.host;
+    return link.toString();
+  } catch {
+    return url;
+  }
+}
+
 /** « t***@gmail.com » : assez pour suivre un envoi, sans l'adresse en clair dans les logs. */
 export function maskEmail(email: string): string {
   const [user, domain] = email.split("@");

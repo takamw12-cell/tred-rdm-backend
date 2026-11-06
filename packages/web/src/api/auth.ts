@@ -4,6 +4,7 @@ import {
   mailCanReachAnyone,
   mailConfigured,
   mailLang,
+  linkOnWebsite,
   sendMail,
   resetPasswordMail,
   verifyEmailMail,
@@ -27,6 +28,12 @@ const appleEnabled =
  */
 const TRUSTED_ORIGINS = [
   process.env.WEBSITE_URL,
+  process.env.BETTER_AUTH_URL,
+  // Domaine public de TRED (www et la racine, qui redirige vers www) — et
+  // l'ancienne URL Railway, pour que les liens déjà envoyés restent valides.
+  "https://www.tred-tutor.de",
+  "https://tred-tutor.de",
+  "https://aerostudy-production-0c66.up.railway.app",
   // Domaine *.up.railway.app, posé automatiquement par Railway : filet de
   // sécurité si WEBSITE_URL manque, pour que la connexion web ne casse pas.
   process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : undefined,
@@ -88,14 +95,15 @@ async function langOf(userId: string, request?: Request): Promise<MailLang> {
 
 export const auth = betterAuth({
   basePath: "/api/auth",
-  baseURL: process.env.WEBSITE_URL,
+  // BETTER_AUTH_URL d'abord (convention Better Auth), WEBSITE_URL sinon.
+  baseURL: process.env.BETTER_AUTH_URL || process.env.WEBSITE_URL,
   database: drizzleAdapter(db, { provider: "sqlite" }),
   emailAndPassword: {
     enabled: true,
     // Sans ceci, un étudiant qui se trompe de mot de passe à l'inscription
     // est bloqué DÉFINITIVEMENT : Better Auth n'envoie rien de lui-même.
     sendResetPassword: async ({ user, url }, request) => {
-      const mail = resetPasswordMail(url, user.name, await langOf(user.id, request));
+      const mail = resetPasswordMail(linkOnWebsite(url), user.name, await langOf(user.id, request));
       await sendMail({ to: user.email, ...mail });
     },
     // Une heure. Assez pour aller chercher l'e-mail, assez court pour qu'un
@@ -114,7 +122,7 @@ export const auth = betterAuth({
     autoSignInAfterVerification: true,
     expiresIn: 60 * 60 * 24,
     sendVerificationEmail: async ({ user, url }, request) => {
-      const mail = verifyEmailMail(url, user.name, await langOf(user.id, request));
+      const mail = verifyEmailMail(linkOnWebsite(url), user.name, await langOf(user.id, request));
       await sendMail({ to: user.email, ...mail });
     },
   },
