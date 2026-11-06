@@ -774,4 +774,16 @@ export const en: Messages = {
     rateLimited: "Lots of feedback in a short time – thank you! Please try again in an hour.",
     tooShort: "Please write a few more words.",
   },
+  model3d: {
+    expand: "Enlarge",
+    title: "3D model",
+    hint: "Drag: rotate · pinch/scroll: zoom",
+    reset: "Reset view",
+    loading: "Building 3D model …",
+    invalid: "Could not read the 3D model",
+    noWebgl: "Your browser can't display 3D graphics (WebGL).",
+    unit: "Dimensions in mm:",
+    holes: "{n} hole(s)",
+    json: "Show JSON",
+  },
 };

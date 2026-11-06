@@ -786,4 +786,16 @@ export const es: Messages = {
     rateLimited: "Muchos comentarios en poco tiempo, ¡gracias! Vuelve a intentarlo en una hora.",
     tooShort: "Escribe unas palabras más, por favor.",
   },
+  model3d: {
+    expand: "Ampliar",
+    title: "Modelo 3D",
+    hint: "Arrastra para girar · pellizca/rueda para hacer zoom",
+    reset: "Restablecer vista",
+    loading: "Construyendo el modelo 3D …",
+    invalid: "No se pudo leer el modelo 3D",
+    noWebgl: "Tu navegador no puede mostrar gráficos 3D (WebGL).",
+    unit: "Medidas en mm:",
+    holes: "{n} taladro(s)",
+    json: "Ver JSON",
+  },
 };

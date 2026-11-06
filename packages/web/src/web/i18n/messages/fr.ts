@@ -774,4 +774,16 @@ export const fr: Messages = {
     rateLimited: "Beaucoup de retours en peu de temps – merci ! Réessaie dans une heure.",
     tooShort: "Écris encore quelques mots, s'il te plaît.",
   },
+  model3d: {
+    expand: "Agrandir",
+    title: "Maquette 3D",
+    hint: "Glisser : tourner · pincer/molette : zoomer",
+    reset: "Réinitialiser la vue",
+    loading: "Construction de la maquette 3D …",
+    invalid: "Impossible de lire la maquette 3D",
+    noWebgl: "Ton navigateur ne peut pas afficher la 3D (WebGL).",
+    unit: "Cotes en mm :",
+    holes: "{n} perçage(s)",
+    json: "Voir le JSON",
+  },
 };

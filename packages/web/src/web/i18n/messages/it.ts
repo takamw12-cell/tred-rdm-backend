@@ -306,4 +306,16 @@ export const it: PartialMessages = {
     rateLimited: "Tanti feedback in poco tempo, grazie! Riprova tra un'ora.",
     tooShort: "Scrivi ancora qualche parola, per favore.",
   },
+  model3d: {
+    expand: "Ingrandisci",
+    title: "Modello 3D",
+    hint: "Trascina per ruotare · pizzica/rotellina per lo zoom",
+    reset: "Ripristina vista",
+    loading: "Costruzione del modello 3D …",
+    invalid: "Impossibile leggere il modello 3D",
+    noWebgl: "Il tuo browser non può mostrare grafica 3D (WebGL).",
+    unit: "Quote in mm:",
+    holes: "{n} foro/i",
+    json: "Mostra JSON",
+  },
 };

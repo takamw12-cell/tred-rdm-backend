@@ -13,6 +13,8 @@ import { SourceCitation } from "./source-citation";
 import { BEAM_LANG, BeamDiagram, dropDuplicateBeamCharts } from "./beam-diagram";
 import { MarkdownMedia, MediaCard } from "./media-card";
 import { MEDIA_LANG } from "@/lib/media-block";
+import { MODEL3D_LANG } from "@/lib/model3d";
+import { Model3DBlock } from "./model3d-block";
 
 // Intercept fenced code blocks: ```mermaid renders a real diagram, ```chart
 // renders a plotted graph (Q/M curves, Mohr circle, …). Everything else keeps
@@ -74,7 +76,8 @@ const components: Components = {
       className?: string;
       children?: React.ReactNode;
     };
-    const match = /language-(\w+)/.exec(className ?? "");
+    // [\w-] : « 3d-json » contient un tiret.
+    const match = /language-([\w-]+)/.exec(className ?? "");
     const lang = match?.[1];
     const raw = String(children ?? "");
     // Un bloc ```json qui décrit une structure de cours devient le
@@ -86,6 +89,7 @@ const components: Components = {
     }
     if (lang === BEAM_LANG) return <BeamDiagram code={raw} />;
     if (lang === MEDIA_LANG) return <MediaCard code={raw} />;
+    if (lang === MODEL3D_LANG) return <Model3DBlock code={raw} />;
     if (lang === "mermaid") return <MermaidDiagram code={raw} />;
     if (lang === "chart") return <ChartBlock code={raw} />;
     if (lang === "svg") return <SvgBlock code={raw} />;
@@ -109,6 +113,7 @@ const components: Components = {
     if (
       lang === BEAM_LANG ||
       lang === MEDIA_LANG ||
+      lang === MODEL3D_LANG ||
       lang === "mermaid" ||
       lang === "chart" ||
       lang === "svg" ||

@@ -306,4 +306,16 @@ export const zh: PartialMessages = {
     rateLimited: "短时间内反馈很多——谢谢！请一小时后再试。",
     tooShort: "请再多写几个字。",
   },
+  model3d: {
+    expand: "放大",
+    title: "3D 模型",
+    hint: "拖动旋转 · 双指/滚轮缩放",
+    reset: "重置视图",
+    loading: "正在构建 3D 模型 …",
+    invalid: "无法读取 3D 模型",
+    noWebgl: "你的浏览器无法显示 3D 图形（WebGL）。",
+    unit: "尺寸单位 mm：",
+    holes: "{n} 个孔",
+    json: "显示 JSON",
+  },
 };

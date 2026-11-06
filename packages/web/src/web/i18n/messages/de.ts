@@ -774,4 +774,16 @@ export const de = {
     rateLimited: "Viel Feedback in kurzer Zeit – danke! Bitte versuch es in einer Stunde wieder.",
     tooShort: "Schreib bitte ein paar Worte mehr.",
   },
+  model3d: {
+    expand: "Vergrößern",
+    title: "3D-Modell",
+    hint: "Ziehen: drehen · Pinch/Scrollen: zoomen",
+    reset: "Ansicht zurücksetzen",
+    loading: "3D-Modell wird aufgebaut …",
+    invalid: "3D-Modell konnte nicht gelesen werden",
+    noWebgl: "Dein Browser kann keine 3D-Grafik (WebGL) anzeigen.",
+    unit: "Maße in mm:",
+    holes: "{n} Bohrung(en)",
+    json: "JSON anzeigen",
+  },
 } as const;

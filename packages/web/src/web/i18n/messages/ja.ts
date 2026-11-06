@@ -306,4 +306,16 @@ export const ja: PartialMessages = {
     rateLimited: "短時間にたくさんのフィードバック、ありがとうございます！ 1時間後にもう一度お試しください。",
     tooShort: "もう少し詳しく書いてください。",
   },
+  model3d: {
+    expand: "拡大",
+    title: "3D モデル",
+    hint: "ドラッグで回転 · ピンチ/スクロールでズーム",
+    reset: "表示をリセット",
+    loading: "3D モデルを生成中 …",
+    invalid: "3D モデルを読み込めませんでした",
+    noWebgl: "お使いのブラウザは 3D グラフィックス（WebGL）を表示できません。",
+    unit: "寸法（mm）：",
+    holes: "穴 {n} 個",
+    json: "JSON を表示",
+  },
 };
