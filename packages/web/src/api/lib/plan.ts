@@ -7,6 +7,7 @@ import {
   spendPurchasedCredits,
   SPEND_ORDER,
 } from "./credits";
+import { REWARD, rewardedEnabled } from "./ad-reward";
 
 export type PlanId = "founder" | "free" | "standard" | "premium";
 export type Metric = "chat" | "exercise" | "video" | "formulas";
@@ -261,6 +262,18 @@ export function quotaError(r: QuotaResult) {
     used: r.used,
     limit: r.limit,
     creditsRemaining: r.creditsRemaining ?? 0,
+    /**
+     * Paywall intelligent : au lieu d'un simple mur, le client propose
+     * « Premium » OU « une vidéo de 15 s pour 1 crédit ». La vidéo n'est
+     * proposée qu'au tarif gratuit et quand la régie est activée — le
+     * plafond du jour, lui, est vérifié par ads.status / ads.claim.
+     */
+    // `source` n'existe que pour un compteur payable en crédits (consume) :
+    // un crédit ne lève pas la limite de DOCUMENTS (canAddDocument).
+    rewardedAd:
+      r.plan === "free" && r.source !== undefined && rewardedEnabled()
+        ? { seconds: REWARD.seconds, credits: REWARD.credits }
+        : null,
     message:
       r.plan === "free"
         ? "Dein Freikontingent für diesen Monat ist aufgebraucht."

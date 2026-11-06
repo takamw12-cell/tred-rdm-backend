@@ -48,6 +48,8 @@ import { downscaleImageToDataUrl, downscaleDataUrl, isUsableDataUrl } from "@/li
 import { readChatFailure } from "@/lib/chat-error";
 import { QuotaBanner } from "@/components/quota-banner";
 import { useAdStore } from "@/stores/ads";
+import { SmartPaywallModal } from "@/components/SmartPaywallModal";
+import { useAdCopy } from "@/lib/use-ads";
 import { INTERSTITIAL_RULES } from "@/lib/ad-mediation";
 import { creditsMeKey } from "@/queries/credits";
 import { Link } from "wouter";
@@ -924,6 +926,16 @@ export default function ChatPage() {
   const echec = useMemo(() => readChatFailure(error), [error]);
 
   /**
+   * Paywall intelligent : un quota épuisé ouvre la modale (Premium / vidéo
+   * contre 1 crédit / crédits), une fois par refus. Fermée, elle se rouvre
+   * depuis le message sous la conversation. Dérivé, sans effet : la modale
+   * est ouverte tant que CE refus-là n'a pas été écarté.
+   */
+  const [paywallDismissed, setPaywallDismissed] = useState<Error | null>(null);
+  const adText = useAdCopy();
+  const paywallOpen = echec.kind === "quota" && !!error && paywallDismissed !== error;
+
+  /**
    * Le solde, relu après chaque réponse terminée.
    *
    * Sans cela, le bandeau annoncerait « il te reste 4 questions » pendant que
@@ -1782,6 +1794,26 @@ export default function ChatPage() {
                         >
                           {t("chat.topUpNow")}
                         </Link>
+                        {paywallDismissed === error && (
+                          <button
+                            type="button"
+                            onClick={() => setPaywallDismissed(null)}
+                            className="text-primary hover:bg-primary/10 rounded-md border border-current px-2 py-0.5 text-xs font-medium transition-colors"
+                          >
+                            {adText.paywallReopen}
+                          </button>
+                        )}
+                        <SmartPaywallModal
+                          open={paywallOpen}
+                          onClose={() => setPaywallDismissed(error ?? null)}
+                          offer={echec.rewardedAd ?? null}
+                          onUnlocked={() => {
+                            // +1 crédit en base : la question bloquée repart.
+                            void qc.invalidateQueries({ queryKey: creditsMeKey() });
+                            clearError();
+                            void regenerate();
+                          }}
+                        />
                       </>
                     ) : (
                       <>
