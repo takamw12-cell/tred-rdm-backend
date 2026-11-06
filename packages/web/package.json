@@ -4,7 +4,8 @@
   "type": "module",
   "exports": {
     ".": "./src/api/index.ts",
-    "./legal": "./src/web/data/legal.ts"
+    "./legal": "./src/web/data/legal.ts",
+    "./ads": "./src/web/lib/ad-mediation.ts"
   },
   "scripts": {
     "build": "tsc --noEmit && vite build",

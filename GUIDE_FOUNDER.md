@@ -239,3 +239,40 @@ Sans clé, le bouton « Anhören » utilise la voix de l'appareil (souvent robot
 ## Hébergement : région UE (RGPD)
 
 Depuis le 5 nov. 2026, le service **TRED** tourne à **Amsterdam** (Railway *EU West*, `europe-west4-drams3a`), à côté de la base Turso (`aws-eu-west-1`, Irlande). Railway → service TRED → *Settings* → *Regions* : laisse **EU West** uniquement. Un simple *Redeploy* réutilise la région de l'ancien déploiement : après un changement de région, c'est un **nouveau commit** (ou *Deploy latest*) qui l'applique.
+
+## Publicité — activer les régies (quand tu le décides)
+
+**Règle d'or, codée dans `packages/web/src/web/lib/ad-mediation.ts` (et testée) :**
+- jamais de pub dans le Hörsaal, le Chat ou un examen en cours ;
+- jamais pour un abonné ;
+- trois emplacements seulement : l'encart du Dashboard, l'écran de fin de session (fermable après 5 s, au plus 1 toutes les 30 min et 3 par jour) et la vidéo récompensée, toujours volontaire (+1 crédit, 15 s, 3 par jour).
+
+Sans aucune clé, rien ne change : le Dashboard garde les ressources partenaires « maison », sans script tiers.
+Les comptes ci-dessous sont gratuits (aucun abonnement). Les régies se rémunèrent par une part des revenus publicitaires.
+
+### Web — Google AdSense (encart + fin de session)
+1. Ouvre un compte sur https://adsense.google.com et ajoute le site `tred-tutor.de`. Google vérifie le site, ce qui prend quelques jours.
+2. Va dans **Annonces → Par bloc d'annonces** et crée deux blocs :
+   - un bloc « Display » responsive pour le Dashboard → `VITE_ADSENSE_SLOT_NATIVE` ;
+   - un bloc « Display » pour la fin de session → `VITE_ADSENSE_SLOT_INTERSTITIAL`.
+3. Ton ID éditeur `ca-pub-…` va dans `VITE_ADSENSE_CLIENT_ID`.
+4. **Obligatoire en UE :** va dans **Confidentialité et messages → RGPD**, crée le message et publie-le. C'est la CMP certifiée de Google : elle demande le consentement aux pubs.
+5. Une fois ces variables sur Railway, fais un nouveau déploiement : les `VITE_*` sont intégrées au build.
+
+### Web — vidéo récompensée (Google Ad Manager)
+AdSense ne propose pas de vidéo récompensée pour un site : il faut Google Ad Manager (https://admanager.google.com, gratuit pour les petits éditeurs).
+1. Crée un bloc d'annonces au format « Rewarded ».
+2. Mets son chemin (`/1234567/tred_rewarded`) dans `VITE_GAM_REWARDED_AD_UNIT`.
+3. Mets `ADS_REWARDED_ENABLED=true` côté serveur.
+
+**Tester le parcours sans régie :** mets `ADS_TEST_MODE=true` et `VITE_ADS_TEST_MODE=true`. Une fausse vidéo de 15 s, marquée « Testanzeige », crédite réellement +1 : à ne jamais laisser actif en production.
+
+### Mobile — AppLovin MAX (médie AdMob et Unity Ads)
+1. Ouvre un compte sur https://dash.applovin.com et récupère la « SDK Key » → `EXPO_PUBLIC_APPLOVIN_SDK_KEY`.
+2. Crée les blocs interstitiel et récompensé, iOS et Android → `EXPO_PUBLIC_APPLOVIN_*`.
+3. Dans **MAX → Mediation → Manage networks**, active **Google AdMob** et **Unity Ads**. Pour cela, il faut un compte sur https://admob.google.com et un sur https://dashboard.unity3d.com : MAX les met en concurrence à chaque affichage.
+4. Dis-moi quand c'est fait. J'installerai alors le SDK natif `react-native-applovin-max`, je brancherai `packages/mobile/lib/ads.ts` (les wrappers sont prêts) et un build EAS sera nécessaire, car Expo Go ne charge pas les modules natifs.
+
+### Ce que mesure PostHog (avec consentement analytique)
+`ad_impression`, `ad_click` et `rewarded_ad_completed`, avec la régie, le format, l'emplacement et le sponsor, sans aucun identifiant publicitaire.
+Les clics à l'intérieur d'une pub Google (iframe) ne sont pas visibles par TRED : AdSense les compte de son côté.
