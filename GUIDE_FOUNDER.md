@@ -156,6 +156,18 @@ Au lancement, Claude Code te demandera d'approuver le serveur `figma` du projet 
 
 *Alternative sans token : le serveur officiel de Figma via OAuth, `claude mcp add --transport http figma-official https://mcp.figma.com/mcp`, puis autorise dans le navigateur.*
 
+### 4.3 quater — Activer le feedback des bêta-testeurs (une fois)
+
+```
+node C:\dev\tred-rdm\aerostudy-ai\migre-feedback.mjs
+```
+
+Crée la table `feedback` sur Turso (idempotent : le relancer ne coûte rien).
+Les étudiants envoient un retour depuis le bouton jaune en bas à droite ou
+l'entrée « Feedback geben » de la barre latérale ; tu les lis et les marques
+« Erledigt » dans **/admin/feedback** (lien depuis /admin). Sans la table, la
+modale affiche « Senden fehlgeschlagen » et le reste de l'app marche.
+
 ### 4.3 ter — Activer le vestiaire des professeurs (JUSTE APRÈS LE DÉPLOIEMENT)
 ```powershell
 node C:\dev\tred-rdm\aerostudy-ai\migre-professeur.mjs

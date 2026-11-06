@@ -21,6 +21,8 @@ import { LegalFooter } from "@/components/legal-footer";
 import { DynamicBackground } from "@/components/dynamic-background";
 import { SearchDialog, useSearchShortcut } from "@/components/search-dialog";
 import { InterstitialHost } from "@/components/InterstitialAdScreen";
+import { FeedbackFab, FeedbackHost } from "@/components/feedback-widget";
+import { Toaster } from "@/components/toaster";
 
 const PANEL_W = "17rem";
 
@@ -239,6 +241,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
       <InterstitialHost />
 
       <BottomNav />
+
+      {/* Bêta : retour en un clic, sans quitter l'app (masqué sur /chat, où
+          le bas à droite appartient au champ de saisie — la barre latérale
+          garde son entrée « Feedback »). */}
+      <FeedbackFab />
+      <FeedbackHost />
+      <Toaster />
     </div>
   );
 }

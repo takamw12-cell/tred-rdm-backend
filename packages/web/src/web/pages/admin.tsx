@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Ban, RotateCcw, Check, Flag, BarChart3 } from "lucide-react";
+import { Loader2, Ban, RotateCcw, Check, Flag, BarChart3, MessageSquareText } from "lucide-react";
 import { Link } from "wouter";
 import { PageContainer, PageHeader } from "@/components/page";
 import { Card } from "@/components/ui/card";
@@ -150,6 +150,15 @@ export default function AdminPage() {
       >
         <span className="flex items-center gap-2">
           <BarChart3 className="text-primary size-4" /> Analytics — Registrierungen, Retention, Hörsaal, Klicks, Import
+        </span>
+        <span aria-hidden>→</span>
+      </Link>
+      <Link
+        href="/admin/feedback"
+        className="border-border hover:bg-muted -mt-3 mb-6 flex items-center justify-between rounded-lg border p-4 text-sm font-medium transition-colors"
+      >
+        <span className="flex items-center gap-2">
+          <MessageSquareText className="size-4 text-[#EAB308]" /> Feedback der Beta-Tester — Fehler, Ideen, Allgemeines
         </span>
         <span aria-hidden>→</span>
       </Link>

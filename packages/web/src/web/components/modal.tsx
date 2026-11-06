@@ -3,17 +3,21 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export function Modal({
   open,
   onClose,
   title,
   children,
+  className,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
+  /** Classes du panneau (fond, largeur) — par défaut la carte du thème. */
+  className?: string;
 }) {
   // Portail vers <body> : une carte en verre (backdrop-filter, .glass-scope)
   // devient le repère des éléments `fixed` qu'elle contient — sans portail,
@@ -37,7 +41,7 @@ export function Modal({
               exit={{ opacity: 0, y: 16, scale: 0.98 }}
               transition={{ type: "spring", damping: 24, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-card border-border relative w-full max-w-md rounded-2xl border p-6 shadow-xl"
+              className={cn("bg-card border-border relative w-full max-w-md rounded-2xl border p-6 shadow-xl", className)}
             >
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="font-display text-lg font-bold">{title}</h2>

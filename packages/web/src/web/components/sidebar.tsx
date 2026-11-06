@@ -11,6 +11,7 @@ import {
   LogOut,
   PenSquare,
   Sigma,
+  MessageSquareText,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -21,6 +22,7 @@ import { useUserStore } from "@/stores/user";
 import { TrustBadge } from "@/components/trust-badge";
 import { authClient } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { useFeedbackUi } from "@/stores/feedback";
 
 export const navItems = [
   { to: "/dashboard", icon: LayoutDashboard, key: "nav.dashboard" },
@@ -41,6 +43,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useT();
   const profile = useUserStore((s) => s.profile);
   const plan = useUserStore((s) => s.plan);
+  const openFeedback = useFeedbackUi((s) => s.openFeedback);
   const initials =
     (profile.firstName[0] ?? "") + (profile.lastName[0] ?? "");
 
@@ -81,6 +84,17 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       <div className="p-3">
+        <button
+          type="button"
+          onClick={() => {
+            onNavigate?.();
+            openFeedback();
+          }}
+          className="mb-2 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-white/75 transition-colors hover:bg-white/10 hover:text-white"
+        >
+          <MessageSquareText className="size-[18px] text-[#EAB308]" aria-hidden />
+          {t("feedback.fab")}
+        </button>
         <Link
           to="/pricing"
           onClick={onNavigate}

@@ -349,6 +349,43 @@ export const contentReport = sqliteTable(
 export type ContentReport = typeof contentReport.$inferSelect;
 
 /**
+ * Retours des bêta-testeurs : bug, idée ou remarque générale, envoyés depuis
+ * l'app (bouton flottant / barre latérale). Lus dans /admin/feedback.
+ *
+ * Contexte capturé pour déboguer : la page (chemin, sans jeton), le
+ * professeur choisi, la langue et le navigateur. Jamais le contenu d'un chat.
+ * Table créée par migre-feedback.mjs (racine du dépôt).
+ */
+export const feedback = sqliteTable(
+  "feedback",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    /** « bug » | « idea » | « general » — voir lib/feedback.ts. */
+    type: text("type").notNull(),
+    /** 1 à 5, facultatif. */
+    rating: integer("rating"),
+    message: text("message").notNull(),
+    pageUrl: text("page_url").notNull().default(""),
+    professorId: text("professor_id"),
+    locale: text("locale").notNull().default("de"),
+    userAgent: text("user_agent").notNull().default(""),
+    /** « open » | « resolved ». */
+    status: text("status").notNull().default("open"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    resolvedAt: integer("resolved_at", { mode: "timestamp" }),
+  },
+  (t) => [
+    index("feedback_status_idx").on(t.status, t.createdAt),
+    index("feedback_user_idx").on(t.userId, t.createdAt),
+  ],
+);
+
+export type Feedback = typeof feedback.$inferSelect;
+
+/**
  * Le journal des tâches planifiées. Une ligne par tâche, pas par exécution.
  *
  * ── À quoi ça sert vraiment ───────────────────────────────────────────────

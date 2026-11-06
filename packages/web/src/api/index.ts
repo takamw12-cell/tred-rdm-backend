@@ -23,6 +23,7 @@ import { credits } from "./routes/credits";
 import { ads } from "./routes/ads";
 import { account } from "./routes/account";
 import { reports, listOpenReports, resolveReport } from "./routes/reports";
+import { feedbackRoutes } from "./routes/feedback";
 import { subjects } from "./routes/subjects";
 import { courses, myCourseIds } from "./routes/courses";
 import { visibleDocuments } from "./lib/visible-documents";
@@ -103,6 +104,7 @@ export const router = {
   ads,
   account,
   reports,
+  feedback: feedbackRoutes,
   subjects,
   courses,
 };
