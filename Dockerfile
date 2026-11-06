@@ -38,6 +38,43 @@
 # Sans `mupdf-tools`, pdflatex produirait donc un PDF parfait et la
 # conversion échouerait juste après — une panne d'autant plus déroutante que
 # les journaux LaTeX, eux, sont propres. Vérifié ici avant livraison.
+# ── Étape 1 : le front (Vite) + le pré-rendu SEO ─────────────────────────
+#
+# Le pré-rendu (packages/web/scripts/prerender.mjs) ouvre les pages publiques
+# dans Chromium pour en figer le HTML — lisible par Google et AdSense sans
+# JavaScript. Chromium et ses bibliothèques restent dans CETTE étape : seul
+# packages/web/dist passe dans l'image finale.
+FROM oven/bun:1-debian AS web-build
+WORKDIR /app
+COPY package.json bun.lock ./
+COPY packages/web/package.json packages/web/
+COPY packages/mobile/package.json packages/mobile/
+RUN bun install --frozen-lockfile
+# Même version que le paquet `playwright` du lockfile (packages/web).
+RUN bunx playwright@1.64.1 install --with-deps chromium
+
+# Variables PUBLIQUES lues par Vite au build. Avec un Dockerfile, Railway ne
+# transmet une variable au build que si elle est déclarée ici en ARG : sans
+# ces lignes, VITE_POSTHOG_KEY, VITE_ADSENSE_CLIENT_ID… n'entrent jamais dans
+# le bundle (constaté le 6 nov. 2026 : aucune clé PostHog en production).
+ARG VITE_WEBSITE_URL
+ARG VITE_POSTHOG_KEY
+ARG VITE_POSTHOG_HOST
+ARG VITE_AMAZON_PARTNER_TAG
+ARG VITE_AUTH_GOOGLE
+ARG VITE_AUTH_APPLE
+ARG VITE_AVATAR_ENABLED
+ARG VITE_TLDRAW_LICENSE_KEY
+ARG VITE_ADSENSE_CLIENT_ID
+ARG VITE_ADSENSE_SLOT_NATIVE
+ARG VITE_ADSENSE_SLOT_INTERSTITIAL
+ARG VITE_GAM_REWARDED_AD_UNIT
+ARG VITE_ADS_TEST_MODE
+
+COPY . .
+RUN bun run build:web
+
+# ── Étape 2 : l'image qui tourne (Bun + chaîne LaTeX) ──────────────────────
 FROM oven/bun:1-debian
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -74,7 +111,8 @@ COPY packages/mobile/package.json packages/mobile/
 RUN bun install --frozen-lockfile
 
 COPY . .
-RUN bun run build:web
+# Le front construit (et pré-rendu) à l'étape 1.
+COPY --from=web-build /app/packages/web/dist packages/web/dist
 
 ENV NODE_ENV=production
 EXPOSE 3000

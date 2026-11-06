@@ -72,6 +72,11 @@ scripts/
 !packages/mobile/scripts/
 packages/mobile/scripts/*
 !packages/mobile/scripts/generate-ios-certs.py
+# Pré-rendu SEO : fait partie du build de production (Dockerfile).
+!packages/web/scripts/
+packages/web/scripts/*
+!packages/web/scripts/prerender.mjs
+!packages/web/scripts/seo-routes.mjs
 _a-supprimer/
 
 # Sauvegardes des scripts de correctif

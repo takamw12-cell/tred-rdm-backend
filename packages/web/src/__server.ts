@@ -51,6 +51,17 @@ async function handle(request: Request): Promise<Response> {
     return app.fetch(request);
   }
 
+  // Pages publiques pré-rendues (scripts/prerender.mjs) : le HTML complet,
+  // lisible par les robots (Google, AdSense) sans exécuter JavaScript.
+  // Nom strict (lettres, chiffres, tirets) : aucune remontée de dossier.
+  const prerendered = getPrerenderedPath(url.pathname);
+  if (prerendered) {
+    const page = Bun.file(prerendered);
+    if (await page.exists()) {
+      return serveFile(request, prerendered, page, false, "text/html; charset=utf-8");
+    }
+  }
+
   const filePath = getStaticFilePath(url.pathname);
   const file = Bun.file(filePath);
 
@@ -105,6 +116,11 @@ async function serveFile(
     return new Response(gz, { headers });
   }
   return new Response(file, { headers });
+}
+
+function getPrerenderedPath(pathname: string): string | null {
+  const name = pathname.replace(/\/+$/, "").slice(1);
+  return /^[a-z0-9-]+$/.test(name) ? `${distDir}/prerendered/${name}.html` : null;
 }
 
 function getStaticFilePath(pathname: string) {

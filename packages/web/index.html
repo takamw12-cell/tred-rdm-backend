@@ -34,10 +34,26 @@
 		<!-- Polices auto-hébergées (RGPD) : voir src/web/styles.css. On précharge
 		     seulement le texte courant, les autres arrivent avec le CSS. -->
 		<link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
-		<title>TRED</title>
+		<title>TRED — KI-Tutor für das Ingenieurstudium</title>
 	</head>
 	<body>
 		<div id="root"></div>
+		<!-- Pour les robots sans JavaScript (et les navigateurs qui l'ont coupé) :
+		     ce que fait TRED et où lire la suite. Invisible quand JS tourne. -->
+		<noscript>
+			<main style="max-width:40rem;margin:3rem auto;padding:0 1rem;font-family:system-ui,sans-serif;line-height:1.6;color:#0F172A">
+				<h1>TRED — dein KI-Tutor für das Ingenieurstudium</h1>
+				<p>TRED beantwortet deine Fragen auf Basis deiner eigenen Vorlesungsunterlagen, zitiert die Seite, aus der jede Antwort stammt, und zeichnet exakte Schnittgrößenverläufe mit einem Statik-Löser. Für Studierende der Ingenieurwissenschaften in Deutschland.</p>
+				<p>Für die App wird JavaScript benötigt.</p>
+				<ul>
+					<li><a href="/landing">TRED entdecken</a></li>
+					<li><a href="/security">Sicherheit &amp; Datenschutz</a></li>
+					<li><a href="/datenschutz">Datenschutzerklärung</a></li>
+					<li><a href="/impressum">Impressum</a></li>
+					<li><a href="/agb">AGB</a></li>
+				</ul>
+			</main>
+		</noscript>
 		<!-- Thème appliqué AVANT le premier rendu : pas d'éclair blanc en mode sombre.
 		     Même clé que stores/theme.ts (« aerostudy-theme », version 1). -->
 		<script>

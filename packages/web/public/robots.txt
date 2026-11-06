@@ -1,0 +1,20 @@
+# TRED — robots.txt
+# Tout est ouvert aux robots, y compris Googlebot et le robot AdSense
+# (Mediapartners-Google). Les pages de l'application derrière la connexion
+# renvoient l'écran de connexion : rien de privé n'est exposé.
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Mediapartners-Google
+Allow: /
+
+User-agent: AdsBot-Google
+Allow: /
+
+User-agent: *
+Allow: /
+# L'API n'est pas du contenu.
+Disallow: /api/
+
+Sitemap: https://www.tred-tutor.de/sitemap.xml
