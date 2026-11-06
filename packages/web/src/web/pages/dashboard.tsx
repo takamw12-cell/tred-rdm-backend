@@ -33,6 +33,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Modal } from "@/components/modal";
 import { NativeAdSlot } from "@/components/NativeAdSlot";
+import { UniversityBadge } from "@/components/university-picker";
 import { useT } from "@/i18n";
 import { useUserStore } from "@/stores/user";
 import { useSemesterStore } from "@/stores/semester";
@@ -298,6 +299,8 @@ export default function DashboardPage() {
             {t("dashboard.greeting", { name: profile.firstName })}
           </h1>
           <p className="mt-2 max-w-xl text-white/75">{t("dashboard.subtitle")}</p>
+          {/* Sa Hochschule, avec le drapeau du Land (rien si hors liste). */}
+          <UniversityBadge className="mt-3" />
         </div>
         <div className="flex gap-2">
           <Button

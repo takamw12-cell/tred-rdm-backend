@@ -1,4 +1,5 @@
 import { useLocation } from "wouter";
+import { UNIVERSITIES } from "@/lib/universities";
 import { useForm, Controller } from "react-hook-form";
 import { motion } from "framer-motion";
 import { Logo } from "@/components/logo";
@@ -170,12 +171,11 @@ export default function OnboardingPage() {
                 })}
               />
               <datalist id="university-suggestions">
-                <option value="FH Aachen" />
-                <option value="RWTH Aachen" />
-                <option value="TU München" />
-                <option value="TU Darmstadt" />
-                <option value="KIT Karlsruhe" />
-                <option value="TU Berlin" />
+                {UNIVERSITIES.map((u) => (
+                  <option key={u.id} value={u.name}>
+                    {u.city}
+                  </option>
+                ))}
               </datalist>
               {err(errors.university?.message)}
             </div>

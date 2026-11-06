@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,11 @@ export function Modal({
   title: string;
   children: ReactNode;
 }) {
-  return (
+  // Portail vers <body> : une carte en verre (backdrop-filter, .glass-scope)
+  // devient le repère des éléments `fixed` qu'elle contient — sans portail,
+  // une modale ouverte depuis une carte des Paramètres restait enfermée dedans.
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -45,6 +50,7 @@ export function Modal({
           </div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

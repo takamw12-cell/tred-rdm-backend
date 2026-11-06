@@ -14,12 +14,14 @@ import {
   GraduationCap,
   BookOpen,
   Volume2,
+  Landmark,
 } from "lucide-react";
 import { LearningStylePicker } from "@/components/learning-style-picker";
 import { ProfessorPicker } from "@/components/professor-picker";
 import { VoicePicker, voicePickerTitle } from "@/components/voice-picker";
 import { professorUi } from "@/lib/professors";
 import { StudiengangPicker } from "@/components/studiengang-picker";
+import { UniversityPicker } from "@/components/university-picker";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -278,6 +280,24 @@ export default function SettingsPage() {
             </Button>
           </Row>
         </div>
+      </Section>
+
+      <Section
+        icon={<Landmark className="size-4" />}
+        title={locale === "de" ? "Hochschule / Universität" : locale === "fr" ? "Établissement" : "University"}
+      >
+        <Row
+          label={t("common.university")}
+          description={
+            locale === "de"
+              ? "Mit der Flagge deines Bundeslandes — und für die Kurse deiner Kommilitonen."
+              : locale === "fr"
+                ? "Avec le drapeau de ton Land — et pour retrouver les cours de tes camarades."
+                : "Shown with your state's flag — and used to find your classmates' courses."
+          }
+        >
+          <UniversityPicker />
+        </Row>
       </Section>
 
       <Section icon={<BookOpen className="size-4" />} title={t("settings.studySection")}>
