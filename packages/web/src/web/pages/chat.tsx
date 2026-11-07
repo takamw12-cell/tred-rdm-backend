@@ -57,6 +57,7 @@ import { useFeatures } from "@/queries/features";
 import { Link } from "wouter";
 import { Repeat2 } from "lucide-react";
 import { VideoExplainer, type VideoScript } from "@/components/video-explainer";
+import { UnderstandingQuiz } from "@/components/understanding-quiz";
 import {
   VideoSearch,
   type YoutubeHit,
@@ -1027,6 +1028,8 @@ export default function ChatPage() {
   const lastTopic = useRef<string>("");
 
   // Videosuche (YouTube) — unabhängig vom generierten Erklärvideo.
+  // « Prüfe mein Verständnis » : la réponse dont on vérifie la compréhension.
+  const [quizFor, setQuizFor] = useState<string | null>(null);
   const [ytOpen, setYtOpen] = useState(false);
   const [ytHits, setYtHits] = useState<YoutubeHit[]>([]);
   const [ytQuery, setYtQuery] = useState("");
@@ -1154,8 +1157,12 @@ export default function ChatPage() {
 
   function handleAction(
     messageId: string,
-    action: "why" | "explain" | "engineer" | "video" | "ytsearch",
+    action: "why" | "explain" | "engineer" | "video" | "ytsearch" | "quiz",
   ) {
+    if (action === "quiz") {
+      setQuizFor(messageId);
+      return;
+    }
     if (action === "video") {
       const msg = messages.find((m) => m.id === messageId);
       void runVideo(displayText(msg ?? ({} as UIMessage)));
@@ -1746,6 +1753,7 @@ export default function ChatPage() {
                           // Masqués quand le serveur n'a pas la clé.
                           video: features.explainerVideo ? t("video.chip") : undefined,
                           ytsearch: features.videoSearch ? t("videoSearch.chip") : undefined,
+                          quiz: features.quiz ? t("quiz.chip") : undefined,
                         }}
                       />
                       );
@@ -2120,6 +2128,20 @@ export default function ChatPage() {
           />
         )}
       </AnimatePresence>
+      <UnderstandingQuiz
+        open={quizFor !== null}
+        context={(() => {
+          const end = messages.findIndex((m) => m.id === quizFor);
+          return messages
+            .slice(0, end + 1)
+            .filter((m) => m.role === "user" || m.role === "assistant")
+            .map((m) => ({ role: m.role as "user" | "assistant", text: displayText(m) }));
+        })()}
+        onClose={() => setQuizFor(null)}
+        onReexplain={(prompt) => {
+          if (!busy) send(prompt);
+        }}
+      />
     </div>
   );
 }
@@ -2193,13 +2215,14 @@ function MessageBubble({
   conversationId?: string;
   locale?: string;
   showActions?: boolean;
-  onAction?: (a: "why" | "explain" | "engineer" | "video" | "ytsearch") => void;
+  onAction?: (a: "why" | "explain" | "engineer" | "video" | "ytsearch" | "quiz") => void;
   actionLabels?: {
     why: string;
     explain: string;
     engineer: string;
     video?: string;
     ytsearch?: string;
+    quiz?: string;
   };
 }) {
   const isUser = role === "user";
@@ -2298,6 +2321,13 @@ function MessageBubble({
               label={actionLabels.engineer}
               onClick={() => onAction("engineer")}
             />
+            {actionLabels.quiz && (
+              <ActionChip
+                icon={<ListChecks className="size-3.5" />}
+                label={actionLabels.quiz}
+                onClick={() => onAction("quiz")}
+              />
+            )}
             {actionLabels.video && (
               <ActionChip
                 icon={<Clapperboard className="size-3.5" />}

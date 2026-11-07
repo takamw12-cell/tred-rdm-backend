@@ -11,10 +11,12 @@ import { useQuery } from "@tanstack/react-query";
 export interface Features {
   videoSearch: boolean;
   explainerVideo: boolean;
+  /** « Prüfe mein Verständnis » (mini-quiz, même clé IA). */
+  quiz: boolean;
 }
 
-const NONE: Features = { videoSearch: false, explainerVideo: false };
-const ALL: Features = { videoSearch: true, explainerVideo: true };
+const NONE: Features = { videoSearch: false, explainerVideo: false, quiz: false };
+const ALL: Features = { videoSearch: true, explainerVideo: true, quiz: true };
 
 export function useFeatures(): Features {
   const q = useQuery({

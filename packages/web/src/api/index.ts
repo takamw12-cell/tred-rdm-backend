@@ -65,6 +65,7 @@ import { selectRelevantContext } from "./lib/retrieval";
 import { chercherDansDocuments } from "./lib/document-search";
 import { searchYoutube, youtubeConfigured } from "./lib/youtube";
 import { writeVideoQuery } from "./lib/video-query";
+import { finalizeQuiz, quizContext, quizModelSchema, quizRequestSchema, quizSystemPrompt } from "./lib/quiz";
 import {
   getAccess,
   setActive,
@@ -364,6 +365,7 @@ app.get("/api/config", (c) =>
     features: {
       videoSearch: youtubeConfigured(),
       explainerVideo: Boolean(process.env.ANTHROPIC_API_KEY),
+      quiz: Boolean(process.env.ANTHROPIC_API_KEY),
     },
   }),
 );
@@ -1580,6 +1582,46 @@ app.post("/api/youtube/search", async (c) => {
   }
 
   return c.json({ query: result.query, hits: result.hits, cached: result.cached });
+});
+
+// « Prüfe mein Verständnis » : 2 QCM sur les 3 derniers messages du chat.
+// Pas de quota de crédits (c'est un contrôle de quelques secondes), mais le
+// plafond de jetons du forfait s'applique, et 30 quiz par heure au plus.
+const quizCalls = new Map<string, number[]>();
+app.post("/api/agent/quiz", async (c) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);
+  if (!process.env.ANTHROPIC_API_KEY) return c.json({ error: "not_configured" }, 503);
+
+  const uid = session.user.id;
+  const now = Date.now();
+  const recent = (quizCalls.get(uid) ?? []).filter((t) => now - t < 60 * 60 * 1000);
+  if (recent.length >= 30) return c.json({ error: "rate_limited" }, 429);
+  quizCalls.set(uid, [...recent, now]);
+
+  const cap = await withinTokenCap(uid);
+  if (!cap.ok) return c.json(tokenCapError(cap.used, cap.cap), 402);
+
+  const parsed = quizRequestSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: "invalid body" }, 400);
+  const { label: langLabel } = langOf(parsed.data.locale);
+
+  try {
+    const { object, usage } = await generateObject({
+      model: gateway("anthropic/claude-sonnet-4.6"),
+      schema: quizModelSchema,
+      system: quizSystemPrompt(langLabel),
+      prompt: `GESPRÄCHSAUSSCHNITT:\n\n${quizContext(parsed.data.messages)}`,
+      abortSignal: AbortSignal.timeout(45_000),
+    });
+    void addOutputTokens(uid, usage?.outputTokens ?? 0);
+    const questions = finalizeQuiz(object);
+    if (questions.length === 0) return c.json({ error: "failed" }, 502);
+    return c.json({ questions });
+  } catch (err) {
+    console.error("[quiz] generation failed", (err as Error).message);
+    return c.json({ error: "failed" }, 502);
+  }
 });
 
 // Compile a ```tikz block into an SVG. The tutor emits TikZ for exam-style
