@@ -110,6 +110,8 @@ const SOLVER_TOOLS = new Set([
   "tool-schaltung_berechnen",
   "tool-thermo_berechnen",
   "tool-physik_berechnen",
+  "tool-solve_cyber",
+  "tool-solve_ai",
   "tool-mathe_berechnen",
 ]);
 

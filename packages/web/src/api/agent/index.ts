@@ -7,6 +7,8 @@ import { circuitInputSchema, solveCircuit } from "../lib/solvers/solveCircuit";
 import { mathInputSchema, solveMath } from "../lib/solvers/solveMath";
 import { solveThermo, thermoInputSchema } from "../lib/solvers/solveThermo";
 import { physicsInputSchema, solvePhysics } from "../lib/physics-solver";
+import { cyberInputSchema, solveCyber } from "../lib/solvers/cyber-solver";
+import { aiInputSchema, solveAi } from "../lib/solvers/ai-solver";
 import { solveStatics, staticsInputSchema } from "../lib/solvers/statics-solver";
 import { searchKnowledge } from "../lib/knowledge-search";
 import { renderDiagram, type DiagramSpec } from "../lib/diagrams";
@@ -333,6 +335,10 @@ export function buildTutorAgent(opts: {
             Elektrotechnik → "schaltung_berechnen"
             Thermodynamik → "thermo_berechnen"
             Physik (Kinematik, Wurf, Newton) → "physik_berechnen"
+            Informatik / IT-Sicherheit (Chiffren, RSA, Hashes, boolesche
+              Algebra, KV-Diagramm, Subnetze) → "solve_cyber"
+            KI / Data Science (Matrizen, Regression, Gradientenabstieg,
+              Aktivierungen, Perzeptron) → "solve_ai"
             Mathematik → "mathe_berechnen"
             alles andere (Einheiten, Einzelwerte, Passungsmaße) → "rechnen"
             Datenverarbeitung → python-Block, die Person führt ihn aus
@@ -489,6 +495,15 @@ export function buildTutorAgent(opts: {
             Diagramm bzw. Wurfbahn erscheinen AUTOMATISCH aus der Rechnung —
             nicht selbst als chart nachzeichnen. Annahmen nennen (kein
             Luftwiderstand, g = 9,81 m/s² oder der Wert aus dem Skript).
+          • INFORMATIK, IT-SICHERHEIT, KI — Für Fragen aus Informatik,
+            Sicherheit oder KI benutzt du IMMER "solve_cyber" bzw. "solve_ai".
+            Hashes, Chiffren, RSA-Schlüssel, Minimalformen, Subnetze,
+            Matrizen und Aktivierungen rechnest du NIE selbst — auch nicht
+            "zur Kontrolle". KV-Diagramme übernimmst du aus
+            "tabelle_markdown", Wahrheitstabellen als Markdown-Tabelle,
+            Logikgatter und Netzarchitekturen als svg. Das Regressions-
+            diagramm erscheint automatisch. Sicherheit lehrst du zum
+            Verstehen und Verteidigen, nie als Anleitung gegen fremde Systeme.
           • REGELUNGSTECHNIK — Regelkreis als svg-Blockschaltbild (Regler,
             Strecke, Summationsstelle mit Vorzeichen, Rückführung, Signale
             w, e, u, y, z beschriftet) im TRED-Stil von NIVEAU 9 A.
@@ -679,6 +694,8 @@ export function buildTutorAgent(opts: {
           | Elektrotechnik      | schaltung_berechnen  | lineare Netzwerke DC/AC: Kirchhoff, Teiler, Impedanzen, Leistung, Thevenin/Norton, idealer OPV |
           | Thermodynamik       | thermo_berechnen     | ideale Gase: p·V = n·R·T, 1. Hauptsatz, Zustandsänderungen, Kreisprozesse, Carnot/2. Hauptsatz, Verdichter/Turbine |
           | Physik              | physik_berechnen     | Kinematik (konstante Beschleunigung), Wurf ohne Luftwiderstand, F = m·a |
+          | Informatik/IT-Sich. | solve_cyber          | Caesar, Vigenère, Lehrbuch-RSA, Hashes, boolesche Minimierung, KV-Diagramm, IPv4-Subnetze |
+          | KI/Data Science     | solve_ai             | Matrix-/Skalarprodukt, lineare Regression, Gradientenschritt, Sigmoid/ReLU/Softmax, Perzeptron |
           | Mathematik          | mathe_berechnen      | Ableitung, Integral, DGL, Matrizen, Nullstellen |
           | Techn. Mechanik     | balkenstatik         | Balken: Auflager, Q(x), M(x) |
           | alles übrige        | rechnen              | einzelne Zahlenausdrücke |
@@ -1691,7 +1708,8 @@ export function buildTutorAgent(opts: {
           '"15 * 1200 / (1200 + 1200)", "1000 * (1 + 0.025 * (29 - 20))", ' +
           '"sqrt(2)/2". Unterstützt + - * / ^, Klammern, sqrt, sin, cos, tan, ' +
           "log, exp, abs, pi, e. Thermodynamik (p·V = n·R·T, 1. Hauptsatz, Carnot, " +
-          "Zustandsänderungen) → thermo_berechnen; Kinematik, Wurf, F = m·a → physik_berechnen.",
+          "Zustandsänderungen) → thermo_berechnen; Kinematik, Wurf, F = m·a → physik_berechnen; " +
+          "Chiffren, RSA, Hashes, Logik, Subnetze → solve_cyber; Matrizen, Regression, Neuronen → solve_ai.",
         inputSchema: z.object({
           ausdruck: z
             .string()
@@ -1768,6 +1786,31 @@ export function buildTutorAgent(opts: {
           "Wurfbahn werden automatisch angezeigt. Ohne Luftwiderstand.",
         inputSchema: physicsInputSchema,
         execute: async (input) => solvePhysics(input),
+      }),
+
+      solve_cyber: tool({
+        description:
+          "Informatik & IT-Sicherheit, exakt und mit Probe: aufgabe caesar (text, verschiebung, richtung), " +
+          "vigenere (text, schluessel, richtung), rsa_schluessel (p, q, optional e → n, φ, d, euklid-Rechenweg), " +
+          "rsa_verschluesseln (nachricht, e, n), rsa_entschluesseln (nachricht = Geheimtext, d, n), hash " +
+          "(text, algorithmus md5/sha1/sha256/sha512), boolesch (ausdruck ODER variablen + wahrheitstabelle → " +
+          "minimale DNF/KNF, Primimplikanten), kv_diagramm (2–4 Variablen → Gray-Code-Tabelle, Blöcke, " +
+          'Minimalform), subnetz (ip "192.168.1.130/26" oder ip + cidr; optional neue_cidr → Teilnetze). ' +
+          "Boolesche Schreibweisen: \"A·B + ¬C\", \"a & !b | c\", \"A B' + C\", UND/ODER/NICHT/XOR. " +
+          "IMMER dieses Werkzeug, nie selbst rechnen.",
+        inputSchema: cyberInputSchema,
+        execute: async (input) => solveCyber(input),
+      }),
+
+      solve_ai: tool({
+        description:
+          "KI & Data Science, exakt: aufgabe matrix_produkt (A, B), skalarprodukt (v1, v2), regression " +
+          "(x, y → Steigung a, Achsenabschnitt b, R², Residuen; Diagramm erscheint automatisch), " +
+          "gradientenschritt (gewichte, gradienten, lernrate), aktivierung (funktion sigmoid/relu/tanh/softmax, " +
+          "werte), perzeptron (eingaben, gewichte, bias, aktivierung step/sigmoid/relu/linear/tanh). " +
+          "IMMER dieses Werkzeug, nie selbst rechnen. Inverse/Eigenwerte: mathe_berechnen.",
+        inputSchema: aiInputSchema,
+        execute: async (input) => solveAi(input),
       }),
 
       mathe_berechnen: tool({

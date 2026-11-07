@@ -18,6 +18,8 @@ export type CoveredDomain =
   | "mathematik"
   | "mechanik"
   | "physik"
+  | "informatik"
+  | "ki"
   | "datenverarbeitung"
   | "technisches_zeichnen";
 export type UncoveredDomain =
@@ -74,6 +76,24 @@ const KEYWORDS: Record<Exclude<Domain, "unbekannt">, [RegExp, number][]> = {
     [/\b(gleichmäßig beschleunigt|gleichförmig|anfangsgeschwindigkeit|endgeschwindigkeit|bremsweg|anhalteweg|beschleunigung|acceleration|accélération|geschwindigkeit|velocity|vitesse)\b/, 2],
     [/\b\d+(?:[.,]\d+)?\s*(m\/s²|m\/s\^2|m\/s2|m\/s|km\/h)\b/, 2],
   ],
+  // Informatik & IT-Sicherheit : Kryptographie, Schaltalgebra, IP-Netze.
+  informatik: [
+    [/\b(kryptographie|kryptografie|cryptography|cryptographie|verschlüsselung|verschlüsseln|entschlüsseln|chiffre|chiffrieren|cipher|chiffrement|geheimtext|klartext)\b/, 3],
+    [/\b(caesar|cäsar|césar|vigenère|vigenere|rsa|diffie-hellman|öffentliche[rn]? schlüssel|private[rn]? schlüssel|public key|private key)\b/, 4],
+    [/\b(hash|hashwert|hashfunktion|sha-?256|sha-?512|sha-?1|md5|prüfsumme)\b/, 3],
+    [/\b(boolesche[rn]?|boolean|booléen(ne)?|wahrheitstabelle|truth table|table de vérité|kv-diagramm|karnaugh|disjunktive normalform|konjunktive normalform|dnf|knf|logikgatter|logic gates?|portes? logiques?|nand|nor|xor|schaltalgebra|schaltnetz)\b/, 4],
+    [/\b(subnetz|subnetze|subnet|subnets|sous-réseaux?|subnetting|netzmaske|subnetzmaske|netmask|cidr|broadcast(adresse)?|ipv4|ip-adresse|ip address|adresse ip|netzadresse|netzanteil|hostanteil)\b/, 4],
+    [/\b(it-sicherheit|cybersicherheit|cybersecurity|cybersécurité|informatik|informatique|computer science)\b/, 2],
+    [/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(\/\d{1,2})?\b/, 3],
+  ],
+  // KI & Data Science : Regression, Gradientenabstieg, Perzeptron.
+  ki: [
+    [/\b(künstliche intelligenz|artificial intelligence|intelligence artificielle|machine learning|maschinelle[sn]? lernen|apprentissage automatique|deep learning|data science)\b/, 3],
+    [/\b(neuronale[sn]? netz(e|werk|werke)?|neural networks?|réseaux? de neurones|perzeptron|perceptron|neuronen?)\b/, 4],
+    [/\b(sigmoid|sigmoïde|relu|softmax|tanh|aktivierungsfunktion|activation function|fonction d'activation|gradientenabstieg|gradient descent|descente de gradient|lernrate|learning rate|taux d'apprentissage|backpropagation|verlustfunktion|loss function)\b/, 4],
+    [/\b(lineare regression|linear regression|régression linéaire|bestimmtheitsmaß|kleinste quadrate|methode der kleinsten quadrate|least squares|moindres carrés)\b/, 4],
+    [/\b(ki|ia)\b/, 2],
+  ],
   stroemungslehre: [
     [/\b(strömungslehre|strömungsmechanik|fluidmechanik|bernoulli|reynolds|rohrströmung|druckverlust|viskosität|navier|kontinuitätsgleichung)\b/, 3],
   ],
@@ -109,6 +129,8 @@ const COVERED: ReadonlySet<Domain> = new Set<Domain>([
   "mathematik",
   "mechanik",
   "physik",
+  "informatik",
+  "ki",
   "datenverarbeitung",
   "technisches_zeichnen",
 ]);
@@ -171,6 +193,8 @@ const LABEL: Record<Domain, string> = {
   mathematik: "Mathematik",
   mechanik: "Technische Mechanik",
   physik: "Physik (Kinematik, Wurf, Newton)",
+  informatik: "Informatik & IT-Sicherheit (Kryptographie, Schaltalgebra, IP-Netze)",
+  ki: "KI & Data Science (Regression, Gradientenabstieg, neuronale Netze)",
   stroemungslehre: "Strömungslehre",
   regelungstechnik: "Regelungstechnik",
   werkstoffkunde: "Werkstoffkunde",
@@ -187,6 +211,9 @@ const SOLVER: Record<CoveredDomain, string> = {
   mathematik: "mathe_berechnen",
   mechanik: "balkenstatik (Balken), statik_berechnen (Fachwerk, Reibung, Kraftsystem)",
   physik: "physik_berechnen (kinematik, wurf, newton) — Diagramm s(t)/v(t) bzw. Wurfbahn erscheint automatisch",
+  informatik:
+    "solve_cyber (caesar, vigenere, rsa_schluessel/rsa_verschluesseln/rsa_entschluesseln, hash, boolesch, kv_diagramm, subnetz) — Chiffren, Hashes, Minimalformen und Subnetze NIE selbst rechnen",
+  ki: "solve_ai (matrix_produkt, skalarprodukt, regression, gradientenschritt, aktivierung, perzeptron) — Matrizen und Aktivierungen NIE selbst rechnen; Regressionsdiagramm erscheint automatisch",
   datenverarbeitung:
     "echte Ausführung im Browser — Python-Code in einen python-Block, die Studierenden starten „Ausführen“ bzw. „Variablentabelle“; Ausgaben nie im Kopf als Tatsache behaupten",
   technisches_zeichnen: "Zeichnung als svg (NIVEAU 9g), 3D als 3d-json (NIVEAU 9f), Grenzmaße mit rechnen",

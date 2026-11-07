@@ -272,7 +272,7 @@ export interface ChartSpec {
   title: string;
   xLabel: string;
   yLabel: string;
-  series: { label: string; data: { x: number; y: number }[] }[];
+  series: { label: string; data: { x: number; y: number }[]; line?: boolean }[];
 }
 
 const round4 = (v: number) => (v === 0 || !Number.isFinite(v) ? v : Number(v.toPrecision(4)));

@@ -384,6 +384,8 @@ type Series = {
   data: (Point | number)[];
   color?: string;
   fill?: boolean;
+  /** scatter : relier les points (droite de régression au milieu des mesures). */
+  line?: boolean;
 };
 type ChartSpec = {
   type?: "line" | "scatter" | "bar";
@@ -439,8 +441,9 @@ export function ChartBlock({ code }: { code: string }) {
             ? `${color}33`
             : color,
       fill: type === "line" ? (s.fill ?? false) : false,
-      tension: 0.25,
-      pointRadius: type === "scatter" ? 3 : 2,
+      tension: s.line ? 0 : 0.25,
+      showLine: type === "scatter" ? Boolean(s.line) : undefined,
+      pointRadius: type === "scatter" ? (s.line ? 0 : 3) : 2,
       borderWidth: 2,
     };
   });

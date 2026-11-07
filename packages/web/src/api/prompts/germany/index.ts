@@ -4,6 +4,8 @@ import { elektrotechnik } from "./elektrotechnik";
 import { mathematik } from "./mathematik";
 import { mechanik } from "./mechanik";
 import { physik } from "./physik";
+import { informatik } from "./informatik";
+import { ki } from "./ki";
 import { regelungstechnik } from "./regelungstechnik";
 import { technischesZeichnen } from "./technisches-zeichnen";
 import { thermodynamik } from "./thermodynamik";
@@ -12,6 +14,8 @@ import { thermodynamik } from "./thermodynamik";
 export const GERMANY: PackSet = {
   mechanik,
   physik,
+  informatik,
+  ki,
   elektrotechnik,
   thermodynamik,
   mathematik,
