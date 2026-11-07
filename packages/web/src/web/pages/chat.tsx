@@ -423,18 +423,21 @@ export default function ChatPage() {
   const localeRef = useRef(locale);
   const calcModeRef = useRef(calcMode);
   const codeLangRef = useRef(codeLang);
+  const convIdRef = useRef(convId);
   docIdRef.current = activeDoc?.id ?? null;
   semIdRef.current = semesterId;
   subIdRef.current = chatSubject;
   localeRef.current = locale;
   calcModeRef.current = calcMode;
   codeLangRef.current = codeLang;
+  convIdRef.current = convId;
 
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
         api: "/api/agent/messages",
         body: () => ({
+          conversationId: convIdRef.current,
           documentId: docIdRef.current,
           // La portée va du plus étroit au plus large : un document, sinon un
           // Fach, sinon le semestre. Le serveur applique le même ordre.
@@ -560,7 +563,7 @@ export default function ChatPage() {
         const res = await fetch("/api/agent/translate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ target, texts: need }),
+          body: JSON.stringify({ target, texts: need, conversationId: convId }),
         });
         if (res.ok) {
           const data = (await res.json()) as {
@@ -1057,6 +1060,7 @@ export default function ChatPage() {
           docId: activeDoc?.id ?? null,
           semesterId,
           locale,
+          conversationId: convId,
         }),
       });
       if (!res.ok || !res.body) throw new Error("failed");
@@ -1123,7 +1127,7 @@ export default function ChatPage() {
       const res = await fetch("/api/youtube/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, question, locale }),
+        body: JSON.stringify({ topic, question, locale, conversationId: convId }),
       });
       const data = (await res.json().catch(() => ({}))) as {
         hits?: YoutubeHit[];

@@ -40,6 +40,7 @@ import { useReconciledSemester } from "@/hooks/use-reconciled-semester";
 import { printElement } from "@/lib/pdf-print";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
+import { track } from "@/lib/analytics";
 
 type Difficulty = "easy" | "medium" | "hard";
 type ExType = "application" | "proof" | "analysis";
@@ -135,6 +136,7 @@ function GeneratorTab({
         locale,
       });
       setResult(r);
+      track("exercise_generated", { generation_mode: "exercise", difficulty, exercise_type: type });
       // Auto-saved server-side — refresh the history list so it shows up.
       void queryClient.invalidateQueries({ queryKey: savedExercisesListKey() });
     } catch {
@@ -248,6 +250,7 @@ function KlausurenTab({
     try {
       const r = await generate({ mode: "klausur", basedOnId, semesterId, locale });
       setResult(r);
+      track("exercise_generated", { generation_mode: "document" });
       void queryClient.invalidateQueries({ queryKey: savedExercisesListKey() });
     } catch {
       setError(true);

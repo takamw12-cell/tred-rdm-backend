@@ -1,5 +1,6 @@
 import type { ExtractRequest, ExtractResponse } from "./extract-worker";
 import { extractDocument, type ExtractedDoc } from "./extract";
+import type { AiRuntimeContext } from "./ai-observability";
 
 /**
  * La file d'extraction : côté fil principal.
@@ -105,10 +106,11 @@ function getWorker(): Worker | null {
 export function extractInBackground(
   bytes: Uint8Array,
   filename: string,
+  runtimeContext?: AiRuntimeContext,
 ): Promise<ExtractedDoc> {
   const run = async (): Promise<ExtractedDoc> => {
     const w = getWorker();
-    if (!w) return extractDocument(bytes, filename);
+    if (!w) return extractDocument(bytes, filename, runtimeContext);
 
     const jobId = crypto.randomUUID();
 
@@ -123,7 +125,7 @@ export function extractInBackground(
 
       pending.set(jobId, { resolve, reject, timer });
 
-      const message: ExtractRequest = { jobId, bytes, filename };
+      const message: ExtractRequest = { jobId, bytes, filename, runtimeContext };
       try {
         w.postMessage(message);
       } catch (error) {

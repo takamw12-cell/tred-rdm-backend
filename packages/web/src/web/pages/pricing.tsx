@@ -13,6 +13,7 @@ import { useUserStore, type PlanId } from "@/stores/user";
 import { client } from "@/lib/api";
 import { subscriptionMeOptions, subscriptionMeKey } from "@/queries/subscriptions";
 import { cn } from "@/lib/utils";
+import { track } from "@/lib/analytics";
 
 type Interval = "monthly" | "semester";
 
@@ -351,7 +352,14 @@ export default function PricingPage() {
                       setConsentError(true);
                       return;
                     }
-                    if (selected) checkoutMut.mutate(selected.priceId);
+                    if (selected) {
+                      track("checkout_started", {
+                        plan: "premium",
+                        billing_interval: selected.interval,
+                        trial_available: trialAvailable,
+                      }, true);
+                      checkoutMut.mutate(selected.priceId);
+                    }
                   }}
                 >
                   {busy && <Loader2 className="size-4 animate-spin" />}

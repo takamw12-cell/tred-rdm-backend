@@ -3,6 +3,7 @@ import { mathpixConfigured, mathpixOcr } from "./mathpix";
 import { generateText } from "ai";
 import { unzipSync, strFromU8 } from "fflate";
 import { gateway } from "../agent/gateway";
+import { aiTelemetry, type AiRuntimeContext } from "./ai-observability";
 
 const TRANSCRIBE_PROMPT =
   "Transkribiere diese Seite eines Ingenieur-Dokuments " +
@@ -20,9 +21,15 @@ const TRANSCRIBE_PROMPT =
  * mit `extraction_failed`. Jetzt läuft das über dieselbe Anthropic-Verbindung
  * wie der restliche Tutor.
  */
-async function visionTranscribe(bytes: Uint8Array, mediaType: string): Promise<string> {
+async function visionTranscribe(
+  bytes: Uint8Array,
+  mediaType: string,
+  runtimeContext?: AiRuntimeContext,
+): Promise<string> {
   const { text } = await generateText({
     model: gateway("anthropic/claude-sonnet-4.6"),
+    ...(runtimeContext ? { runtimeContext } : {}),
+    telemetry: aiTelemetry("document_vision_transcription"),
     messages: [
       {
         role: "user",
@@ -70,7 +77,10 @@ function cleanPage(s: string): string {
  *    Seite als PNG gerendert und vom Vision-Modell transkribiert — bei
  *    Handschrift, Formeln und Schaltplänen deutlich besser als klassisches OCR.
  */
-export async function extractPdf(bytes: Uint8Array): Promise<ExtractedDoc> {
+export async function extractPdf(
+  bytes: Uint8Array,
+  runtimeContext?: AiRuntimeContext,
+): Promise<ExtractedDoc> {
   // unpdf/pdf.js hängt den gelesenen ArrayBuffer ab, also bekommt es eine Kopie
   // und `bytes` bleibt für die Transkription unten unversehrt.
   const pdf = await getDocumentProxy(bytes.slice());
@@ -85,11 +95,15 @@ export async function extractPdf(bytes: Uint8Array): Promise<ExtractedDoc> {
     return { text: joined, pageCount: totalPages, ocr: false };
   }
 
-  const ocrText = await transcribeScanned(bytes, totalPages);
+  const ocrText = await transcribeScanned(bytes, totalPages, runtimeContext);
   return { text: ocrText, pageCount: totalPages, ocr: true };
 }
 
-async function transcribeScanned(bytes: Uint8Array, totalPages: number): Promise<string> {
+async function transcribeScanned(
+  bytes: Uint8Array,
+  totalPages: number,
+  runtimeContext?: AiRuntimeContext,
+): Promise<string> {
   const limit = Math.min(totalPages, MAX_OCR_PAGES);
   const parts: string[] = [];
 
@@ -105,7 +119,7 @@ async function transcribeScanned(bytes: Uint8Array, totalPages: number): Promise
       canvasImport: () => import(canvasPkg) as never,
     })) as ArrayBuffer;
 
-    const text = await visionTranscribe(new Uint8Array(rendered), "image/png");
+    const text = await visionTranscribe(new Uint8Array(rendered), "image/png", runtimeContext);
     parts.push(`[[SEITE ${i}]]\n${cleanPage(text)}`);
   }
 
@@ -184,7 +198,11 @@ const MATHPIX_MAX_BYTES = 8 * 1024 * 1024;
  * filet : sans clé, sur un format que Mathpix ne lit pas, en cas d'erreur,
  * ou s'il ne trouve presque rien (photo de schéma sans texte).
  */
-async function extractImage(bytes: Uint8Array, mediaType: string): Promise<ExtractedDoc> {
+async function extractImage(
+  bytes: Uint8Array,
+  mediaType: string,
+  runtimeContext?: AiRuntimeContext,
+): Promise<ExtractedDoc> {
   if (mathpixConfigured() && MATHPIX_TYPES.has(mediaType) && bytes.byteLength <= MATHPIX_MAX_BYTES) {
     try {
       const dataUrl = `data:${mediaType};base64,${Buffer.from(bytes).toString("base64")}`;
@@ -196,7 +214,7 @@ async function extractImage(bytes: Uint8Array, mediaType: string): Promise<Extra
       console.warn("[extract] Mathpix indisponible, repli sur la vision :", err instanceof Error ? err.message : err);
     }
   }
-  const text = await visionTranscribe(bytes, mediaType);
+  const text = await visionTranscribe(bytes, mediaType, runtimeContext);
   return { text: `[[SEITE 1]]\n${cleanPage(text)}`, pageCount: 1, ocr: true };
 }
 
@@ -268,13 +286,14 @@ export class UnsupportedFormatError extends Error {
 export async function extractDocument(
   bytes: Uint8Array,
   filename: string,
+  runtimeContext?: AiRuntimeContext,
 ): Promise<ExtractedDoc> {
   const ext = fileExtension(filename);
 
-  if (ext === "pdf") return extractPdf(bytes);
+  if (ext === "pdf") return extractPdf(bytes, runtimeContext);
   if (ext === "docx") return extractDocx(bytes);
   if (ext === "pptx") return extractPptx(bytes);
-  if (ext in IMAGE_MIME) return extractImage(bytes, IMAGE_MIME[ext] as string);
+  if (ext in IMAGE_MIME) return extractImage(bytes, IMAGE_MIME[ext] as string, runtimeContext);
   if (ext === "txt" || ext === "md" || ext === "csv") return extractPlain(bytes);
 
   throw new UnsupportedFormatError(ext);

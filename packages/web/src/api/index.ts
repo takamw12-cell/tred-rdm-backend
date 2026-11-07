@@ -1,3 +1,4 @@
+import "./instrumentation";
 import type { RouterClient } from "@orpc/server";
 import { createAgentUIStreamResponse, generateText, generateObject } from "ai";
 import { stream } from "hono/streaming";
@@ -64,6 +65,7 @@ import { selectRelevantContext } from "./lib/retrieval";
 import { chercherDansDocuments } from "./lib/document-search";
 import { searchYoutube, youtubeConfigured } from "./lib/youtube";
 import { writeVideoQuery } from "./lib/video-query";
+import { aiRuntimeContext, aiSessionId, aiTelemetry } from "./lib/ai-observability";
 import {
   getAccess,
   setActive,
@@ -477,6 +479,7 @@ app.post("/api/agent/messages", async (c) => {
     calcMode,
     codeLang,
     studyProfile,
+    conversationId,
   } = body as {
       studyProfile?: StudyProfileInput | null;
       messages: unknown[];
@@ -488,6 +491,7 @@ app.post("/api/agent/messages", async (c) => {
       examMode?: boolean;
       calcMode?: boolean;
       codeLang?: string;
+      conversationId?: string;
     };
 
   let rows;
@@ -662,9 +666,17 @@ app.post("/api/agent/messages", async (c) => {
       ),
   });
 
+  const chatAiContext = aiRuntimeContext(
+    session.user.id,
+    aiSessionId("chat", conversationId || session.user.id),
+    "tutor_chat",
+  );
+
   const streamResponse = await createAgentUIStreamResponse({
     agent,
     uiMessages: pruneHistoryFiles(messages),
+    runtimeContext: chatAiContext,
+    telemetry: aiTelemetry("tutor_chat"),
     // Echte Abrechnung: jeder Schritt des Werkzeug-Loops meldet seinen
     // Verbrauch. Feuern und vergessen — ein Schreibfehler darf den laufenden
     // Stream nicht abbrechen.
@@ -821,11 +833,17 @@ app.post("/api/agent/translate", async (c) => {
   const body = (await c.req.json()) as {
     texts?: { id: string; content: string }[];
     target?: string;
+    conversationId?: string;
   };
   const target = TR_LANG[body.target ?? ""] ? (body.target as string) : "de";
   const targetLabel = TR_LANG[target];
   const texts = Array.isArray(body.texts) ? body.texts.slice(0, 80) : [];
   if (texts.length === 0) return c.json({ results: [] });
+  const translationAiContext = aiRuntimeContext(
+    session.user.id,
+    aiSessionId("chat", body.conversationId || session.user.id),
+    "chat_translation",
+  );
 
   const system = `
     Du bist ein Fachübersetzer für Ingenieurwissenschaften. Übersetze den
@@ -875,6 +893,8 @@ app.post("/api/agent/translate", async (c) => {
           model,
           system,
           prompt: item.content,
+          runtimeContext: translationAiContext,
+          telemetry: aiTelemetry("chat_translation"),
         });
         const out = text.trim() || item.content;
         // Feuern und vergessen: das Ergebnis liegt vor, der Cache darf es nicht
@@ -1093,6 +1113,12 @@ Die Felder title/points/statement/solution/scale werden strukturiert zurückgege
   // which exceeds proxy idle timeouts on a single blocking request. So we
   // stream the response: emit a heartbeat every few seconds to keep the
   // connection warm, then a final `result` (or `error`) line as NDJSON.
+  const exerciseAiContext = aiRuntimeContext(
+    session.user.id,
+    aiSessionId("exercise", session.user.id),
+    "exercise_generation",
+  );
+
   async function runExercise() {
     try {
       const { object } = await generateObject({
@@ -1100,6 +1126,8 @@ Die Felder title/points/statement/solution/scale werden strukturiert zurückgege
         schema: exerciseSchema,
         system,
         prompt,
+        runtimeContext: exerciseAiContext,
+        telemetry: aiTelemetry("exercise_generation"),
       });
       return {
         title: String(object.title ?? ""),
@@ -1117,6 +1145,8 @@ Die Felder title/points/statement/solution/scale werden strukturiert zurückgege
         model: gateway("anthropic/claude-sonnet-4.6"),
         system: `${system}\n\nGib AUSSCHLIESSLICH gültiges JSON zurück (keine Code-Fences, keine Einleitung).`,
         prompt,
+        runtimeContext: exerciseAiContext,
+        telemetry: aiTelemetry("exercise_generation"),
       });
       const cleaned = text
         .replace(/^```(?:json)?/gm, "")
@@ -1310,6 +1340,12 @@ ANFORDERUNGEN:
       .describe("Die komplette Formelsammlung als Markdown mit LaTeX ($$...$$), gegliedert mit ##-Kapiteln"),
   });
 
+  const formulasAiContext = aiRuntimeContext(
+    session.user.id,
+    aiSessionId("formulas", session.user.id),
+    "formula_sheet_generation",
+  );
+
   async function runFormulas() {
     try {
       const { object } = await generateObject({
@@ -1317,6 +1353,8 @@ ANFORDERUNGEN:
         schema: formulasSchema,
         system,
         prompt,
+        runtimeContext: formulasAiContext,
+        telemetry: aiTelemetry("formula_sheet_generation"),
       });
       return { title: String(object.title ?? ""), content: String(object.content ?? "") };
     } catch (objErr) {
@@ -1327,6 +1365,8 @@ ANFORDERUNGEN:
           system +
           `\n\nAntworte AUSSCHLIESSLICH mit einem JSON-Objekt {"title": string, "content": string} ohne Markdown-Zäune.`,
         prompt,
+        runtimeContext: formulasAiContext,
+        telemetry: aiTelemetry("formula_sheet_generation"),
       });
       const parsed = parseLooseJson(text) as { title?: string; content?: string };
       return { title: String(parsed.title ?? ""), content: String(parsed.content ?? "") };
@@ -1374,10 +1414,16 @@ app.post("/api/agent/video", async (c) => {
     docId?: string | null;
     semesterId?: string | null;
     locale?: string;
+    conversationId?: string;
   };
   // Repli qui NOMME la langue au lieu de basculer en allemand sans le dire.
   const { label: langLabel } = langOf(body.locale);
   const topic = (body.topic ?? "").slice(0, 4000);
+  const videoAiContext = aiRuntimeContext(
+    session.user.id,
+    aiSessionId("chat", body.conversationId || session.user.id),
+    "explainer_video",
+  );
 
   // La même règle de visibilité que le chat : mes documents, plus ceux que ma
   // promotion a partagés dans les cours que je suis. Sans cette ligne, un
@@ -1487,6 +1533,8 @@ Bleibe strikt bei der Notation der Kursunterlagen.`;
         schema: videoSchema,
         system,
         prompt,
+        runtimeContext: videoAiContext,
+        telemetry: aiTelemetry("explainer_video"),
       });
       return normalize(object);
     } catch (objErr) {
@@ -1497,6 +1545,8 @@ Bleibe strikt bei der Notation der Kursunterlagen.`;
           system +
           `\n\nAntworte AUSSCHLIESSLICH mit einem JSON-Objekt {"title": string, "scenes": [{"heading": string, "narration": string, "bullets": string[], "formula": string, "svg": string, "seconds": number}]} ohne Markdown-Zäune.`,
         prompt,
+        runtimeContext: videoAiContext,
+        telemetry: aiTelemetry("explainer_video"),
       });
       return normalize(parseLooseJson(text));
     }
@@ -1545,12 +1595,13 @@ app.post("/api/youtube/search", async (c) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);
 
-  let body: { topic?: string; question?: string; locale?: string };
+  let body: { topic?: string; question?: string; locale?: string; conversationId?: string };
   try {
     body = (await c.req.json()) as {
       topic?: string;
       question?: string;
       locale?: string;
+      conversationId?: string;
     };
   } catch {
     return c.json({ error: "invalid body" }, 400);
@@ -1567,7 +1618,17 @@ app.post("/api/youtube/search", async (c) => {
   // Kontextbewusst: ein kleines Modell formuliert die Suchanfrage aus der
   // letzten Antwort ("Kirchhoffsche Maschenregel Beispiel" statt
   // "Kirchhoff"). Fällt es aus, greift die Heuristik in lib/youtube.ts.
-  const preset = await writeVideoQuery(topic, question, locale, studentName);
+  const preset = await writeVideoQuery(
+    topic,
+    question,
+    locale,
+    studentName,
+    aiRuntimeContext(
+      session.user.id,
+      aiSessionId("chat", body.conversationId || session.user.id),
+      "youtube_query",
+    ),
+  );
   const result = await searchYoutube(topic, locale, question, studentName, preset);
 
   if (!result.ok) {
@@ -1669,7 +1730,15 @@ app.post("/api/documents/upload", async (c) => {
     // par blocs de plus de deux secondes — mesuré — et pendant ce temps le
     // serveur ne répond à personne d'autre. Le worker le fait ailleurs ; si
     // rien ne peut le démarrer, la file retombe sur l'extraction directe.
-    extracted = await extractInBackground(bytes, file.name);
+    extracted = await extractInBackground(
+      bytes,
+      file.name,
+      aiRuntimeContext(
+        session.user.id,
+        aiSessionId("document_extraction", session.user.id),
+        "document_vision_transcription",
+      ),
+    );
   } catch (err) {
     // Une erreur revenue du worker n'est plus une instance de la classe : elle
     // a traversé une frontière de fil. Son `name` a été conservé pour ça.
