@@ -45,3 +45,16 @@ TRED doit enseigner et corriger **toutes** les matières d'ingénierie : d'abord
 - **Pédagogie « Super-Professeur »** (Feynman + Socrate) : jamais la solution d'un exercice d'emblée, toujours guider par questions ; une analogie pour chaque concept difficile ; une question de compréhension à la fin de chaque explication. **Soupape validée par le fondateur** : si l'étudiant a essayé et redemande explicitement la solution, TRED la déroule pas à pas avec une question de vérification à chaque étape.
 - **Sans le cours de l'étudiant**, TRED s'appuie sur les standards (DIN, VDI, ISO, Eurocode) et sur l'outil `recherche_connaissances_externes` (Wikipedia sans clé, Tavily si `TAVILY_API_KEY`), en signalant la source.
 - Toute nouvelle matière = détection dans `domain.ts` + module dans `prompts/germany/` + solveur testé dans `lib/solvers/` (ou mention explicite « pas de solveur »).
+
+## V2 « Surhumain » (décisions du 7 nov. 2026)
+
+Le plan complet est dans `docs/V2_ARCHITECTURE.md`.
+- **Pilier 1, Karteikarten** (fait) :
+  - planification pure dans `api/lib/flashcards.ts`. « Gewusst » multiplie l'intervalle par le facteur de facilité ; « Nicht gewusst » fait revenir la carte demain. La journée est comptée à Berlin ;
+  - génération par IA via `POST /api/flashcards/generate` (sources document, chat ou lacune) ;
+  - page `/flashcards` et bloc sur le tableau de bord ;
+  - table créée par `migre-flashcards.mjs`.
+- **Pilier 2, Klausur-Prognose** : en fondations. Les probabilités sont calculées par du code (`api/lib/exam-predictor.ts`), jamais estimées par le modèle.
+- **Pilier 3, co-pilote vision** : en fondations. On utilise les API natives du navigateur, sans nouveau paquet. Les images ne sont jamais stockées.
+- **Pilier 4, intelligence collective** : en fondations. Contribuer exige le consentement, une modération et une mention dans la Datenschutzerklärung avant ouverture.
+
