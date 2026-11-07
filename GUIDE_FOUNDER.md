@@ -156,6 +156,21 @@ Au lancement, Claude Code te demandera d'approuver le serveur `figma` du projet 
 
 *Alternative sans token : le serveur officiel de Figma via OAuth, `claude mcp add --transport http figma-official https://mcp.figma.com/mcp`, puis autorise dans le navigateur.*
 
+### 4.3 sexies — Activer les Karteikarten (V2, une fois, AVANT d'en parler aux étudiants)
+
+```
+node C:\dev\tred-rdm\aerostudy-ai\migre-flashcards.mjs
+```
+
+Ce script crée la table `flashcard` sur Turso. Il est idempotent : tu peux le relancer sans risque. Ensuite :
+- la page **/flashcards** apparaît dans le menu ;
+- le bloc « Heute zu wiederholen » s'affiche sur le tableau de bord ;
+- les étudiants peuvent créer des cartes depuis un document ou une réponse du chat.
+
+Tant que la table n'existe pas, le bloc reste masqué et la création répond « nicht verfügbar ». Le reste de l'app fonctionne normalement.
+
+Coût : un appel IA (Sonnet) par création de cartes, et rien pour la révision. Chaque compte est limité à 20 créations par heure, et le plafond de tokens de son abonnement s'applique.
+
 ### 4.3 quinquies — Recherche web du tuteur (optionnel)
 
 Quand l'étudiant n'a pas son cours, TRED cherche lui-même dans **Wikipedia** (aucune clé, aucun coût) : rien à faire.

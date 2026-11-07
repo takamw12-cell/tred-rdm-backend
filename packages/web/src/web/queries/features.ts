@@ -13,10 +13,12 @@ export interface Features {
   explainerVideo: boolean;
   /** « Prüfe mein Verständnis » (mini-quiz, même clé IA). */
   quiz: boolean;
+  /** Génération de Karteikarten par l'IA. */
+  flashcards: boolean;
 }
 
-const NONE: Features = { videoSearch: false, explainerVideo: false, quiz: false };
-const ALL: Features = { videoSearch: true, explainerVideo: true, quiz: true };
+const NONE: Features = { videoSearch: false, explainerVideo: false, quiz: false, flashcards: false };
+const ALL: Features = { videoSearch: true, explainerVideo: true, quiz: true, flashcards: true };
 
 export function useFeatures(): Features {
   const q = useQuery({

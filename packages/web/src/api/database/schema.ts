@@ -1,4 +1,4 @@
-import { index, sqliteTable, text, integer, primaryKey } from "drizzle-orm/sqlite-core";
+import { index, sqliteTable, text, integer, primaryKey, real } from "drizzle-orm/sqlite-core";
 
 /**
  * Define your database schema here, then apply it with `bun run db:push`
@@ -686,3 +686,50 @@ export const avatarUsage = sqliteTable(
 );
 
 export type AvatarUsage = typeof avatarUsage.$inferSelect;
+
+// ── Karteikarten (répétition espacée, V2 — Pilier 1) ──────────────────────
+//
+// Une carte = un recto (la question : « Formel der Normalspannung ») et un
+// verso (« $\sigma = F/A$ »). Générées par l'IA depuis un document, une
+// conversation ou une lacune (`misconception`), ou écrites à la main.
+//
+// La planification est celle demandée par le fondateur : « Gewusst » →
+// intervalle × facteur de facilité ; « Nicht gewusst » → demain. Le calcul est
+// dans lib/flashcards.ts (pur, testé). Une carte neuve est due tout de suite.
+// Table créée sur Turso par migre-flashcards.mjs (racine du dépôt).
+export const flashcard = sqliteTable(
+  "flashcard",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    frontContent: text("front_content").notNull(),
+    backContent: text("back_content").notNull(),
+    /** Le thème affiché au-dessus de la carte (« Festigkeitslehre »). */
+    topic: text("topic").notNull().default(""),
+    /** « document » | « chat » | « gap » | « manual ». */
+    sourceType: text("source_type").notNull().default("manual"),
+    /** L'id du document ou de la lacune d'origine — rien pour un chat. */
+    sourceId: text("source_id"),
+    /** Le titre de la source au moment de la création (le document peut disparaître). */
+    sourceLabel: text("source_label").notNull().default(""),
+    nextReviewDate: integer("next_review_date", { mode: "timestamp_ms" }).notNull(),
+    /** 0 = jamais révisée. */
+    intervalDays: integer("interval_days").notNull().default(0),
+    easeFactor: real("ease_factor").notNull().default(2.5),
+    reviews: integer("reviews").notNull().default(0),
+    /** Combien de fois « Nicht gewusst » : les cartes difficiles se repèrent. */
+    lapses: integer("lapses").notNull().default(0),
+    lastReviewedAt: integer("last_reviewed_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    // La lecture chaude : « mes cartes dues », sur le tableau de bord.
+    index("flashcard_due_idx").on(t.userId, t.nextReviewDate),
+    index("flashcard_source_idx").on(t.userId, t.sourceType, t.sourceId),
+  ],
+);
+
+export type Flashcard = typeof flashcard.$inferSelect;
+

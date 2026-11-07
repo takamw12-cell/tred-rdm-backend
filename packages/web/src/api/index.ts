@@ -47,6 +47,8 @@ import { curriculumFor, domainPackText } from "./prompts";
 import { studyProfileHint, type StudyProfileInput } from "./lib/study-profile";
 import { mailCanReachAnyone } from "./lib/mail";
 import { registerAnalyticsRoutes } from "./analytics/routes";
+import { registerFlashcardRoutes } from "./flashcards/routes";
+import { flashcards } from "./routes/flashcards";
 import { readLearningStyle } from "./lib/learning-style-store";
 import { pickStyleReference, STYLE_SAMPLE_CHARS } from "./lib/style-reference";
 import { wellFormed } from "./lib/unicode-safe";
@@ -111,6 +113,7 @@ export const router = {
   feedback: feedbackRoutes,
   subjects,
   courses,
+  flashcards,
 };
 
 export type AppRouter = typeof router;
@@ -366,6 +369,8 @@ app.get("/api/config", (c) =>
       videoSearch: youtubeConfigured(),
       explainerVideo: Boolean(process.env.ANTHROPIC_API_KEY),
       quiz: Boolean(process.env.ANTHROPIC_API_KEY),
+      /** Génération de Karteikarten par l'IA (la révision marche sans clé). */
+      flashcards: Boolean(process.env.ANTHROPIC_API_KEY),
     },
   }),
 );
@@ -390,6 +395,7 @@ registerMediaRoutes(app);
 registerTtsRoutes(app);
 // Betreiber-Dashboard /admin/analytics (DB + PostHog), nur Rolle admin.
 registerAnalyticsRoutes(app, requireAdmin);
+registerFlashcardRoutes(app);
 
 app.get("/api/admin/users", async (c) => {
   const guard = await requireAdmin(c);

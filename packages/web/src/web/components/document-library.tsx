@@ -14,6 +14,7 @@ import {
   Eye,
 } from "lucide-react";
 import { DocumentViewer } from "./document-viewer";
+import { DocFlashcardsButton } from "./flashcards-widget";
 import { Button } from "@/components/ui/button";
 import {
   documentsListOptions,
@@ -245,6 +246,10 @@ export function DocumentLibrary({
                         {t("library.pages", { count: doc.pageCount })}
                       </p>
                     </div>
+                    <DocFlashcardsButton
+                      documentId={doc.id}
+                      className="hover:text-primary transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+                    />
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

@@ -27,6 +27,7 @@ import { PageContainer, Reveal } from "@/components/page";
 import { Card, CardContent } from "@/components/ui/card";
 import { MemoryCard } from "@/components/memory-card";
 import { ReviewCard } from "@/components/review-card";
+import { DocFlashcardsButton, FlashcardsWidget } from "@/components/flashcards-widget";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -377,6 +378,12 @@ export default function DashboardPage() {
           dès qu'un cours est rejoint ou qu'un document existe. */}
       <EmptyStart hasDocuments={stats.docs > 0} />
 
+      {/* Karteikarten du jour + lacune à combattre (V2, Pilier 1) : une
+          action à faire aujourd'hui, donc avant les compteurs. */}
+      <Reveal className="mb-6">
+        <FlashcardsWidget />
+      </Reveal>
+
       {/* Real stats */}
       <Reveal className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
         <StatCard icon={<Layers className="size-4" />} value={String(stats.docs)} label={t("dashboard.materials")} highlight />
@@ -514,6 +521,10 @@ export default function DashboardPage() {
                             </p>
                           </div>
                         </button>
+                        <DocFlashcardsButton
+                          documentId={d.id}
+                          className="transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+                        />
                         <button
                           onClick={() => setViewerDocId(d.id)}
                           className="text-muted-foreground hover:text-foreground shrink-0 opacity-0 transition-opacity group-hover:opacity-100"

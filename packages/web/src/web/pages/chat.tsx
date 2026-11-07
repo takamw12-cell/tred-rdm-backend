@@ -22,6 +22,7 @@ import {
   CheckSquare,
   Square,
   ListChecks,
+  GalleryVerticalEnd,
   Paperclip,
   Calculator,
   NotebookPen,
@@ -58,6 +59,7 @@ import { Link } from "wouter";
 import { Repeat2 } from "lucide-react";
 import { VideoExplainer, type VideoScript } from "@/components/video-explainer";
 import { UnderstandingQuiz } from "@/components/understanding-quiz";
+import { useGenerateFlashcards } from "@/lib/flashcards-api";
 import {
   VideoSearch,
   type YoutubeHit,
@@ -1030,6 +1032,7 @@ export default function ChatPage() {
   // Videosuche (YouTube) — unabhängig vom generierten Erklärvideo.
   // « Prüfe mein Verständnis » : la réponse dont on vérifie la compréhension.
   const [quizFor, setQuizFor] = useState<string | null>(null);
+  const genCards = useGenerateFlashcards();
   const [ytOpen, setYtOpen] = useState(false);
   const [ytHits, setYtHits] = useState<YoutubeHit[]>([]);
   const [ytQuery, setYtQuery] = useState("");
@@ -1157,10 +1160,21 @@ export default function ChatPage() {
 
   function handleAction(
     messageId: string,
-    action: "why" | "explain" | "engineer" | "video" | "ytsearch" | "quiz",
+    action: "why" | "explain" | "engineer" | "video" | "ytsearch" | "quiz" | "flashcards",
   ) {
     if (action === "quiz") {
       setQuizFor(messageId);
+      return;
+    }
+    if (action === "flashcards") {
+      // Les cartes portent sur la réponse choisie et ce qui la précède.
+      const end = messages.findIndex((m) => m.id === messageId);
+      const context = messages
+        .slice(0, end + 1)
+        .filter((m) => m.role === "user" || m.role === "assistant")
+        .slice(-4)
+        .map((m) => ({ role: m.role as "user" | "assistant", text: displayText(m) }));
+      if (!genCards.isPending) genCards.mutate({ source: "chat", messages: context });
       return;
     }
     if (action === "video") {
@@ -1754,6 +1768,7 @@ export default function ChatPage() {
                           video: features.explainerVideo ? t("video.chip") : undefined,
                           ytsearch: features.videoSearch ? t("videoSearch.chip") : undefined,
                           quiz: features.quiz ? t("quiz.chip") : undefined,
+                          flashcards: features.flashcards ? t("flashcards.chip") : undefined,
                         }}
                       />
                       );
@@ -2215,7 +2230,7 @@ function MessageBubble({
   conversationId?: string;
   locale?: string;
   showActions?: boolean;
-  onAction?: (a: "why" | "explain" | "engineer" | "video" | "ytsearch" | "quiz") => void;
+  onAction?: (a: "why" | "explain" | "engineer" | "video" | "ytsearch" | "quiz" | "flashcards") => void;
   actionLabels?: {
     why: string;
     explain: string;
@@ -2223,6 +2238,7 @@ function MessageBubble({
     video?: string;
     ytsearch?: string;
     quiz?: string;
+    flashcards?: string;
   };
 }) {
   const isUser = role === "user";
@@ -2326,6 +2342,13 @@ function MessageBubble({
                 icon={<ListChecks className="size-3.5" />}
                 label={actionLabels.quiz}
                 onClick={() => onAction("quiz")}
+              />
+            )}
+            {actionLabels.flashcards && (
+              <ActionChip
+                icon={<GalleryVerticalEnd className="size-3.5" />}
+                label={actionLabels.flashcards}
+                onClick={() => onAction("flashcards")}
               />
             )}
             {actionLabels.video && (
