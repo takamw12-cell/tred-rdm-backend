@@ -12,13 +12,18 @@
  * tun, als habe ein geprüfter Löser gerechnet.
  */
 
-export type CoveredDomain = "elektrotechnik" | "thermodynamik" | "mathematik" | "mechanik";
+export type CoveredDomain =
+  | "elektrotechnik"
+  | "thermodynamik"
+  | "mathematik"
+  | "mechanik"
+  | "datenverarbeitung"
+  | "technisches_zeichnen";
 export type UncoveredDomain =
   | "stroemungslehre"
   | "regelungstechnik"
   | "werkstoffkunde"
   | "dampf_kaeltetechnik"
-  | "informatik"
   | "chemie";
 export type Domain = CoveredDomain | UncoveredDomain | "unbekannt";
 
@@ -72,15 +77,31 @@ const KEYWORDS: Record<Exclude<Domain, "unbekannt">, [RegExp, number][]> = {
   dampf_kaeltetechnik: [
     [/\b(wasserdampf|nassdampf|dampftafel|dampfgehalt|sattdampf|überhitzter dampf|kältemittel|h,s-diagramm|log p,h)\b/, 4],
   ],
-  informatik: [
-    [/\b(programmieren|python-code|java|c\+\+|algorithmus|datenstruktur|sql|informatik)\b/, 3],
+  datenverarbeitung: [
+    [/\b(datenverarbeitung|programmieren|programmierung|informatik|algorithmus|datenstruktur|python|matlab|octave|numpy)\b/, 3],
+    [/\b(struktogramm|nassi|shneiderman|programmablaufplan|flussdiagramm|ablaufdiagramm|flowchart|pseudocode)\b/, 4],
+    [/\b(schleife|for-schleife|while-schleife|verzweigung|rekursion|variablentabelle|datentyp|liste|listen|array|dictionary|string|integer|float|boolean)\b/, 2],
+    [/(\bdef \w+\(|\bprint\(|\bfprintf\(|\brange\(|\binput\(|\bdisp\(|\bimport \w+)/, 3],
+  ],
+  technisches_zeichnen: [
+    [/\b(technisches zeichnen|technische zeichnung|fertigungszeichnung|zeichnung|bauteilzeichnung|werkstattzeichnung)\b/, 3],
+    [/\b(vorderansicht|draufsicht|seitenansicht|schnittdarstellung|vollschnitt|halbschnitt|schraffur|schriftfeld|bemaßung|maßlinie|projektionsmethode)\b/, 3],
+    [/\b(iso 2768|allgemeintoleranz|passung|passungen|toleranzrahmen|form- und lagetoleranz|oberflächenangabe|rauheit|ra \d)/, 3],
+    [/\b[øØ]\s?\d+\s?[a-zA-Z]\d{1,2}\b/, 3],
   ],
   chemie: [
     [/\b(chemie|stöchiometrie|reaktionsgleichung|mol\/l|ph-wert|redox|titration)\b/, 3],
   ],
 };
 
-const COVERED: ReadonlySet<Domain> = new Set<Domain>(["elektrotechnik", "thermodynamik", "mathematik", "mechanik"]);
+const COVERED: ReadonlySet<Domain> = new Set<Domain>([
+  "elektrotechnik",
+  "thermodynamik",
+  "mathematik",
+  "mechanik",
+  "datenverarbeitung",
+  "technisches_zeichnen",
+]);
 
 /**
  * \b de JavaScript ne connaît que [A-Za-z0-9_] : « 10 Ω », « κ », « wärme »
@@ -143,7 +164,8 @@ const LABEL: Record<Domain, string> = {
   regelungstechnik: "Regelungstechnik",
   werkstoffkunde: "Werkstoffkunde",
   dampf_kaeltetechnik: "Dampf-/Kältetechnik (Wasserdampf, Kältemittel)",
-  informatik: "Informatik",
+  datenverarbeitung: "Datenverarbeitung (Python/MATLAB)",
+  technisches_zeichnen: "Technisches Zeichnen",
   chemie: "Chemie",
   unbekannt: "nicht erkannt",
 };
@@ -153,6 +175,9 @@ const SOLVER: Record<CoveredDomain, string> = {
   thermodynamik: "thermo_berechnen",
   mathematik: "mathe_berechnen",
   mechanik: "balkenstatik (Balken), statik_berechnen (Fachwerk, Reibung, Kraftsystem)",
+  datenverarbeitung:
+    "echte Ausführung im Browser — Python-Code in einen python-Block, die Studierenden starten „Ausführen“ bzw. „Variablentabelle“; Ausgaben nie im Kopf als Tatsache behaupten",
+  technisches_zeichnen: "Zeichnung als svg (NIVEAU 9g), 3D als 3d-json (NIVEAU 9f), Grenzmaße mit rechnen",
 };
 
 /** Der Hinweis, der als zweite System-Nachricht an das Modell geht. */

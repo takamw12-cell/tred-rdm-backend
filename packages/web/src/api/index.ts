@@ -43,6 +43,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { buildTutorAgent } from "./agent";
 import { detectDomain, domainHint } from "./lib/solvers/domain";
+import { curriculumFor, domainPackText } from "./prompts";
 import { studyProfileHint, type StudyProfileInput } from "./lib/study-profile";
 import { mailCanReachAnyone } from "./lib/mail";
 import { registerAnalyticsRoutes } from "./analytics/routes";
@@ -611,8 +612,11 @@ app.post("/api/agent/messages", async (c) => {
   // Fachgebiet der Frage → welcher Fachlöser (oder ehrlich: keiner).
   const fach = detectDomain(lastUserText, contextLabel);
 
+  // Domain-Based Agent : hint du solveur + module de la matière (prompts/).
+  const fachHint = [domainHint(fach), domainPackText(fach, curriculumFor(studyProfile))].filter(Boolean).join("\n\n");
+
   const agent = buildTutorAgent({
-    domainHint: domainHint(fach),
+    domainHint: fachHint || null,
     studyProfile: studyProfileHint(studyProfile),
     learningStyle,
     professor,

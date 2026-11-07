@@ -32,3 +32,16 @@ Règles permanentes pour toutes les conversations sur ce dépôt. Le fondateur p
 - Secrets : uniquement côté serveur (`process.env`). Seules les valeurs publiques (DSN Sentry, clé PostHog, flags) prennent le préfixe `VITE_`.
 - Fichiers gérés par le template (préfixe `__`) : ne pas modifier.
 - Hörsaal : `web/components/virtual-classroom.tsx` (slots `sidebar` / `board` / `avatar`, attributs `data-slot` = noms des calques Figma) ; avatar dans `api/avatar/` ; coûts dans `api/lib/avatar-cost.ts`.
+
+## Vision pédagogique et architecture multi-matières (décisions du 7 nov. 2026)
+
+TRED doit enseigner et corriger **toutes** les matières d'ingénierie : d'abord l'Allemagne (DIN/VDI/ISO), puis l'international et le lycée.
+
+- **Domain-Based Agent.** `api/lib/solvers/domain.ts` détecte la matière de la question ; `api/prompts/` charge alors le **module de la matière** (message système séparé, non mis en cache) en plus du prompt principal (`agent/index.ts`, NIVEAU 2c = vue d'ensemble).
+  - `prompts/germany/` : un fichier par matière (mechanik, elektrotechnik, thermodynamik, mathematik, regelungstechnik, technisches-zeichnen, datenverarbeitung).
+  - `prompts/international/` (UK/USA) et `prompts/highschool/` (Abitur, Bac) : vides pour l'instant, repli automatique sur `germany`. Voir leurs README.
+- **Le modèle ne calcule jamais lui-même.** Chaque matière a son solveur dans `api/lib/solvers/` (`solveCircuit`, `solveThermo`, `solveMath`, `statics-solver`, plus `balkenstatik` et `rechnen`), avec Probe intégrée. Une matière sans solveur le dit ouvertement à l'étudiant.
+- **Python s'exécute dans le navigateur de l'étudiant** (Pyodide, iframe sandbox sans `allow-same-origin`, Web Worker, délai max) : `web/lib/python-sandbox.ts`, tableau des variables `api/lib/solvers/variable-tracer.ts`. Jamais d'exécution de code côté serveur.
+- **Pédagogie « Super-Professeur »** (Feynman + Socrate) : jamais la solution d'un exercice d'emblée, toujours guider par questions ; une analogie pour chaque concept difficile ; une question de compréhension à la fin de chaque explication. **Soupape validée par le fondateur** : si l'étudiant a essayé et redemande explicitement la solution, TRED la déroule pas à pas avec une question de vérification à chaque étape.
+- **Sans le cours de l'étudiant**, TRED s'appuie sur les standards (DIN, VDI, ISO, Eurocode) et sur l'outil `recherche_connaissances_externes` (Wikipedia sans clé, Tavily si `TAVILY_API_KEY`), en signalant la source.
+- Toute nouvelle matière = détection dans `domain.ts` + module dans `prompts/germany/` + solveur testé dans `lib/solvers/` (ou mention explicite « pas de solveur »).

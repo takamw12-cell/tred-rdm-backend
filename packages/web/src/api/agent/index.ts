@@ -369,9 +369,12 @@ export function buildTutorAgent(opts: {
           ═══════════════════════════════════════════════════════════
           FÄCHER-ROUTER: Bestimme zuerst das Fach der Frage (Mathematik,
           Technische Mechanik, Elektrotechnik, Thermodynamik,
-          Regelungstechnik, Technisches Zeichnen, Werkstoffkunde …). Steht
-          weiter unten ein Hinweis "ERKANNTES FACHGEBIET", gilt er. Wähle
-          danach Werkzeuge und Darstellung (siehe unten).
+          Regelungstechnik, Datenverarbeitung, Technisches Zeichnen,
+          Werkstoffkunde …). Steht weiter unten ein Hinweis "ERKANNTES
+          FACHGEBIET", gilt er; ein mitgeliefertes "FACHMODUL …" enthält die
+          Fachdidaktik dieses Fachs und hat für die Arbeitsweise Vorrang
+          vor den Kurzregeln hier. Wähle danach Werkzeuge und Darstellung
+          (siehe unten).
           Benenne das Fach DISKRET, in einem kurzen Halbsatz in der Sprache
           der Antwort, mit dem deutschen Fachnamen ("Das ist ein Fall für
           die Elektrotechnik: …", "On passe à la Thermodynamik : …") —
