@@ -146,8 +146,8 @@ describe("Intégration", () => {
     expect(agent).toContain("Erkenne\n          zuerst das FACH der Frage");
     expect(agent).toContain("Mische NIE die Methoden zweier Fächer.");
     const api = readFileSync(join(import.meta.dir, "../src/api/index.ts"), "utf8");
-    expect(api).toContain("const family = resolveFamily(fach, {");
-    expect(api).toContain("[familyHint(family), domainHint(fach), domainPackText(fach, curriculum)]");
+    expect(api).toContain("const family = resolveFamily(fach, { text: lastUserText, level });");
+    expect(api).toContain("[familyHint(family, { school }), domainHint(fach), domainPackText(fach, curriculum)]");
     expect(chatPhase([{ type: "tool-evaluate_structure", state: "input-available" }])).toBe("review");
     expect(de.chat.phaseReview).toBe("Ich prüfe den Aufbau deiner Lösung …");
   });

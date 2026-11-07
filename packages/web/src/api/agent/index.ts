@@ -347,8 +347,9 @@ export function buildTutorAgent(opts: {
           Wo es relevant ist, arbeitest du mit den deutschen bzw.
           europäischen Normen (DIN, DIN EN, DIN EN ISO) und nennst sie.
 
-          ÜBER DIE TECHNIK HINAUS (seit Nov. 2026): TRED begleitet auch Recht,
-          Medizin, Wirtschaft und die Schule (Mittel- und Oberstufe). Erkenne
+          ÜBER DIE TECHNIK HINAUS (seit Nov. 2026): TRED begleitet ALLE Fächer —
+          auch Recht, Medizin, Wirtschaft, Biologie, Psychologie, Philosophie,
+          Sprachen, Geschichte und die Schule (Mittel- und Oberstufe). Erkenne
           zuerst das FACH der Frage und arbeite mit SEINER Methode — eine
           automatische System-Nachricht ("ERKANNTE FACHFAMILIE") nennt sie dir:
             Recht → Gutachtenstil; Normen aus den Unterlagen (BGB, StGB,
@@ -357,12 +358,24 @@ export function buildTutorAgent(opts: {
               Therapie; Fakten aus den Skripten (Anatomie, Klinik).
             Wirtschaft → Hypothese, Daten, Modell, Schlussfolgerung; Zahlen
               mit "wirtschaft_berechnen" (Zinsen, Kapitalwert, IRR, Annuität).
+            Biologie → Fragestellung, Hypothese, Durchführung, Beobachtung,
+              Deutung; Zellbiologie und Genetik mit Skizze und Kreuzungsschema.
+            Psychologie → Theorie, Hypothese, Methode, Ergebnisse, Diskussion;
+              Verhaltensanalyse nach SORKC; Studien nur mit echter Quelle.
+            Philosophie → These, Argument, Einwand, Fazit; Gültigkeit prüfen,
+              Positionen darstellen statt predigen.
+            Sprachen (Deutsch, Englisch, Französisch) → falsche Form, richtige
+              Form, Regel; Konjugationstabellen; Aufsatz: Einleitung,
+              Argumente, Beispiele, Schluss.
+            Geschichte → Quelle, Datierung, Inhalt, Kontext, Urteil; Daten
+              und Zitate nie erfinden.
             Technik und Naturwissenschaft → die Fachlöser (siehe unten).
           Suche zuerst in den Unterlagen der Person (suche_in_unterlagen).
-          Mische NIE die Methoden zweier Fächer. Legt jemand in Recht,
-          Medizin oder Wirtschaft eine eigene Lösung vor, prüfst du ihren
-          AUFBAU mit "evaluate_structure", bevor du sie bewertest — du
-          erfindest keine Musterlösung, du bewertest Struktur und Inhalt.
+          Mische NIE die Methoden zweier Fächer. Legt jemand in einem dieser
+          Fächer eine eigene Lösung vor (Gutachten, Fallbearbeitung, Protokoll,
+          Essay, Aufsatz, Quelleninterpretation), prüfst du ihren AUFBAU mit
+          "evaluate_structure", bevor du sie bewertest — du erfindest keine
+          Musterlösung, du bewertest Struktur und Inhalt.
 
           RECHTLICHER RAHMEN — nicht verhandelbar:
           TRED ist ein LERNBEGLEITER, keine Prüfstelle und keine
@@ -797,7 +810,7 @@ export function buildTutorAgent(opts: {
           | Informatik/IT-Sich. | solve_cyber          | Caesar, Vigenère, Lehrbuch-RSA, Hashes, boolesche Minimierung, KV-Diagramm, IPv4-Subnetze |
           | KI/Data Science     | solve_ai             | Matrix-/Skalarprodukt, lineare Regression, Gradientenschritt, Sigmoid/ReLU/Softmax, Perzeptron |
           | Mathematik          | mathe_berechnen      | Ableitung, Integral, DGL, Matrizen, Nullstellen |
-          | Recht/Medizin/Wirt. | evaluate_structure   | Aufbau einer Lösung: Gutachtenstil, klinisches Vorgehen, ökonomische Argumentation (Schritte, Reihenfolge, Punkte) |
+          | Geistes-, Sozial-, Lebenswiss. | evaluate_structure | Aufbau einer Lösung: Gutachtenstil, klinisches Vorgehen, ökonomische Argumentation, Versuchsprotokoll, empirischer Bericht, SORKC, Essay, Aufsatz, Quelleninterpretation (Schritte, Reihenfolge, Punkte) |
           | Offene Probleme     | solve_open_math      | Collatz-Folge (Schritte, Maximum, Diagramm), Goldbach-Prüfung, Primzahllücken, Zwillinge |
           | Techn. Mechanik     | balkenstatik         | Balken: Auflager, Q(x), M(x) |
           | alles übrige        | rechnen              | einzelne Zahlenausdrücke |
@@ -1985,14 +1998,18 @@ export function buildTutorAgent(opts: {
 
       evaluate_structure: tool({
         description:
-          "Prüft den AUFBAU einer Lösung der Person in Recht, Medizin oder Wirtschaft (deterministisch): " +
-          "domain recht (Sachverhalt → Anspruchsgrundlage → Subsumtion → Ergebnis), medizin (Anamnese → " +
-          "Verdachtsdiagnose → Differenzialdiagnose → Therapie), wirtschaft (Hypothese → Daten → Modell → " +
-          "Schlussfolgerung). Liefert gefundene/fehlende Schritte mit Fundstelle, Reihenfolgefehler, Punkte " +
+          "Prüft den AUFBAU einer Lösung der Person (deterministisch): domain recht (Sachverhalt → " +
+          "Anspruchsgrundlage → Subsumtion → Ergebnis), medizin (Anamnese → Verdachtsdiagnose → " +
+          "Differenzialdiagnose → Therapie), wirtschaft (Hypothese → Daten → Modell → Schlussfolgerung), " +
+          "biologie (Fragestellung → Hypothese → Durchführung → Beobachtung → Deutung), psychologie (Theorie → " +
+          "Hypothese → Methode → Ergebnisse → Diskussion), verhaltensanalyse (SORKC: Situation → Organismus → " +
+          "Reaktion → Kontingenz → Konsequenz), philosophie (These → Argument → Einwand → Fazit), sprachen " +
+          "(Aufsatz: Einleitung → Argumente → Beispiele → Schluss), geschichte (Quelle → Datierung → Inhalt → " +
+          "Kontext → Urteil). Liefert gefundene/fehlende Schritte mit Fundstelle, Reihenfolgefehler, Punkte " +
           "(0–100) und Rückmeldungen. IMMER aufrufen, bevor du eine vorgelegte Lösung dieser Fächer bewertest. " +
           "Prüft NICHT die inhaltliche Richtigkeit.",
         inputSchema: z.object({
-          domain: z.enum(["recht", "medizin", "wirtschaft"]),
+          domain: z.enum(["recht", "medizin", "wirtschaft", "biologie", "psychologie", "verhaltensanalyse", "philosophie", "sprachen", "geschichte"]),
           text: z.string().min(1).max(30000).describe("Die Lösung der Person, wörtlich"),
         }),
         execute: async ({ domain, text }) => ({ ok: true, ...evaluateStructure(domain, text) }),

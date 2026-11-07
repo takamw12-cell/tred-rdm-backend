@@ -26,14 +26,32 @@ export type CoveredDomain =
   | "chemie";
 export type UncoveredDomain = "stroemungslehre" | "regelungstechnik" | "dampf_kaeltetechnik";
 /**
- * Fächer außerhalb der Technik (Nov. 2026, lib/domains/) : kein Rechenlöser,
- * sondern die METHODE des Fachs (Gutachtenstil, klinisches Vorgehen,
- * ökonomische Argumentation) und das Werkzeug evaluate_structure.
+ * Fächer außerhalb der Technik (Nov. 2026, lib/domains/) : kein Rechenlöser
+ * als Methode, sondern die METHODE des Fachs (Gutachtenstil, klinisches
+ * Vorgehen, ökonomische Argumentation, Erkenntnisverfahren, SORKC,
+ * Argumentation, Aufsatz, Quellenarbeit) und das Werkzeug evaluate_structure.
  */
-export type MethodDomain = "recht" | "medizin" | "wirtschaft";
+export type MethodDomain =
+  | "recht"
+  | "medizin"
+  | "wirtschaft"
+  | "biologie"
+  | "psychologie"
+  | "philosophie"
+  | "sprachen"
+  | "geschichte";
 export type Domain = CoveredDomain | UncoveredDomain | MethodDomain | "unbekannt";
 
-export const METHOD_DOMAINS: ReadonlySet<Domain> = new Set<Domain>(["recht", "medizin", "wirtschaft"]);
+export const METHOD_DOMAINS: ReadonlySet<Domain> = new Set<Domain>([
+  "recht",
+  "medizin",
+  "wirtschaft",
+  "biologie",
+  "psychologie",
+  "philosophie",
+  "sprachen",
+  "geschichte",
+]);
 
 /** [Muster, Gewicht]. Muster auf kleingeschriebenem Text, Umlaute erhalten. */
 const KEYWORDS: Record<Exclude<Domain, "unbekannt">, [RegExp, number][]> = {
@@ -122,6 +140,49 @@ const KEYWORDS: Record<Exclude<Domain, "unbekannt">, [RegExp, number][]> = {
   wirtschaft: [
     [/\b(kapitalwert|barwert|interner zinsfuß|zinseszins\w*|annuität\w*|amortisation\w*|tilgungsplan|tilgung|darlehen|kredit|irr|npv|valeur actuelle nette|taux de rendement interne|intérêts composés|net present value|internal rate of return|compound interest)\b/, 4],
     [/\b(bwl|vwl|betriebswirtschaft\w*|volkswirtschaft\w*|mikroökonomi\w*|makroökonomi\w*|angebot und nachfrage|preiselastizität|elastizität|inflation|bruttoinlandsprodukt|bip|gdp|pib|économie|economics|rendite|abschreibung\w*)\b/, 3],
+  ],
+  // Biologie : Zelle, Genetik. „Zelle“ allein zählt wenig (Excel-Zelle,
+  // Brennstoffzelle), „DNS“ gar nicht (Domain Name System).
+  biologie: [
+    [/\b(genotyp\w*|phänotyp\w*|génotype\w*|phénotype\w*|genotypes?|phenotypes?|allel\w*|punnett|erbgang\w*|mendel\w*|chromosom\w*|proteinbiosynthese|photosynthese|photosynthesis|photosynthèse|zellatmung|mitose|meiose|mitosis|meiosis|mitochondri\w*|chloroplast\w*)\b/, 4],
+    [/\b(biologie|biology|zellbiologie|cell biology|genetik|génétique|genetics|molekularbiologie|mikrobiologie|neurobiologie|ökologie|ecology|écologie|botanik|zoologie)\b/, 3],
+    [/\b(dna|rna|mrna|adn|arn|desoxyribonukleinsäure|gene|rezessiv\w*|récessif\w*|recessive|kreuzung\w*|chromatid\w*|transkription|enzym\w*|zellmembran|zellkern|ribosom\w*|organell\w*|cellules?|evolution|eukaryot\w*|prokaryot\w*)\b/, 2],
+    [/\b(zelle|zellen|cells?)\b/, 1],
+  ],
+  // Psychologie : Verhalten, kognitive Verzerrungen. „Verhalten“ allein zählt
+  // wenig (Übertragungsverhalten eines Reglers).
+  psychologie: [
+    [/\b(kognitive[rn]? verzerrung\w*|cognitive bias\w*|biais cognitifs?|bestätigungsfehler|confirmation bias|ankereffekt|anchoring|verfügbarkeitsheuristik|availability heuristic|rückschaufehler|hindsight bias|dunning-kruger|klassische[rn]? konditionierung|operante[rn]? konditionierung|classical conditioning|operant conditioning|conditionnement|sorkc|sork|verhaltensanalyse|kognitive[rn]? dissonanz|cognitive dissonance|dissonance cognitive)\b/, 4],
+    [/\b(psychologie|psychology|sozialpsychologie|entwicklungspsychologie|kognitionspsychologie|klinische psychologie|lernpsychologie|persönlichkeitspsychologie|behaviorismus|behaviorism|béhaviorisme|pavlov|skinner|bandura|piaget|freud|big five)\b/, 3],
+    [/\b(gedächtnis|kurzzeitgedächtnis|arbeitsgedächtnis|langzeitgedächtnis|wahrnehmung|probanden|versuchspersonen)\b/, 2],
+    [/\b(verhalten\w*|behaviou?r\w*|comportement\w*|motivation|emotion\w*|heuristik\w*|stichprobe)\b/, 1],
+  ],
+  // Philosophie : Argumentation, Ethik.
+  philosophie: [
+    [/\b(kategorische[rn]? imperativ|categorical imperative|impératif catégorique|utilitarismus|utilitarianism|utilitarisme|deontolog\w*|déontolog\w*|tugendethik|virtue ethics|éthique des vertus|syllogism\w*|syllogisme|naturalistische[rn]? fehlschluss|erkenntnistheorie|epistemolog\w*|épistémolog\w*|metaphysik|metaphysics|métaphysique|existentialismus|existentialism|existentialisme|willensfreiheit|free will|libre arbitre)\b/, 4],
+    [/\b(philosophie|philosophy|ethik|ethics|éthique|moralphilosophie|kant|platon|plato|aristoteles|aristotle|aristote|sokrates|socrates|socrate|nietzsche|descartes|hume|rawls|sartre|hegel|fehlschluss|fallacy|sophisme)\b/, 3],
+    [/\b(prämisse\w*|premises?|prémisses?|gerechtigkeit|bewusstsein)\b/, 2],
+    [/\b(moral\w*|argumentation\w*|justice|liberté|freiheit)\b/, 1],
+  ],
+  // Sprachen : Grammatik, Konjugation, Übersetzung (de/en/fr). „en français“,
+  // „auf Deutsch“ zählen NICHT (Antwortsprache) ; „Übersetzung“ wenig
+  // (Übersetzung eines Getriebes).
+  sprachen: [
+    [/\b(grammatik|grammaire|grammar|konjugation|konjugiere|konjugieren|conjugaison|conjugue[rz]?|verb conjugation|deklination|deklinieren|passé composé|plus-que-parfait|imparfait|subjonctif|futur simple|present perfect|past simple|past perfect|simple past|irregular verbs?|unregelmäßige[rn]? verben|verbes irréguliers|plusquamperfekt|präteritum|konjunktiv(?:\s+(?:i|ii|1|2))?|akkusativ|dativ|genitiv|nominativ|relativsatz|nebensatz|indirekte rede|discours indirect|reported speech|if-clauses?|conditional sentences?|phrasal verbs?|false friends|faux amis|falsche freunde)\b/, 4],
+    [/\b(übersetze|übersetzen|traduis|traduire|traduction|translate|translation into|wortschatz|vocabulaire|vocabulary|vokabeln|aussprache|prononciation|pronunciation|rechtschreibung|orthographe|spelling|deutsch als fremdsprache|français langue étrangère)\b/, 3],
+    [/\b(aufsatz|erörterung|essay|textanalyse|commentaire de texte|ins deutsche|ins englische|ins französische|into english|into german|into french)\b/, 2],
+    [/\b(übersetzung)\b/, 1],
+  ],
+  // Geschichte : Quellenarbeit, Chronologie. „Aufklärung“, „Renaissance“
+  // und „historisch“ zählen wenig (Aufklärung eines Sachverhalts, historische Daten).
+  geschichte: [
+    [/\b(quellenanalyse|quelleninterpretation|quellenkritik|primärquelle\w*|sekundärquelle\w*|analyse de document|analyse de source|critique des sources|source analysis|primary sources?|historiograph\w*|zeitleiste|chronologie)\b/, 4],
+    [/\b(geschichtswissenschaft|geschichtsunterricht|mittelalter|antike|frühe neuzeit|moyen âge|antiquité|middle ages|weimarer republik|kaiserreich|nationalsozialismus|drittes reich|kalter krieg|cold war|guerre froide|französische revolution|révolution française|french revolution|industrielle revolution|industrialisierung|révolution industrielle|industrial revolution|weltkrieg\w*|world war|guerre mondiale|reformation|kolonialismus|colonialisme|colonialism|imperialismus|absolutismus|bismarck|napoleon|napoléon)\b/, 3],
+    [/\b(geschichtsklausur|geschichtsarbeit|geschichtsbuch|cours d'histoire|devoir d'histoire|history class|history exam|history essay|world history|modern history)\b/, 3],
+    [/\b(aufklärung|renaissance|epoche\w*|époque|timeline)\b/, 2],
+    // „Geschichte“/„histoire“ heißen auch „Erzählung“ ; „history“ allein ist
+    // meist ein Verlauf (git history, Browser) und zählt gar nicht.
+    [/\b(geschichte|histoire|historisch\w*|historique|historical|jahrhundert\w*|siècle|century)\b/, 1],
   ],
   stroemungslehre: [
     [/\b(strömungslehre|strömungsmechanik|fluidmechanik|bernoulli|reynolds|rohrströmung|druckverlust|viskosität|navier|kontinuitätsgleichung)\b/, 3],
@@ -241,6 +302,11 @@ const LABEL: Record<Domain, string> = {
   recht: "Recht",
   medizin: "Medizin",
   wirtschaft: "Wirtschaft",
+  biologie: "Biologie",
+  psychologie: "Psychologie",
+  philosophie: "Philosophie",
+  sprachen: "Sprachen",
+  geschichte: "Geschichte",
   unbekannt: "nicht erkannt",
 };
 
@@ -266,8 +332,9 @@ const SOLVER: Record<CoveredDomain, string> = {
 
 /** Der Hinweis, der als zweite System-Nachricht an das Modell geht. */
 export function domainHint(g: DomainGuess): string | null {
-  // Recht, Medizin, Wirtschaft : kein „es gibt keinen Fachlöser“ — dort führt
-  // die Methode des Fachs (lib/domains/familyHint).
+  // Recht, Medizin, Wirtschaft, Biologie, Psychologie, Philosophie, Sprachen,
+  // Geschichte : kein „es gibt keinen Fachlöser“ — dort führt die Methode des
+  // Fachs (lib/domains/familyHint).
   if (g.domain === "unbekannt" || METHOD_DOMAINS.has(g.domain)) return null;
   const also = g.also.filter((d) => COVERED.has(d)).map((d) => `${LABEL[d]} → ${SOLVER[d as CoveredDomain]}`);
   if (g.covered) {

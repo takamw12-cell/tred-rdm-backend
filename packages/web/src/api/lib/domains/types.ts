@@ -10,7 +10,17 @@ import type { StructureDomain } from "./structure";
  * pour chaque famille, comment enseigner, avec quels outils, et comment
  * évaluer une réponse.
  */
-export type FamilyId = "stem" | "law" | "medicine" | "economics" | "highschool";
+export type FamilyId =
+  | "stem"
+  | "law"
+  | "medicine"
+  | "economics"
+  | "biology"
+  | "psychology"
+  | "philosophy"
+  | "languages"
+  | "history"
+  | "highschool";
 
 export interface DomainFamily {
   id: FamilyId;

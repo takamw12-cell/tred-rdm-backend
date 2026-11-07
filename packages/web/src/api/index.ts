@@ -44,7 +44,7 @@ import { z } from "zod";
 import { buildTutorAgent } from "./agent";
 import { detectDomain, domainHint } from "./lib/solvers/domain";
 import { routeChat } from "./lib/chat-routing";
-import { familyHint, resolveFamily } from "./lib/domains";
+import { familyHint, isSchoolContext, resolveFamily } from "./lib/domains";
 import { resolveFastPath, withFastPathResult } from "./lib/fast-path";
 import { createStreamTimer, lastUserHasAttachment, perfLine } from "./lib/chat-perf";
 import { curriculumFor, domainPackText } from "./prompts";
@@ -634,14 +634,14 @@ app.post("/api/agent/messages", async (c) => {
   const fach = detectDomain(lastUserText, contextLabel);
 
   // Domain-Based Agent universel : famille (lib/domains/ — méthode du droit,
-  // de la médecine, de l'éco, niveau scolaire), indice de solveur, module de
-  // la matière (prompts/).
-  const family = resolveFamily(fach, {
-    text: lastUserText,
-    level: (studyProfile as { level?: unknown } | null | undefined)?.level,
-  });
-  const curriculum = family?.id === "highschool" ? "highschool" : curriculumFor(studyProfile);
-  const fachHint = [familyHint(family), domainHint(fach), domainPackText(fach, curriculum)].filter(Boolean).join("\n\n");
+  // de la médecine, de l'éco, de la biologie, de la psychologie, de la
+  // philosophie, des langues, de l'histoire ; niveau scolaire), indice de
+  // solveur, module de la matière (prompts/).
+  const level = (studyProfile as { level?: unknown } | null | undefined)?.level;
+  const family = resolveFamily(fach, { text: lastUserText, level });
+  const school = isSchoolContext(lastUserText, level);
+  const curriculum = school ? "highschool" : curriculumFor(studyProfile);
+  const fachHint = [familyHint(family, { school }), domainHint(fach), domainPackText(fach, curriculum)].filter(Boolean).join("\n\n");
 
   // Collatz + un nombre : le serveur calcule tout de suite (lib/fast-path.ts),
   // le graphique part avant le premier token et le modèle n'a qu'à expliquer.
