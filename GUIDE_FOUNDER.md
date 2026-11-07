@@ -171,6 +171,8 @@ Tant que la table n'existe pas, le bloc reste masqué et la création répond «
 
 Coût : un appel IA (Sonnet) par création de cartes, et rien pour la révision. Chaque compte est limité à 20 créations par heure, et le plafond de tokens de son abonnement s'applique.
 
+*Facultatif, sans effet visible pour l'instant :* `node C:\dev\tred-rdm\aerostudy-ai\migre-shared-knowledge.mjs` crée les tables de l'intelligence collective (Pilier 4). Le plan complet de la V2 est dans `docs/V2_ARCHITECTURE.md`.
+
 ### 4.3 quinquies — Recherche web du tuteur (optionnel)
 
 Quand l'étudiant n'a pas son cours, TRED cherche lui-même dans **Wikipedia** (aucune clé, aucun coût) : rien à faire.

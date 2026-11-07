@@ -733,3 +733,48 @@ export const flashcard = sqliteTable(
 
 export type Flashcard = typeof flashcard.$inferSelect;
 
+// ── Intelligence collective (V2 — Pilier 4, FONDATIONS) ───────────────────
+//
+// Une excellente explication du tuteur, ANONYMISÉE, versée dans la base de
+// connaissances d'un cours partagé (`course`) : les autres membres en
+// profitent et votent. `contributorId` sert uniquement au droit de retrait
+// (RGPD : l'auteur peut retirer sa contribution) et à la modération ; il
+// n'est JAMAIS renvoyé aux autres étudiants.
+// Tables créées par migre-shared-knowledge.mjs (racine du dépôt).
+export const sharedKnowledge = sqliteTable(
+  "shared_knowledge",
+  {
+    id: text("id").primaryKey(),
+    courseId: text("course_id").notNull(),
+    /** Le thème (« Ritterschnitt »), pour regrouper et chercher. */
+    topic: text("topic").notNull().default(""),
+    question: text("question").notNull(),
+    answer: text("answer").notNull(),
+    upvotes: integer("upvotes").notNull().default(0),
+    /** « pending » (en modération) | « published » | « removed ». */
+    status: text("status").notNull().default("pending"),
+    contributorId: text("contributor_id"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    index("shared_knowledge_course_idx").on(t.courseId, t.status, t.upvotes),
+    index("shared_knowledge_contributor_idx").on(t.contributorId),
+  ],
+);
+
+export type SharedKnowledge = typeof sharedKnowledge.$inferSelect;
+
+/** Un vote par étudiant et par entrée : la clé composite l'impose. */
+export const sharedKnowledgeVote = sqliteTable(
+  "shared_knowledge_vote",
+  {
+    knowledgeId: text("knowledge_id").notNull(),
+    userId: text("user_id").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [primaryKey({ columns: [t.knowledgeId, t.userId] })],
+);

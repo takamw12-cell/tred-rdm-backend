@@ -51,6 +51,7 @@ import { registerFlashcardRoutes } from "./flashcards/routes";
 import { registerVisionRoutes } from "./vision/routes";
 import { flashcards } from "./routes/flashcards";
 import { examPredictor } from "./routes/exam-predictor";
+import { sharedKnowledgeRoutes } from "./routes/shared-knowledge";
 import { readLearningStyle } from "./lib/learning-style-store";
 import { pickStyleReference, STYLE_SAMPLE_CHARS } from "./lib/style-reference";
 import { wellFormed } from "./lib/unicode-safe";
@@ -117,6 +118,7 @@ export const router = {
   courses,
   flashcards,
   examPredictor,
+  sharedKnowledge: sharedKnowledgeRoutes,
 };
 
 export type AppRouter = typeof router;
