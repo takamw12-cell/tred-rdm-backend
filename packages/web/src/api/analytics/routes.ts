@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import type { Hono } from "hono";
 import { db } from "../database";
+import { posthogEnvReport, posthogErrorSummary, posthogQueryConfigured } from "./posthog-diagnostic";
 import { computeCoreMetrics, isoDay, type ActivityRow, type SignupRow } from "./metrics";
 
 /**
@@ -28,8 +29,12 @@ let cache: { at: number; body: unknown } | null = null;
 
 const POSTHOG_API = () => (process.env.POSTHOG_API_HOST || "https://eu.posthog.com").replace(/\/$/, "");
 
-export function posthogQueryConfigured(): boolean {
-  return Boolean(process.env.POSTHOG_PERSONAL_API_KEY && process.env.POSTHOG_PROJECT_ID);
+/** Une fois par processus : un redéploiement relance le diagnostic, un rechargement du tableau de bord non. */
+let configLogged = false;
+function logConfigOnce() {
+  if (configLogged) return;
+  configLogged = true;
+  console.log("[analytics] PostHog config", JSON.stringify(posthogEnvReport()));
 }
 
 async function hogql(query: string): Promise<unknown[][]> {
@@ -42,7 +47,12 @@ async function hogql(query: string): Promise<unknown[][]> {
     body: JSON.stringify({ query: { kind: "HogQLQuery", query } }),
     signal: AbortSignal.timeout(20_000),
   });
-  if (!res.ok) throw new Error(`PostHog ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  if (!res.ok) {
+    const summary = posthogErrorSummary(res.status, await res.text().catch(() => ""));
+    // Statut + type d'erreur seulement : ni la clé, ni l'en-tête, ni la requête.
+    console.error(`[analytics] ${summary} — host=${POSTHOG_API()}`);
+    throw new Error(summary);
+  }
   const body = (await res.json()) as { results?: unknown[][] };
   return body.results ?? [];
 }
@@ -51,13 +61,21 @@ const num = (v: unknown) => (typeof v === "number" ? v : Number(v ?? 0)) || 0;
 
 /** Die PostHog-Kennzahlen. Jede Abfrage scheitert für sich, nie das Ganze. */
 async function posthogMetrics() {
-  if (!posthogQueryConfigured()) return { configured: false as const };
+  logConfigOnce();
+  if (!posthogQueryConfigured()) {
+    const missing = Object.entries(posthogEnvReport())
+      .filter(([k, v]) => !v && (k === "POSTHOG_PERSONAL_API_KEY" || k === "POSTHOG_PROJECT_ID"))
+      .map(([k]) => k);
+    console.warn(`[analytics] PostHog-Abfrage nicht eingerichtet — fehlt im laufenden Prozess: ${missing.join(", ")}`);
+    return { configured: false as const, missing };
+  }
 
   const settle = async <T>(p: Promise<T>): Promise<T | { error: string }> => {
     try {
       return await p;
     } catch (err) {
-      console.error("[analytics] PostHog", err);
+      // Les erreurs HTTP sont déjà journalisées dans hogql() ; ici, réseau/délai.
+      if (!(err instanceof Error && err.message.startsWith("PostHog HTTP"))) console.error("[analytics] PostHog", err);
       return { error: err instanceof Error ? err.message : String(err) };
     }
   };

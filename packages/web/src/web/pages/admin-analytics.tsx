@@ -5,6 +5,7 @@ import { Link } from "wouter";
 import { PageContainer, PageHeader } from "@/components/page";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { analyticsAvailable } from "@/lib/analytics";
 
 /**
  * Betreiber-Dashboard: Wer kommt, wer bleibt, was wird benutzt?
@@ -29,7 +30,7 @@ interface Analytics {
     uploads30d: number;
   };
   posthog:
-    | { configured: false }
+    | { configured: false; missing?: string[] }
     | {
         configured: true;
         hoersaal: { avgMinutes: number; medianMinutes: number; sessions: number } | { error: string };
@@ -139,6 +140,20 @@ export default function AdminAnalyticsPage() {
             Setze auf Railway <code>VITE_POSTHOG_KEY</code> (Erfassung im Browser) sowie{" "}
             <code>POSTHOG_PERSONAL_API_KEY</code> (Scope <code>query:read</code>) und{" "}
             <code>POSTHOG_PROJECT_ID</code> (Abfragen für dieses Dashboard). Anleitung: GUIDE_FOUNDER.md.
+          </p>
+          {/* Diagnostic : ce que voit RÉELLEMENT le serveur en cours et ce qui
+              est figé dans ce bundle — noms seulement, jamais de valeur. */}
+          <ul className="text-muted-foreground mt-3 space-y-0.5 font-mono text-xs">
+            {posthog.missing?.map((name) => (
+              <li key={name}>✗ {name} — im laufenden Server nicht vorhanden</li>
+            ))}
+            <li>
+              {analyticsAvailable() ? "✓" : "✗"} VITE_POSTHOG_KEY —{" "}
+              {analyticsAvailable() ? "im Browser-Bundle enthalten" : "nicht im Browser-Bundle (beim Build gefehlt)"}
+            </li>
+          </ul>
+          <p className="text-muted-foreground mt-2 text-xs">
+            Variablen auf Railway wirken erst nach einem NEUEN Deployment (Banner „Deploy“ / „Apply changes“ bestätigen).
           </p>
         </Card>
       ) : (
