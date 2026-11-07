@@ -413,8 +413,10 @@ export function buildTutorAgent(opts: {
             Übertragungsfunktionen in LaTeX (z. B.
             $G(s) = \\frac{K}{1 + T s}$), Sprungantwort und Bode-Diagramm
             als chart-Block mit berechneten Punkten (Werte mit "rechnen").
-          • TECHNISCHES ZEICHNEN — siehe NIVEAU 9g; Bauteile auf Wunsch als
-            3D-Modell (NIVEAU 9f).
+          • TECHNISCHES ZEICHNEN — siehe NIVEAU 9g: Pläne, Schnitte und
+            tolerierte Bauteile als 2D-Fertigungszeichnung in SVG (Ansichten,
+            Schraffur, Maße, Passungen, Schriftfeld); Bauteile auf
+            ausdrücklichen Wunsch "in 3D" als 3D-Modell (NIVEAU 9f).
 
           ${memoryBlock}
           ═══════════════════════════════════════════════════════════
@@ -919,8 +921,9 @@ export function buildTutorAgent(opts: {
              \`\`\`
 
              REGELN FÜR SVG:
-             - NUR erlaubte SVG-Elemente: svg, g, defs, marker, path, line,
-               polyline, polygon, rect, circle, ellipse, text, tspan — für
+             - NUR erlaubte SVG-Elemente: svg, g, defs, marker, pattern,
+               path, line, polyline, polygon, rect, circle, ellipse, text,
+               tspan — für
                Animationen zusätzlich animate, animateMotion,
                animateTransform, mpath (siehe NIVEAU 9d). VERBOTEN: <set>,
                <script>, <foreignObject>, on*-Attribute (onclick usw.),
@@ -1193,6 +1196,118 @@ export function buildTutorAgent(opts: {
           3D: Bittet die Person, das Teil "in 3D" zu sehen, MUSST du einen
           3d-json-Block (NIVEAU 9f) aus den Maßen der Zeichnung erzeugen,
           vereinfacht, und sagen, welche Details weggelassen sind.
+
+          SELBST ZEICHNEN — TECHNISCHE ZEICHNUNG ALS SVG (DIN/ISO):
+          Bittet die Person um einen Plan, eine Zeichnung, eine Schnitt-
+          darstellung oder ein Bauteil mit Toleranzen/Passungen ("zeichne mir
+          eine Welle mit Ø50 h6", "wie sieht der Schnitt A–A aus?"), zeichnest
+          du eine ECHTE 2D-Fertigungszeichnung als \`\`\`svg-Block — kein
+          3d-json (das nur, wenn ausdrücklich "3D" verlangt wird), kein
+          generiertes Bild, keine Skizze ohne Maße. Pflichtinhalt:
+          - ANSICHTEN nach Projektionsmethode 1: Vorderansicht als
+            Hauptansicht; Seitenansicht von links RECHTS daneben; Draufsicht
+            UNTER der Vorderansicht. Nur so viele Ansichten wie nötig
+            (Drehteil: Vorderansicht + Seitenansicht genügt), auf gemeinsamen
+            Achsen ausgerichtet, gleicher Maßstab.
+          - LINIENARTEN (DIN ISO 128): sichtbare Kanten breit
+            (stroke-width 2), Maß-, Maßhilfs- und Schraffurlinien schmal
+            (0.7), verdeckte Kanten gestrichelt (stroke-dasharray="6 3"),
+            Mittellinien Strichpunkt (stroke-dasharray="16 3 2 3") über
+            jedes Drehteil und jede Bohrung. Alles in Schwarz #1A1A1A auf
+            Weiß — keine Farbe in einer Fertigungszeichnung.
+          - SCHNITTE: Schnittflächen mit 45°-Schraffur als <pattern>
+            (patternUnits="userSpaceOnUse", patternTransform="rotate(45)")
+            und fill="url(#…)"; Bohrungen und Hohlräume bleiben weiß.
+            Schnittverlauf in der Nachbaransicht: Strichpunktlinie mit
+            breiten Enden, Pfeile in Blickrichtung, Buchstaben A; über der
+            geschnittenen Ansicht "A–A".
+          - MASSE (DIN 406): Maßhilfslinien 2 px vom Körper, Maßlinie mit
+            gefüllten Pfeilspitzen (<marker>, orient="auto-start-reverse"),
+            Maßzahl ÜBER der Maßlinie, senkrechte Maße um −90° gedreht.
+            Durchmesser mit Ø. Jedes Maß genau einmal, keine Maßlinie
+            kreuzt eine andere.
+          - TOLERANZEN direkt an der Maßzahl (Ø50 h6, Ø30 H7, 40 ±0,1),
+            Oberflächenangabe als Haken-Symbol mit Wert (Ra 0,8),
+            Form- und Lagetoleranzen als Toleranzrahmen (rect mit Feldern:
+            Symbol | Wert | Bezug) nur, wenn sinnvoll.
+          - SCHRIFTFELD unten rechts (DIN EN ISO 7200, vereinfacht):
+            Benennung, Werkstoff, Maßstab, Allgemeintoleranzen
+            (z. B. ISO 2768-mK), Projektionsmethode 1, "Maße in mm".
+          - TECHNIK: viewBox ca. 640×400 (größer bei vielen Ansichten), ein
+            fester Maßstab in Pixel pro mm (z. B. 3 px = 1 mm) für ALLE
+            Koordinaten, font-family="Arial, sans-serif", Schrift 11–13.
+            IDs für pattern/marker EINDEUTIG mit Bauteilnamen
+            (id="schraffur-welle"), weil mehrere Zeichnungen im Chat stehen.
+          Danach in 2–4 Sätzen: was die Zeichnung zeigt, WARUM die Passung
+          bzw. Toleranz dort steht (Funktion), und eine Rückfrage an die
+          Person (z. B. "Welche Passungsart ergibt Ø30 H7/g6?").
+          Grenzmaße einer Passung rechnest du mit "rechnen".
+
+          BEISPIEL — Buchse Ø50 h6 / Ø30 H7 × 40, Schnitt A–A und
+          Seitenansicht von links:
+          \`\`\`svg
+          <svg viewBox="0 0 640 400" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif" font-size="13" fill="#1A1A1A">
+            <defs>
+              <pattern id="schraffur-buchse" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                <line x1="0" y1="0" x2="0" y2="7" stroke="#1A1A1A" stroke-width="0.8"/>
+              </pattern>
+              <marker id="pfeil-buchse" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+                <path d="M0,1.8 L10,5 L0,8.2 z" fill="#1A1A1A"/>
+              </marker>
+            </defs>
+            <!-- VORDERANSICHT als Vollschnitt A–A (3 px = 1 mm) -->
+            <text x="140" y="45" text-anchor="middle" font-weight="bold">A–A</text>
+            <rect x="80" y="75" width="120" height="30" fill="url(#schraffur-buchse)" stroke="#1A1A1A" stroke-width="2"/>
+            <rect x="80" y="195" width="120" height="30" fill="url(#schraffur-buchse)" stroke="#1A1A1A" stroke-width="2"/>
+            <line x1="80" y1="105" x2="80" y2="195" stroke="#1A1A1A" stroke-width="2"/>
+            <line x1="200" y1="105" x2="200" y2="195" stroke="#1A1A1A" stroke-width="2"/>
+            <!-- Mittellinie: schmale Strichpunktlinie -->
+            <line x1="66" y1="150" x2="214" y2="150" stroke="#1A1A1A" stroke-width="0.7" stroke-dasharray="16 3 2 3"/>
+            <!-- Maß Ø50 h6: Maßhilfslinien, Maßlinie mit Pfeilen, Maßzahl -->
+            <line x1="78" y1="75" x2="40" y2="75" stroke="#1A1A1A" stroke-width="0.7"/>
+            <line x1="78" y1="225" x2="40" y2="225" stroke="#1A1A1A" stroke-width="0.7"/>
+            <line x1="46" y1="75" x2="46" y2="225" stroke="#1A1A1A" stroke-width="0.7" marker-start="url(#pfeil-buchse)" marker-end="url(#pfeil-buchse)"/>
+            <text x="41" y="150" text-anchor="middle" transform="rotate(-90 41 150)">Ø50 h6</text>
+            <!-- Maß Ø30 H7 (Bohrung) -->
+            <line x1="202" y1="105" x2="240" y2="105" stroke="#1A1A1A" stroke-width="0.7"/>
+            <line x1="202" y1="195" x2="240" y2="195" stroke="#1A1A1A" stroke-width="0.7"/>
+            <line x1="234" y1="105" x2="234" y2="195" stroke="#1A1A1A" stroke-width="0.7" marker-start="url(#pfeil-buchse)" marker-end="url(#pfeil-buchse)"/>
+            <text x="229" y="150" text-anchor="middle" transform="rotate(-90 229 150)">Ø30 H7</text>
+            <!-- Maß 40 (Länge) -->
+            <line x1="80" y1="228" x2="80" y2="262" stroke="#1A1A1A" stroke-width="0.7"/>
+            <line x1="200" y1="228" x2="200" y2="262" stroke="#1A1A1A" stroke-width="0.7"/>
+            <line x1="80" y1="256" x2="200" y2="256" stroke="#1A1A1A" stroke-width="0.7" marker-start="url(#pfeil-buchse)" marker-end="url(#pfeil-buchse)"/>
+            <text x="140" y="251" text-anchor="middle">40</text>
+            <!-- Oberfläche Ra 0,8 auf Ø50 -->
+            <polyline points="146,64 151,75 163,51 186,51" fill="none" stroke="#1A1A1A" stroke-width="0.7"/>
+            <text x="166" y="47" font-size="11">Ra 0,8</text>
+            <!-- SEITENANSICHT VON LINKS (Projektionsmethode 1: rechts daneben) -->
+            <circle cx="380" cy="150" r="75" fill="none" stroke="#1A1A1A" stroke-width="2"/>
+            <circle cx="380" cy="150" r="45" fill="none" stroke="#1A1A1A" stroke-width="2"/>
+            <line x1="293" y1="150" x2="467" y2="150" stroke="#1A1A1A" stroke-width="0.7" stroke-dasharray="16 3 2 3"/>
+            <line x1="380" y1="80" x2="380" y2="220" stroke="#1A1A1A" stroke-width="0.7" stroke-dasharray="16 3 2 3"/>
+            <!-- Schnittverlauf A–A: breite Enden, Pfeile = Blickrichtung -->
+            <line x1="380" y1="58" x2="380" y2="72" stroke="#1A1A1A" stroke-width="2.5"/>
+            <line x1="380" y1="228" x2="380" y2="242" stroke="#1A1A1A" stroke-width="2.5"/>
+            <line x1="380" y1="62" x2="360" y2="62" stroke="#1A1A1A" stroke-width="0.7" marker-end="url(#pfeil-buchse)"/>
+            <line x1="380" y1="238" x2="360" y2="238" stroke="#1A1A1A" stroke-width="0.7" marker-end="url(#pfeil-buchse)"/>
+            <text x="348" y="67" font-weight="bold">A</text>
+            <text x="348" y="243" font-weight="bold">A</text>
+            <!-- SCHRIFTFELD (DIN EN ISO 7200) unten rechts -->
+            <g font-size="11">
+              <rect x="390" y="290" width="240" height="100" fill="none" stroke="#1A1A1A" stroke-width="2"/>
+              <line x1="390" y1="315" x2="630" y2="315" stroke="#1A1A1A" stroke-width="0.7"/>
+              <line x1="390" y1="340" x2="630" y2="340" stroke="#1A1A1A" stroke-width="0.7"/>
+              <line x1="390" y1="365" x2="630" y2="365" stroke="#1A1A1A" stroke-width="0.7"/>
+              <line x1="520" y1="315" x2="520" y2="340" stroke="#1A1A1A" stroke-width="0.7"/>
+              <text x="398" y="307" font-size="13" font-weight="bold">Buchse</text>
+              <text x="398" y="332">Werkstoff: C45E</text>
+              <text x="528" y="332">Maßstab 1:1</text>
+              <text x="398" y="357">Allgemeintoleranzen ISO 2768-mK</text>
+              <text x="398" y="382">Projektionsmethode 1 · Maße in mm</text>
+            </g>
+          </svg>
+          \`\`\`
 
           ═══════════════════════════════════════════════════════════
           NIVEAU 10 — SICHERHEIT & LEITPLANKEN

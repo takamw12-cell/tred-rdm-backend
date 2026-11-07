@@ -744,7 +744,7 @@ export const de = {
     empty: "Dazu haben wir kein passendes Video gefunden. Formuliere die Frage etwas konkreter.",
     error: "Die Videosuche hat nicht geklappt. Bitte später erneut versuchen.",
     quota: "Das Tageslimit der Videosuche ist erreicht. Morgen geht es wieder.",
-    notConfigured: "Die Videosuche ist noch nicht eingerichtet (YOUTUBE_API_KEY fehlt).",
+    notConfigured: "Videosuche momentan nicht verfügbar.",
     retry: "Erneut versuchen",
     recommended: "Empfohlen",
     views: "{count} Aufrufe",

@@ -62,7 +62,8 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { s3, S3_BUCKET } from "./lib/s3";
 import { selectRelevantContext } from "./lib/retrieval";
 import { chercherDansDocuments } from "./lib/document-search";
-import { searchYoutube } from "./lib/youtube";
+import { searchYoutube, youtubeConfigured } from "./lib/youtube";
+import { writeVideoQuery } from "./lib/video-query";
 import {
   getAccess,
   setActive,
@@ -353,7 +354,17 @@ app.post("/api/errors", async (c) => {
 });
 
 app.get("/api/config", (c) =>
-  c.json({ publicSignup: true, inviteRequired: false, emailVerification: mailCanReachAnyone() }),
+  c.json({
+    publicSignup: true,
+    inviteRequired: false,
+    emailVerification: mailCanReachAnyone(),
+    // Ce que l'interface peut proposer : un bouton dont la clé manque est
+    // masqué plutôt que de répondre « pas configuré » au clic.
+    features: {
+      videoSearch: youtubeConfigured(),
+      explainerVideo: Boolean(process.env.ANTHROPIC_API_KEY),
+    },
+  }),
 );
 
 // ── Admin ─────────────────────────────────────────────────────────────────
@@ -1545,14 +1556,19 @@ app.post("/api/youtube/search", async (c) => {
     return c.json({ error: "invalid body" }, 400);
   }
 
+  if (!youtubeConfigured()) return c.json({ error: "not_configured" }, 503);
+
   // Der Name des Studenten wird übergeben, damit die Anrede des Tutors
   // ("Perfekt Rached, …") nie in der Suchanfrage landet.
-  const result = await searchYoutube(
-    String(body.topic ?? "").slice(0, 4000),
-    String(body.locale ?? "de"),
-    String(body.question ?? "").slice(0, 1000),
-    session.user.name ?? "",
-  );
+  const topic = String(body.topic ?? "").slice(0, 8000);
+  const question = String(body.question ?? "").slice(0, 1000);
+  const locale = String(body.locale ?? "de");
+  const studentName = session.user.name ?? "";
+  // Kontextbewusst: ein kleines Modell formuliert die Suchanfrage aus der
+  // letzten Antwort ("Kirchhoffsche Maschenregel Beispiel" statt
+  // "Kirchhoff"). Fällt es aus, greift die Heuristik in lib/youtube.ts.
+  const preset = await writeVideoQuery(topic, question, locale, studentName);
+  const result = await searchYoutube(topic, locale, question, studentName, preset);
 
   if (!result.ok) {
     const status = result.code === "not_configured" ? 503 : result.code === "quota" ? 429 : 502;

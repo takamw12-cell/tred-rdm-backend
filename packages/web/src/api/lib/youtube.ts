@@ -15,6 +15,8 @@ const SEARCH_COST = 100;
 const DAILY_BUDGET = Number(process.env.YOUTUBE_DAILY_BUDGET ?? 9000);
 
 const CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 h
+/** Vidéos affichées par recherche. */
+export const MAX_HITS = 3;
 
 export interface YoutubeHit {
   id: string;
@@ -229,20 +231,68 @@ const REGION: Record<string, { region: string; lang: string }> = {
   en: { region: "US", lang: "en" },
 };
 
+/** La recherche vidéo est-elle branchée ? (Sert aussi à masquer le bouton.) */
+export function youtubeConfigured(): boolean {
+  return Boolean(process.env.YOUTUBE_API_KEY);
+}
+
+/**
+ * Catégories YouTube jamais montrées : Musik, Sport, Gaming, Comedy,
+ * Unterhaltung, Haustiere, Reisen. « People & Blogs » (22) reste : c'est la
+ * catégorie par défaut de beaucoup de chaînes de cours.
+ */
+const BLOCKED_CATEGORIES = new Set(["10", "15", "17", "19", "20", "23", "24"]);
+/** Bildung (27) et Wissenschaft & Technik (28) passent devant. */
+const EDU_CATEGORIES: Record<string, number> = { "27": 25, "28": 15 };
+const NOT_A_LECTURE =
+  /\bvlogs?\b|#shorts?\b|\bprank|\breaction\b|\breagier|day in (?:the|my) life|\bunboxing|\bhaul\b|storytime|\btiktok|\bmemes?\b|\bfunny\b|\bgiveaway/i;
+
+export interface VideoMeta {
+  title: string;
+  channel: string;
+  categoryId?: string;
+  /** defaultAudioLanguage ou defaultLanguage, ex. "de", "en-US". */
+  language?: string;
+  seconds?: number;
+}
+
+/**
+ * Un résultat a-t-il sa place à côté d'un cours ? Vlogs, divertissement,
+ * Shorts et vidéos dans une autre langue que l'allemand, l'anglais (ou la
+ * langue de l'étudiant) sont écartés. Les chaînes de cours reconnues
+ * (TRUSTED) passent toujours.
+ */
+export function isEducationalHit(v: VideoMeta, locale = "de"): boolean {
+  if (isTrusted(v.channel)) return true;
+  if (v.categoryId && BLOCKED_CATEGORIES.has(v.categoryId)) return false;
+  if (NOT_A_LECTURE.test(v.title)) return false;
+  if (v.seconds !== undefined && v.seconds > 0 && v.seconds < 60) return false;
+  if (v.language) {
+    const lang = v.language.toLowerCase().slice(0, 2);
+    if (lang !== "de" && lang !== "en" && lang !== locale.slice(0, 2)) return false;
+  }
+  return true;
+}
+
 export async function searchYoutube(
   rawTopic: string,
   locale = "de",
   question = "",
   studentName = "",
+  /** Requête déjà rédigée par le modèle (lib/video-query.ts) ; sinon heuristique. */
+  preset?: { query: string; language: "de" | "en" } | null,
 ): Promise<YoutubeResult> {
   const key = process.env.YOUTUBE_API_KEY;
   if (!key) return { ok: false, code: "not_configured" };
 
   const loc = REGION[locale] ? locale : "de";
-  const query = extractTopic(rawTopic, question, studentName);
+  const query = preset?.query || extractTopic(rawTopic, question, studentName);
   if (!query) return { ok: true, query: "", hits: [], cached: false };
+  // Langue des vidéos cherchées : celle que le modèle juge la mieux couverte
+  // pour ce sujet (allemand ou anglais), sinon celle de l'interface.
+  const searchLang = preset?.language ?? REGION[loc].lang;
 
-  const cacheKey = `${loc}:${query.toLowerCase()}`;
+  const cacheKey = `${loc}:${searchLang}:${query.toLowerCase()}`;
   const hit = cache.get(cacheKey);
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
     return { ok: true, query, hits: hit.hits, cached: true };
@@ -264,13 +314,15 @@ export async function searchYoutube(
         maxResults: "12",
         videoEmbeddable: "true",
         safeSearch: "moderate",
-        relevanceLanguage: REGION[loc].lang,
+        relevanceLanguage: searchLang,
       });
       if (restrictRegion) params.set("regionCode", REGION[loc].region);
       return fetch(`${SEARCH_URL}?${params.toString()}`);
     }
 
-    let res = await runSearch(query, true);
+    // Requête rédigée par le modèle : on cherche dans le monde entier (la
+    // langue suffit à cibler). Requête heuristique : d'abord la région.
+    let res = await runSearch(query, !preset);
     if (!res.ok) {
       const body = await res.text();
       console.error("[youtube] search failed", res.status, body.slice(0, 400));
@@ -307,11 +359,16 @@ export async function searchYoutube(
     }
 
     // Zweiter Aufruf für Dauer und Aufrufzahlen (kostet nur 1 Einheit).
-    let details = new Map<string, { duration: string; views: number | null }>();
+    let details = new Map<
+      string,
+      { duration: string; views: number | null; categoryId?: string; language?: string }
+    >();
     if (budgetLeft(1)) {
+      // videos.list coûte 1 unité quelles que soient les parties demandées :
+      // snippet donne la catégorie et la langue, pour le filtre éducatif.
       const dParams = new URLSearchParams({
         key,
-        part: "contentDetails,statistics",
+        part: "snippet,contentDetails,statistics",
         id: ids.join(","),
       });
       const dRes = await fetch(`${VIDEOS_URL}?${dParams.toString()}`);
@@ -319,6 +376,7 @@ export async function searchYoutube(
         const dData = (await dRes.json()) as {
           items?: {
             id?: string;
+            snippet?: { categoryId?: string; defaultAudioLanguage?: string; defaultLanguage?: string };
             contentDetails?: { duration?: string };
             statistics?: { viewCount?: string };
           }[];
@@ -329,6 +387,8 @@ export async function searchYoutube(
             {
               duration: String(v.contentDetails?.duration ?? ""),
               views: v.statistics?.viewCount ? Number(v.statistics.viewCount) : null,
+              categoryId: v.snippet?.categoryId,
+              language: v.snippet?.defaultAudioLanguage ?? v.snippet?.defaultLanguage,
             },
           ]),
         );
@@ -354,9 +414,23 @@ export async function searchYoutube(
           views: detail?.views ?? null,
           trusted: isTrusted(channel),
           _seconds: detail?.duration ? durationSeconds(detail.duration) : 0,
+          _category: detail?.categoryId,
+          _language: detail?.language,
         };
       })
       .filter((h) => h.id)
+      .filter((h) =>
+        isEducationalHit(
+          {
+            title: h.title,
+            channel: h.channel,
+            categoryId: h._category,
+            language: h._language,
+            seconds: h._seconds,
+          },
+          loc,
+        ),
+      )
       // Bewertung: bekannte Lernkanäle zuerst, dann Videos in brauchbarer
       // Länge (3–35 min), dann Reichweite. Die YouTube-Relevanz bleibt als
       // Grundreihenfolge erhalten, wir sortieren nur stabil darüber.
@@ -366,13 +440,17 @@ export async function searchYoutube(
         if (h._seconds >= 180 && h._seconds <= 2100) score += 20;
         if (h._seconds > 0 && h._seconds < 90) score -= 25;
         if (h.views && h.views > 50_000) score += 10;
+        score += EDU_CATEGORIES[h._category ?? ""] ?? 0;
         return { h, score };
       })
       .sort((a, b) => b.score - a.score)
-      .slice(0, 6)
+      // Trois vidéos : assez pour choisir, assez peu pour que chacune compte.
+      .slice(0, MAX_HITS)
       .map(({ h }) => {
-        const { _seconds, ...rest } = h;
+        const { _seconds, _category, _language, ...rest } = h;
         void _seconds;
+        void _category;
+        void _language;
         return rest;
       });
 

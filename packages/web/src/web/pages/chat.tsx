@@ -53,6 +53,7 @@ import { SmartPaywallModal } from "@/components/SmartPaywallModal";
 import { useAdCopy } from "@/lib/use-ads";
 import { INTERSTITIAL_RULES } from "@/lib/ad-mediation";
 import { creditsMeKey } from "@/queries/credits";
+import { useFeatures } from "@/queries/features";
 import { Link } from "wouter";
 import { Repeat2 } from "lucide-react";
 import { VideoExplainer, type VideoScript } from "@/components/video-explainer";
@@ -165,6 +166,7 @@ export default function ChatPage() {
    * prévient ses abonnés.
    */
   const { t, locale } = useT();
+  const features = useFeatures();
   // Le professeur choisi dans le vestiaire : son visage, son nom, son ton.
   const professor = useProfessor();
 
@@ -1734,8 +1736,9 @@ export default function ChatPage() {
                           why: t("chat.why"),
                           explain: t("chat.explainDifferently"),
                           engineer: t("chat.engineerMode"),
-                          video: t("video.chip"),
-                          ytsearch: t("videoSearch.chip"),
+                          // Masqués quand le serveur n'a pas la clé.
+                          video: features.explainerVideo ? t("video.chip") : undefined,
+                          ytsearch: features.videoSearch ? t("videoSearch.chip") : undefined,
                         }}
                       />
                       );
@@ -2187,8 +2190,8 @@ function MessageBubble({
     why: string;
     explain: string;
     engineer: string;
-    video: string;
-    ytsearch: string;
+    video?: string;
+    ytsearch?: string;
   };
 }) {
   const isUser = role === "user";
@@ -2287,16 +2290,20 @@ function MessageBubble({
               label={actionLabels.engineer}
               onClick={() => onAction("engineer")}
             />
-            <ActionChip
-              icon={<Clapperboard className="size-3.5" />}
-              label={actionLabels.video}
-              onClick={() => onAction("video")}
-            />
-            <ActionChip
-              icon={<Youtube className="size-3.5" />}
-              label={actionLabels.ytsearch}
-              onClick={() => onAction("ytsearch")}
-            />
+            {actionLabels.video && (
+              <ActionChip
+                icon={<Clapperboard className="size-3.5" />}
+                label={actionLabels.video}
+                onClick={() => onAction("video")}
+              />
+            )}
+            {actionLabels.ytsearch && (
+              <ActionChip
+                icon={<Youtube className="size-3.5" />}
+                label={actionLabels.ytsearch}
+                onClick={() => onAction("ytsearch")}
+              />
+            )}
 
             {/* Le drapeau ferme la rangée, en gris. Les puces au-dessus sont
                 des gestes fréquents ; celui-ci doit se trouver quand on le

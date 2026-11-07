@@ -744,7 +744,7 @@ export const fr: Messages = {
     empty: "Aucune vidéo pertinente trouvée. Essaie de préciser ta question.",
     error: "La recherche de vidéos a échoué. Réessaie plus tard.",
     quota: "La limite quotidienne de recherche est atteinte. Réessaie demain.",
-    notConfigured: "La recherche de vidéos n'est pas encore configurée (YOUTUBE_API_KEY manquante).",
+    notConfigured: "Recherche de vidéos momentanément indisponible.",
     retry: "Réessayer",
     recommended: "Recommandé",
     views: "{count} vues",

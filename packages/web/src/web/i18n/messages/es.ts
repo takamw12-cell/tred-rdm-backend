@@ -756,7 +756,7 @@ export const es: Messages = {
     empty: "No se ha encontrado ningún vídeo. Prueba a concretar más tu pregunta.",
     error: "La búsqueda de vídeos ha fallado. Inténtalo más tarde.",
     quota: "Se ha alcanzado el límite diario de búsquedas de vídeo. Inténtalo mañana.",
-    notConfigured: "La búsqueda de vídeos aún no está configurada (falta YOUTUBE_API_KEY).",
+    notConfigured: "La búsqueda de vídeos no está disponible en este momento.",
     retry: "Intentarlo de nuevo",
     recommended: "Recomendado",
     views: "{count} visualizaciones",

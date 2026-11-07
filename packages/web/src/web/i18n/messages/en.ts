@@ -744,7 +744,7 @@ export const en: Messages = {
     empty: "No matching video found. Try making your question more specific.",
     error: "Video search failed. Please try again later.",
     quota: "The daily video search limit is reached. Try again tomorrow.",
-    notConfigured: "Video search is not configured yet (YOUTUBE_API_KEY missing).",
+    notConfigured: "Video search is currently unavailable.",
     retry: "Try again",
     recommended: "Recommended",
     views: "{count} views",
