@@ -43,6 +43,7 @@ import { CodeExplainContext, CodeSendContext } from "@/components/code-block";
 import { DocumentViewer } from "@/components/document-viewer";
 import { ImageFrame } from "@/components/diagram-frame";
 import { BEAM_LANG, beamBlockFromPart } from "@/components/beam-diagram";
+import { solverChartBlockFromPart } from "@/lib/solver-charts";
 import { MEDIA_LANG, mediaBlockFromPart } from "@/lib/media-block";
 import { CameraCapture } from "@/components/camera-capture";
 import { Scratchpad } from "@/components/scratchpad";
@@ -108,6 +109,7 @@ const SOLVER_TOOLS = new Set([
   "tool-balkenstatik",
   "tool-schaltung_berechnen",
   "tool-thermo_berechnen",
+  "tool-physik_berechnen",
   "tool-mathe_berechnen",
 ]);
 
@@ -120,7 +122,9 @@ const SOLVER_TOOLS = new Set([
 function messageText(m: UIMessage): string {
   return m.parts
     .map((p) =>
-      p.type === "text" ? p.text : (beamBlockFromPart(p) ?? mediaBlockFromPart(p) ?? ""),
+      p.type === "text"
+        ? p.text
+        : (beamBlockFromPart(p) ?? solverChartBlockFromPart(p) ?? mediaBlockFromPart(p) ?? ""),
     )
     .join("");
 }

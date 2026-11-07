@@ -30,6 +30,7 @@
  * feuchte Luft, Verbrennung, instationäre offene Systeme.
  */
 import { z } from "zod";
+import { pvDiagram, R_MOLAR, solveCarnotEfficiency, solveFirstLaw, solveIdealGas, ThermoFormulaError } from "../thermo-solver";
 
 export class ThermoError extends Error {
   constructor(message: string) {
@@ -81,7 +82,7 @@ function resolveGas(g: ThermoInput["gas"]): Gas {
 /* Einheiten                                                                  */
 /* -------------------------------------------------------------------------- */
 
-type Kind = "p" | "V" | "T" | "m" | "E" | "v";
+type Kind = "p" | "V" | "T" | "m" | "E" | "v" | "n";
 
 const UNITS: Record<Kind, Record<string, number>> = {
   p: { pa: 1, hpa: 100, kpa: 1e3, mpa: 1e6, bar: 1e5, mbar: 100, atm: 101325 },
@@ -90,6 +91,7 @@ const UNITS: Record<Kind, Record<string, number>> = {
   T: { k: 1 },
   m: { kg: 1, g: 1e-3 },
   E: { j: 1, kj: 1e3, mj: 1e6, "j/kg": 1, "kj/kg": 1e3 },
+  n: { mol: 1, mmol: 1e-3, kmol: 1e3 },
 };
 
 /** "1 bar", "20 °C", "2 L", "500 kJ", 300 → SI (Pa, m³, K, kg, J). */
@@ -156,7 +158,7 @@ const stepSchema = z.object({
 });
 
 export const thermoInputSchema = z.object({
-  modus: z.enum(["zustandsaenderung", "kreisprozess", "carnot", "stroemungsmaschine"]),
+  modus: z.enum(["zustandsaenderung", "kreisprozess", "carnot", "stroemungsmaschine", "ideales_gas", "erster_hauptsatz"]),
   gas: gasSchema,
   masse: qty.optional().describe('kg; fehlt sie und ist V unbekannt, wird spezifisch (pro kg) gerechnet'),
   start: stateSchema.optional(),
@@ -179,6 +181,16 @@ export const thermoInputSchema = z.object({
   p2: qty.optional(),
   eta_s: z.number().gt(0).max(1).optional().describe("isentroper Wirkungsgrad, Standard 1"),
   massenstrom: z.number().positive().optional().describe("kg/s"),
+  // ideales_gas : start mit zwei oder drei von p, V, T ; dazu stoffmenge oder masse
+  stoffmenge: qty.optional().describe('n, z. B. "2 mol" (Zahl = mol) — p·V = n·R_m·T'),
+  // erster_hauptsatz : genau zwei von Q, W, dU
+  Q: qty.optional().describe('Wärme, z. B. "500 kJ"'),
+  W: qty.optional().describe("Arbeit (Vorzeichen nach konvention)"),
+  dU: qty.optional().describe("Änderung der inneren Energie"),
+  konvention: z
+    .enum(["zugefuehrt_positiv", "abgegeben_positiv"])
+    .optional()
+    .describe("zugefuehrt_positiv: Q + W = ΔU (Standard); abgegeben_positiv: Q − W = ΔU (W vom System verrichtet)"),
 });
 
 export type ThermoInput = z.infer<typeof thermoInputSchema>;
@@ -488,6 +500,14 @@ function runSteps(input: ThermoInput, closed: boolean) {
     vorzeichen: CONVENTION,
     zustaende,
     schritte: out,
+    // Wird im Chat automatisch als Diagramm angezeigt (web/lib/solver-charts.ts).
+    diagramme: [
+      pvDiagram(
+        states,
+        steps.map((st) => st.prozess),
+        { spezifisch, geschlossen: closed },
+      ),
+    ],
   };
   if (!closed) return base;
 
@@ -497,7 +517,10 @@ function runSteps(input: ThermoInput, closed: boolean) {
   const Tmax = Math.max(...states.map((s) => s.T));
   const Tmin = Math.min(...states.map((s) => s.T));
   const etaC = 1 - Tmin / Tmax;
-  if (Math.abs(Qzu - Qab - Wnetto) > 1e-9 * Math.max(1, Qzu)) {
+  // Die Schrittwerte sind schon auf 8 signifikante Stellen gerundet (sig) :
+  // die Toleranz muss darüber liegen, sonst scheitert ein korrekter Prozess
+  // an der Rundung (Otto mit "Q: 800 kJ" wurde bis zum 7. Nov. 2026 abgelehnt).
+  if (Math.abs(Qzu - Qab - Wnetto) > 1e-7 * Math.max(1, Qzu)) {
     throw new ThermoError("Interne Probe: Energiebilanz des Kreisprozesses (Q_zu − |Q_ab| = W) nicht erfüllt.");
   }
   const rechts = Wnetto > 0;
@@ -533,7 +556,7 @@ function runCarnot(input: ThermoInput) {
     ok: true,
     T_warm: sig(Th),
     T_kalt: sig(Tc),
-    eta_carnot: sig(1 - Tc / Th),
+    eta_carnot: sig(solveCarnotEfficiency(Th, Tc)),
     epsilon_kaelte_carnot: sig(Tc / (Th - Tc)),
     epsilon_waermepumpe_carnot: sig(Th / (Th - Tc)),
   };
@@ -606,6 +629,54 @@ function runMachine(input: ThermoInput) {
   };
 }
 
+function runIdealGas(input: ThermoInput) {
+  const st = input.start ?? {};
+  const p = st.p !== undefined ? parseQty(st.p, "p") : undefined;
+  const V = st.V !== undefined ? parseQty(st.V, "V") : undefined;
+  const T = st.T !== undefined ? parseQty(st.T, "T") : undefined;
+  if (T !== undefined && T < 1) throw new ThermoError("Temperatur unter 1 K — Kelvin/°C verwechselt?");
+  let n = input.stoffmenge !== undefined ? parseQty(input.stoffmenge, "n") : undefined;
+  const m = input.masse !== undefined ? parseQty(input.masse, "m") : undefined;
+  const gas = input.gas !== undefined || m !== undefined ? resolveGas(input.gas) : undefined;
+  // Masse gegeben, Stoffmenge nicht : über die spezifische Gaskonstante (M = R_m / R_s).
+  if (n === undefined && m !== undefined && gas) n = (m * gas.R) / R_MOLAR;
+  const r = solveIdealGas(p, V, T, n);
+  const masse = gas ? (r.n * R_MOLAR) / gas.R : undefined;
+  return {
+    ok: true as const,
+    gesucht: r.gesucht === "n" ? "n (und m)" : r.gesucht,
+    formel: r.formel + (gas ? " = m·R_s·T" : ""),
+    p: sig(r.p),
+    p_bar: sig(r.p / 1e5),
+    V: sig(r.V),
+    V_liter: sig(r.V * 1e3),
+    T: sig(r.T),
+    T_celsius: sig(r.T - 273.15),
+    n_mol: sig(r.n),
+    ...(gas && masse !== undefined ? { masse_kg: sig(masse), stoffwerte: { gas: gas.name, R_s: gas.R } } : {}),
+    R_m: R_MOLAR,
+    einheiten: "p in Pa, V in m³, T in K, n in mol, m in kg",
+  };
+}
+
+function runFirstLaw(input: ThermoInput) {
+  const v = (x: number | string | undefined) => (x !== undefined ? parseQty(x, "E") : undefined);
+  const r = solveFirstLaw(v(input.Q), v(input.W), v(input.dU), input.konvention);
+  return {
+    ok: true as const,
+    gesucht: r.gesucht,
+    formel: r.formel,
+    Q: sig(r.Q),
+    W: sig(r.W),
+    dU: sig(r.dU),
+    vorzeichen:
+      r.konvention === "zugefuehrt_positiv"
+        ? "Q und W zugeführt positiv (Q + W = ΔU, TRED-Standard)."
+        : "Q zugeführt positiv, W vom System abgegeben positiv (Q − W = ΔU).",
+    einheiten: "J",
+  };
+}
+
 export function solveThermo(raw: ThermoInput): ThermoResult {
   try {
     const input = thermoInputSchema.parse(raw);
@@ -618,9 +689,13 @@ export function solveThermo(raw: ThermoInput): ThermoResult {
         return runCarnot(input) as ThermoResult;
       case "stroemungsmaschine":
         return runMachine(input);
+      case "ideales_gas":
+        return runIdealGas(input);
+      case "erster_hauptsatz":
+        return runFirstLaw(input);
     }
   } catch (err) {
-    if (err instanceof ThermoError) return { ok: false, fehler: err.message, hinweis: LIMITS };
+    if (err instanceof ThermoError || err instanceof ThermoFormulaError) return { ok: false, fehler: err.message, hinweis: LIMITS };
     if (err instanceof z.ZodError) {
       return { ok: false, fehler: `Eingabe ungültig: ${err.issues[0]?.message ?? "?"}`, hinweis: LIMITS };
     }

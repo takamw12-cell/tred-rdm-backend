@@ -6,6 +6,7 @@ import { runBalkenstatik } from "../lib/beam-tool";
 import { circuitInputSchema, solveCircuit } from "../lib/solvers/solveCircuit";
 import { mathInputSchema, solveMath } from "../lib/solvers/solveMath";
 import { solveThermo, thermoInputSchema } from "../lib/solvers/solveThermo";
+import { physicsInputSchema, solvePhysics } from "../lib/physics-solver";
 import { solveStatics, staticsInputSchema } from "../lib/solvers/statics-solver";
 import { searchKnowledge } from "../lib/knowledge-search";
 import { renderDiagram, type DiagramSpec } from "../lib/diagrams";
@@ -331,6 +332,7 @@ export function buildTutorAgent(opts: {
               Kraftsystem) bzw. "balkenstatik" (Balken)
             Elektrotechnik → "schaltung_berechnen"
             Thermodynamik → "thermo_berechnen"
+            Physik (Kinematik, Wurf, Newton) → "physik_berechnen"
             Mathematik → "mathe_berechnen"
             alles andere (Einheiten, Einzelwerte, Passungsmaße) → "rechnen"
             Datenverarbeitung → python-Block, die Person führt ihn aus
@@ -474,7 +476,19 @@ export function buildTutorAgent(opts: {
             beschriftete Achsen mit Einheit, nummerierte Zustandspunkte
             1–2–3–4, Pfeile in Umlaufrichtung, Isentrope/Isobare/Isochore
             benannt, zu- und abgeführte Wärme (q_zu, q_ab) markiert.
-            Zustandsgrößen und Wirkungsgrade rechnet "thermo_berechnen".
+            Zustandsgrößen und Wirkungsgrade rechnet "thermo_berechnen"
+            (auch p·V = n·R·T mit modus ideales_gas und den 1. Hauptsatz mit
+            modus erster_hauptsatz). Das p-V-Diagramm einer Zustandsänderung
+            oder eines Kreisprozesses erscheint AUTOMATISCH aus der Rechnung —
+            zeichne es NICHT zusätzlich als chart; ein T-s-Diagramm oder ein
+            Schema mit Systemgrenze skizzierst du bei Bedarf als svg.
+          • PHYSIK (alle Ingenieurstudiengänge) — Kinematik, freier Fall,
+            Wurf und F = m·a rechnet "physik_berechnen". Zuerst eine kleine
+            svg-Skizze mit Koordinatensystem und positiver Richtung, dann der
+            Ansatz in LaTeX, dann der Löser. Weg-Zeit-, Geschwindigkeit-Zeit-
+            Diagramm bzw. Wurfbahn erscheinen AUTOMATISCH aus der Rechnung —
+            nicht selbst als chart nachzeichnen. Annahmen nennen (kein
+            Luftwiderstand, g = 9,81 m/s² oder der Wert aus dem Skript).
           • REGELUNGSTECHNIK — Regelkreis als svg-Blockschaltbild (Regler,
             Strecke, Summationsstelle mit Vorzeichen, Rückführung, Signale
             w, e, u, y, z beschriftet) im TRED-Stil von NIVEAU 9 A.
@@ -663,7 +677,8 @@ export function buildTutorAgent(opts: {
           Für jedes Fachgebiet mit eigenem Löser rechnet der LÖSER, du erklärst.
           | Fachgebiet          | Werkzeug             | deckt ab |
           | Elektrotechnik      | schaltung_berechnen  | lineare Netzwerke DC/AC: Kirchhoff, Teiler, Impedanzen, Leistung, Thevenin/Norton, idealer OPV |
-          | Thermodynamik       | thermo_berechnen     | ideale Gase: Zustandsänderungen, Kreisprozesse, Carnot/2. Hauptsatz, Verdichter/Turbine |
+          | Thermodynamik       | thermo_berechnen     | ideale Gase: p·V = n·R·T, 1. Hauptsatz, Zustandsänderungen, Kreisprozesse, Carnot/2. Hauptsatz, Verdichter/Turbine |
+          | Physik              | physik_berechnen     | Kinematik (konstante Beschleunigung), Wurf ohne Luftwiderstand, F = m·a |
           | Mathematik          | mathe_berechnen      | Ableitung, Integral, DGL, Matrizen, Nullstellen |
           | Techn. Mechanik     | balkenstatik         | Balken: Auflager, Q(x), M(x) |
           | alles übrige        | rechnen              | einzelne Zahlenausdrücke |
@@ -1675,7 +1690,8 @@ export function buildTutorAgent(opts: {
           "eine Monotonie-Aussage nennst. Beispiele: " +
           '"15 * 1200 / (1200 + 1200)", "1000 * (1 + 0.025 * (29 - 20))", ' +
           '"sqrt(2)/2". Unterstützt + - * / ^, Klammern, sqrt, sin, cos, tan, ' +
-          "log, exp, abs, pi, e.",
+          "log, exp, abs, pi, e. Thermodynamik (p·V = n·R·T, 1. Hauptsatz, Carnot, " +
+          "Zustandsänderungen) → thermo_berechnen; Kinematik, Wurf, F = m·a → physik_berechnen.",
         inputSchema: z.object({
           ausdruck: z
             .string()
@@ -1731,10 +1747,27 @@ export function buildTutorAgent(opts: {
           "kreisprozess (letzter Schritt ziel.zurueck_zum_start = true; liefert η bzw. " +
           "Leistungszahl und Carnot-Vergleich), carnot (T_warm, T_kalt, optional " +
           "maschine zur Prüfung gegen den 2. Hauptsatz), stroemungsmaschine " +
-          '(Verdichter/Turbine mit eta_s). Werte mit Einheit: "1 bar", "20 °C", "2 L", "500 kJ". ' +
+          "(Verdichter/Turbine mit eta_s), ideales_gas (start mit zwei oder drei von p, V, T " +
+          "plus stoffmenge in mol oder masse+gas; die fehlende Größe aus p·V = n·R·T), " +
+          "erster_hauptsatz (genau zwei von Q, W, dU; konvention). Zustandsänderung und " +
+          "Kreisprozess liefern das p-V-Diagramm, das automatisch angezeigt wird. " +
+          'Werte mit Einheit: "1 bar", "20 °C", "2 L", "500 kJ", "2 mol". ' +
           "Vorzeichen: zugeführt positiv. Wasserdampf/Kältemittel sind NICHT abgedeckt.",
         inputSchema: thermoInputSchema,
         execute: async (input) => solveThermo(input),
+      }),
+
+      physik_berechnen: tool({
+        description:
+          "Physik (Massenpunkt), exakt und mit Probe: aufgabe kinematik (v0, a und GENAU EINE " +
+          "von t, v = Endgeschwindigkeit, s = Weg; optional s0) → t, v, s; wurf (v0, winkel " +
+          "gegen die Waagerechte in Grad, h0 Abwurfhöhe, optional g) → Steigzeit, Gipfelhöhe, " +
+          "Flugzeit, Wurfweite, Aufprallgeschwindigkeit; newton (F = m·a, genau eine Größe " +
+          "fehlt; mehrere Kräfte als kraefte [{F, winkel}] → Resultierende). Werte mit " +
+          'Einheit: "72 km/h", "-2 m/s²", "1,2 kN", "30 °". Diagramme s(t)/v(t) bzw. die ' +
+          "Wurfbahn werden automatisch angezeigt. Ohne Luftwiderstand.",
+        inputSchema: physicsInputSchema,
+        execute: async (input) => solvePhysics(input),
       }),
 
       mathe_berechnen: tool({

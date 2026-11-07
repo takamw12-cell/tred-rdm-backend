@@ -17,6 +17,7 @@ export type CoveredDomain =
   | "thermodynamik"
   | "mathematik"
   | "mechanik"
+  | "physik"
   | "datenverarbeitung"
   | "technisches_zeichnen";
 export type UncoveredDomain =
@@ -65,6 +66,14 @@ const KEYWORDS: Record<Exclude<Domain, "unbekannt">, [RegExp, number][]> = {
     [/\b(freikörperbild|freischneiden|kräftegleichgewicht|momentengleichgewicht|resultierende|kräftepaar|lagerreaktion(en)?)\b/, 2],
     [/\b\d+(?:[.,]\d+)?\s*(kn|knm|n\/mm|kn\/m)\b/, 2],
   ],
+  // Physik für alle Ingenieurstudiengänge : Kinematik, Wurf, Newton.
+  physik: [
+    [/\b(physik|physique|physics|kinematik|kinematics|cinématique|kinetik|massenpunkt)\b/, 3],
+    [/\b(freier fall|free fall|chute libre|senkrechter wurf|waagerechter wurf|schiefer wurf|wurfparabel|wurfweite|wurfhöhe|wurfbahn|steighöhe|projectile|projektil|trajectoire|ballistisch|ballistic|balistique)\b/, 4],
+    [/\b(newtonsche[sn]? (gesetz|axiom|grundgesetz)|grundgesetz der dynamik|zweites newton|second law of motion|principe fondamental de la dynamique|f\s*=\s*m\s*[·*⋅]?\s*a)\b/, 4],
+    [/\b(gleichmäßig beschleunigt|gleichförmig|anfangsgeschwindigkeit|endgeschwindigkeit|bremsweg|anhalteweg|beschleunigung|acceleration|accélération|geschwindigkeit|velocity|vitesse)\b/, 2],
+    [/\b\d+(?:[.,]\d+)?\s*(m\/s²|m\/s\^2|m\/s2|m\/s|km\/h)\b/, 2],
+  ],
   stroemungslehre: [
     [/\b(strömungslehre|strömungsmechanik|fluidmechanik|bernoulli|reynolds|rohrströmung|druckverlust|viskosität|navier|kontinuitätsgleichung)\b/, 3],
   ],
@@ -99,6 +108,7 @@ const COVERED: ReadonlySet<Domain> = new Set<Domain>([
   "thermodynamik",
   "mathematik",
   "mechanik",
+  "physik",
   "datenverarbeitung",
   "technisches_zeichnen",
 ]);
@@ -160,6 +170,7 @@ const LABEL: Record<Domain, string> = {
   thermodynamik: "Thermodynamik",
   mathematik: "Mathematik",
   mechanik: "Technische Mechanik",
+  physik: "Physik (Kinematik, Wurf, Newton)",
   stroemungslehre: "Strömungslehre",
   regelungstechnik: "Regelungstechnik",
   werkstoffkunde: "Werkstoffkunde",
@@ -172,9 +183,10 @@ const LABEL: Record<Domain, string> = {
 
 const SOLVER: Record<CoveredDomain, string> = {
   elektrotechnik: "schaltung_berechnen",
-  thermodynamik: "thermo_berechnen",
+  thermodynamik: "thermo_berechnen (auch ideales_gas mit n in mol, erster_hauptsatz) — p-V-Diagramm erscheint automatisch",
   mathematik: "mathe_berechnen",
   mechanik: "balkenstatik (Balken), statik_berechnen (Fachwerk, Reibung, Kraftsystem)",
+  physik: "physik_berechnen (kinematik, wurf, newton) — Diagramm s(t)/v(t) bzw. Wurfbahn erscheint automatisch",
   datenverarbeitung:
     "echte Ausführung im Browser — Python-Code in einen python-Block, die Studierenden starten „Ausführen“ bzw. „Variablentabelle“; Ausgaben nie im Kopf als Tatsache behaupten",
   technisches_zeichnen: "Zeichnung als svg (NIVEAU 9g), 3D als 3d-json (NIVEAU 9f), Grenzmaße mit rechnen",
