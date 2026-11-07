@@ -48,6 +48,7 @@ import { studyProfileHint, type StudyProfileInput } from "./lib/study-profile";
 import { mailCanReachAnyone } from "./lib/mail";
 import { registerAnalyticsRoutes } from "./analytics/routes";
 import { registerFlashcardRoutes } from "./flashcards/routes";
+import { registerVisionRoutes } from "./vision/routes";
 import { flashcards } from "./routes/flashcards";
 import { examPredictor } from "./routes/exam-predictor";
 import { readLearningStyle } from "./lib/learning-style-store";
@@ -398,6 +399,8 @@ registerTtsRoutes(app);
 // Betreiber-Dashboard /admin/analytics (DB + PostHog), nur Rolle admin.
 registerAnalyticsRoutes(app, requireAdmin);
 registerFlashcardRoutes(app);
+// Co-pilote vision (V2, Pilier 3) — squelette : 501 tant que non branché.
+registerVisionRoutes(app);
 
 app.get("/api/admin/users", async (c) => {
   const guard = await requireAdmin(c);
