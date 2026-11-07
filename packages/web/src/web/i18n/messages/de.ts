@@ -207,6 +207,7 @@ export const de = {
     phaseReasoning: "TRED denkt nach …",
     phaseSearch: "Ich suche in deinen Dokumenten …",
     phaseSolve: "Ich berechne die Lösung …",
+    phaseReview: "Ich prüfe den Aufbau deiner Lösung …",
     phaseResearch: "Ich schlage im Fachwissen nach …",
     phaseDraw: "Ich zeichne …",
     phaseWrite: "TRED formuliert die Antwort …",

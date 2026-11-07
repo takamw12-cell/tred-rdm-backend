@@ -28,7 +28,15 @@ export type UncoveredDomain =
   | "werkstoffkunde"
   | "dampf_kaeltetechnik"
   | "chemie";
-export type Domain = CoveredDomain | UncoveredDomain | "unbekannt";
+/**
+ * Fächer außerhalb der Technik (Nov. 2026, lib/domains/) : kein Rechenlöser,
+ * sondern die METHODE des Fachs (Gutachtenstil, klinisches Vorgehen,
+ * ökonomische Argumentation) und das Werkzeug evaluate_structure.
+ */
+export type MethodDomain = "recht" | "medizin" | "wirtschaft";
+export type Domain = CoveredDomain | UncoveredDomain | MethodDomain | "unbekannt";
+
+export const METHOD_DOMAINS: ReadonlySet<Domain> = new Set<Domain>(["recht", "medizin", "wirtschaft"]);
 
 /** [Muster, Gewicht]. Muster auf kleingeschriebenem Text, Umlaute erhalten. */
 const KEYWORDS: Record<Exclude<Domain, "unbekannt">, [RegExp, number][]> = {
@@ -95,6 +103,26 @@ const KEYWORDS: Record<Exclude<Domain, "unbekannt">, [RegExp, number][]> = {
     [/\b(sigmoid|sigmoïde|relu|softmax|tanh|aktivierungsfunktion|activation function|fonction d'activation|gradientenabstieg|gradient descent|descente de gradient|lernrate|learning rate|taux d'apprentissage|backpropagation|verlustfunktion|loss function)\b/, 4],
     [/\b(lineare regression|linear regression|régression linéaire|bestimmtheitsmaß|kleinste quadrate|methode der kleinsten quadrate|least squares|moindres carrés)\b/, 4],
     [/\b(ki|ia)\b/, 2],
+  ],
+  // Recht (Jura, Droit) : Normen, Gutachtenstil. Bewusst KEIN „law“ allein
+  // (Ohm's law, Hooke's law) und kein „Anspruch“ allein („hoher Anspruch“).
+  recht: [
+    [/§\s*\d+/, 3],
+    [/\b(anspruchsgrundlage|gutachtenstil|urteilsstil|subsumtion|subsumieren|obersatz|tatbestandsmerkmal\w*|rechtsfolge|willenserklärung|kaufvertrag|schadensersatz|rechtswidrig\w*|verwaltungsakt)\b/, 4],
+    [/\banspruch\w*\s+(aus|gegen|auf)\b/, 3],
+    [/\b(bgb|stgb|hgb|zpo|stpo|vwvfg|dsgvo|code civil|code pénal|droit civil|droit pénal|droit des contrats|jurisprudence|juridique|contract law|criminal law|civil law|case law)\b/, 3],
+    [/\b(jura|jurist\w*|rechtswissenschaft\w*|zivilrecht|strafrecht|öffentliches recht|verfassungsrecht|arbeitsrecht)\b/, 3],
+  ],
+  // Medizin : klinisches Vorgehen.
+  medizin: [
+    [/\b(anamnese|verdachtsdiagnose|differenzialdiagnose\w*|differentialdiagnose\w*|arbeitsdiagnose|leitsymptom|anamnèse|diagnostic différentiel|differential diagnosis)\b/, 4],
+    [/\b(patient\w*|klinik|klinisch\w*|anatomie|physiologie|pathologie|pharmakolog\w*|medizin\w*|arzt|ärztin|krankheit|syndrom|médecine|médical\w*|symptôme\w*|anatomy|clinical)\b/, 2],
+    [/\b(diagnose|therapie|symptom\w*|traitement|thérapie|treatment)\b/, 1],
+  ],
+  // Wirtschaft (BWL/VWL, Finanzmathematik).
+  wirtschaft: [
+    [/\b(kapitalwert|barwert|interner zinsfuß|zinseszins\w*|annuität\w*|amortisation\w*|valeur actuelle nette|taux de rendement interne|intérêts composés|net present value|internal rate of return|compound interest)\b/, 4],
+    [/\b(bwl|vwl|betriebswirtschaft\w*|volkswirtschaft\w*|mikroökonomi\w*|makroökonomi\w*|angebot und nachfrage|preiselastizität|elastizität|inflation|bruttoinlandsprodukt|bip|gdp|pib|économie|economics|rendite|abschreibung\w*)\b/, 3],
   ],
   stroemungslehre: [
     [/\b(strömungslehre|strömungsmechanik|fluidmechanik|bernoulli|reynolds|rohrströmung|druckverlust|viskosität|navier|kontinuitätsgleichung)\b/, 3],
@@ -204,6 +232,9 @@ const LABEL: Record<Domain, string> = {
   datenverarbeitung: "Datenverarbeitung (Python/MATLAB)",
   technisches_zeichnen: "Technisches Zeichnen",
   chemie: "Chemie",
+  recht: "Recht",
+  medizin: "Medizin",
+  wirtschaft: "Wirtschaft",
   unbekannt: "nicht erkannt",
 };
 
@@ -223,7 +254,9 @@ const SOLVER: Record<CoveredDomain, string> = {
 
 /** Der Hinweis, der als zweite System-Nachricht an das Modell geht. */
 export function domainHint(g: DomainGuess): string | null {
-  if (g.domain === "unbekannt") return null;
+  // Recht, Medizin, Wirtschaft : kein „es gibt keinen Fachlöser“ — dort führt
+  // die Methode des Fachs (lib/domains/familyHint).
+  if (g.domain === "unbekannt" || METHOD_DOMAINS.has(g.domain)) return null;
   const also = g.also.filter((d) => COVERED.has(d)).map((d) => `${LABEL[d]} → ${SOLVER[d as CoveredDomain]}`);
   if (g.covered) {
     return [

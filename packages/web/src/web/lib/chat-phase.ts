@@ -9,11 +9,12 @@
  *   reasoning  raisonnement en cours              « TRED denkt nach … »
  *   search     suche_in_unterlagen                « Ich suche in deinen Dokumenten … »
  *   solve      un solveur (rechnen, *_berechnen…) « Ich berechne die Lösung … »
+ *   review     evaluate_structure                 « Ich prüfe den Aufbau deiner Lösung … »
  *   research   recherche externe                  « Ich schlage im Fachwissen nach … »
  *   draw       skizze / image / vidéo             « Ich zeichne … »
  *   write      un outil vient de répondre         « TRED formuliert die Antwort … »
  */
-export type ChatPhase = "analyse" | "reasoning" | "search" | "solve" | "research" | "draw" | "write";
+export type ChatPhase = "analyse" | "reasoning" | "search" | "solve" | "review" | "research" | "draw" | "write";
 
 export const SOLVER_TOOL_NAMES = new Set([
   "rechnen",
@@ -52,6 +53,7 @@ export function chatPhase(parts: PartLike[] | undefined): ChatPhase {
     if (name === "suche_in_unterlagen") return "search";
     if (name === "recherche_connaissances_externes") return "research";
     if (SOLVER_TOOL_NAMES.has(name)) return "solve";
+    if (name === "evaluate_structure") return "review";
     if (DRAW_TOOLS.has(name)) return "draw";
     return "write";
   }
@@ -65,6 +67,7 @@ export const PHASE_KEY = {
   reasoning: "chat.phaseReasoning",
   search: "chat.phaseSearch",
   solve: "chat.phaseSolve",
+  review: "chat.phaseReview",
   research: "chat.phaseResearch",
   draw: "chat.phaseDraw",
   write: "chat.phaseWrite",

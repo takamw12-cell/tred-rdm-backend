@@ -10,6 +10,7 @@ import { physicsInputSchema, solvePhysics } from "../lib/physics-solver";
 import { cyberInputSchema, solveCyber } from "../lib/solvers/cyber-solver";
 import { aiInputSchema, solveAi } from "../lib/solvers/ai-solver";
 import { openMathInputSchema, solveOpenMath } from "../lib/solvers/open-math-solver";
+import { evaluateStructure } from "../lib/domains/structure";
 import { solveStatics, staticsInputSchema } from "../lib/solvers/statics-solver";
 import { searchKnowledge } from "../lib/knowledge-search";
 import { renderDiagram, type DiagramSpec } from "../lib/diagrams";
@@ -340,6 +341,23 @@ export function buildTutorAgent(opts: {
           und Welle im Maschinenbau, Antrieb und Sensor in der Mechatronik.
           Wo es relevant ist, arbeitest du mit den deutschen bzw.
           europäischen Normen (DIN, DIN EN, DIN EN ISO) und nennst sie.
+
+          ÜBER DIE TECHNIK HINAUS (seit Nov. 2026): TRED begleitet auch Recht,
+          Medizin, Wirtschaft und die Schule (Mittel- und Oberstufe). Erkenne
+          zuerst das FACH der Frage und arbeite mit SEINER Methode — eine
+          automatische System-Nachricht ("ERKANNTE FACHFAMILIE") nennt sie dir:
+            Recht → Gutachtenstil; Normen aus den Unterlagen (BGB, StGB,
+              Code civil …) mit genauer Fundstelle, nie erfunden.
+            Medizin → Anamnese, Verdachtsdiagnose, Differenzialdiagnose,
+              Therapie; Fakten aus den Skripten (Anatomie, Klinik).
+            Wirtschaft → Hypothese, Daten, Modell, Schlussfolgerung; Zahlen
+              mit den Rechenwerkzeugen.
+            Technik und Naturwissenschaft → die Fachlöser (siehe unten).
+          Suche zuerst in den Unterlagen der Person (suche_in_unterlagen).
+          Mische NIE die Methoden zweier Fächer. Legt jemand in Recht,
+          Medizin oder Wirtschaft eine eigene Lösung vor, prüfst du ihren
+          AUFBAU mit "evaluate_structure", bevor du sie bewertest — du
+          erfindest keine Musterlösung, du bewertest Struktur und Inhalt.
 
           RECHTLICHER RAHMEN — nicht verhandelbar:
           TRED ist ein LERNBEGLEITER, keine Prüfstelle und keine
@@ -746,6 +764,7 @@ export function buildTutorAgent(opts: {
           | Informatik/IT-Sich. | solve_cyber          | Caesar, Vigenère, Lehrbuch-RSA, Hashes, boolesche Minimierung, KV-Diagramm, IPv4-Subnetze |
           | KI/Data Science     | solve_ai             | Matrix-/Skalarprodukt, lineare Regression, Gradientenschritt, Sigmoid/ReLU/Softmax, Perzeptron |
           | Mathematik          | mathe_berechnen      | Ableitung, Integral, DGL, Matrizen, Nullstellen |
+          | Recht/Medizin/Wirt. | evaluate_structure   | Aufbau einer Lösung: Gutachtenstil, klinisches Vorgehen, ökonomische Argumentation (Schritte, Reihenfolge, Punkte) |
           | Offene Probleme     | solve_open_math      | Collatz-Folge (Schritte, Maximum, Diagramm), Goldbach-Prüfung, Primzahllücken, Zwillinge |
           | Techn. Mechanik     | balkenstatik         | Balken: Auflager, Q(x), M(x) |
           | alles übrige        | rechnen              | einzelne Zahlenausdrücke |
@@ -1872,6 +1891,21 @@ export function buildTutorAgent(opts: {
           "IMMER dieses Werkzeug, nie selbst rechnen. Inverse/Eigenwerte: mathe_berechnen.",
         inputSchema: aiInputSchema,
         execute: async (input) => solveAi(input),
+      }),
+
+      evaluate_structure: tool({
+        description:
+          "Prüft den AUFBAU einer Lösung der Person in Recht, Medizin oder Wirtschaft (deterministisch): " +
+          "domain recht (Sachverhalt → Anspruchsgrundlage → Subsumtion → Ergebnis), medizin (Anamnese → " +
+          "Verdachtsdiagnose → Differenzialdiagnose → Therapie), wirtschaft (Hypothese → Daten → Modell → " +
+          "Schlussfolgerung). Liefert gefundene/fehlende Schritte mit Fundstelle, Reihenfolgefehler, Punkte " +
+          "(0–100) und Rückmeldungen. IMMER aufrufen, bevor du eine vorgelegte Lösung dieser Fächer bewertest. " +
+          "Prüft NICHT die inhaltliche Richtigkeit.",
+        inputSchema: z.object({
+          domain: z.enum(["recht", "medizin", "wirtschaft"]),
+          text: z.string().min(1).max(30000).describe("Die Lösung der Person, wörtlich"),
+        }),
+        execute: async ({ domain, text }) => ({ ok: true, ...evaluateStructure(domain, text) }),
       }),
 
       solve_open_math: tool({

@@ -208,6 +208,7 @@ export const fr: Messages = {
     phaseReasoning: "TRED réfléchit …",
     phaseSearch: "Je cherche dans tes documents …",
     phaseSolve: "Je calcule la solution …",
+    phaseReview: "Je vérifie la structure de ta réponse …",
     phaseResearch: "Je vérifie dans les connaissances de référence …",
     phaseDraw: "Je dessine …",
     phaseWrite: "TRED rédige la réponse …",
