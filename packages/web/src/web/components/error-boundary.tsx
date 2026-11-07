@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { AlertTriangle, RotateCcw } from "lucide-react";
+import { isStaleBuildError, reloadForNewBuild } from "@/lib/stale-build";
 
 /**
  * Filet de sécurité contre la page blanche.
@@ -64,6 +65,9 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
     console.error("[boundary]", error, info.componentStack);
+    // Ancienne version de l'app après un déploiement : on recharge, on ne
+    // signale pas une panne qui n'en est pas une (lib/stale-build.ts).
+    if (isStaleBuildError(error) && reloadForNewBuild()) return;
     report({
       kind: "render",
       area: this.props.area ?? "app",
@@ -93,7 +97,10 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="mt-6 flex flex-col gap-2">
             <button
               type="button"
-              onClick={() => this.setState({ error: null })}
+              onClick={() =>
+                // Un fichier d'une ancienne version ne reviendra pas : il faut recharger.
+                isStaleBuildError(error) ? window.location.reload() : this.setState({ error: null })
+              }
               className="bg-primary text-primary-foreground inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-opacity hover:opacity-90"
             >
               <RotateCcw className="size-4" />
@@ -130,6 +137,12 @@ let installed = false;
 export function installGlobalErrorReporting(): void {
   if (installed || typeof window === "undefined") return;
   installed = true;
+
+  // Vite signale ici l'échec d'un import dynamique (page chargée à la
+  // demande). Après un déploiement, c'est une ancienne version : recharger.
+  window.addEventListener("vite:preloadError", (e) => {
+    if (reloadForNewBuild()) e.preventDefault();
+  });
 
   window.addEventListener("unhandledrejection", (e) => {
     const reason = e.reason as { message?: string; stack?: string } | undefined;
