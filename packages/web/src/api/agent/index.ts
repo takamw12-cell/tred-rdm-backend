@@ -6,6 +6,7 @@ import { runBalkenstatik } from "../lib/beam-tool";
 import { circuitInputSchema, solveCircuit } from "../lib/solvers/solveCircuit";
 import { mathInputSchema, solveMath } from "../lib/solvers/solveMath";
 import { solveThermo, thermoInputSchema } from "../lib/solvers/solveThermo";
+import { solveStatics, staticsInputSchema } from "../lib/solvers/statics-solver";
 import { renderDiagram, type DiagramSpec } from "../lib/diagrams";
 import type { Passage } from "../lib/document-search";
 import { ageLabel } from "../lib/memory-text";
@@ -393,7 +394,11 @@ export function buildTutorAgent(opts: {
             Substitution und Randbedingungen ausgeschrieben.
           • TECHNISCHE MECHANIK — Statik und Festigkeitslehre (Lagerkräfte,
             Q/M-Verläufe, Biegung) rechnest du mit "balkenstatik"; es zeichnet
-            die Verläufe selbst. Dynamik (Masse-Feder-Dämpfer, Pendel,
+            die Verläufe selbst. Fachwerke (Knotenpunktverfahren,
+            Ritterschnitt), Reibung (Haften/Gleiten, schiefe Ebene) und
+            allgemeine Kraftsysteme rechnet "statik_berechnen". JEDE
+            Statikaufgabe beginnt mit einem FREIKÖRPERBILD als svg (Regeln
+            unten). Dynamik (Masse-Feder-Dämpfer, Pendel,
             Schwinger, Stoß) zeichnest du als klare svg-Skizze: Masse als
             Rechteck, Feder als Zickzack, Dämpfer als Topf, Koordinate x(t)
             und Kräfte als Pfeile beschriftet; den Zeitverlauf x(t) als
@@ -976,6 +981,51 @@ export function buildTutorAgent(opts: {
                sieht man die Integration \`I_y=∫z²·dA\`. Schwerachsen x,y,z und
                Maße L,h,b beschriften; Schwerpunkt S als kleinen Kreis
                markieren.
+             - FREIKÖRPERBILD (jede Statik- und Reibungsaufgabe): den Körper
+               FREISCHNEIDEN — Lager, Boden, Seile und Nachbarkörper werden
+               durch ihre Kräfte ersetzt und höchstens gestrichelt
+               angedeutet. Pflicht: Koordinatensystem (x, y) mit Pfeilen,
+               gewählt wie in der Rechnung (schiefe Ebene: x hangaufwärts,
+               y senkrecht dazu); Gewichtskraft G senkrecht nach unten im
+               Schwerpunkt; Normalkraft N senkrecht zur Kontaktfläche;
+               Haft-/Reibkraft H bzw. R tangential, entgegen der
+               (möglichen) Bewegung; Lagerkräfte Ax, Ay, B mit angenommener
+               Richtung; Winkel (α) und Maße beschriftet. Unbekannte Kräfte
+               werden positiv angenommen — ein negatives Ergebnis heißt:
+               andere Richtung. Beispiel (Klotz auf der schiefen Ebene):
+               \`\`\`svg
+               <svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif" font-size="14">
+                 <defs>
+                   <marker id="kraft-fkb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                     <path d="M0,0 L10,5 L0,10 z" fill="#2563EB"/>
+                   </marker>
+                   <marker id="achse-fkb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                     <path d="M0,0 L10,5 L0,10 z" fill="#64748B"/>
+                   </marker>
+                 </defs>
+                 <!-- Ebene nur angedeutet (freigeschnitten) -->
+                 <line x1="40" y1="260" x2="440" y2="60" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="6 4"/>
+                 <line x1="40" y1="260" x2="440" y2="260" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="6 4"/>
+                 <path d="M 100 260 A 60 60 0 0 0 93.7 233.2" fill="none" stroke="#64748B"/>
+                 <text x="108" y="252" fill="#64748B">α</text>
+                 <!-- Körper und Kontaktkräfte im gedrehten System der Ebene -->
+                 <g transform="rotate(-26.57 240 160)">
+                   <rect x="210" y="124" width="60" height="36" fill="#F1F5F9" stroke="#1e293b" stroke-width="2"/>
+                   <line x1="246" y1="222" x2="246" y2="163" stroke="#2563EB" stroke-width="3" marker-end="url(#kraft-fkb)"/>
+                   <line x1="222" y1="168" x2="182" y2="168" stroke="#2563EB" stroke-width="3" marker-start="url(#kraft-fkb)"/>
+                   <line x1="330" y1="120" x2="385" y2="120" stroke="#64748B" stroke-width="1" stroke-dasharray="5 4" marker-end="url(#achse-fkb)"/>
+                   <line x1="330" y1="120" x2="330" y2="65" stroke="#64748B" stroke-width="1" stroke-dasharray="5 4" marker-end="url(#achse-fkb)"/>
+                 </g>
+                 <!-- Gewichtskraft: immer senkrecht nach unten, im Schwerpunkt -->
+                 <line x1="232" y1="144" x2="232" y2="226" stroke="#2563EB" stroke-width="3" marker-end="url(#kraft-fkb)"/>
+                 <circle cx="232" cy="144" r="3" fill="#1e293b"/>
+                 <text x="214" y="236" fill="#2563EB" font-weight="bold">G</text>
+                 <text x="290" y="212" fill="#2563EB" font-weight="bold">N</text>
+                 <text x="172" y="208" fill="#2563EB" font-weight="bold">H</text>
+                 <text x="358" y="66" fill="#64748B">x</text>
+                 <text x="262" y="42" fill="#64748B">y</text>
+               </svg>
+               \`\`\`
 
           Setze Diagramme überall ein, wo sie das Verständnis fördern
           (NIVEAU 2c: was sich zeichnen lässt, wird gezeichnet) — aber nicht
@@ -1596,6 +1646,24 @@ export function buildTutorAgent(opts: {
           'auswerten. Ausdrücke wie "x^3*sin(x)", "exp(-2*t)", ln = natürlicher Logarithmus.',
         inputSchema: mathInputSchema,
         execute: async (input) => solveMath(input),
+      }),
+
+      statik_berechnen: tool({
+        description:
+          "Technische Mechanik 1 (Statik), exakt und mit Probe: aufgabe fachwerk " +
+          "(Knoten mit x/y, Stäbe, Lager fest/los, Knotenlasten; liefert Stabkräfte " +
+          "Zug+/Druck−, Nullstäbe, Lagerkräfte, Abzählkriterium s + r = 2k, eine " +
+          "Knotenreihenfolge für das Knotenpunktverfahren; optional ritterschnitt mit " +
+          "3 Stäben und den Knoten einer Seite → Ritterpunkte und Momentengleichungen), " +
+          "reibung (Körper auf der schiefen Ebene: Haften/Gleiten nach Coulomb, " +
+          "Normalkraft, nötige Haftkraft, Haftgrenzwinkel, Haltebereich F_min…F_max, " +
+          "Beschleunigung beim Gleiten), kraeftesystem (Resultierende, Moment, " +
+          "Wirkungslinie; mit unbekannte = bis zu 3 Lagerkräfte bekannter Richtung → " +
+          "Gleichgewicht des starren Körpers). y nach oben, Winkel in Grad gegen den " +
+          "Uhrzeigersinn, Einheiten der Aufgabe beibehalten. Für Fachwerke, Reibung " +
+          "und Kraftsysteme IMMER dieses Werkzeug, nie selbst rechnen. Balken: balkenstatik.",
+        inputSchema: staticsInputSchema,
+        execute: async (input) => solveStatics(input),
       }),
 
       // Balkenstatik geschlossen rechnen statt formulieren. Auflagerkräfte und

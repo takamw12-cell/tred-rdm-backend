@@ -55,6 +55,9 @@ const KEYWORDS: Record<Exclude<Domain, "unbekannt">, [RegExp, number][]> = {
     [/\b(balken|träger|beam|poutre|auflager|lager(kraft|reaktion)|einspannung|festlager|loslager)\b/, 3],
     [/\b(biegemoment|querkraft|schnittgröße|schnittgrößen|moment(en)?verlauf|streckenlast|einzellast)\b/, 3],
     [/\b(statik|mechanik|mécanique|festigkeitslehre|biegespannung|flächenträgheitsmoment)\b/, 2],
+    [/\b(fachwerk|fachwerke|stabkraft|stabkräfte|nullstab|nullstäbe|knotenpunktverfahren|ritterschnitt|ritterpunkt|truss|treillis)\b/, 3],
+    [/\b(reibung|haftreibung|gleitreibung|haftung|haftgrenze|schiefe ebene|reibungszahl|reibwert|friction|frottement)\b/, 3],
+    [/\b(freikörperbild|freischneiden|kräftegleichgewicht|momentengleichgewicht|resultierende|kräftepaar|lagerreaktion(en)?)\b/, 2],
     [/\b\d+(?:[.,]\d+)?\s*(kn|knm|n\/mm|kn\/m)\b/, 2],
   ],
   stroemungslehre: [
@@ -149,7 +152,7 @@ const SOLVER: Record<CoveredDomain, string> = {
   elektrotechnik: "schaltung_berechnen",
   thermodynamik: "thermo_berechnen",
   mathematik: "mathe_berechnen",
-  mechanik: "balkenstatik (Balken) — sonst rechnen",
+  mechanik: "balkenstatik (Balken), statik_berechnen (Fachwerk, Reibung, Kraftsystem)",
 };
 
 /** Der Hinweis, der als zweite System-Nachricht an das Modell geht. */
