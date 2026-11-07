@@ -127,6 +127,14 @@ export const de = {
     master: "Master",
     phd: "Promotion",
   },
+  inbox: {
+    title: "Vorschläge von TRED",
+    subtitle: "TRED schlägt vor — du entscheidest.",
+    open: "Öffnen",
+    dismiss: "Ausblenden",
+    accept: "Ja, erstellen",
+    decline: "Nein danke",
+  },
   onboarding: {
     title: "Konto erstellen",
     subtitle: "Starte dein dreisprachiges Ingenieurstudium.",

@@ -57,6 +57,7 @@ const CoursesPage = lazyPage(() => import("./pages/courses"));
 const AdminPage = lazyPage(() => import("./pages/admin"));
 const AdminAnalyticsPage = lazyPage(() => import("./pages/admin-analytics"));
 const AdminFeedbackPage = lazyPage(() => import("./pages/admin-feedback"));
+const AdminRetentionPage = lazyPage(() => import("./pages/admin-retention"));
 const ProfessorsPage = lazyPage(() => import("./pages/professors"));
 
 function RootRedirect() {
@@ -113,6 +114,7 @@ function AuthedApp() {
             {/* Serverseitig durch die Admin-Rolle geschützt, nicht durch Verstecken. */}
             <Route path="/admin/analytics" component={AdminAnalyticsPage} />
             <Route path="/admin/feedback" component={AdminFeedbackPage} />
+            <Route path="/admin/retention" component={AdminRetentionPage} />
             <Route path="/admin" component={AdminPage} />
             <Route component={RootRedirect} />
           </Switch>

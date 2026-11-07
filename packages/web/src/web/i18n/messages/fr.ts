@@ -128,6 +128,14 @@ export const fr: Messages = {
     master: "Master",
     phd: "Doctorat",
   },
+  inbox: {
+    title: "Suggestions de TRED",
+    subtitle: "TRED propose, tu décides.",
+    open: "Ouvrir",
+    dismiss: "Masquer",
+    accept: "Oui, crée-les",
+    decline: "Non merci",
+  },
   onboarding: {
     title: "Créer un compte",
     subtitle: "Lance tes études d'ingénieur en trois langues.",

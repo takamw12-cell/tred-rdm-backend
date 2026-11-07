@@ -346,3 +346,24 @@ Le modèle ne calcule jamais lui-même : il pose le problème, un solveur (du co
 | Lycée | `schule_berechnen` | second degré (forme exacte, formule p-q, sommet, parabole automatique), Pythagore | « Löse x² − 2x − 1 = 0 mit der p-q-Formel. » |
 
 Les solveurs plus anciens (mécanique, circuits complets, thermo, physique, maths, cyber, IA, Collatz) sont listés dans le prompt du tuteur (`api/agent/index.ts`, tableau « FACHLÖSER »). Aucun ne demande de clé ni ne coûte rien de plus.
+
+---
+
+## Agent de rétention — TRED va chercher l'étudiant
+
+Un « battement de cœur » dans le serveur (`lib/retention/heartbeat.ts`) se réveille tous les quarts d'heure et fait un cycle toutes les 12 h, entre 9 h et 20 h à Berlin. Pour chaque étudiant, `lib/retention/agent.ts` prend **une** décision écrite noir sur blanc, sans IA :
+
+| Situation | Action | Ce que l'étudiant voit |
+|---|---|---|
+| inactif depuis plus de 3 jours | `send_push_notification` | une relance (avec le nombre de révisions en attente) |
+| une lacune (exercice raté) de plus de 48 h, sans cartes | `create_flashcard` | « Karteikarten zu … ? » — **Ja, erstellen** ou **Nein danke** |
+| des cartes ou lacunes dues aujourd'hui | `send_daily_digest` | le récapitulatif du jour |
+
+Règles de politesse : au plus **1 notification par jour** et par étudiant ; pas deux relances à moins de 3 jours ; plus rien après 3 relances sans retour ou 2 relances refusées en 30 jours ; une proposition refusée n'est jamais refaite. Sur mobile, la notification part par Expo **et** arrive dans la boîte de réception ; sur le web, seulement dans la boîte de réception (tableau de bord, « Vorschläge von TRED »). Quand l'agent est actif, la relance de 19 h n'envoie plus que l'alerte de quota (le récapitulatif vient de l'agent).
+
+**L'activer (une fois) :**
+1. `node C:\dev\tred-rdm\aerostudy-ai\migre-retention.mjs` — crée `user_notifications` et `retention_setting`. L'agent est créé **en pause**.
+2. Ouvre https://www.tred-tutor.de/admin/retention → **Vorschau** : la liste exacte de qui recevrait quoi, et pourquoi. Rien n'est envoyé.
+3. Si la liste te convient : **Agent aktivieren**. Le premier cycle part au quart d'heure suivant (entre 9 h et 20 h). **Pause** l'arrête à tout moment.
+
+Réglages Railway (facultatifs) : `RETENTION_INTERVAL_HOURS` (12 par défaut, de 1 à 168), `DISABLE_RETENTION_AGENT=true` pour le couper complètement. Logs : filtre `retention`.

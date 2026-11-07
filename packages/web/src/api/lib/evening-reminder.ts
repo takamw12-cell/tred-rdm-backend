@@ -3,6 +3,7 @@ import { and, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { db } from "../database";
 import { jobRun, misconception, pushToken, userAccess } from "../database/schema";
 import { sendNotification } from "./push";
+import { retentionAgentActive } from "./retention/store";
 import {
   marquerPrevenu,
   quiEstPresqueAuBout,
@@ -206,6 +207,12 @@ export async function balayerRelances(): Promise<{
       ),
     )
     .groupBy(misconception.userId);
+
+  // L'agent de rétention, quand il est actif, envoie lui-même le récapitulatif
+  // des révisions dues (send_daily_digest) avec sa limite d'une notification
+  // par jour : la relance du soir ne garde alors que l'alerte de quota, sinon
+  // le même étudiant recevrait deux fois la même nouvelle.
+  if (await retentionAgentActive()) return { envoyes: 0, vises: 0, alertesQuota };
 
   const aRelancer = dues.filter(
     (d) => Number(d.n) > 0 && !prevenus.has(d.userId),

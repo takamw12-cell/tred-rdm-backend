@@ -128,6 +128,14 @@ export const en: Messages = {
     master: "Master",
     phd: "PhD",
   },
+  inbox: {
+    title: "Suggestions from TRED",
+    subtitle: "TRED suggests — you decide.",
+    open: "Open",
+    dismiss: "Dismiss",
+    accept: "Yes, create them",
+    decline: "No thanks",
+  },
   onboarding: {
     title: "Create account",
     subtitle: "Start your engineering studies in three languages.",

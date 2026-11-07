@@ -778,3 +778,58 @@ export const sharedKnowledgeVote = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.knowledgeId, t.userId] })],
 );
+
+// ── Agent de rétention (lib/retention/) ───────────────────────────────────
+//
+// `user_notifications` est à la fois la boîte de réception de l'étudiant
+// (web, et mobile quand le push est tapé) et le journal de l'agent : chaque
+// action est UNE ligne, avec la raison écrite pour l'admin, le jour de Berlin
+// (limite d'une notification par jour) et ce que l'étudiant en a fait.
+// Tables créées par migre-retention.mjs (racine du dépôt). Tant qu'elles
+// n'existent pas, l'agent reste inerte et la boîte de réception est vide.
+export const userNotification = sqliteTable(
+  "user_notifications",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    /** send_push_notification | create_flashcard | send_daily_digest */
+    kind: text("kind").notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    /** JSON : href, screen, gapId, counts. */
+    data: text("data").notNull().default("{}"),
+    /** La lacune visée (create_flashcard) — pour ne jamais la reproposer. */
+    gapId: text("gap_id"),
+    /** Pourquoi l'agent l'a fait, en clair, pour /admin/retention. */
+    reason: text("reason").notNull().default(""),
+    /** Jour de Berlin « 2026-11-07 » : la limite d'une notification par jour. */
+    dayKey: text("day_key").notNull(),
+    /** push = aussi envoyée au mobile ; inbox = boîte de réception seulement. */
+    channel: text("channel").notNull().default("inbox"),
+    /** Appareils effectivement atteints par Expo (0 si web seulement ou échec). */
+    pushSent: integer("push_sent").notNull().default(0),
+    /** unread | opened | accepted | dismissed */
+    status: text("status").notNull().default("unread"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    openedAt: integer("opened_at", { mode: "timestamp_ms" }),
+    respondedAt: integer("responded_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [
+    index("user_notifications_user_idx").on(t.userId, t.createdAt),
+    index("user_notifications_day_idx").on(t.userId, t.dayKey),
+    index("user_notifications_created_idx").on(t.createdAt),
+  ],
+);
+
+export type UserNotification = typeof userNotification.$inferSelect;
+
+/** Réglages de l'agent (clé → valeur). « paused » : "1" en pause, "0" actif. */
+export const retentionSetting = sqliteTable("retention_setting", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});

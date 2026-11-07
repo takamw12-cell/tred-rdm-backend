@@ -19,6 +19,7 @@ import { openGaps, noteGap, resolveGap } from "./lib/memory";
 import { search } from "./routes/search";
 import { subscriptions } from "./routes/subscriptions";
 import { notifications } from "./routes/notifications";
+import { retention } from "./routes/retention";
 import { credits } from "./routes/credits";
 import { ads } from "./routes/ads";
 import { account } from "./routes/account";
@@ -90,6 +91,7 @@ import {
 } from "./lib/plan";
 import { notifyExerciseReady } from "./lib/push";
 import { startEveningReminder } from "./lib/evening-reminder";
+import { startRetentionHeartbeat } from "./lib/retention/heartbeat";
 import { detectDocumentDenial } from "./lib/denial-guard";
 import { applySubscription, endSubscription } from "./lib/billing";
 import { grantCredits } from "./lib/credits";
@@ -123,6 +125,7 @@ export const router = {
   flashcards,
   examPredictor,
   sharedKnowledge: sharedKnowledgeRoutes,
+  retention,
 };
 
 export type AppRouter = typeof router;
@@ -136,6 +139,9 @@ const app = createApp(router);
 // lib/evening-reminder.ts. Sans elle, la répétition espacée écrit des
 // rendez-vous que personne ne tient.
 startEveningReminder();
+// L'agent de rétention (lib/retention/) : un cycle toutes les 12 h entre 9 h
+// et 20 h à Berlin — EN PAUSE tant que /admin/retention ne l'a pas activé.
+startRetentionHeartbeat();
 
 // ── Limitation de débit ───────────────────────────────────────────────────
 // Montée AVANT tout le reste : une requête refusée ne doit toucher ni la

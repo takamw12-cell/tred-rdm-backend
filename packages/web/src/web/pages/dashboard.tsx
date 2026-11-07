@@ -28,6 +28,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { MemoryCard } from "@/components/memory-card";
 import { ReviewCard } from "@/components/review-card";
 import { DocFlashcardsButton, FlashcardsWidget } from "@/components/flashcards-widget";
+import { NotificationInbox } from "@/components/notification-inbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -380,6 +381,11 @@ export default function DashboardPage() {
 
       {/* Karteikarten du jour + lacune à combattre (V2, Pilier 1) : une
           action à faire aujourd'hui, donc avant les compteurs. */}
+      {/* Suggestions de l'agent de rétention : l'étudiant accepte ou refuse. */}
+      <Reveal className="mb-6">
+        <NotificationInbox />
+      </Reveal>
+
       <Reveal className="mb-6">
         <FlashcardsWidget />
       </Reveal>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
 
+import { client } from "@/lib/api";
 import { registerForPushNotifications, unregisterPushNotifications } from "@/lib/push";
 
 /**
@@ -65,7 +66,15 @@ export function useNotifications(enabled: boolean) {
         type?: string;
         savedId?: string;
         screen?: string;
+        notificationId?: string;
       };
+
+      // Agent de rétention (api/lib/retention/) : la notification tapée compte
+      // comme « ouverte » dans /admin/retention. Sans attendre la réponse : la
+      // navigation ne doit jamais dépendre du réseau.
+      if (data?.type === "retention" && data.notificationId) {
+        void client.retention.open({ id: data.notificationId }).catch(() => {});
+      }
 
       // Le serveur envoie { type: "klausur_ready", savedId, screen: "exercises" }
       // — voir api/lib/push.ts → notifyExerciseReady.
@@ -109,7 +118,11 @@ export function useNotifications(enabled: boolean) {
       const data = response.notification.request.content.data as {
         type?: string;
         savedId?: string;
+        notificationId?: string;
       };
+      if (data?.type === "retention" && data.notificationId) {
+        void client.retention.open({ id: data.notificationId }).catch(() => {});
+      }
       if (data?.type === "klausur_ready" || data?.type === "exercise_ready") {
         router.push("/(tabs)/exercises");
       }

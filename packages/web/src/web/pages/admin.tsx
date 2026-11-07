@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Ban, RotateCcw, Check, Flag, BarChart3, MessageSquareText } from "lucide-react";
+import { BellRing, Loader2, Ban, RotateCcw, Check, Flag, BarChart3, MessageSquareText } from "lucide-react";
 import { Link } from "wouter";
 import { PageContainer, PageHeader } from "@/components/page";
 import { Card } from "@/components/ui/card";
@@ -159,6 +159,15 @@ export default function AdminPage() {
       >
         <span className="flex items-center gap-2">
           <MessageSquareText className="size-4 text-[#EAB308]" /> Feedback der Beta-Tester — Fehler, Ideen, Allgemeines
+        </span>
+        <span aria-hidden>→</span>
+      </Link>
+      <Link
+        href="/admin/retention"
+        className="border-border hover:bg-muted -mt-3 mb-6 flex items-center justify-between rounded-lg border p-4 text-sm font-medium transition-colors"
+      >
+        <span className="flex items-center gap-2">
+          <BellRing className="size-4 text-[#EAB308]" /> Retention-Agent — Erinnerungen, Öffnungsrate, Pause
         </span>
         <span aria-hidden>→</span>
       </Link>
