@@ -124,12 +124,23 @@ const SOLVER_TOOLS = new Set([
 // qui garantit que le schéma est celui du calcul. Et comme tout passe par ce
 // texte, la sauvegarde et la traduction le conservent sans autre changement.
 function messageText(m: UIMessage): string {
+  // Un même graphique de solveur n'est montré qu'une fois : si le modèle
+  // rappelle l'outil malgré un résultat déjà calculé (fast-path), le second
+  // bloc, identique, disparaît.
+  const seenCharts = new Set<string>();
   return m.parts
-    .map((p) =>
-      p.type === "text"
-        ? p.text
-        : (beamBlockFromPart(p) ?? solverChartBlockFromPart(p) ?? mediaBlockFromPart(p) ?? ""),
-    )
+    .map((p) => {
+      if (p.type === "text") return p.text;
+      const beam = beamBlockFromPart(p);
+      if (beam) return beam;
+      const chart = solverChartBlockFromPart(p);
+      if (chart) {
+        if (seenCharts.has(chart)) return "";
+        seenCharts.add(chart);
+        return chart;
+      }
+      return mediaBlockFromPart(p) ?? "";
+    })
     .join("");
 }
 

@@ -236,6 +236,13 @@ export function buildTutorAgent(opts: {
    * Absent = Sonnet avec raisonnement adaptive, le comportement d'avant.
    */
   route?: Pick<Route, "modelId" | "thinking">;
+  /**
+   * Résultat calculé par le serveur AVANT l'appel (lib/fast-path.ts) : le
+   * modèle le reçoit en dernier message système et n'a plus qu'à expliquer.
+   * Les outils restent tous déclarés — les retirer changerait le préfixe et
+   * ferait manquer le cache.
+   */
+  precomputedNote?: string | null;
 }) {
   const rule = langRule(opts.locale);
   const memoryBlock = buildMemoryBlock(opts.memory, opts.learningStyle, opts.professor);
@@ -1609,6 +1616,7 @@ export function buildTutorAgent(opts: {
             },
           ]
         : []),
+      ...(opts.precomputedNote ? [{ role: "system" as const, content: opts.precomputedNote }] : []),
     ],
     tools: {
       /**

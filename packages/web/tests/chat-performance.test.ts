@@ -168,7 +168,7 @@ describe("Mesure [perf]", () => {
 
   test("câblage dans la route du chat", () => {
     const api = readFileSync(join(import.meta.dir, "../src/api/index.ts"), "utf8");
-    expect(api).toContain("const route = routeChat({");
+    expect(api).toContain("const routed = routeChat({");
     expect(api).toContain("console.log(perfLine({");
     expect(api).toMatch(/buildTutorAgent\(\{\n\s+route,/);
   });

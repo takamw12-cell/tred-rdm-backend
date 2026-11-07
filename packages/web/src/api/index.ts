@@ -1,5 +1,5 @@
 import type { RouterClient } from "@orpc/server";
-import { createAgentUIStreamResponse, generateText, generateObject } from "ai";
+import { createAgentUIStream, createUIMessageStreamResponse, generateText, generateObject } from "ai";
 import { stream } from "hono/streaming";
 import { gateway } from "./agent/gateway";
 import { createApp } from "./__core/app";
@@ -44,6 +44,7 @@ import { z } from "zod";
 import { buildTutorAgent } from "./agent";
 import { detectDomain, domainHint } from "./lib/solvers/domain";
 import { routeChat } from "./lib/chat-routing";
+import { resolveFastPath, withFastPathResult } from "./lib/fast-path";
 import { createStreamTimer, lastUserHasAttachment, perfLine } from "./lib/chat-perf";
 import { curriculumFor, domainPackText } from "./prompts";
 import { studyProfileHint, type StudyProfileInput } from "./lib/study-profile";
@@ -634,19 +635,25 @@ app.post("/api/agent/messages", async (c) => {
   // Domain-Based Agent : hint du solveur + module de la matière (prompts/).
   const fachHint = [domainHint(fach), domainPackText(fach, curriculumFor(studyProfile))].filter(Boolean).join("\n\n");
 
+  // Collatz + un nombre : le serveur calcule tout de suite (lib/fast-path.ts),
+  // le graphique part avant le premier token et le modèle n'a qu'à expliquer.
+  const fast = resolveFastPath(lastUserText);
   // Le bon modèle et le bon temps de réflexion pour CETTE question.
-  const route = routeChat({
+  const routed = routeChat({
     text: lastUserText,
     hasAttachments: lastUserHasAttachment(messages),
     domain: fach.domain,
     examMode: examMode === true,
     calcMode: calcMode === true,
   });
+  // Déjà calculé : plus rien à raisonner, seulement à expliquer.
+  const route = fast ? { ...routed, tier: "concept" as const, thinking: "off" as const, reason: `fast-path ${fast.name}` } : routed;
   const timer = createStreamTimer(requestStarted);
   const usage = { steps: 0, input: 0, cacheRead: 0, cacheWrite: 0, output: 0 };
 
   const agent = buildTutorAgent({
     route,
+    precomputedNote: fast?.modelNote ?? null,
     domainHint: fachHint || null,
     studyProfile: studyProfileHint(studyProfile),
     learningStyle,
@@ -697,7 +704,7 @@ app.post("/api/agent/messages", async (c) => {
       ),
   });
 
-  const streamResponse = await createAgentUIStreamResponse({
+  const uiStream = await createAgentUIStream({
     agent,
     uiMessages: pruneHistoryFiles(messages),
     // Echte Abrechnung: jeder Schritt des Werkzeug-Loops meldet seinen
@@ -765,6 +772,10 @@ app.post("/api/agent/messages", async (c) => {
              Le console.error ci-dessus reste, lui. */
         });
     },
+  });
+
+  const streamResponse = createUIMessageStreamResponse({
+    stream: fast ? withFastPathResult(uiStream, fast) : uiStream,
   });
 
   // Battement toutes les 5 s pendant les silences (réflexion longue) : sans

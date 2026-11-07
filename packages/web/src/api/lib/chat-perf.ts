@@ -19,7 +19,8 @@ export interface StreamMarks {
   firstTextMs: number | null;
 }
 
-const ACTIVITY = /"type":"(reasoning-start|reasoning-delta|text-delta|tool-input-start)"/;
+// tool-input-available : le résultat du fast-path (lib/fast-path.ts), visible avant tout token.
+const ACTIVITY = /"type":"(reasoning-start|reasoning-delta|text-delta|tool-input-start|tool-input-available)"/;
 const TEXT = /"type":"text-delta"/;
 
 /** Lit les paquets SSE au passage et note les deux premiers instants utiles. */
