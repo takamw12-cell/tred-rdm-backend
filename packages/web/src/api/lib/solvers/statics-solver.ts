@@ -265,8 +265,8 @@ function fachwerk(fw: Fachwerk, kraftE: string, laengeE: string) {
   // Knotengleichgewicht : Σ (Stabkräfte auf den Knoten) + Reaktionen + Lasten = 0.
   // Zugkraft S zieht den Knoten zum Stab hin : an "a" wirkt +S·e, an "b" −S·e.
   const n = 2 * k;
-  const A = Array.from({ length: n }, () => new Array(n).fill(0));
-  const rhs = new Array(n).fill(0);
+  const A = Array.from({ length: n }, () => Array.from({ length: n }, () => 0));
+  const rhs = Array.from({ length: n }, () => 0);
   const unknowns: Unknown[] = [];
   bars.forEach((s, j) => {
     A[2 * s.a][j] += s.ex;

@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useId, useState } from "react";
 import { Loader2, Send, X } from "lucide-react";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
@@ -28,6 +28,7 @@ export function PythonRunner({
   const { t } = useT();
   const send = useContext(CodeSendContext);
   const needsInput = /\binput\s*\(/.test(code);
+  const stdinId = useId();
   const [stdin, setStdin] = useState("");
   const [busy, setBusy] = useState(false);
   const [booting, setBooting] = useState(false);
@@ -76,11 +77,12 @@ export function PythonRunner({
 
       {needsInput && (
         <div className="mb-2 space-y-1.5">
-          <label htmlFor="py-stdin" className="block text-[11px] text-[#abb2bf]">
+          <label htmlFor={stdinId} className="block text-[11px] text-[#abb2bf]">
             {t("pyRun.stdinLabel")}
           </label>
           <textarea
-            id="py-stdin"
+            id={stdinId}
+            aria-label={t("pyRun.stdinLabel")}
             value={stdin}
             onChange={(e) => setStdin(e.target.value)}
             rows={2}

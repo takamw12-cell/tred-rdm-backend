@@ -49,7 +49,7 @@ export function cleanExcerpt(text: string, max = MAX_EXCERPT): string {
 async function getJson(url: string, init?: RequestInit): Promise<unknown> {
   const res = await fetch(url, {
     ...init,
-    headers: { "User-Agent": UA, Accept: "application/json", ...(init?.headers ?? {}) },
+    headers: { "User-Agent": UA, Accept: "application/json", ...(init?.headers as Record<string, string> | undefined) },
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);

@@ -85,7 +85,7 @@ addEventListener("message", (e) => {
   if (ready) send(e.data); else queue.push(e.data);
 });
 start();
-<\/script>`;
+</script>`;
 
 let frame: HTMLIFrameElement | null = null;
 let seq = 0;
