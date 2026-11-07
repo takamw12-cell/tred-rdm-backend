@@ -115,6 +115,8 @@ export function DocumentLibrary({
           setUploadError(t("library.onlyPdf"));
         } else if (data.error === "no_text") {
           setUploadError(t("library.scanned"));
+        } else if (data.error === "scan_unreadable") {
+          setUploadError(t("library.scanUnreadable"));
         } else {
           setUploadError(t("library.uploadFailed", { msg: data.error ?? res.statusText }));
         }

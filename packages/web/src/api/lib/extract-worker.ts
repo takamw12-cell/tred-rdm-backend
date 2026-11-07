@@ -26,7 +26,7 @@
  * aller-retour de message.
  */
 
-import { extractDocument, UnsupportedFormatError } from "./extract";
+import { extractDocument, ScannedPdfUnreadableError, UnsupportedFormatError } from "./extract";
 
 export interface ExtractRequest {
   jobId: string;
@@ -45,8 +45,8 @@ export type ExtractResponse =
   | {
       jobId: string;
       ok: false;
-      /** `unsupported` mérite un 415, le reste un 422. */
-      kind: "unsupported" | "failed";
+      /** `unsupported` mérite un 415, le reste un 422 (`scan_unreadable` : message dédié). */
+      kind: "unsupported" | "scan_unreadable" | "failed";
       message: string;
     };
 
@@ -72,7 +72,12 @@ self.onmessage = async (event: MessageEvent<ExtractRequest>) => {
     const response: ExtractResponse = {
       jobId,
       ok: false,
-      kind: error instanceof UnsupportedFormatError ? "unsupported" : "failed",
+      kind:
+        error instanceof UnsupportedFormatError
+          ? "unsupported"
+          : error instanceof ScannedPdfUnreadableError
+            ? "scan_unreadable"
+            : "failed",
       message: error instanceof Error ? error.message : String(error),
     };
     self.postMessage(response);

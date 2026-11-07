@@ -430,6 +430,8 @@ export const fr: Messages = {
     tooEmpty: "Presque aucun texte n'a pu être lu dans ce PDF (image scannée ?).",
     scanned:
       "Ce PDF ne contient aucun texte lisible — c'est probablement un scan (image). Téléverse un PDF avec du vrai texte (ex. le polycopié numérique plutôt qu'une feuille scannée).",
+    scanUnreadable:
+      "Ce PDF semble être un scan et n'a pas pu être lu automatiquement. Téléverse une photo des pages ou utilise « Joindre une image » dans le chat.",
     uploadFailed: "Échec du téléversement : {msg}",
     kindVorlesung: "Cours",
     kindUebung: "Übung",

@@ -429,6 +429,8 @@ export const de = {
     tooEmpty: "Aus dieser PDF konnte kaum Text gelesen werden (evtl. gescanntes Bild).",
     scanned:
       "Diese PDF enthält keinen lesbaren Text – sie ist wahrscheinlich ein Scan (Bild). Bitte lade eine PDF mit echtem Text hoch (z. B. das digitale Skript statt eines eingescannten Blatts).",
+    scanUnreadable:
+      "Dieses PDF scheint ein Scan zu sein und konnte nicht automatisch gelesen werden. Bitte lade ein Foto der Seiten hoch oder nutze im Chat die Funktion „Bild anhängen“.",
     uploadFailed: "Upload fehlgeschlagen: {msg}",
     kindVorlesung: "Vorlesung",
     kindUebung: "Übung",

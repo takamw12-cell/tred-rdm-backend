@@ -74,7 +74,12 @@ function getWorker(): Worker | null {
         p.resolve({ text: data.text, pageCount: data.pageCount, ocr: data.ocr });
       } else {
         const error = new Error(data.message);
-        error.name = data.kind === "unsupported" ? "UnsupportedFormatError" : "ExtractionError";
+        error.name =
+          data.kind === "unsupported"
+            ? "UnsupportedFormatError"
+            : data.kind === "scan_unreadable"
+              ? "ScannedPdfUnreadableError"
+              : "ExtractionError";
         p.reject(error);
       }
     };

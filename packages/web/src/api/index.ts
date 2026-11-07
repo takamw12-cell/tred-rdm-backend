@@ -1738,6 +1738,11 @@ app.post("/api/documents/upload", async (c) => {
     ) {
       return c.json({ error: "unsupported_format" }, 415);
     }
+    // Scan que ni Mathpix ni la vision n'ont pu lire : message clair côté client.
+    if (err instanceof Error && err.name === "ScannedPdfUnreadableError") {
+      console.warn("[upload] scan illisible (couche texte, Mathpix et vision)");
+      return c.json({ error: "scan_unreadable" }, 422);
+    }
     console.error("[upload] extraction failed", err);
     const detail = err instanceof Error ? err.message : String(err);
     return c.json({ error: "extraction_failed", detail: detail.slice(0, 300) }, 422);

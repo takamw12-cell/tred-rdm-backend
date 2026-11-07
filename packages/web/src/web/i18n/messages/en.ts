@@ -430,6 +430,8 @@ export const en: Messages = {
     tooEmpty: "Almost no text could be read from this PDF (scanned image?).",
     scanned:
       "This PDF has no readable text — it's most likely a scan (image). Please upload a PDF with real text (e.g. the digital script instead of a scanned sheet).",
+    scanUnreadable:
+      "This PDF seems to be a scan and could not be read automatically. Please upload a photo of the pages or use “Attach image” in the chat.",
     uploadFailed: "Upload failed: {msg}",
     kindVorlesung: "Lecture",
     kindUebung: "Übung",

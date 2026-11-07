@@ -442,6 +442,8 @@ export const es: Messages = {
     tooEmpty: "Casi no se ha podido leer texto en este PDF (¿es una imagen escaneada?).",
     scanned:
       "Este PDF no tiene texto legible — con toda probabilidad es un escaneo (una imagen). Sube un PDF con texto real, por ejemplo el Skript digital en vez de una hoja escaneada.",
+    scanUnreadable:
+      "Este PDF parece ser un escaneo y no se pudo leer automáticamente. Sube una foto de las páginas o usa «Adjuntar una imagen» en el chat.",
     uploadFailed: "La subida ha fallado: {msg}",
     kindVorlesung: "Clase",
     kindUebung: "Übung",
