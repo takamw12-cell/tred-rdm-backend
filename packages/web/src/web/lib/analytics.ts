@@ -5,9 +5,8 @@
  * nicht notwendige Informationen auf dem Gerät gespeichert oder gelesen
  * werden; Art. 6 Abs. 1 lit. a DSGVO für die Verarbeitung. Deshalb:
  *
- *   • PostHog startet mit `opt_out_capturing_by_default` und ohne
- *     Persistenz (memory) — vor der Zustimmung wird nichts gesendet und
- *     nichts gespeichert (lib/observability.ts).
+ *   • PostHog wird vor der Zustimmung nicht geladen — dadurch wird nichts
+ *     gesendet und nichts gespeichert.
  *   • Erst "Analyse erlauben" schaltet Autocapture, Heatmaps und
  *     Sitzungsaufzeichnung ein. Widerruf jederzeit in den Einstellungen.
  *   • Aufzeichnungen maskieren ALLE Eingabefelder sowie Chat, Tafel und
@@ -27,7 +26,10 @@ const listeners = new Set<(c: Consent | null) => void>();
 type PostHog = typeof import("posthog-js").default;
 let ready: Promise<PostHog | null> | null = null;
 
-export const analyticsAvailable = (): boolean => Boolean(import.meta.env.VITE_POSTHOG_KEY);
+const posthogKey = import.meta.env.VITE_POSTHOG_KEY;
+const posthogHost = import.meta.env.VITE_POSTHOG_HOST;
+
+export const analyticsAvailable = (): boolean => Boolean(posthogKey && posthogHost);
 
 export function getConsent(): Consent | null {
   try {
@@ -47,15 +49,19 @@ export function onConsentChange(fn: (c: Consent | null) => void): () => void {
 function load(): Promise<PostHog | null> {
   if (!analyticsAvailable()) return Promise.resolve(null);
   ready ??= import("posthog-js").then(({ default: posthog }) => {
-    posthog.init(import.meta.env.VITE_POSTHOG_KEY as string, {
-      api_host: import.meta.env.VITE_POSTHOG_HOST || "https://eu.i.posthog.com",
+    posthog.init(posthogKey as string, {
+      api_host: posthogHost as string,
       person_profiles: "identified_only",
-      opt_out_capturing_by_default: true,
       // Vor der Zustimmung kein Cookie, kein localStorage.
       persistence: getConsent() === "granted" ? "localStorage+cookie" : "memory",
       capture_pageview: "history_change",
       capture_pageleave: true,
       autocapture: true,
+      capture_exceptions: {
+        capture_unhandled_errors: true,
+        capture_unhandled_rejections: true,
+        capture_console_errors: false,
+      },
       enable_heatmaps: true,
       disable_session_recording: getConsent() !== "granted",
       session_recording: {
@@ -71,6 +77,15 @@ function load(): Promise<PostHog | null> {
 
 /** Beim Start: nur wenn bereits zugestimmt wurde, PostHog überhaupt laden. */
 export function initAnalytics() {
+  if (!analyticsAvailable()) {
+    if (import.meta.env.DEV) {
+      const missingVariable = posthogKey ? "VITE_POSTHOG_HOST" : "VITE_POSTHOG_KEY";
+      console.error(
+        `${missingVariable} variable required by PostHog is missing or un-configured, this causes events to be silently missed. This error stops appearing once ${missingVariable} is configured`,
+      );
+    }
+    return;
+  }
   if (getConsent() === "granted") void load();
 }
 
@@ -100,11 +115,17 @@ export function setConsent(c: Consent) {
 
 let pendingId: string | null = null;
 
-/** Pseudonyme Konto-ID verknüpfen (nach Login). Nie Name oder E-Mail. */
+/** Pseudonyme Konto-ID bei Login/Registrierung verknüpfen und bei Logout zurücksetzen. */
 export function identifyUser(userId: string | null | undefined) {
-  pendingId = userId ?? null;
-  if (!userId || getConsent() !== "granted") return;
-  void load().then((ph) => ph?.identify(userId));
+  const nextId = userId ?? null;
+  const previousId = pendingId;
+  pendingId = nextId;
+  if (getConsent() !== "granted" || previousId === nextId) return;
+  if (!nextId) {
+    if (previousId) void load().then((ph) => ph?.reset());
+    return;
+  }
+  void load().then((ph) => ph?.identify(nextId));
 }
 
 /** Ereignis senden — ohne Zustimmung ein No-op. */

@@ -18,6 +18,7 @@ import { useReconciledSemester } from "@/hooks/use-reconciled-semester";
 import { cn } from "@/lib/utils";
 import { InterstitialHost } from "@/components/InterstitialAdScreen";
 import { useAdStore } from "@/stores/ads";
+import { track } from "@/lib/analytics";
 
 type Phase = "warning" | "loading" | "active" | "result";
 
@@ -92,6 +93,7 @@ export default function ExamPage() {
   );
 
   async function start() {
+    let generationSource: "generated" | "fallback" = "fallback";
     setAnswers({});
     setSelfScore({});
     setRemaining(examDurationSeconds);
@@ -110,10 +112,20 @@ export default function ExamPage() {
         styleSource: k.styleSource ?? null,
         generated: true,
       });
+      generationSource = "generated";
     } catch {
       setSheet(FALLBACK_SHEET);
     }
+    track("exam_started", { generation_source: generationSource });
     setPhase("active");
+  }
+  function submit() {
+    track("exam_submitted", {
+      answered_questions: Object.values(answers).filter((answer) => answer.trim().length > 0).length,
+      question_count: sheet.tasks.length,
+      seconds_remaining: remaining,
+    });
+    setPhase("result");
   }
   function retry() {
     setAnswers({});
@@ -205,7 +217,7 @@ export default function ExamPage() {
                   <Clock className="size-4" />
                   {formatTime(remaining)}
                 </div>
-                <Button size="sm" className="brand-gradient text-white" onClick={() => setPhase("result")}>
+                <Button size="sm" className="brand-gradient text-white" onClick={submit}>
                   {m.submitExam}
                 </Button>
               </div>

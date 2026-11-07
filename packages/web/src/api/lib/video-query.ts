@@ -1,6 +1,7 @@
 import { generateObject } from "ai";
 import { z } from "zod";
 import { gateway } from "../agent/gateway";
+import { aiTelemetry, type AiRuntimeContext } from "./ai-observability";
 
 /**
  * « Video dazu finden » : la requête YouTube est RÉDIGÉE par un petit modèle
@@ -71,6 +72,7 @@ export async function writeVideoQuery(
   question: string,
   locale: string,
   studentName = "",
+  runtimeContext?: AiRuntimeContext,
 ): Promise<VideoQuery | null> {
   if (!process.env.ANTHROPIC_API_KEY) return null;
   const a = condense(answer, MAX_ANSWER);
@@ -86,6 +88,8 @@ export async function writeVideoQuery(
       model: gateway(QUERY_MODEL),
       schema,
       abortSignal: AbortSignal.timeout(TIMEOUT_MS),
+      ...(runtimeContext ? { runtimeContext } : {}),
+      telemetry: aiTelemetry("youtube_query"),
       system: `Du formulierst EINE YouTube-Suchanfrage, die passende Lernvideos zu genau dem Fachthema findet, das ein Ingenieur-Tutor gerade erklärt hat.
 
 REGELN:

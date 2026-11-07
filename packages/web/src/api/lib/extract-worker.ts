@@ -26,12 +26,15 @@
  * aller-retour de message.
  */
 
+import "../instrumentation";
 import { extractDocument, UnsupportedFormatError } from "./extract";
+import type { AiRuntimeContext } from "./ai-observability";
 
 export interface ExtractRequest {
   jobId: string;
   bytes: Uint8Array;
   filename: string;
+  runtimeContext?: AiRuntimeContext;
 }
 
 export type ExtractResponse =
@@ -53,10 +56,10 @@ export type ExtractResponse =
 declare const self: Worker;
 
 self.onmessage = async (event: MessageEvent<ExtractRequest>) => {
-  const { jobId, bytes, filename } = event.data;
+  const { jobId, bytes, filename, runtimeContext } = event.data;
 
   try {
-    const result = await extractDocument(bytes, filename);
+    const result = await extractDocument(bytes, filename, runtimeContext);
     const response: ExtractResponse = {
       jobId,
       ok: true,

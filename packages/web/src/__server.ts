@@ -1,4 +1,6 @@
 import app from "./api";
+import { aiObservabilitySdk } from "./api/instrumentation";
+import { logPosthogInfo, shutdownPosthogLogs } from "./api/posthog-logs";
 
 const port = Number(process.env.PORT ?? 3000);
 const distDir = `${import.meta.dir}/../dist`;
@@ -95,6 +97,21 @@ async function handle(request: Request): Promise<Response> {
 }
 
 console.log(`Web server listening on http://localhost:${server.port}`);
+logPosthogInfo("server_started", { runtime: "bun" });
+
+let isShuttingDown = false;
+function stopServer(): void {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  server.stop(true);
+  void Promise.race([
+    Promise.allSettled([aiObservabilitySdk?.shutdown(), shutdownPosthogLogs()]),
+    new Promise((resolve) => setTimeout(resolve, 3_000)),
+  ]).finally(() => process.exit(0));
+}
+
+process.once("SIGINT", stopServer);
+process.once("SIGTERM", stopServer);
 
 /**
  * Performance (audit du 5 nov. 2026) : Bun ne compresse rien de lui-même et
