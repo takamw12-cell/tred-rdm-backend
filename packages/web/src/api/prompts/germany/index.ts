@@ -1,4 +1,5 @@
 import type { PackSet } from "../types";
+import { datenverarbeitung } from "./datenverarbeitung";
 import { elektrotechnik } from "./elektrotechnik";
 import { mathematik } from "./mathematik";
 import { mechanik } from "./mechanik";
@@ -14,4 +15,5 @@ export const GERMANY: PackSet = {
   mathematik,
   regelungstechnik,
   technisches_zeichnen: technischesZeichnen,
+  datenverarbeitung,
 };

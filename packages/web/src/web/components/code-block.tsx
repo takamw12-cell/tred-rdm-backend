@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Copy, Download, ListOrdered } from "lucide-react";
+import { createContext, lazy, Suspense, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { Check, Copy, Download, ListOrdered, Play, Table2 } from "lucide-react";
 import hljs from "highlight.js/lib/core";
 import python from "highlight.js/lib/languages/python";
 import matlab from "highlight.js/lib/languages/matlab";
@@ -20,6 +20,14 @@ hljs.registerLanguage("cpp", cpp);
 export const CodeExplainContext = createContext<((code: string, lang: string) => void) | null>(
   null,
 );
+
+// Chat provides this so a Python block can hand its REAL variable table back
+// to the tutor ("Tabelle an TRED schicken"). Absent elsewhere.
+export const CodeSendContext = createContext<((text: string) => void) | null>(null);
+
+// Python runs in the student's browser (Pyodide in a sandbox) — loaded only
+// when someone clicks "Ausführen" / "Variablentabelle".
+const PythonRunner = lazy(() => import("@/components/python-runner").then((m) => ({ default: m.PythonRunner })));
 
 function triggerDownload(content: string, filename: string) {
   const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
@@ -56,6 +64,8 @@ export function CodeBlock({ code, lang }: { code: string; lang: string }) {
   const ref = useRef<HTMLElement>(null);
   const normLang = lang.toLowerCase();
   const isMatlab = normLang === "matlab" || normLang === "m" || normLang === "octave";
+  const isPython = normLang === "python" || normLang === "py";
+  const [runner, setRunner] = useState<"run" | "trace" | null>(null);
   const label = isMatlab ? t("calc.matlab") : normLang === "python" || normLang === "py" ? t("calc.python") : normLang;
 
   const highlighted = useMemo(() => {
@@ -106,6 +116,26 @@ export function CodeBlock({ code, lang }: { code: string; lang: string }) {
             <Download className="size-3.5" />
             .{isMatlab ? "m" : "py"}
           </button>
+          {isPython && (
+            <>
+              <button
+                onClick={() => setRunner("run")}
+                className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-[#EAB308] transition-colors hover:bg-white/10"
+                title={t("pyRun.run")}
+              >
+                <Play className="size-3.5" />
+                <span className="hidden sm:inline">{t("pyRun.run")}</span>
+              </button>
+              <button
+                onClick={() => setRunner("trace")}
+                className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-[#EAB308] transition-colors hover:bg-white/10"
+                title={t("pyRun.trace")}
+              >
+                <Table2 className="size-3.5" />
+                <span className="hidden sm:inline">{t("pyRun.trace")}</span>
+              </button>
+            </>
+          )}
           {onExplain && (
             <button
               onClick={() => onExplain(code, normLang)}
@@ -123,6 +153,11 @@ export function CodeBlock({ code, lang }: { code: string; lang: string }) {
           {code}
         </code>
       </pre>
+      {isPython && runner && (
+        <Suspense fallback={null}>
+          <PythonRunner key={runner} code={code} mode={runner} onClose={() => setRunner(null)} />
+        </Suspense>
+      )}
     </div>
   );
 }

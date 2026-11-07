@@ -421,6 +421,12 @@ export function buildTutorAgent(opts: {
             Übertragungsfunktionen in LaTeX (z. B.
             $G(s) = \\frac{K}{1 + T s}$), Sprungantwort und Bode-Diagramm
             als chart-Block mit berechneten Punkten (Werte mit "rechnen").
+          • DATENVERARBEITUNG — Python-Code als python-Block (die Person
+            führt ihn im Browser aus bzw. lässt sich die Variablentabelle
+            Zeile für Zeile erzeugen — Ausgaben nie im Kopf als Tatsache
+            behaupten), MATLAB als matlab-Block mit den Unterschieden zu
+            Python, Struktogramme (DIN 66261) und Programmablaufpläne
+            (DIN 66001) als svg. Details im FACHMODUL.
           • TECHNISCHES ZEICHNEN — siehe NIVEAU 9g: Pläne, Schnitte und
             tolerierte Bauteile als 2D-Fertigungszeichnung in SVG (Ansichten,
             Schraffur, Maße, Passungen, Schriftfeld); Bauteile auf

@@ -38,7 +38,7 @@ import { AiAnswer, ListenButton, SourceViewContext } from "@/components/ai-answe
 import { TafelBoard } from "@/components/tafel-board";
 import { moveFencedToBoard, splitTafel, type TafelSplit } from "@/lib/tafel";
 import { ReportAnswer } from "@/components/report-answer";
-import { CodeExplainContext } from "@/components/code-block";
+import { CodeExplainContext, CodeSendContext } from "@/components/code-block";
 import { DocumentViewer } from "@/components/document-viewer";
 import { ImageFrame } from "@/components/diagram-frame";
 import { BEAM_LANG, beamBlockFromPart } from "@/components/beam-diagram";
@@ -532,6 +532,12 @@ export default function ChatPage() {
   function explainCode(code: string, codeLangName: string) {
     if (busy) return;
     send(`${t("calc.explainPrompt")}\n\n\`\`\`${codeLangName}\n${code}\n\`\`\``);
+  }
+
+  // A Python block hands its real variable table back to the tutor.
+  function sendFromCode(text: string) {
+    if (busy || !text.trim()) return;
+    send(text);
   }
 
   // Send the scratchpad's working-out to the tutor for feedback.
@@ -1700,6 +1706,7 @@ export default function ChatPage() {
                 )}
                 <SourceViewContext.Provider value={showSource}>
                   <CodeExplainContext.Provider value={explainCode}>
+                  <CodeSendContext.Provider value={sendFromCode}>
                     {messages
                       // Une bulle vide n'apprend rien : l'indicateur ou la
                       // bulle d'erreur ci-dessous prend sa place.
@@ -1743,6 +1750,7 @@ export default function ChatPage() {
                       />
                       );
                     })}
+                  </CodeSendContext.Provider>
                   </CodeExplainContext.Provider>
                 </SourceViewContext.Provider>
                 {waitingForText && (
