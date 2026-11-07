@@ -156,6 +156,16 @@ Au lancement, Claude Code te demandera d'approuver le serveur `figma` du projet 
 
 *Alternative sans token : le serveur officiel de Figma via OAuth, `claude mcp add --transport http figma-official https://mcp.figma.com/mcp`, puis autorise dans le navigateur.*
 
+### 4.3 quinquies — Recherche web du tuteur (optionnel)
+
+Quand l'étudiant n'a pas son cours, TRED cherche lui-même dans **Wikipedia** (aucune clé, aucun coût) : rien à faire.
+Pour ajouter une **recherche web** (normes, fiches techniques, articles) :
+1. Crée un compte sur https://app.tavily.com, puis **API Keys → Create**.
+2. Ajoute `TAVILY_API_KEY` sur Railway (Variables) et dans ton `.env` local.
+- **Prix :** offre gratuite « Researcher » à 1 000 crédits par mois, 1 crédit par recherche simple. Au-delà, 0,008 $ par crédit ou un forfait (« Project » à 30 $/mois pour 4 000 crédits). Vérifié le 7 novembre 2026 sur docs.tavily.com.
+- **Données envoyées :** seul le terme de recherche part chez Wikipedia ou Tavily, jamais le nom, l'e-mail ni la conversation.
+- **Avant d'activer Tavily :** ajoute-le à la liste des sous-traitants de la page Datenschutz (je ne l'ai pas modifiée, c'est un texte juridique).
+
 ### 4.3 quater — Activer le feedback des bêta-testeurs (une fois)
 
 ```
