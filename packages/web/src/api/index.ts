@@ -49,6 +49,7 @@ import { mailCanReachAnyone } from "./lib/mail";
 import { registerAnalyticsRoutes } from "./analytics/routes";
 import { registerFlashcardRoutes } from "./flashcards/routes";
 import { flashcards } from "./routes/flashcards";
+import { examPredictor } from "./routes/exam-predictor";
 import { readLearningStyle } from "./lib/learning-style-store";
 import { pickStyleReference, STYLE_SAMPLE_CHARS } from "./lib/style-reference";
 import { wellFormed } from "./lib/unicode-safe";
@@ -114,6 +115,7 @@ export const router = {
   subjects,
   courses,
   flashcards,
+  examPredictor,
 };
 
 export type AppRouter = typeof router;

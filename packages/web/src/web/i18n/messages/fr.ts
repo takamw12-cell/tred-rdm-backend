@@ -360,6 +360,7 @@ export const fr: Messages = {
     output: "Sortie simulée",
   },
   exercises: {
+    tabPredictions: "Prédictions",
     styleFromKlausur: "Basé sur ton ancien examen (Altklausur)",
     styleFromUebung: "Basé sur ta feuille d'exercices (Übungsblatt)",
     styleStandard: "Aucun ancien examen trouvé – format standard d'examen universitaire.",
@@ -871,5 +872,14 @@ export const fr: Messages = {
     errTooMany: "Ton paquet est plein (3000 cartes). Supprime d'anciennes cartes.",
     errUnavailable: "Les flashcards ne sont pas disponibles pour le moment.",
     errFailed: "Les cartes n'ont pas pu être créées. Réessaie dans un instant.",
+  },
+  examPrediction: {
+    title: "Prédiction d'examen",
+    intro: "TRED croise tes annales avec les chapitres de ton cours et montre la probabilité de chaque thème — avec les examens comme preuve.",
+    soon: "En préparation",
+    examsFound: "{n} annales trouvées",
+    years: "Années repérées : {years}",
+    enough: "Assez de matière pour une prédiction fiable dès qu'elle sera activée.",
+    needMore: "Importe au moins {min} annales (type « Klausur ») pour que la prédiction soit fiable.",
   },
 };

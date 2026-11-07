@@ -359,6 +359,7 @@ export const de = {
     output: "Simulierte Ausgabe",
   },
   exercises: {
+    tabPredictions: "Prognose",
     styleFromKlausur: "Basiert auf deiner Altklausur",
     styleFromUebung: "Basiert auf deinem Übungsblatt",
     styleStandard: "Keine Altklausur gefunden – Standardformat einer Hochschulklausur.",
@@ -871,5 +872,14 @@ export const de = {
     errTooMany: "Dein Stapel ist voll (3000 Karten). Lösche alte Karten.",
     errUnavailable: "Karteikarten sind gerade nicht verfügbar.",
     errFailed: "Die Karten konnten nicht erstellt werden. Versuch es gleich nochmal.",
+  },
+  examPrediction: {
+    title: "Klausur-Prognose",
+    intro: "TRED gleicht deine Altklausuren mit den Kapiteln deines Skripts ab und zeigt, welche Themen mit welcher Wahrscheinlichkeit drankommen — mit den Klausuren als Beleg.",
+    soon: "In Vorbereitung",
+    examsFound: "{n} Altklausuren gefunden",
+    years: "Erkannte Jahrgänge: {years}",
+    enough: "Genug Material für eine aussagekräftige Prognose, sobald sie freigeschaltet ist.",
+    needMore: "Lade mindestens {min} Altklausuren hoch (Typ „Klausur“), damit die Prognose aussagekräftig wird.",
   },
 } as const;

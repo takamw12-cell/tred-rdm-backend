@@ -360,6 +360,7 @@ export const en: Messages = {
     output: "Simulated output",
   },
   exercises: {
+    tabPredictions: "Forecast",
     styleFromKlausur: "Based on your past exam (Altklausur)",
     styleFromUebung: "Based on your exercise sheet (Übungsblatt)",
     styleStandard: "No past exam found – standard university exam format.",
@@ -871,5 +872,14 @@ export const en: Messages = {
     errTooMany: "Your deck is full (3000 cards). Delete old cards.",
     errUnavailable: "Flashcards are not available right now.",
     errFailed: "The cards could not be created. Try again in a moment.",
+  },
+  examPrediction: {
+    title: "Exam forecast",
+    intro: "TRED matches your past exams against the chapters of your script and shows how likely each topic is to come up — with the exams as evidence.",
+    soon: "Coming soon",
+    examsFound: "{n} past exams found",
+    years: "Years detected: {years}",
+    enough: "Enough material for a meaningful forecast once it's enabled.",
+    needMore: "Upload at least {min} past exams (type “Exam”) for the forecast to be meaningful.",
   },
 };

@@ -12,6 +12,7 @@ import {
   FileText,
   PenSquare,
   ClipboardList,
+  Radar,
   Bookmark,
   Trash2,
   FileCheck,
@@ -28,6 +29,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { MarkdownContent } from "@/components/markdown-content";
+import { ExamPredictionTab } from "@/components/exam-prediction-tab";
 import { documentsListOptions } from "@/queries/documents";
 import {
   savedExercisesListOptions,
@@ -49,7 +51,7 @@ const generate = generateExercise;
 
 export default function ExercisesPage() {
   const { t, locale } = useT();
-  const [tab, setTab] = useState<"generator" | "klausuren" | "saved">("generator");
+  const [tab, setTab] = useState<"generator" | "klausuren" | "predictions" | "saved">("generator");
   const semesterId = useReconciledSemester();
   const { data: docs = [] } = useQuery(documentsListOptions());
   const klausuren = useMemo(() => docs.filter((d) => d.kind === "klausur"), [docs]);
@@ -59,8 +61,8 @@ export default function ExercisesPage() {
       <PageHeader title={t("exercises.title")} subtitle={t("exercises.subtitle")} />
 
       {/* Tabs */}
-      {/* Mobile : trois colonnes égales qui tiennent dans 390 px ; bureau : largeur naturelle. */}
-      <div className="bg-secondary mb-6 grid w-full grid-cols-3 gap-0.5 rounded-xl p-0.5 sm:flex sm:w-fit">
+      {/* Mobile : quatre onglets en 2 × 2 (tiennent dans 390 px) ; bureau : largeur naturelle. */}
+      <div className="bg-secondary mb-6 grid w-full grid-cols-2 gap-0.5 rounded-xl p-0.5 sm:flex sm:w-fit">
         <button
           onClick={() => setTab("generator")}
           className={cn(
@@ -82,6 +84,16 @@ export default function ExercisesPage() {
           {t("exercises.tabKlausuren")}
         </button>
         <button
+          onClick={() => setTab("predictions")}
+          className={cn(
+            "flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-center text-xs font-medium transition-colors sm:px-3 sm:text-sm",
+            tab === "predictions" ? "bg-background shadow-sm" : "text-muted-foreground",
+          )}
+        >
+          <Radar className="size-4" />
+          {t("exercises.tabPredictions")}
+        </button>
+        <button
           onClick={() => setTab("saved")}
           className={cn(
             "flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-center text-xs font-medium transition-colors sm:px-3 sm:text-sm",
@@ -97,6 +109,8 @@ export default function ExercisesPage() {
         <GeneratorTab semesterId={semesterId} locale={locale} />
       ) : tab === "klausuren" ? (
         <KlausurenTab klausuren={klausuren} semesterId={semesterId} locale={locale} />
+      ) : tab === "predictions" ? (
+        <ExamPredictionTab />
       ) : (
         <SavedTab semesterId={semesterId} />
       )}

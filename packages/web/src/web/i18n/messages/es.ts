@@ -372,6 +372,7 @@ export const es: Messages = {
     output: "Salida simulada",
   },
   exercises: {
+    tabPredictions: "Pronóstico",
     styleFromKlausur: "Basado en tu examen anterior (Altklausur)",
     styleFromUebung: "Basado en tu hoja de ejercicios (Übungsblatt)",
     styleStandard: "No se encontró ningún examen anterior – formato estándar de examen universitario.",
@@ -883,5 +884,14 @@ export const es: Messages = {
     errTooMany: "Tu mazo está lleno (3000 tarjetas). Borra tarjetas antiguas.",
     errUnavailable: "Las tarjetas no están disponibles ahora mismo.",
     errFailed: "No se pudieron crear las tarjetas. Inténtalo de nuevo en un momento.",
+  },
+  examPrediction: {
+    title: "Pronóstico de examen",
+    intro: "TRED cruza tus exámenes anteriores con los capítulos de tu apunte y muestra la probabilidad de cada tema — con los exámenes como prueba.",
+    soon: "En preparación",
+    examsFound: "{n} exámenes anteriores encontrados",
+    years: "Años detectados: {years}",
+    enough: "Material suficiente para un pronóstico fiable cuando se active.",
+    needMore: "Sube al menos {min} exámenes anteriores (tipo «Klausur») para que el pronóstico sea fiable.",
   },
 };
