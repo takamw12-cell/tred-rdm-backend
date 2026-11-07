@@ -93,3 +93,5 @@ bun run db:push        # Push schema to database
 bun run db:generate    # Generate migration files
 bun run db:migrate     # Run migrations
 ```
+
+<!-- Rebuild Railway forcé le 2026-11-07 pour relire les variables VITE_* au build. -->
