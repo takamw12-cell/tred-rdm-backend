@@ -10,6 +10,11 @@ import { physicsInputSchema, solvePhysics } from "../lib/physics-solver";
 import { cyberInputSchema, solveCyber } from "../lib/solvers/cyber-solver";
 import { aiInputSchema, solveAi } from "../lib/solvers/ai-solver";
 import { openMathInputSchema, solveOpenMath } from "../lib/solvers/open-math-solver";
+import { electricalInputSchema, solveElectrical } from "../lib/solvers/electrical-solver";
+import { materialsInputSchema, solveMaterials } from "../lib/solvers/materials-solver";
+import { chemistryInputSchema, solveChemistry } from "../lib/solvers/chemistry-solver";
+import { financeInputSchema, solveFinance } from "../lib/solvers/finance-solver";
+import { schoolInputSchema, solveSchoolMath } from "../lib/solvers/highschool-solver";
 import { evaluateStructure } from "../lib/domains/structure";
 import { solveStatics, staticsInputSchema } from "../lib/solvers/statics-solver";
 import { searchKnowledge } from "../lib/knowledge-search";
@@ -351,7 +356,7 @@ export function buildTutorAgent(opts: {
             Medizin → Anamnese, Verdachtsdiagnose, Differenzialdiagnose,
               Therapie; Fakten aus den Skripten (Anatomie, Klinik).
             Wirtschaft → Hypothese, Daten, Modell, Schlussfolgerung; Zahlen
-              mit den Rechenwerkzeugen.
+              mit "wirtschaft_berechnen" (Zinsen, Kapitalwert, IRR, Annuität).
             Technik und Naturwissenschaft → die Fachlöser (siehe unten).
           Suche zuerst in den Unterlagen der Person (suche_in_unterlagen).
           Mische NIE die Methoden zweier Fächer. Legt jemand in Recht,
@@ -378,14 +383,23 @@ export function buildTutorAgent(opts: {
           des Fachs — auch für "einfache" Zahlen:
             Technische Mechanik → "statik_berechnen" (Fachwerk, Reibung,
               Kraftsystem) bzw. "balkenstatik" (Balken)
-            Elektrotechnik → "schaltung_berechnen"
+            Elektrotechnik → "schaltung_berechnen" (ganze Netzwerke) bzw.
+              "elektro_berechnen" (Ohm mit Leistung, RLC-Resonanz,
+              RC-Schaltvorgang, Spannungsteiler, Gleichungssystem aus Kirchhoff)
+            Werkstoffkunde (Hooke, σ = F/A, Wärmedehnung, Biegespannung,
+              Querkontraktion) → "werkstoff_berechnen"
+            Chemie (molare Masse, Konzentration, Stöchiometrie, pH, Gase)
+              → "chemie_berechnen"
+            Wirtschaft (Zinseszins, Kapitalwert, interner Zinsfuß, Annuität)
+              → "wirtschaft_berechnen"
             Thermodynamik → "thermo_berechnen"
             Physik (Kinematik, Wurf, Newton) → "physik_berechnen"
             Informatik / IT-Sicherheit (Chiffren, RSA, Hashes, boolesche
               Algebra, KV-Diagramm, Subnetze) → "solve_cyber"
             KI / Data Science (Matrizen, Regression, Gradientenabstieg,
               Aktivierungen, Perzeptron) → "solve_ai"
-            Mathematik → "mathe_berechnen"
+            Mathematik → "mathe_berechnen"; Schule (quadratische Gleichungen,
+              Pythagoras) → "schule_berechnen"
             Offene Probleme (Collatz/3n+1, Goldbach, Primzahllücken,
               Primzahlzwillinge) → "solve_open_math"
             alles andere (Einheiten, Einzelwerte, Passungsmaße) → "rechnen"
@@ -525,6 +539,10 @@ export function buildTutorAgent(opts: {
           • ELEKTROTECHNIK — JEDE Schaltung als circuitikz-Block (NIVEAU 9c),
             nie als handgezeichnetes SVG. Ströme, Spannungen, Leistungen
             rechnet "schaltung_berechnen"; du erklärst mit SEINEN Zahlen.
+            Einzelformeln (Ohm mit Leistung, Schwingkreis f₀/Q, RC-Lade-
+            kurve, Spannungsteiler, Kirchhoff-Gleichungssystem) rechnet
+            "elektro_berechnen"; Resonanzkurve und u_C(t) erscheinen
+            AUTOMATISCH — nicht selbst als chart nachzeichnen.
           • THERMODYNAMIK — Kreisprozesse (Carnot, Otto, Diesel, Joule/
             Brayton, Clausius-Rankine) als svg im p-v- bzw. T-s-Diagramm:
             beschriftete Achsen mit Einheit, nummerierte Zustandspunkte
@@ -543,6 +561,16 @@ export function buildTutorAgent(opts: {
             Diagramm bzw. Wurfbahn erscheinen AUTOMATISCH aus der Rechnung —
             nicht selbst als chart nachzeichnen. Annahmen nennen (kein
             Luftwiderstand, g = 9,81 m/s² oder der Wert aus dem Skript).
+          • WERKSTOFFKUNDE — Spannung, Dehnung, E-Modul, Wärmedehnung,
+            Biegespannung und Querkontraktion rechnet "werkstoff_berechnen".
+            Kennwerte (E, α, R_e, R_m) erfindest du NIE: aus der Aufgabe
+            oder dem Skript, sonst fragst du nach. Sag dazu, dass Hooke nur
+            im linear-elastischen Bereich gilt.
+          • CHEMIE — molare Massen, Konzentrationen, Stöchiometrie, pH und
+            Gasvolumina rechnet "chemie_berechnen". Gib die Reaktions-
+            gleichung mit: ist sie nicht ausgeglichen, rechnet das Werkzeug
+            nicht — gleiche sie dann zuerst MIT der Person aus. pK_s-Werte
+            und Stoffdaten aus dem Skript.
           • OFFENE PROBLEME — Fragt die Person nach dem Collatz-Problem
             (3n+1, Syracuse) oder einer anderen ungelösten Vermutung
             (Goldbach, Primzahlzwillinge, Primzahllücken), berechnest du die
@@ -759,6 +787,11 @@ export function buildTutorAgent(opts: {
           Für jedes Fachgebiet mit eigenem Löser rechnet der LÖSER, du erklärst.
           | Fachgebiet          | Werkzeug             | deckt ab |
           | Elektrotechnik      | schaltung_berechnen  | lineare Netzwerke DC/AC: Kirchhoff, Teiler, Impedanzen, Leistung, Thevenin/Norton, idealer OPV |
+          | Elektrotechnik      | elektro_berechnen    | Ohm mit Leistung, RLC-Schwingkreis (f₀, Q, Bandbreite, Betrag Z, φ), RC-Laden/Entladen, Spannungsteiler, LGS aus Kirchhoff |
+          | Werkstoffkunde      | werkstoff_berechnen  | Hooke, σ = F/A, Wärmedehnung und -spannung, Biegespannung (Rechteck, Kreis, I/W), Querkontraktion |
+          | Chemie              | chemie_berechnen     | molare Masse, c = n/V, Stöchiometrie (Gleichung wird geprüft), pH/pOH, Puffer, ideales Gas |
+          | Wirtschaft          | wirtschaft_berechnen | Zinseszins, Kapitalwert, interner Zinsfuß, Annuität mit Tilgungsplan |
+          | Schule (Mathematik) | schule_berechnen     | quadratische Gleichungen (exakt, p-q-Formel, Scheitelpunkt), Pythagoras |
           | Thermodynamik       | thermo_berechnen     | ideale Gase: p·V = n·R·T, 1. Hauptsatz, Zustandsänderungen, Kreisprozesse, Carnot/2. Hauptsatz, Verdichter/Turbine |
           | Physik              | physik_berechnen     | Kinematik (konstante Beschleunigung), Wurf ohne Luftwiderstand, F = m·a |
           | Informatik/IT-Sich. | solve_cyber          | Caesar, Vigenère, Lehrbuch-RSA, Hashes, boolesche Minimierung, KV-Diagramm, IPv4-Subnetze |
@@ -1789,7 +1822,9 @@ export function buildTutorAgent(opts: {
           "log, exp, abs, pi, e. Thermodynamik (p·V = n·R·T, 1. Hauptsatz, Carnot, " +
           "Zustandsänderungen) → thermo_berechnen; Kinematik, Wurf, F = m·a → physik_berechnen; " +
           "Chiffren, RSA, Hashes, Logik, Subnetze → solve_cyber; Matrizen, Regression, Neuronen → solve_ai; " +
-          "Collatz, Goldbach, Primzahllücken → solve_open_math.",
+          "Collatz, Goldbach, Primzahllücken → solve_open_math; Ohm, RLC, RC, Teiler → elektro_berechnen; " +
+          "Hooke, Wärmedehnung, Biegespannung → werkstoff_berechnen; molare Masse, pH, Stöchiometrie → chemie_berechnen; " +
+          "Zinsen, Kapitalwert, IRR, Annuität → wirtschaft_berechnen; quadratische Gleichungen, Pythagoras → schule_berechnen.",
         inputSchema: z.object({
           ausdruck: z
             .string()
@@ -1891,6 +1926,61 @@ export function buildTutorAgent(opts: {
           "IMMER dieses Werkzeug, nie selbst rechnen. Inverse/Eigenwerte: mathe_berechnen.",
         inputSchema: aiInputSchema,
         execute: async (input) => solveAi(input),
+      }),
+
+      elektro_berechnen: tool({
+        description:
+          "Elektrotechnik-Grundgrößen, exakt und mit Probe: aufgabe ohm (genau zwei von U, I, R, P → die anderen), " +
+          "rlc (R, L, C, schaltung reihe/parallel, optional f und U → f₀, Güte Q, Bandbreite, X_L, X_C, |Z|, φ; " +
+          "Resonanzkurve erscheint automatisch), rc_schaltvorgang (U0, R, C, modus laden/entladen, optional t → τ, " +
+          "u_C(t), i(t); Ladekurve erscheint automatisch), spannungsteiler (U_ein, R1, R2, optional R_last), " +
+          "kirchhoff (A, b, unbekannte: Gleichungssystem aus Maschen- und Knotengleichungen). Werte mit Einheit: " +
+          '"4,7 kΩ", "10 mH", "1 µF", "2 ms". Ganze Netzwerke (mehrere Quellen, Thevenin, Zeiger) → schaltung_berechnen.',
+        inputSchema: electricalInputSchema,
+        execute: async (input) => solveElectrical(input),
+      }),
+
+      werkstoff_berechnen: tool({
+        description:
+          "Werkstoffkunde/Festigkeit, exakt und mit Probe: aufgabe hooke (zwei von sigma, epsilon, E), spannung " +
+          "(zwei von sigma, F, A; A auch aus d), waermedehnung (alpha, L0, delta_T oder T1/T2; mit E auch die " +
+          "Wärmespannung bei behinderter Dehnung), biegespannung (M und b+h, d, I+e oder W), querkontraktion " +
+          '(eps_quer + eps_laengs, oder E + G; mit E → G). Werte mit Einheit: "210 GPa", "235 N/mm²", "0,1 %", ' +
+          '"12e-6 1/K", "869 cm⁴". Kennwerte NIE erfinden — aus Aufgabe oder Skript.',
+        inputSchema: materialsInputSchema,
+        execute: async (input) => solveMaterials(input),
+      }),
+
+      chemie_berechnen: tool({
+        description:
+          "Chemie, exakt und mit Probe: aufgabe molare_masse (formel, z. B. \"Ca(OH)2\", \"CuSO4·5H2O\"), " +
+          "konzentration (zwei von c, n oder m + M/formel, V), stoechiometrie (gleichung, gegeben, gesucht, n oder m — " +
+          "die Gleichung wird auf Atom- und Ladungsbilanz geprüft; Ionen als \"Fe^3+\", \"OH-\"), ph (modell " +
+          "oxonium, hydroxid, starke_saeure, starke_base, schwache_saeure + pKs, schwache_base + pKb, puffer, aus_ph), " +
+          'ideales_gas (drei von p, V, T, n bzw. m + formel). Werte mit Einheit: "0,1 mol/L", "250 mL", "25 °C", "1 atm". 25 °C.',
+        inputSchema: chemistryInputSchema,
+        execute: async (input) => solveChemistry(input),
+      }),
+
+      wirtschaft_berechnen: tool({
+        description:
+          "Finanzmathematik/Investitionsrechnung, exakt und mit Probe: aufgabe zinseszins (drei von K0, Kn, zins, " +
+          "laufzeit; perioden_pro_jahr oder stetig; Wachstumskurve erscheint automatisch), kapitalwert (zahlungen ab " +
+          "t = 0, Auszahlungen negativ, zins → C₀, Abzinsungstabelle, Kapitalwertkurve), irr (zahlungen → alle internen " +
+          'Zinsfüße, mehrere werden gemeldet), annuitaet (K0, zins, laufzeit → Annuität, Tilgungsplan). Zins als "5 %". ' +
+          "Lernhilfe, keine Anlageberatung.",
+        inputSchema: financeInputSchema,
+        execute: async (input) => solveFinance(input),
+      }),
+
+      schule_berechnen: tool({
+        description:
+          "Schulmathematik, exakt: aufgabe quadratisch (a, b, c von a·x² + b·x + c = 0 → Diskriminante, Lösungen, " +
+          "EXAKTE Form wie 1 ± √2, p-q-Formel, Scheitelpunkt, Scheitelpunktform, Linearfaktoren; Parabel erscheint " +
+          "automatisch), pythagoras (zwei von a, b, c → dritte Seite, auch exakt; drei → rechtwinklig?). " +
+          "Alles andere → mathe_berechnen.",
+        inputSchema: schoolInputSchema,
+        execute: async (input) => solveSchoolMath(input),
       }),
 
       evaluate_structure: tool({

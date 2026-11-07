@@ -21,13 +21,10 @@ export type CoveredDomain =
   | "informatik"
   | "ki"
   | "datenverarbeitung"
-  | "technisches_zeichnen";
-export type UncoveredDomain =
-  | "stroemungslehre"
-  | "regelungstechnik"
+  | "technisches_zeichnen"
   | "werkstoffkunde"
-  | "dampf_kaeltetechnik"
   | "chemie";
+export type UncoveredDomain = "stroemungslehre" | "regelungstechnik" | "dampf_kaeltetechnik";
 /**
  * Fächer außerhalb der Technik (Nov. 2026, lib/domains/) : kein Rechenlöser,
  * sondern die METHODE des Fachs (Gutachtenstil, klinisches Vorgehen,
@@ -68,6 +65,8 @@ const KEYWORDS: Record<Exclude<Domain, "unbekannt">, [RegExp, number][]> = {
     // Offene Probleme : solve_open_math
     [/\b(collatz|syracuse|3n\s*\+\s*1|goldbach|primzahllücken?|prime gaps?|écarts? entre (les )?(nombres )?premiers|primzahlzwillinge?|twin primes?|nombres premiers jumeaux|riemannsche vermutung|riemann hypothesis|hypothèse de riemann)\b/, 4],
     [/(d\/dx|∫|dy\/dx|y''|y')/, 2],
+    // Schulmathematik : schule_berechnen
+    [/\b(quadratische[rn]? gleichung(en)?|mitternachtsformel|p-q-formel|pq-formel|abc-formel|diskriminante|scheitelpunkt(form)?|parabel|satz des pythagoras|pythagoras|hypotenuse|kathete[n]?|équation du second degré|discriminant|théorème de pythagore|quadratic equation|pythagorean theorem)\b/, 3],
   ],
   mechanik: [
     [/\b(balken|träger|beam|poutre|auflager|lager(kraft|reaktion)|einspannung|festlager|loslager)\b/, 3],
@@ -121,7 +120,7 @@ const KEYWORDS: Record<Exclude<Domain, "unbekannt">, [RegExp, number][]> = {
   ],
   // Wirtschaft (BWL/VWL, Finanzmathematik).
   wirtschaft: [
-    [/\b(kapitalwert|barwert|interner zinsfuß|zinseszins\w*|annuität\w*|amortisation\w*|valeur actuelle nette|taux de rendement interne|intérêts composés|net present value|internal rate of return|compound interest)\b/, 4],
+    [/\b(kapitalwert|barwert|interner zinsfuß|zinseszins\w*|annuität\w*|amortisation\w*|tilgungsplan|tilgung|darlehen|kredit|irr|npv|valeur actuelle nette|taux de rendement interne|intérêts composés|net present value|internal rate of return|compound interest)\b/, 4],
     [/\b(bwl|vwl|betriebswirtschaft\w*|volkswirtschaft\w*|mikroökonomi\w*|makroökonomi\w*|angebot und nachfrage|preiselastizität|elastizität|inflation|bruttoinlandsprodukt|bip|gdp|pib|économie|economics|rendite|abschreibung\w*)\b/, 3],
   ],
   stroemungslehre: [
@@ -131,7 +130,10 @@ const KEYWORDS: Record<Exclude<Domain, "unbekannt">, [RegExp, number][]> = {
     [/\b(regelungstechnik|regelkreis|übertragungsfunktion|bode|nyquist|pid|laplace|sprungantwort|regler)\b/, 3],
   ],
   werkstoffkunde: [
-    [/\b(werkstoffkunde|werkstofftechnik|gefüge|eisen-kohlenstoff|härteprüfung|zugversuch|legierung|kristallgitter)\b/, 3],
+    [/\b(werkstoffkunde|werkstofftechnik|werkstoffprüfung|gefüge|eisen-kohlenstoff|härteprüfung|zugversuch|legierung|kristallgitter|science des matériaux|materials science)\b/, 3],
+    [/\b(hookesche[sn]? gesetz|hooke|e-modul|elastizitätsmodul|young's modulus|module d'young|querkontraktion(szahl)?|poissonzahl|poisson's ratio|coefficient de poisson)\b/, 4],
+    [/\b(wärmeausdehnung|wärmedehnung|längenausdehnung|ausdehnungskoeffizient|wärmespannung|thermal expansion|dilatation thermique)\b/, 4],
+    [/\b(streckgrenze|dehngrenze|zugfestigkeit|spannungs-dehnungs-diagramm|dehnung|stress-strain|limite d'élasticité)\b/, 2],
   ],
   dampf_kaeltetechnik: [
     [/\b(wasserdampf|nassdampf|dampftafel|dampfgehalt|sattdampf|überhitzter dampf|kältemittel|h,s-diagramm|log p,h)\b/, 4],
@@ -149,7 +151,9 @@ const KEYWORDS: Record<Exclude<Domain, "unbekannt">, [RegExp, number][]> = {
     [/\b[øØ]\s?\d+\s?[a-zA-Z]\d{1,2}\b/, 3],
   ],
   chemie: [
-    [/\b(chemie|stöchiometrie|reaktionsgleichung|mol\/l|ph-wert|redox|titration)\b/, 3],
+    [/\b(chemie|chimie|chemistry|stöchiometrie|stoichiometry|stœchiométrie|reaktionsgleichung|redox|titration|molarität|stoffmengenkonzentration|molare masse|molarity|molarité|masse molaire)\b/, 3],
+    [/\b(mol\/l|g\/mol|ph-wert|poh|pks|pkb|ph\s*=|ph von|ph of|ph de|pufferlösung|puffersystem|pufferkapazität|henderson-hasselbalch|säure|starke base|schwache base|base forte|base faible|strong base|weak base|oxonium\w*|hydroxid\w*|acide|solution tampon|buffer solution)\b/, 3],
+    [/\b(h2so4|hno3|hcl|naoh|nacl|nh3|caco3|ch4|c6h12o6|ch3cooh)\b/, 2],
   ],
 };
 
@@ -163,6 +167,8 @@ const COVERED: ReadonlySet<Domain> = new Set<Domain>([
   "ki",
   "datenverarbeitung",
   "technisches_zeichnen",
+  "werkstoffkunde",
+  "chemie",
 ]);
 
 /**
@@ -227,7 +233,7 @@ const LABEL: Record<Domain, string> = {
   ki: "KI & Data Science (Regression, Gradientenabstieg, neuronale Netze)",
   stroemungslehre: "Strömungslehre",
   regelungstechnik: "Regelungstechnik",
-  werkstoffkunde: "Werkstoffkunde",
+  werkstoffkunde: "Werkstoffkunde / Festigkeit",
   dampf_kaeltetechnik: "Dampf-/Kältetechnik (Wasserdampf, Kältemittel)",
   datenverarbeitung: "Datenverarbeitung (Python/MATLAB)",
   technisches_zeichnen: "Technisches Zeichnen",
@@ -239,9 +245,11 @@ const LABEL: Record<Domain, string> = {
 };
 
 const SOLVER: Record<CoveredDomain, string> = {
-  elektrotechnik: "schaltung_berechnen",
+  elektrotechnik:
+    "schaltung_berechnen (ganze Netzwerke) ; elektro_berechnen (ohm mit Leistung, rlc, rc_schaltvorgang, spannungsteiler, kirchhoff) — Resonanz- und Ladekurve erscheinen automatisch",
   thermodynamik: "thermo_berechnen (auch ideales_gas mit n in mol, erster_hauptsatz) — p-V-Diagramm erscheint automatisch",
-  mathematik: "mathe_berechnen; Collatz, Goldbach, Primzahllücken → solve_open_math (Folge NIE selbst rechnen)",
+  mathematik:
+    "mathe_berechnen; Schule (quadratische Gleichung, Pythagoras) → schule_berechnen (exakte Form, Parabel automatisch); Collatz, Goldbach, Primzahllücken → solve_open_math (Folge NIE selbst rechnen)",
   mechanik: "balkenstatik (Balken), statik_berechnen (Fachwerk, Reibung, Kraftsystem)",
   physik: "physik_berechnen (kinematik, wurf, newton) — Diagramm s(t)/v(t) bzw. Wurfbahn erscheint automatisch",
   informatik:
@@ -250,6 +258,10 @@ const SOLVER: Record<CoveredDomain, string> = {
   datenverarbeitung:
     "echte Ausführung im Browser — Python-Code in einen python-Block, die Studierenden starten „Ausführen“ bzw. „Variablentabelle“; Ausgaben nie im Kopf als Tatsache behaupten",
   technisches_zeichnen: "Zeichnung als svg (NIVEAU 9g), 3D als 3d-json (NIVEAU 9f), Grenzmaße mit rechnen",
+  werkstoffkunde:
+    "werkstoff_berechnen (hooke, spannung, waermedehnung, biegespannung, querkontraktion) — Kennwerte (E, α, R_e) aus Aufgabe oder Skript, nie erfinden",
+  chemie:
+    "chemie_berechnen (molare_masse, konzentration, stoechiometrie, ph, ideales_gas) — die Reaktionsgleichung wird auf Ausgleich geprüft",
 };
 
 /** Der Hinweis, der als zweite System-Nachricht an das Modell geht. */

@@ -1,5 +1,6 @@
 /**
- * Diagramme der Fachlöser (thermo_berechnen, physik_berechnen, solve_ai).
+ * Diagramme der Fachlöser (thermo_berechnen, physik_berechnen, solve_ai,
+ * solve_open_math, elektro_berechnen, wirtschaft_berechnen, schule_berechnen).
  *
  * Wie beim Balken (beam-svg.ts) zeichnet nicht das Modell, sondern der
  * Code: der Löser liefert `diagramme` (Schema des ```chart-Blocks), und hier
@@ -7,7 +8,15 @@
  * oder die Wurfbahn zeigt so genau die Rechnung; Speichern und Übersetzen
  * übernehmen den Block ohne weiteres Zutun.
  */
-const CHART_TOOLS = new Set(["thermo_berechnen", "physik_berechnen", "solve_ai", "solve_open_math"]);
+const CHART_TOOLS = new Set([
+  "thermo_berechnen",
+  "physik_berechnen",
+  "solve_ai",
+  "solve_open_math",
+  "elektro_berechnen",
+  "wirtschaft_berechnen",
+  "schule_berechnen",
+]);
 
 interface ChartLike {
   type?: unknown;

@@ -330,3 +330,19 @@ Chaque réponse du tuteur écrit une ligne `[perf]` dans les logs Railway (Deplo
 
 Mesure contrôlée (appels réels, environ 0,5 à 1 €) : mets `ANTHROPIC_API_KEY` dans `C:\dev\tred-rdm\aerostudy-ai\.env` (jamais commité), puis
 `cd C:\dev\tred-rdm\aerostudy-ai\packages\web` et `bun --env-file=../../.env scripts/bench-chat-latency.ts`.
+
+---
+
+## Les solveurs — ce que TRED calcule lui-même
+
+Le modèle ne calcule jamais lui-même : il pose le problème, un solveur (du code, testé sur des valeurs de manuel) calcule, et le tuteur explique avec ces chiffres. Dans le chat, un badge « Berechnet mit dem Löser » le montre ; les courbes marquées « automatique » apparaissent sans que le modèle les dessine.
+
+| Matière | Outil | Ce qu'il calcule | Phrase pour tester |
+|---|---|---|---|
+| Électrotechnique (formules) | `elektro_berechnen` | Ohm et puissance, circuit RLC (f₀, Q), charge RC (courbe automatique), diviseur, système de Kirchhoff | « Reihenschwingkreis R = 10 Ω, L = 10 mH, C = 1 µF: Resonanzfrequenz und Güte? » |
+| Matériaux | `werkstoff_berechnen` | Hooke, σ = F/A, dilatation thermique, contrainte de flexion, coefficient de Poisson | « Stahlschiene 1 m, α = 12·10⁻⁶ 1/K, um 100 K erwärmt: Längenänderung? » |
+| Chimie | `chemie_berechnen` | masse molaire, concentration, stœchiométrie (refuse une équation non équilibrée), pH, tampon, gaz parfaits | « pH einer Essigsäure mit c = 0,1 mol/L, pKs = 4,76? » |
+| Finance | `wirtschaft_berechnen` | intérêts composés, VAN, TRI (signale plusieurs TRI), annuité et tableau d'amortissement | « Kapitalwert und interner Zinsfuß für −1000, 500, 400, 300 bei 10 %? » |
+| Lycée | `schule_berechnen` | second degré (forme exacte, formule p-q, sommet, parabole automatique), Pythagore | « Löse x² − 2x − 1 = 0 mit der p-q-Formel. » |
+
+Les solveurs plus anciens (mécanique, circuits complets, thermo, physique, maths, cyber, IA, Collatz) sont listés dans le prompt du tuteur (`api/agent/index.ts`, tableau « FACHLÖSER »). Aucun ne demande de clé ni ne coûte rien de plus.

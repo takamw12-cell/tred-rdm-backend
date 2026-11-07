@@ -27,6 +27,11 @@ export const SOLVER_TOOL_NAMES = new Set([
   "solve_cyber",
   "solve_ai",
   "solve_open_math",
+  "elektro_berechnen",
+  "werkstoff_berechnen",
+  "chemie_berechnen",
+  "wirtschaft_berechnen",
+  "schule_berechnen",
 ]);
 const DRAW_TOOLS = new Set(["skizze", "generiere_bild_oder_video"]);
 

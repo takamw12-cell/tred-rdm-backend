@@ -115,6 +115,11 @@ const SOLVER_TOOLS = new Set([
   "tool-solve_ai",
   "tool-solve_open_math",
   "tool-mathe_berechnen",
+  "tool-elektro_berechnen",
+  "tool-werkstoff_berechnen",
+  "tool-chemie_berechnen",
+  "tool-wirtschaft_berechnen",
+  "tool-schule_berechnen",
 ]);
 
 // Pull rendered text out of a UI message's parts.

@@ -9,7 +9,8 @@ export const stem: DomainFamily = {
   prompt: "",
   allowedTools: [
     "rechnen", "balkenstatik", "statik_berechnen", "schaltung_berechnen", "thermo_berechnen", "physik_berechnen",
-    "mathe_berechnen", "solve_cyber", "solve_ai", "solve_open_math", "skizze", "suche_in_unterlagen",
+    "mathe_berechnen", "solve_cyber", "solve_ai", "solve_open_math", "elektro_berechnen", "werkstoff_berechnen",
+    "chemie_berechnen", "schule_berechnen", "skizze", "suche_in_unterlagen",
     "recherche_connaissances_externes",
   ],
   evaluation: { kind: "solver" },
