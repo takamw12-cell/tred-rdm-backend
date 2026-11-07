@@ -58,7 +58,7 @@ Tout part dans des messages système **après** le bloc fixe mis en cache. Le pr
 
 1. **Motifs des étapes.** Ils sont à faire relire par une juriste et un médecin. En particulier, « Sachverhalt » compte pour 25 points à la demande du fondateur ; en Allemagne, beaucoup de correcteurs n'exigent pas de le reformuler.
 2. **Positionnement.** L'identité du prompt (NIVEAU 1) et le site présentent toujours TRED comme un tuteur d'ingénierie. Le paragraphe ajouté l'ouvre aux autres matières sans réécrire l'identité. La landing page et les textes marketing restent à décider.
-3. **Le champ « niveau » (école ou université)** n'existe pas encore dans le profil d'études. Il faut l'ajouter à l'onboarding.
+3. ~~Le champ « niveau »~~ — **fait** : Lycée, Bachelor, Master, Doctorat dans l'inscription et dans Réglages → Studium. Il part avec chaque question (`studyProfile.level`) ; `lib/study-profile.ts` ajoute la consigne de profondeur (Master : bases supposées acquises, dérivations plus générales, limites des modèles ; Lycée : langue de l'école et famille `highschool`). Les profils existants n'ont pas de niveau : le tuteur se comporte comme avant tant que l'étudiant ne l'a pas choisi.
 
 ## 4. Solveurs ajoutés (codés, testés)
 

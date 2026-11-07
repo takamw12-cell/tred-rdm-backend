@@ -3,6 +3,10 @@ import { persist } from "zustand/middleware";
 
 export type PlanId = "founder" | "free" | "standard" | "premium";
 
+/** Niveau d'études : le tuteur adapte profondeur et rythme (api/lib/study-profile.ts). */
+export const STUDY_LEVELS = ["school", "bachelor", "master", "phd"] as const;
+export type StudyLevel = (typeof STUDY_LEVELS)[number];
+
 export interface Profile {
   firstName: string;
   lastName: string;
@@ -10,6 +14,8 @@ export interface Profile {
   university: string;
   degree: string;
   semester: string;
+  /** Optionnel : les profils enregistrés avant nov. 2026 ne l'ont pas. */
+  studyLevel?: StudyLevel | "";
   nativeLanguage: string;
   germanLevel: string;
 }
@@ -32,6 +38,7 @@ const defaultProfile: Profile = {
   university: "fhAachen",
   degree: "Luft- und Raumfahrttechnik",
   semester: "3",
+  studyLevel: "bachelor",
   nativeLanguage: "fr",
   germanLevel: "B1",
 };

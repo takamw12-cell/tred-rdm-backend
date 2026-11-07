@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useT } from "@/i18n";
-import { useUserStore, type Profile } from "@/stores/user";
+import { useUserStore, STUDY_LEVELS, type Profile } from "@/stores/user";
 
 interface FormValues extends Profile {
   password: string;
@@ -48,6 +48,7 @@ export default function OnboardingPage() {
       university: "",
       degree: "",
       semester: "",
+      studyLevel: "",
       nativeLanguage: "",
       germanLevel: "",
       acceptTerms: false,
@@ -63,6 +64,7 @@ export default function OnboardingPage() {
       university: v.university,
       degree: v.degree,
       semester: v.semester,
+      studyLevel: v.studyLevel,
       nativeLanguage: v.nativeLanguage,
       germanLevel: v.germanLevel,
     });
@@ -190,6 +192,30 @@ export default function OnboardingPage() {
                 {...register("degree", { required: t("onboarding.errorRequired") })}
               />
               {err(errors.degree?.message)}
+            </div>
+
+            <div>
+              <Label className="mb-1.5">{t("common.studyLevel")}</Label>
+              <Controller
+                control={control}
+                name="studyLevel"
+                rules={{ required: t("onboarding.errorRequired") }}
+                render={({ field }) => (
+                  <Select value={field.value || undefined} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("onboarding.selectStudyLevel")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STUDY_LEVELS.map((l) => (
+                        <SelectItem key={l} value={l}>
+                          {t(`studyLevels.${l}`)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {err(errors.studyLevel?.message)}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

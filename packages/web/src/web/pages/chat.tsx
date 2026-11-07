@@ -163,8 +163,8 @@ function isStreamingText(m: UIMessage): boolean {
   return last?.type === "text" && last.state !== "done";
 }
 
-function pickStudyProfile(p: { degree: string; university: string; semester: string }) {
-  return { degree: p.degree, university: p.university, semester: p.semester };
+function pickStudyProfile(p: { degree: string; university: string; semester: string; studyLevel?: string }) {
+  return { degree: p.degree, university: p.university, semester: p.semester, level: p.studyLevel || undefined };
 }
 
 export default function ChatPage() {

@@ -21,6 +21,7 @@ import { ProfessorPicker } from "@/components/professor-picker";
 import { VoicePicker, voicePickerTitle } from "@/components/voice-picker";
 import { professorUi } from "@/lib/professors";
 import { StudiengangPicker } from "@/components/studiengang-picker";
+import { StudyLevelPicker } from "@/components/study-level-picker";
 import { UniversityPicker } from "@/components/university-picker";
 import { Button } from "@/components/ui/button";
 import {
@@ -303,6 +304,9 @@ export default function SettingsPage() {
       <Section icon={<BookOpen className="size-4" />} title={t("settings.studySection")}>
         <Row label={t("settings.studiengangLabel")} description={t("settings.studiengangDesc")}>
           <StudiengangPicker />
+        </Row>
+        <Row label={t("common.studyLevel")} description={t("settings.studyLevelDesc")}>
+          <StudyLevelPicker />
         </Row>
       </Section>
 
