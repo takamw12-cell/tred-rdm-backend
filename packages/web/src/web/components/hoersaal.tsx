@@ -113,6 +113,9 @@ export function GlassBoard({
           className="relative flex min-h-0 flex-1 flex-col items-center gap-6 overflow-y-auto px-5 pt-4 pb-8 sm:px-10"
         >
           {children}
+          {/* Sous la barre flottante du Hörsaal (components/hoersaal-stage.tsx) :
+              la dernière étape remonte au-dessus d'elle. 0 hors de la scène. */}
+          <div aria-hidden data-slot="dock-spacer" className="w-full shrink-0" style={{ height: "var(--dock-space, 0px)" }} />
         </div>
       </div>
 

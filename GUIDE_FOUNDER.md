@@ -25,7 +25,7 @@
 | Figma | `.mcp.json` → serveur `figma-developer-mcp` 0.13.2 | prêt, attend ton token |
 | Composants accessibles | Radix (14 paquets), `class-variance-authority`, `clsx`, `tailwind-merge` | déjà là |
 | Backend | `hono`, `@orpc/*`, `drizzle-orm`, `@libsql/client`, `stripe`, `@ai-sdk/anthropic` | déjà là |
-| UI Hörsaal | `virtual-classroom.tsx` : placeholders gris + slots `sidebar` / `board` / `avatar` + `data-slot` = noms des calques Figma | prêt |
+| UI Hörsaal | `virtual-classroom.tsx` + `hoersaal-stage.tsx` : une seule scène plein écran (Tafel 100 %, professeur flottant déplaçable, barre de chat en verre en bas) + slots `board` / `avatar` + `data-slot` = noms des calques Figma | prêt |
 
 Toutes les versions sont **exactes** (pas de `^`) et publiées depuis au moins 2 semaines, par prudence face aux paquets compromis.
 
@@ -103,22 +103,21 @@ Je lis l'arbre des calques. Un fichier propre me permet un code au pixel près, 
 ```
 📄 Page « Hörsaal »
  └─ 🖼 Frame « VirtualClassroom / Desktop 1440 »
-     ├─ Sidebar                 (Auto Layout vertical)
-     │   ├─ Sidebar/Logo
-     │   ├─ Sidebar/NavItem       (variantes : default / active / hover)
-     │   └─ Sidebar/Footer
-     ├─ Tafel                   (Auto Layout vertical)
+     ├─ Tafel                   (plein cadre : 100 % largeur × 100 % hauteur)
      │   ├─ Tafel/Header
      │   ├─ Tafel/Steps           (pastilles des étapes)
-     │   └─ Tafel/CurrentStep     (variantes : writing / done)
-     └─ Professor               (Auto Layout vertical)
-         ├─ Professor/AvatarSlot  (rectangle vide au ratio exact de la vidéo)
-         ├─ Professor/AudioBar
-         └─ Professor/Bubble
+     │   ├─ Tafel/CurrentStep     (variantes : writing / done)
+     │   └─ Tafel/Ledge           (rebord : couleurs du tableau)
+     ├─ Professor               (calque flottant, posé sur la Tafel — position libre)
+     │   ├─ Professor/AvatarSlot  (carré, variantes : back / front)
+     │   └─ Professor/NamePill
+     └─ ChatDock                (barre flottante en bas, centrée, verre dépoli)
+         ├─ ChatDock/Messages
+         └─ ChatDock/Composer
 📄 Page « Components »   ← composants maîtres
 ```
 
-Ces noms correspondent déjà aux `data-slot` du code (`sidebar`, `tafel`, `tafel-steps`, `tafel-current-step`, `professor`, `avatar-video`, `audio-bar`, `professor-bubble`).
+Ces noms correspondent aux `data-slot` du code (`hoersaal-stage`, `tafel-frame`, `tafel-ledge`, `floating-professor`, `chat-dock`, `chat-composer`, `professor-bubble`). Pas de colonnes : un seul cadre, la Tafel en fond, le reste posé dessus.
 
 1. **Auto Layout partout.** Tes paddings et gaps deviennent directement du Tailwind.
 2. **Nommage `Zone/Élément`** en anglais. Jamais `Frame 427`.

@@ -30,12 +30,13 @@ export function HologramProfessor({
   pose: ProfessorPose;
   /** Incrémenté à chaque mot prononcé : une onde part du halo. */
   beat?: number;
-  size?: "md" | "lg";
+  /** md : bandeau ; float : professeur flottant sur le tableau ; lg : maquette. */
+  size?: "md" | "float" | "lg";
 }) {
   const reduce = useReducedMotion();
   const back = pose === "schreiben";
   const speaking = pose === "erklaeren";
-  const dim = size === "lg" ? "size-44" : "size-16 sm:size-20";
+  const dim = size === "lg" ? "size-44" : size === "float" ? "size-20 sm:size-28 lg:size-32" : "size-16 sm:size-20";
 
   return (
     <div
@@ -82,7 +83,7 @@ export function HologramProfessor({
           className="absolute inset-0 overflow-hidden rounded-full ring-2 ring-cyan-300/70 [backface-visibility:hidden]"
           style={{ WebkitBackfaceVisibility: "hidden" }}
         >
-          <ProfessorPortrait professor={professor} eager={size === "lg"} />
+          <ProfessorPortrait professor={professor} eager={size !== "md"} />
           <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgb(103_232_249/0.10),rgb(34_211_238/0.22))] mix-blend-screen" />
           <span className="pointer-events-none absolute inset-0 opacity-30 [background-image:repeating-linear-gradient(180deg,rgb(255_255_255/0.25)_0px,rgb(255_255_255/0.25)_1px,transparent_1px,transparent_3px)]" />
         </div>

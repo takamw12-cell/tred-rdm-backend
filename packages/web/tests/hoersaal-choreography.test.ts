@@ -93,13 +93,42 @@ describe("Câblage", () => {
     expect(read("src/web/lib/voice.ts")).toContain('if (e.name === "word") onWord();');
   });
 
-  test("tuteur : hologramme dans le bandeau, statut calme, saisie flottante en verre", () => {
+  test("tuteur : une seule scène — Tafel plein cadre, professeur flottant, barre de chat en bas", () => {
     const chat = read("src/web/pages/chat.tsx");
-    expect(chat).toContain("<HologramProfessor professor={professor} pose={choreo.pose} beat={choreo.beat} />");
+    expect(chat).toContain("<HoersaalStage");
+    expect(chat).toContain("<FloatingProfessor");
+    expect(chat).toContain("pose={choreo.pose}");
     expect(chat).toContain("useProfessorChoreography({");
     expect(chat).not.toContain("<Dots />");
     expect(chat).toContain('data-slot="chat-composer"');
-    expect(chat).toContain("backdrop-blur-xl");
-    expect(read("src/web/components/virtual-classroom.tsx")).not.toContain("interactiveLedge");
+    // Plus d'écran coupé en deux : ni colonne Tafel, ni colonne chat fixe.
+    expect(chat).not.toContain("lg:flex-row");
+    expect(chat).not.toContain("lg:w-[58%]");
+    expect(chat).not.toContain("<ProfessorStrip");
+    // La liste des cours ne réduit plus la Tafel par défaut.
+    expect(chat).toContain('localStorage.getItem("tred.chatRail.v2") === "open"');
+  });
+
+  test("scène : un conteneur, tout en absolute ; prof déplaçable ; barre en verre dépoli", () => {
+    const stage = read("src/web/components/hoersaal-stage.tsx");
+    expect(stage).toContain('"absolute inset-0 flex flex-col');
+    expect(stage).toContain("dragConstraints={stage ?? undefined}");
+    expect(stage).toMatch(/<motion\.div\s+data-slot="floating-professor"[\s\S]*?\bdrag\b/);
+    expect(stage).toContain("backdrop-blur-xl");
+    expect(stage).toContain("max-w-3xl");
+    expect(stage).not.toMatch(/grid-cols-2|flex-row/);
+    // La dernière étape n'est jamais cachée derrière la barre.
+    expect(stage).toContain('"--dock-space"');
+    expect(read("src/web/components/hoersaal.tsx")).toContain('height: "var(--dock-space, 0px)"');
+  });
+
+  test("maquette /classroom : même scène, sans colonnes", () => {
+    const vc = read("src/web/components/virtual-classroom.tsx");
+    expect(vc).toContain("<HoersaalStage");
+    expect(vc).toContain("<FloatingProfessor");
+    expect(vc).not.toContain("interactiveLedge");
+    expect(vc).not.toContain("function Sidebar");
+    expect(vc).not.toContain("function ProfessorPanel");
+    expect(vc).not.toContain("flex-row");
   });
 });
