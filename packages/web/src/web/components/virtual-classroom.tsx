@@ -13,17 +13,18 @@ import {
   Sigma,
   Volume2,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { MarkdownContent } from "@/components/markdown-content";
 import {
   BoardStatus,
   GlassBoard,
   PaperNote,
-  ProfessorHalo,
   ROOM_BG,
   SolverStamp,
   StepChecklist,
 } from "@/components/hoersaal";
+import { HologramProfessor } from "@/components/hologram-professor";
+import { TURN_MS, type ProfessorPose } from "@/lib/professor-choreography";
 import { professorText, useProfessor } from "@/lib/professors";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
@@ -38,7 +39,7 @@ import { cn } from "@/lib/utils";
  *   │ 240px    │  ┌── cadre métal brossé ────────┐  │ 360px        │
  *   │          │  │ tableau en verre, éclairé    │  │ photo + halo │
  *   │          │  │ notes posées + aimants       │  │ jaune        │
- *   │          │  └──────── rebord (marqueurs) ──┘  │              │
+ *   │          │  └── rebord (couleurs du tableau) ┘  │              │
  *   └──────────┴────────────────────────────────────┴──────────────┘
  *
  * Écriture : police manuscrite Caveat (auto-hébergée, public/fonts) pour ce
@@ -80,7 +81,28 @@ const NAV = [
 const DONE_STEPS = ["Beobachtung", "Physik"];
 
 
+/**
+ * La chorégraphie en boucle, sans son (maquette) : il écrit de dos, se
+ * retourne, explique, puis recommence. Le vrai tuteur suit le flux de l'IA
+ * (components/hologram-professor.tsx → useProfessorChoreography).
+ */
+const DEMO: { pose: ProfessorPose; ms: number }[] = [
+  { pose: "schreiben", ms: 3500 },
+  { pose: "drehen", ms: TURN_MS },
+  { pose: "erklaeren", ms: 4500 },
+];
+
+function useDemoPose(): ProfessorPose {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const id = setTimeout(() => setI((n) => (n + 1) % DEMO.length), DEMO[i].ms);
+    return () => clearTimeout(id);
+  }, [i]);
+  return DEMO[i].pose;
+}
+
 export function VirtualClassroom({ sidebar, board, avatar }: VirtualClassroomSlots = {}) {
+  const pose = useDemoPose();
   return (
     <div
       data-slot="virtual-classroom"
@@ -88,8 +110,8 @@ export function VirtualClassroom({ sidebar, board, avatar }: VirtualClassroomSlo
       className={cn("flex h-screen w-full overflow-hidden text-white", ROOM_BG)}
     >
       {sidebar ?? <Sidebar />}
-      <Tafel>{board ?? <TafelPlaceholderContent />}</Tafel>
-      <ProfessorPanel avatar={AVATAR_ENABLED ? avatar : undefined} />
+      <Tafel writing={pose === "schreiben"}>{board ?? <TafelPlaceholderContent />}</Tafel>
+      <ProfessorPanel avatar={AVATAR_ENABLED ? avatar : undefined} pose={pose} />
     </div>
   );
 }
@@ -154,9 +176,9 @@ function Sidebar() {
 
 /**
  * Le tableau de la maquette : le même <GlassBoard> que le vrai tuteur
- * (components/hoersaal.tsx), avec un spot au-dessus et des feutres cliquables.
+ * (components/hoersaal.tsx), avec un spot au-dessus et le sélecteur de couleurs.
  */
-function Tafel({ children }: { children: ReactNode }) {
+function Tafel({ children, writing }: { children: ReactNode; writing: boolean }) {
   return (
     <main
       data-slot="tafel"
@@ -170,8 +192,7 @@ function Tafel({ children }: { children: ReactNode }) {
       <GlassBoard
         eyebrow="Digitaler Hörsaal · Grundlagen der Elektrotechnik"
         title="Kirchhoffsche Gesetze"
-        status={<BoardStatus>Le professeur écrit…</BoardStatus>}
-        interactiveLedge
+        status={writing ? <BoardStatus>Le professeur écrit…</BoardStatus> : undefined}
       >
         <div className="flex flex-1 flex-col items-center justify-center gap-6">{children}</div>
       </GlassBoard>
@@ -207,13 +228,13 @@ function TafelPlaceholderContent() {
 
 /* ── Professeur ──────────────────────────────────────────────────────── */
 
-/** Le professeur choisi par l'étudiant (vestiaire), éclairé par le tableau. */
-export function ProfessorAvatar({ video }: { video?: ReactNode }) {
+/** Le professeur choisi par l'étudiant (vestiaire), en hologramme. */
+export function ProfessorAvatar({ video, pose = "idle" }: { video?: ReactNode; pose?: ProfessorPose }) {
   const { locale } = useT();
   const professor = useProfessor();
   return (
     <div data-slot="professor-avatar" className="flex flex-col items-center text-center">
-      <ProfessorHalo professor={professor} video={video} />
+      {video ?? <HologramProfessor professor={professor} pose={pose} size="lg" />}
       <h2 className="font-display mt-6 text-xl font-semibold text-white">{professor.name}</h2>
       <p className="text-sm text-white/60">{professorText(professor.title, locale)}</p>
     </div>
@@ -285,14 +306,14 @@ function AudioBar() {
   );
 }
 
-function ProfessorPanel({ avatar }: { avatar?: ReactNode }) {
+function ProfessorPanel({ avatar, pose }: { avatar?: ReactNode; pose: ProfessorPose }) {
   const [mode, setMode] = useState<ProfessorMode>("answer");
   return (
     <aside
       data-slot="professor"
       className="relative flex w-[360px] shrink-0 flex-col gap-6 border-l border-white/5 bg-[#0F172A]/70 px-6 py-10 shadow-[-12px_0_50px_-12px_rgb(0_0_0/0.7)] backdrop-blur-xl"
     >
-      <ProfessorAvatar video={avatar} />
+      <ProfessorAvatar video={avatar} pose={pose} />
       <ModeSwitch mode={mode} onChange={setMode} />
       <AudioBar />
 

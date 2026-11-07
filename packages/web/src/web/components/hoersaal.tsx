@@ -1,8 +1,10 @@
-import { Check, Maximize2, Undo2 } from "lucide-react";
+import { Check, Palette, RotateCcw } from "lucide-react";
 import { BOARD_THEMES, useBoardTheme, type BoardTheme } from "@/stores/board-theme";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { ProfessorPortrait } from "@/components/professor-portrait";
 import type { Professor } from "@/lib/professors";
+import { DEFAULT_TAFEL_COLORS, effectiveBoardTheme, tafelStyle } from "@/lib/tafel-colors";
+import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
 
 /**
@@ -10,7 +12,7 @@ import { cn } from "@/lib/utils";
  * le vrai tuteur (chat → TafelBoard). Une seule source : ce que le fondateur a
  * validé sur la maquette est exactement ce que voient les étudiants.
  *
- *   <GlassBoard>    cadre métal brossé + verre trempé + rebord
+ *   <GlassBoard>    cadre métal brossé + verre trempé + rebord (couleurs du tableau)
  *   <PaperNote>     une feuille posée sur le verre, tenue par un aimant
  *   <SolverStamp>   le tampon « Berechnet mit dem Löser »
  *   <ProfessorHalo> le portrait du professeur, halo jaune et ombre portée
@@ -37,7 +39,6 @@ export function GlassBoard({
   title,
   status,
   children,
-  interactiveLedge = false,
   className,
   "aria-label": ariaLabel,
 }: {
@@ -46,13 +47,12 @@ export function GlassBoard({
   /** Pastille à droite de l'en-tête (« Le professeur écrit… »). */
   status?: ReactNode;
   children: ReactNode;
-  /** Feutres cliquables (maquette). Dans le tuteur, le rebord est décoratif. */
-  interactiveLedge?: boolean;
   className?: string;
   "aria-label"?: string;
 }) {
   const theme = useBoardTheme((s) => s.theme);
-  const setTheme = useBoardTheme((s) => s.setTheme);
+  // Couleurs libres : appliquées en direct (style inline, priment sur le thème).
+  const custom = useBoardTheme((s) => s.custom);
   return (
     <section
       aria-label={ariaLabel}
@@ -71,7 +71,9 @@ export function GlassBoard({
       {/* Le verre */}
       <div
         data-slot="tafel-glass"
-        data-board-theme={theme}
+        data-board-theme={effectiveBoardTheme(theme, custom)}
+        data-tafel-custom={custom ? "" : undefined}
+        style={tafelStyle(custom) as CSSProperties | undefined}
         className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[14px] transition-[background] duration-500"
       >
         {/* Reflet diagonal : on sait tout de suite que c'est du verre */}
@@ -114,7 +116,7 @@ export function GlassBoard({
         </div>
       </div>
 
-      <ChalkLedge interactive={interactiveLedge} theme={theme} onTheme={setTheme} />
+      <ChalkLedge />
     </section>
   );
 }
@@ -123,7 +125,8 @@ export function GlassBoard({
 export function BoardStatus({ children }: { children: ReactNode }) {
   return (
     <span className="flex shrink-0 items-center gap-2 rounded-full bg-[color:var(--board-pill)] px-3 py-1.5 text-xs font-medium text-[color:var(--board-muted)] ring-1 ring-[color:var(--board-pill)] backdrop-blur">
-      <span className="size-2 rounded-full bg-[#EAB308] motion-safe:animate-pulse" />
+      {/* Point fixe : le tableau et le professeur restent calmes pendant l'écriture. */}
+      <span className="size-2 rounded-full bg-[#EAB308]" />
       {children}
     </span>
   );
@@ -145,118 +148,128 @@ export function HandUnderline() {
   );
 }
 
-const MARKERS = [
-  { label: "Feutre bleu nuit", body: "#1B2A4A", cap: "#0F172A" },
-  { label: "Surligneur jaune", body: "#FACC15", cap: "#CA8A04" },
-  { label: "Feutre rouge", body: "#DC2626", cap: "#991B1B" },
-];
+/**
+ * Le rebord du tableau : plus de feutres décoratifs (ils ne faisaient rien),
+ * mais les vrais réglages — les couleurs du tableau et de la craie, avec leur
+ * densité, et les trois fonds prêts à l'emploi.
+ */
+function ChalkLedge() {
+  const theme = useBoardTheme((s) => s.theme);
+  const custom = useBoardTheme((s) => s.custom);
+  const setTheme = useBoardTheme((s) => s.setTheme);
+  return (
+    <div
+      data-slot="tafel-ledge"
+      className="relative mx-6 mt-2 -mb-[10px] flex h-12 shrink-0 items-center gap-3 rounded-b-xl bg-[linear-gradient(180deg,#B9C0C8_0%,#8E97A2_40%,#6B7480_100%)] px-4 shadow-[0_14px_24px_-10px_rgb(0_0_0/0.8),inset_0_1px_0_rgb(255_255_255/0.6)]"
+    >
+      <TafelColorControls />
+      {/* Couleurs libres actives : aucun des trois fonds n'est « sélectionné ». */}
+      <ThemePicker theme={custom ? null : theme} onTheme={setTheme} />
+    </div>
+  );
+}
 
 /**
- * Le rebord : les outils sont des objets posés dessus — trois feutres et une
- * brosse — plutôt qu'une barre de boutons flottante. Hors maquette, il est
- * purement décoratif : on n'affiche pas de bouton qui ne fait rien.
+ * Sélecteur de couleurs : fond du tableau et craie, chacun avec un curseur de
+ * densité (opacité). Chaque mouvement s'applique tout de suite au verre
+ * (--tafel-bg, --tafel-text) ; « Zurücksetzen » revient au thème choisi.
  */
-function ChalkLedge({
-  interactive,
-  theme,
-  onTheme,
-}: {
-  interactive: boolean;
-  theme: BoardTheme;
-  onTheme: (t: BoardTheme) => void;
-}) {
-  const [active, setActive] = useState(0);
+function TafelColorControls() {
+  const { t } = useT();
+  const custom = useBoardTheme((s) => s.custom);
+  const setCustom = useBoardTheme((s) => s.setCustom);
+  const resetCustom = useBoardTheme((s) => s.resetCustom);
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  const c = custom ?? DEFAULT_TAFEL_COLORS;
 
-  const marker = (m: (typeof MARKERS)[number], i: number) => {
-    const shape = (
-      <>
-        <span
-          className="h-3.5 w-14 rounded-l-full shadow-[inset_0_1px_0_rgb(255_255_255/0.35),0_2px_3px_rgb(0_0_0/0.4)]"
-          style={{ background: m.body }}
-        />
-        <span
-          className="h-4 w-5 rounded-r-md shadow-[0_2px_3px_rgb(0_0_0/0.4)]"
-          style={{ background: m.cap }}
-        />
-      </>
-    );
-    if (!interactive) {
-      return (
-        <span key={m.label} className={cn("flex h-4 items-center", i === 0 && "-translate-y-0.5")}>
-          {shape}
-        </span>
-      );
-    }
+  // Clic à côté ou Échap : le panneau se referme.
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (box.current && !box.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const row = (kind: "bg" | "ink") => {
+    const color = kind === "bg" ? c.bg : c.ink;
+    const alpha = kind === "bg" ? c.bgAlpha : c.inkAlpha;
+    const label = kind === "bg" ? t("tafel.colorBoard") : t("tafel.colorChalk");
     return (
-      <button
-        key={m.label}
-        type="button"
-        title={m.label}
-        aria-label={m.label}
-        aria-pressed={active === i}
-        onClick={() => setActive(i)}
-        className={cn(
-          "flex h-4 items-center transition-transform",
-          active === i ? "-translate-y-1.5" : "hover:-translate-y-0.5",
-        )}
-      >
-        {shape}
-      </button>
+      <div className="space-y-1.5">
+        <label className="flex items-center gap-2 text-xs font-semibold text-[#0F172A]">
+          <input
+            type="color"
+            value={color}
+            aria-label={label}
+            onChange={(e) => setCustom(kind === "bg" ? { bg: e.target.value } : { ink: e.target.value })}
+            className="size-8 cursor-pointer rounded-md border border-black/10 bg-transparent p-0.5"
+          />
+          {label}
+        </label>
+        <label className="flex items-center gap-2 text-[11px] text-[#334155]">
+          <span className="shrink-0">{t("tafel.density")}</span>
+          <input
+            type="range"
+            min={kind === "bg" ? 20 : 30}
+            max={100}
+            value={Math.round(alpha * 100)}
+            aria-label={`${label} — ${t("tafel.density")}`}
+            onChange={(e) => {
+              const v = Number(e.target.value) / 100;
+              setCustom(kind === "bg" ? { bgAlpha: v } : { inkAlpha: v });
+            }}
+            className="w-full accent-[#EAB308]"
+          />
+          <span className="w-11 shrink-0 text-right whitespace-nowrap tabular-nums">{Math.round(alpha * 100)} %</span>
+        </label>
+      </div>
     );
   };
 
   return (
-    <div
-      data-slot="tafel-ledge"
-      className="relative mx-6 mt-2 -mb-[10px] flex h-12 shrink-0 items-center gap-4 rounded-b-xl bg-[linear-gradient(180deg,#B9C0C8_0%,#8E97A2_40%,#6B7480_100%)] px-5 shadow-[0_14px_24px_-10px_rgb(0_0_0/0.8),inset_0_1px_0_rgb(255_255_255/0.6)]"
-    >
-      {/* Gouttière où reposent les feutres */}
-      <div
-        aria-hidden
-        className="absolute inset-x-3 top-1 h-3 rounded-full bg-[#5B636E] shadow-[inset_0_2px_3px_rgb(0_0_0/0.5)]"
-      />
-
-      {interactive ? (
-        <fieldset className="relative flex items-end gap-3 border-0 p-0">
-          <legend className="sr-only">Feutres</legend>
-          {MARKERS.map(marker)}
+    <div ref={box} className="relative">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className={cn(
+          "flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-[#0F172A] transition-colors hover:bg-white/35",
+          (open || custom) && "bg-white/40",
+        )}
+      >
+        <Palette className="size-4" aria-hidden />
+        {t("tafel.colors")}
+        {custom && (
+          <span
+            aria-hidden
+            className="size-3.5 rounded-full ring-1 ring-black/20"
+            style={{ background: `linear-gradient(135deg, ${c.bg} 50%, ${c.ink} 50%)` }}
+          />
+        )}
+      </button>
+      {open && (
+        <fieldset className="absolute bottom-full left-0 z-30 mb-3 w-[min(18rem,80vw)] space-y-3 rounded-xl border-0 bg-white/90 p-4 shadow-[0_20px_40px_-12px_rgb(0_0_0/0.6)] ring-1 ring-black/10 backdrop-blur-xl">
+          <legend className="sr-only">{t("tafel.colors")}</legend>
+          {row("bg")}
+          {row("ink")}
           <button
             type="button"
-            title="Effacer"
-            aria-label="Effacer"
-            className="flex h-5 w-16 items-end overflow-hidden rounded-md bg-[#1F2937] shadow-[0_2px_4px_rgb(0_0_0/0.5)] transition-transform hover:-translate-y-0.5"
+            onClick={resetCustom}
+            disabled={!custom}
+            className="flex items-center gap-1.5 text-xs font-medium text-[#475569] hover:text-[#0F172A] disabled:opacity-40"
           >
-            <span className="h-1.5 w-full bg-[#9CA3AF]" />
+            <RotateCcw className="size-3.5" aria-hidden />
+            {t("tafel.colorsReset")}
           </button>
         </fieldset>
-      ) : (
-        <div aria-hidden className="relative flex items-end gap-3">
-          {MARKERS.map(marker)}
-          <span className="hidden h-5 w-16 items-end overflow-hidden rounded-md bg-[#1F2937] shadow-[0_2px_4px_rgb(0_0_0/0.5)] sm:flex">
-            <span className="h-1.5 w-full bg-[#9CA3AF]" />
-          </span>
-        </div>
-      )}
-
-      <ThemePicker theme={theme} onTheme={onTheme} />
-
-      {interactive && (
-        <div className="relative flex items-center gap-1">
-          {[
-            { icon: Undo2, label: "Annuler" },
-            { icon: Maximize2, label: "Plein écran" },
-          ].map(({ icon: Icon, label }) => (
-            <button
-              key={label}
-              type="button"
-              title={label}
-              aria-label={label}
-              className="flex size-8 items-center justify-center rounded-lg text-[#1F2937] transition-colors hover:bg-white/30"
-            >
-              <Icon className="size-4" />
-            </button>
-          ))}
-        </div>
       )}
     </div>
   );
@@ -433,6 +446,7 @@ export function ProfessorStrip({
   subtitle,
   status,
   action,
+  avatar,
 }: {
   professor: Professor;
   subtitle: ReactNode;
@@ -440,6 +454,8 @@ export function ProfessorStrip({
   status?: ReactNode;
   /** Lien « changer de professeur ». */
   action?: ReactNode;
+  /** Remplace le portrait (le professeur hologramme du tuteur). */
+  avatar?: ReactNode;
 }) {
   return (
     <div
@@ -450,13 +466,13 @@ export function ProfessorStrip({
         aria-hidden
         className="pointer-events-none absolute -top-10 -left-10 size-40 rounded-full bg-[radial-gradient(circle,rgb(234_179_8/0.18),transparent_70%)]"
       />
-      <ProfessorHalo professor={professor} size="sm" />
+      {avatar ?? <ProfessorHalo professor={professor} size="sm" />}
       <div className="relative min-w-0 flex-1">
         <p className="font-display truncate text-base font-semibold">{professor.name}</p>
         <p className="truncate text-xs text-white/60">
           {status ? (
             <span className="inline-flex items-center gap-1.5 text-[#FACC15]">
-              <span className="size-1.5 rounded-full bg-[#FACC15] motion-safe:animate-pulse" />
+              <span className="size-1.5 rounded-full bg-[#FACC15]" />
               {status}
             </span>
           ) : (
@@ -476,10 +492,10 @@ const THEME_SWATCH: Record<BoardTheme, { label: string; bg: string; ring: string
 };
 
 /**
- * Le choix du fond, posé sur le rebord comme trois petits aimants de
- * couleur. Toujours actif (maquette ET tuteur) : c'est un vrai réglage.
+ * Les trois fonds prêts à l'emploi, posés sur le rebord comme trois petits
+ * aimants. En choisir un efface les couleurs libres.
  */
-function ThemePicker({ theme, onTheme }: { theme: BoardTheme; onTheme: (t: BoardTheme) => void }) {
+function ThemePicker({ theme, onTheme }: { theme: BoardTheme | null; onTheme: (t: BoardTheme) => void }) {
   return (
     <fieldset className="relative ml-auto flex items-center gap-1.5 border-0 p-0">
       <legend className="sr-only">Tafel-Hintergrund</legend>

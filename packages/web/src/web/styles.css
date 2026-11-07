@@ -545,6 +545,13 @@ html:lang(ar) body { line-height: 1.7; }
   --board-check: #4ade80;
   --board-pill: rgb(255 255 255 / 0.08);
 }
+/* Couleurs libres (sélecteur sur le rebord, lib/tafel-colors.ts) : le verre
+   prend --tafel-bg et l'écriture --tafel-text, posées en style inline et
+   recopiées dans --board-surface / --board-ink pour tout ce qui en dépend. */
+[data-slot="tafel-glass"][data-tafel-custom] {
+  background: var(--tafel-bg);
+  color: var(--tafel-text);
+}
 [data-board-theme="green"] [data-slot="board-glare"] { opacity: 0.12; }
 [data-board-theme="dark"] [data-slot="board-glare"] { opacity: 0.25; }
 

@@ -35,9 +35,9 @@ const pct = (v: number | null) => (v === null ? "—" : `${Math.round(v * 100)} 
 
 function Tile({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <Card className="p-4">
+    <Card className="gap-1 p-4">
       <p className="text-muted-foreground text-xs">{label}</p>
-      <p className="font-display mt-1 text-2xl font-bold tabular-nums">{value}</p>
+      <p className="font-display text-2xl font-bold tabular-nums">{value}</p>
       {hint && <p className="text-muted-foreground mt-0.5 text-xs">{hint}</p>}
     </Card>
   );
@@ -76,12 +76,12 @@ export default function AdminRetentionPage() {
       />
 
       {o && !o.available && (
-        <Card className="border-destructive/40 mb-5 p-4 text-sm">
+        <Card className="border-destructive/40 mb-5 block p-4 text-sm">
           Die Tabellen fehlen noch. Einmal ausführen: <code>node C:\dev\tred-rdm\aerostudy-ai\migre-retention.mjs</code>
         </Card>
       )}
 
-      <Card className="mb-5 flex flex-wrap items-center justify-between gap-3 p-4">
+      <Card className="mb-5 flex-row flex-wrap items-center justify-between gap-3 p-4">
         <div>
           <p className="text-sm font-semibold">
             Status:{" "}
@@ -147,7 +147,7 @@ export default function AdminRetentionPage() {
       )}
 
       {showPreview && (
-        <Card className="mb-6 p-4">
+        <Card className="mb-6 gap-0 p-4">
           <h2 className="mb-1 text-sm font-semibold">Vorschau des nächsten Zyklus — nichts wird gesendet</h2>
           {preview.isLoading && <Loader2 className="size-4 animate-spin" aria-hidden />}
           {preview.error && <p className="text-destructive text-sm">{preview.error.message}</p>}

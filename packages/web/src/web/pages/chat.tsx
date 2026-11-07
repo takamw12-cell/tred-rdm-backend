@@ -58,7 +58,9 @@ import { INTERSTITIAL_RULES } from "@/lib/ad-mediation";
 import { creditsMeKey } from "@/queries/credits";
 import { useFeatures } from "@/queries/features";
 import { Link } from "wouter";
-import { Repeat2 } from "lucide-react";
+import { Repeat2, Volume2, VolumeX } from "lucide-react";
+import { HologramProfessor, useProfessorChoreography } from "@/components/hologram-professor";
+import { spokenAnswer } from "@/lib/professor-choreography";
 import { VideoExplainer, type VideoScript } from "@/components/video-explainer";
 import { UnderstandingQuiz } from "@/components/understanding-quiz";
 import { useGenerateFlashcards } from "@/lib/flashcards-api";
@@ -532,6 +534,27 @@ export default function ChatPage() {
   useEffect(() => {
     setBoardId(null);
   }, [lastBoardId]);
+
+  // Le professeur hologramme : de dos pendant que la réponse s'écrit, il se
+  // retourne à la fin du flux et la lit à voix haute (components/hologram-professor.tsx).
+  const choreo = useProfessorChoreography({
+    busy,
+    failed: Boolean(error),
+    answerText: () =>
+      lastMsg?.role === "assistant" ? spokenAnswer(tafelById.get(lastMsg.id), displayText(lastMsg)) : "",
+    locale,
+    professor,
+  });
+  const professorStatus =
+    choreo.pose === "schreiben"
+      ? t("tafel.profWriting")
+      : choreo.pose === "drehen"
+        ? t("tafel.profTurning")
+        : choreo.pose === "erklaeren"
+          ? t("tafel.profExplaining")
+          : busy
+            ? t("tafel.profWriting")
+            : undefined;
 
   // Pull image attachments out of a UI message's file parts for rendering.
   function messageImages(m: UIMessage): { url: string; name?: string }[] {
@@ -1708,9 +1731,33 @@ export default function ChatPage() {
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <ProfessorStrip
           professor={professor}
+          avatar={<HologramProfessor professor={professor} pose={choreo.pose} beat={choreo.beat} />}
           subtitle={professorText(professor.title, locale)}
-          status={busy ? t("tafel.writing") : undefined}
+          status={professorStatus}
           action={
+            <>
+            {choreo.pose === "erklaeren" ? (
+              <button
+                type="button"
+                onClick={choreo.stop}
+                title={t("tafel.stopVoice")}
+                aria-label={t("tafel.stopVoice")}
+                className="relative grid size-9 shrink-0 place-items-center rounded-lg text-[#FACC15] transition-colors hover:bg-white/10"
+              >
+                <Square className="size-4 fill-current" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => choreo.setAutoSpeak(!choreo.autoSpeak)}
+                aria-pressed={choreo.autoSpeak}
+                title={choreo.autoSpeak ? t("tafel.autoSpeakOn") : t("tafel.autoSpeakOff")}
+                aria-label={choreo.autoSpeak ? t("tafel.autoSpeakOn") : t("tafel.autoSpeakOff")}
+                className="relative grid size-9 shrink-0 place-items-center rounded-lg text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                {choreo.autoSpeak ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
+              </button>
+            )}
             <Link
               href="/professors"
               title={professorUi(locale).change}
@@ -1719,6 +1766,7 @@ export default function ChatPage() {
             >
               <Repeat2 className="size-4" />
             </Link>
+            </>
           }
         />
         <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto">
@@ -1805,17 +1853,15 @@ export default function ChatPage() {
                   >
                     <div className="text-muted-foreground flex items-center gap-2 text-sm">
                       <LogoMark className="size-6" />
-                      <span className="flex items-center gap-1">
-                        {t(PHASE_KEY[phase])}
-                        <Dots />
-                      </span>
+                      {/* Calme : pas de points qui sautillent, le professeur écrit en silence. */}
+                      <span className="flex items-center gap-1">{t(PHASE_KEY[phase])}</span>
                     </div>
                     {/* Squelette de réponse tant qu'AUCUN texte n'est arrivé :
                         la place de la réponse est déjà là, l'attente se lit. */}
                     {(lastMsg?.role !== "assistant" || lastAssistantEmpty) && (
                       <div
                         aria-hidden
-                        className="border-border bg-card/80 ms-9 max-w-xl animate-pulse space-y-2.5 rounded-2xl border px-4 py-3.5"
+                        className="border-border bg-card/80 ms-9 max-w-xl space-y-2.5 rounded-2xl border px-4 py-3.5 opacity-70"
                       >
                         <div className="bg-secondary h-2.5 w-11/12 rounded-full" />
                         <div className="bg-secondary h-2.5 w-4/5 rounded-full" />
@@ -1903,9 +1949,16 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* Composer */}
-        <div className="border-border bg-background/80 border-t p-3 pb-20 backdrop-blur-md sm:p-4 sm:pb-16">
-          <div className={cn("mx-auto", railOpen ? "max-w-4xl" : "max-w-5xl")}>
+        {/* Composer : une carte flottante en verre dépoli, détachée du tableau
+            et de la conversation (ombre portée, liseré clair, flou derrière). */}
+        <div className="relative z-10 shrink-0 px-3 pt-2 pb-20 sm:px-4 sm:pb-16">
+          <div
+            data-slot="chat-composer"
+            className={cn(
+              "border-border/60 bg-background/65 supports-[backdrop-filter]:bg-background/45 mx-auto rounded-2xl border p-2.5 shadow-[0_18px_48px_-16px_rgb(15_23_42/0.55),0_2px_8px_-2px_rgb(15_23_42/0.2)] ring-1 ring-white/40 backdrop-blur-xl backdrop-saturate-150 sm:p-3 dark:ring-white/10",
+              railOpen ? "max-w-4xl" : "max-w-5xl",
+            )}
+          >
             {/* Le solde, juste au-dessus du champ de saisie. C'est le seul
                 endroit où l'information arrive avant la décision d'écrire —
                 partout ailleurs elle arrive après le refus. */}
@@ -2423,20 +2476,5 @@ function ActionChip({
       {icon}
       {label}
     </button>
-  );
-}
-
-function Dots() {
-  return (
-    <span className="inline-flex gap-0.5">
-      {[0, 1, 2].map((i) => (
-        <motion.span
-          key={i}
-          className="bg-muted-foreground inline-block size-1 rounded-full"
-          animate={{ opacity: [0.3, 1, 0.3] }}
-          transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
-        />
-      ))}
-    </span>
   );
 }

@@ -99,7 +99,7 @@ export function parseAnswer(raw: string): Segment[] {
 
 // ── Lecture à voix haute ─────────────────────────────────────────────────
 /** Un seul bouton parle à la fois : les autres apprennent qu'ils doivent s'éteindre. */
-const TTS_EVENT = "tred-tts-start";
+export const TTS_EVENT = "tred-tts-start";
 
 /**
  * Bouton « Écouter » : lit la réponse avec la voix du professeur (lib/voice.ts)

@@ -134,8 +134,11 @@ export async function speak(
     style,
     defaultStyle,
     professorId,
+    onWord,
   }: {
     onEnd?: () => void;
+    /** À chaque mot prononcé (voix de l'appareil seulement) : le halo du professeur bat en rythme. */
+    onWord?: () => void;
     onEngine?: (engine: VoiceEngine) => void;
     voice?: string;
     style?: VoiceStyle;
@@ -176,6 +179,9 @@ export async function speak(
     u.rate = rate;
     u.pitch = pitch;
     if (i === chunks.length - 1) u.onend = () => onEnd?.();
+    if (onWord) u.onboundary = (e) => {
+      if (e.name === "word") onWord();
+    };
     u.onerror = () => onEnd?.();
     synth.speak(u);
   });
