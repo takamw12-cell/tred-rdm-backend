@@ -43,6 +43,8 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { buildTutorAgent } from "./agent";
 import { detectDomain, domainHint } from "./lib/solvers/domain";
+import { routeChat } from "./lib/chat-routing";
+import { createStreamTimer, lastUserHasAttachment, perfLine } from "./lib/chat-perf";
 import { curriculumFor, domainPackText } from "./prompts";
 import { studyProfileHint, type StudyProfileInput } from "./lib/study-profile";
 import { mailCanReachAnyone } from "./lib/mail";
@@ -466,6 +468,8 @@ app.post("/api/admin/reports/resolve", async (c) => {
 const MAX_CONTEXT_CHARS = 24_000;
 
 app.post("/api/agent/messages", async (c) => {
+  // Mesure du temps de réponse (ligne [perf] à la fin du flux).
+  const requestStarted = Date.now();
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);
 
@@ -630,7 +634,19 @@ app.post("/api/agent/messages", async (c) => {
   // Domain-Based Agent : hint du solveur + module de la matière (prompts/).
   const fachHint = [domainHint(fach), domainPackText(fach, curriculumFor(studyProfile))].filter(Boolean).join("\n\n");
 
+  // Le bon modèle et le bon temps de réflexion pour CETTE question.
+  const route = routeChat({
+    text: lastUserText,
+    hasAttachments: lastUserHasAttachment(messages),
+    domain: fach.domain,
+    examMode: examMode === true,
+    calcMode: calcMode === true,
+  });
+  const timer = createStreamTimer(requestStarted);
+  const usage = { steps: 0, input: 0, cacheRead: 0, cacheWrite: 0, output: 0 };
+
   const agent = buildTutorAgent({
+    route,
     domainHint: fachHint || null,
     studyProfile: studyProfileHint(studyProfile),
     learningStyle,
@@ -688,12 +704,21 @@ app.post("/api/agent/messages", async (c) => {
     // Verbrauch. Feuern und vergessen — ein Schreibfehler darf den laufenden
     // Stream nicht abbrechen.
     onStepEnd: (step: {
-      usage?: { outputTokens?: number };
+      usage?: {
+        outputTokens?: number;
+        inputTokens?: number;
+        inputTokenDetails?: { cacheReadTokens?: number; cacheWriteTokens?: number };
+      };
       text?: string;
       finishReason?: string;
       toolCalls?: ({ toolName?: string } | undefined)[];
     }) => {
       void addOutputTokens(session.user.id, step.usage?.outputTokens ?? 0);
+      usage.steps += 1;
+      usage.input += step.usage?.inputTokens ?? 0;
+      usage.cacheRead += step.usage?.inputTokenDetails?.cacheReadTokens ?? 0;
+      usage.cacheWrite += step.usage?.inputTokenDetails?.cacheWriteTokens ?? 0;
+      usage.output += step.usage?.outputTokens ?? 0;
 
       // Une ligne par étape : sans elle, une réponse vide (boucle d'outils
       // jusqu'à stepCountIs(8)) ne laisse aucune trace dans les logs.
@@ -745,13 +770,21 @@ app.post("/api/agent/messages", async (c) => {
   // Battement toutes les 5 s pendant les silences (réflexion longue) : sans
   // lui, la connexion tombait avant la fin de la première étape. Et une ligne
   // de log si le navigateur coupe — c'est elle qui manquait pour diagnostiquer.
-  return withSseHeartbeat(streamResponse, 5000, ({ aborted, ms }) => {
-    if (aborted) {
-      console.warn(
-        `[agent] user=${session.user.id.slice(0, 8)} connexion fermée par le client après ${Math.round(ms / 1000)} s`,
-      );
-    }
-  });
+  return withSseHeartbeat(
+    streamResponse,
+    5000,
+    ({ aborted, ms }) => {
+      if (aborted) {
+        console.warn(
+          `[agent] user=${session.user.id.slice(0, 8)} connexion fermée par le client après ${Math.round(ms / 1000)} s`,
+        );
+      }
+      // Une ligne par réponse : délai avant le premier signe de vie, avant le
+      // premier mot, durée totale, et ce que le cache a réellement servi.
+      console.log(perfLine({ route, marks: timer.marks(), totalMs: Date.now() - requestStarted, usage, aborted }));
+    },
+    (chunk) => timer.observe(chunk),
+  );
 });
 
 // Bilder und PDFs werden als Data-URLs in den Nachrichten mitgeschickt. Da der

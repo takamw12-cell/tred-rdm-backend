@@ -196,12 +196,16 @@ describe("Fachlöser : routage par matière", () => {
     expect(p).toContain("KEINEN Fachlöser");
   });
 
-  test("l'indice de matière est un second message système, après le bloc mis en cache", () => {
-    const instr = (agent as unknown as { settings: { instructions: { content: string }[] } }).settings.instructions;
-    expect(instr).toHaveLength(2);
-    expect(instr[1].content).toContain("Elektrotechnik");
-    // Sans indice : un seul bloc, identique d'une question à l'autre (cache).
-    const plain = buildTutorAgent({ sources: [], locale: "de" }) as unknown as typeof agent;
-    expect((plain as unknown as { settings: { instructions: unknown[] } }).settings.instructions).toHaveLength(1);
+  test("l'indice de matière vient APRÈS le bloc mis en cache, qui ne change pas", () => {
+    type Instr = { settings: { instructions: { content: string }[] } };
+    const instr = (agent as unknown as Instr).settings.instructions;
+    // 1 : bloc fixe (cache) · 2 : la personne (mémoire, nom) · 3 : la matière
+    expect(instr).toHaveLength(3);
+    expect(instr[0].content).not.toContain("ERKANNTES FACHGEBIET: Elektrotechnik");
+    expect(instr[2].content).toContain("Elektrotechnik");
+    // Sans indice : le premier bloc est identique au caractère près (cache).
+    const plain = buildTutorAgent({ sources: [], locale: "de" }) as unknown as Instr;
+    expect(plain.settings.instructions).toHaveLength(2);
+    expect(plain.settings.instructions[0].content).toBe(instr[0].content);
   });
 });

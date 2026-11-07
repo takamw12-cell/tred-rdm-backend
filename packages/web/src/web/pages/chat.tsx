@@ -44,6 +44,7 @@ import { DocumentViewer } from "@/components/document-viewer";
 import { ImageFrame } from "@/components/diagram-frame";
 import { BEAM_LANG, beamBlockFromPart } from "@/components/beam-diagram";
 import { solverChartBlockFromPart } from "@/lib/solver-charts";
+import { chatPhase, PHASE_KEY } from "@/lib/chat-phase";
 import { MEDIA_LANG, mediaBlockFromPart } from "@/lib/media-block";
 import { CameraCapture } from "@/components/camera-capture";
 import { Scratchpad } from "@/components/scratchpad";
@@ -133,11 +134,8 @@ function messageText(m: UIMessage): string {
 
 // Une réponse peut passer de longues secondes en raisonnement ou en appels
 // d'outils sans un seul caractère de texte. `messageText()` ne les montre pas
-// (et ne doit pas : ce texte est sauvegardé et traduit). On les détecte à part
-// pour que l'écran ne reste jamais muet.
-function hasHiddenWork(m: UIMessage): boolean {
-  return m.parts.some((p) => p.type === "reasoning" || p.type.startsWith("tool-"));
-}
+// (et ne doit pas : ce texte est sauvegardé et traduit) : l'indicateur nomme
+// l'étape en cours (lib/chat-phase.ts) pour que l'écran ne reste jamais muet.
 
 // Le tuteur est-il en train d'ÉCRIRE du texte visible en ce moment ?
 // Faux pendant un raisonnement ou un appel d'outil — y compris APRÈS une
@@ -473,8 +471,8 @@ export default function ChatPage() {
   // longtemps, avant comme après une première phrase.
   const waitingForText =
     busy && (lastMsg?.role !== "assistant" || !isStreamingText(lastMsg));
-  // Libellé : « réfléchit ou dessine » dès qu'un raisonnement ou un outil a eu lieu.
-  const working = busy && lastMsg?.role === "assistant" && hasHiddenWork(lastMsg);
+  // Libellé : l'étape en cours — analyse, recherche, calcul… (lib/chat-phase.ts).
+  const phase = chatPhase(busy && lastMsg?.role === "assistant" ? lastMsg.parts : undefined);
   // Flux terminé sans un mot (boucle d'outils, coupure…) : on le dit.
   const emptyAnswer = !busy && !error && lastAssistantEmpty !== null;
 
@@ -1791,7 +1789,7 @@ export default function ChatPage() {
                     <div className="text-muted-foreground flex items-center gap-2 text-sm">
                       <LogoMark className="size-6" />
                       <span className="flex items-center gap-1">
-                        {working ? t("chat.working") : t("chat.thinking")}
+                        {t(PHASE_KEY[phase])}
                         <Dots />
                       </span>
                     </div>

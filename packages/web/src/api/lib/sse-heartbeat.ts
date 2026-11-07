@@ -21,6 +21,8 @@ export function withSseHeartbeat(
   response: Response,
   intervalMs = 5000,
   onClose?: (info: { aborted: boolean; ms: number }) => void,
+  /** Chaque paquet décodé, pour mesurer (lib/chat-perf.ts). Ne modifie rien. */
+  onChunk?: (text: string) => void,
 ): Response {
   const upstream = response.body;
   if (!upstream) return response;
@@ -54,7 +56,9 @@ export function withSseHeartbeat(
             controller.enqueue(value);
             lastWrite = Date.now();
             // Un événement SSE se termine par une ligne vide.
-            atBoundary = decoder.decode(value, { stream: true }).endsWith("\n\n");
+            const text = decoder.decode(value, { stream: true });
+            atBoundary = text.endsWith("\n\n");
+            onChunk?.(text);
           }
           controller.close();
           onClose?.({ aborted: false, ms: Date.now() - started });

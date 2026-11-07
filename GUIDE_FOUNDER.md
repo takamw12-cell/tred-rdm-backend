@@ -315,3 +315,18 @@ AdSense ne propose pas de vidéo récompensée pour un site : il faut Google Ad 
 ### Ce que mesure PostHog (avec consentement analytique)
 `ad_impression`, `ad_click` et `rewarded_ad_completed`, avec la régie, le format, l'emplacement et le sponsor, sans aucun identifiant publicitaire.
 Les clics à l'intérieur d'une pub Google (iframe) ne sont pas visibles par TRED : AdSense les compte de son côté.
+
+## Vitesse du chat — la lire et la mesurer
+
+Chaque réponse du tuteur écrit une ligne `[perf]` dans les logs Railway (Deployments → View logs, filtre `[perf]`) :
+
+```
+[perf] tier=concept model=claude-sonnet-4.6 thinking=off … first_text=1800ms total=9100ms … cache_read=17900tok
+```
+
+- `tier` : `smalltalk` (Haiku, sans réflexion), `concept` (Sonnet, sans réflexion) ou `complex` (Sonnet avec réflexion — calculs, formules, photos). Le choix est automatique (`lib/chat-routing.ts`) ; les solveurs sont les mêmes dans les trois cas.
+- `first_text` : temps avant le premier mot affiché à l'étudiant.
+- `cache_read` : tokens relus depuis le cache Anthropic. `0` sur la première question d'une session, puis environ 18 000 sur les suivantes (pendant 1 h).
+
+Mesure contrôlée (appels réels, environ 0,5 à 1 €) : mets `ANTHROPIC_API_KEY` dans `C:\dev\tred-rdm\aerostudy-ai\.env` (jamais commité), puis
+`cd C:\dev\tred-rdm\aerostudy-ai\packages\web` et `bun --env-file=../../.env scripts/bench-chat-latency.ts`.

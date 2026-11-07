@@ -18,6 +18,8 @@ import { DEFAULT_LEARNING_STYLE, type LearningStyle } from "../lib/learning-styl
 import { DEFAULT_PROFESSOR, PROFESSORS, type ProfessorId } from "../lib/professors";
 import dedent from "dedent";
 import { gateway } from "./gateway";
+import { SONNET, type Route } from "../lib/chat-routing";
+import { withConversationCacheBreakpoint } from "./prompt-cache";
 
 
 /**
@@ -228,6 +230,11 @@ export function buildTutorAgent(opts: {
    * Message système séparé, comme `domainHint`, pour ne pas casser le cache.
    */
   studyProfile?: string | null;
+  /**
+   * Modèle et raisonnement choisis pour CETTE question (lib/chat-routing.ts).
+   * Absent = Sonnet avec raisonnement adaptive, le comportement d'avant.
+   */
+  route?: Pick<Route, "modelId" | "thinking">;
 }) {
   const rule = langRule(opts.locale);
   const memoryBlock = buildMemoryBlock(opts.memory, opts.learningStyle, opts.professor);
@@ -253,8 +260,11 @@ export function buildTutorAgent(opts: {
         .join("\n\n")
     : "";
 
+  const modelId = opts.route?.modelId ?? SONNET;
+  const thinkingOn = (opts.route?.thinking ?? "adaptive") === "adaptive";
+
   return new ToolLoopAgent({
-    model: gateway("anthropic/claude-sonnet-4.6"),
+    model: gateway(modelId),
     /**
      * Le droit de réfléchir avant de répondre.
      *
@@ -275,19 +285,29 @@ export function buildTutorAgent(opts: {
      * entier. Le monologue est long et souvent hésitant ; il ferait douter d'un
      * professeur, alors qu'il est le signe qu'il travaille.
      */
-    providerOptions: {
-      anthropic: {
-        thinking: { type: "adaptive", display: "summarized" },
-      },
-    },
+    //
+    // Depuis le 7 nov. 2026 (lib/chat-routing.ts) : le raisonnement n'est
+    // activé que pour les questions qui en ont besoin (calcul, formule, pièce
+    // jointe…). « Hallo » ou « Explique la loi d'Ohm » répondent sans
+    // brouillon — la règle « les solveurs calculent » ne change pas.
+    providerOptions: thinkingOn
+      ? { anthropic: { thinking: { type: "adaptive", display: "summarized" } } }
+      : {},
+    // Second point de cache sur le dernier message de chaque étape : les
+    // étapes suivantes de la boucle d'outils (et la question suivante, si les
+    // extraits n'ont pas changé) relisent tout ce qui précède depuis le cache.
+    prepareStep: ({ messages }) => ({ messages: withConversationCacheBreakpoint(messages) }),
     instructions: [
       {
         role: "system",
-        // Der System-Prompt ist lang und bei jeder Nachricht identisch.
-        // Anthropic legt ihn zwischenspeichert ab (Prompt Caching): Folgefragen
-        // im selben Gespräch lesen ihn zu einem Bruchteil des Preises.
+        // Der System-Prompt ist lang und — seit dem 7. Nov. 2026 — bei jeder
+        // Frage WIRKLICH identisch: was sich pro Frage ändert (Auszüge aus den
+        // Unterlagen, Gedächtnis, Name), steht in eigenen System-Nachrichten
+        // NACH diesem Block. Vorher lagen die Auszüge darin: jede neue Frage
+        // mit anderen Auszügen verfehlte den Cache und schrieb ihn neu.
+        // TTL 1 h statt 5 min : zwischen zwei Fragen liest man die Antwort.
         providerOptions: {
-          anthropic: { cacheControl: { type: "ephemeral" } },
+          anthropic: { cacheControl: { type: "ephemeral", ttl: "1h" } },
         },
         content: dedent`
           ${rule.top}
@@ -521,7 +541,8 @@ export function buildTutorAgent(opts: {
             Schraffur, Maße, Passungen, Schriftfeld); Bauteile auf
             ausdrücklichen Wunsch "in 3D" als 3D-Modell (NIVEAU 9f).
 
-          ${memoryBlock}
+          (NIVEAU 2b — was du über diese Person weißt — steht in einer eigenen
+          System-Nachricht nach diesem Block.)
           ═══════════════════════════════════════════════════════════
           NIVEAU 3 — SPRACHEN
           ═══════════════════════════════════════════════════════════
@@ -593,7 +614,7 @@ export function buildTutorAgent(opts: {
           } Du sagst NIEMALS, das Dokument existiere nicht.
 
           Die Auszüge sind mit Seitenmarken [[SEITE n]] versehen.
-          ZITIEREN: "→ ${(sources[0]?.title ?? inventory[0]?.title) ?? "Skript"}, Seite 7".
+          ZITIEREN: "→ ${(inventory[0]?.title ?? sources[0]?.title) ?? "Skript"}, Seite 7".
 
           Allgemeines Wissen kennzeichnest du klar ("nicht im Skript, aber
           allgemein gilt: …"). Du veränderst oder widersprichst den
@@ -762,7 +783,7 @@ export function buildTutorAgent(opts: {
             hervorheben kann). Kopiere lieber etwas mehr Kontext als zu wenig.
             Wähle NUR die für die Aussage entscheidende Passage.
             \`doc\` ist der exakte Titel des zitierten Dokuments${
-              sources.length ? ` (z. B. "${sources[0].title}")` : ""
+              (inventory[0]?.title ?? sources[0]?.title) ? ` (z. B. "${inventory[0]?.title ?? sources[0]?.title}")` : ""
             }, \`seite\` die Seitenzahl.
           - Der Marker wird dem/der Studierenden NICHT als Text angezeigt,
             sondern als Button „Im Skript anzeigen“, der genau diese Stelle
@@ -1539,24 +1560,33 @@ export function buildTutorAgent(opts: {
           `
               : ""
           }
-          ${student ? `\nDer/die Studierende heißt ${student}. Sprich ihn/sie freundlich mit dem Vornamen an.\n` : ""}
-          
+
           ${rule.bottom}
-          ${
-            hasDocs
-              ? dedent`
+        `,
+      },
+      // ── Nach dem gecachten Block ─────────────────────────────────────
+      // Alles hier darf sich von Frage zu Frage ändern, ohne den Cache-Präfix
+      // davor zu berühren. Reihenfolge: Person → Fach → Unterlagen.
+      {
+        role: "system" as const,
+        content:
+          memoryBlock +
+          (student ? `\n\nDer/die Studierende heißt ${student}. Sprich ihn/sie freundlich mit dem Vornamen an.` : ""),
+      },
+      ...(opts.domainHint ? [{ role: "system" as const, content: opts.domainHint }] : []),
+      ...(opts.studyProfile ? [{ role: "system" as const, content: opts.studyProfile }] : []),
+      ...(hasDocs
+        ? [
+            {
+              role: "system" as const,
+              content: dedent`
           ═══════════════════════════════════════════════════════════
           --- KURSUNTERLAGEN (${opts.contextLabel ?? ""}) ---
           ${docBlock}
-          --- ENDE KURSUNTERLAGEN ---`
-              : ""
-          }
-        `,
-      },
-      // Nach dem gecachten Block: ändert sich mit jeder Frage, darf also den
-      // Cache-Präfix davor nicht berühren.
-      ...(opts.domainHint ? [{ role: "system" as const, content: opts.domainHint }] : []),
-      ...(opts.studyProfile ? [{ role: "system" as const, content: opts.studyProfile }] : []),
+          --- ENDE KURSUNTERLAGEN ---`,
+            },
+          ]
+        : []),
     ],
     tools: {
       /**

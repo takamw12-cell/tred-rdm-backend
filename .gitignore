@@ -77,6 +77,8 @@ packages/mobile/scripts/*
 packages/web/scripts/*
 !packages/web/scripts/prerender.mjs
 !packages/web/scripts/seo-routes.mjs
+# Mesure de latence du chat (voir GUIDE_FOUNDER, « Vitesse du chat »).
+!packages/web/scripts/bench-chat-latency.ts
 _a-supprimer/
 
 # Sauvegardes des scripts de correctif
