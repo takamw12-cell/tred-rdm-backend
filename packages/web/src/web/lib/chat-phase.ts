@@ -25,6 +25,7 @@ export const SOLVER_TOOL_NAMES = new Set([
   "mathe_berechnen",
   "solve_cyber",
   "solve_ai",
+  "solve_open_math",
 ]);
 const DRAW_TOOLS = new Set(["skizze", "generiere_bild_oder_video"]);
 

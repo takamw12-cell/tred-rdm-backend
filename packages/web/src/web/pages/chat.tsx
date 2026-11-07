@@ -113,6 +113,7 @@ const SOLVER_TOOLS = new Set([
   "tool-physik_berechnen",
   "tool-solve_cyber",
   "tool-solve_ai",
+  "tool-solve_open_math",
   "tool-mathe_berechnen",
 ]);
 

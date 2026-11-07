@@ -9,6 +9,7 @@ import { solveThermo, thermoInputSchema } from "../lib/solvers/solveThermo";
 import { physicsInputSchema, solvePhysics } from "../lib/physics-solver";
 import { cyberInputSchema, solveCyber } from "../lib/solvers/cyber-solver";
 import { aiInputSchema, solveAi } from "../lib/solvers/ai-solver";
+import { openMathInputSchema, solveOpenMath } from "../lib/solvers/open-math-solver";
 import { solveStatics, staticsInputSchema } from "../lib/solvers/statics-solver";
 import { searchKnowledge } from "../lib/knowledge-search";
 import { renderDiagram, type DiagramSpec } from "../lib/diagrams";
@@ -360,6 +361,8 @@ export function buildTutorAgent(opts: {
             KI / Data Science (Matrizen, Regression, Gradientenabstieg,
               Aktivierungen, Perzeptron) → "solve_ai"
             Mathematik → "mathe_berechnen"
+            Offene Probleme (Collatz/3n+1, Goldbach, Primzahllücken,
+              Primzahlzwillinge) → "solve_open_math"
             alles andere (Einheiten, Einzelwerte, Passungsmaße) → "rechnen"
             Datenverarbeitung → python-Block, die Person führt ihn aus
           Deckt kein Löser die Aufgabe ab, sag das offen und rechne die
@@ -515,6 +518,24 @@ export function buildTutorAgent(opts: {
             Diagramm bzw. Wurfbahn erscheinen AUTOMATISCH aus der Rechnung —
             nicht selbst als chart nachzeichnen. Annahmen nennen (kein
             Luftwiderstand, g = 9,81 m/s² oder der Wert aus dem Skript).
+          • OFFENE PROBLEME — Fragt die Person nach dem Collatz-Problem
+            (3n+1, Syracuse) oder einer anderen ungelösten Vermutung
+            (Goldbach, Primzahlzwillinge, Primzahllücken), berechnest du die
+            Folge oder die Prüfung NIEMALS selbst — auch nicht im Kopf oder
+            "nur die ersten Glieder". Du rufst "solve_open_math" auf, um die
+            Genauigkeit zu garantieren, und erklärst dann das Ergebnis mit
+            SEINEN Zahlen (Schritte, Maximum, Folge). Das Diagramm erscheint
+            automatisch.
+            KEIN BEWEIS — PFLICHT: Soll eine ungelöste Vermutung "gelöst"
+            werden (Collatz, Riemann, Goldbach …), erzeugst du mit dem
+            Werkzeug den KONKRETEN FALL und behauptest NIEMALS, einen Beweis
+            gefunden zu haben — auch nicht "fast" oder "im Prinzip". Erkläre
+            immer den Unterschied: Fälle prüfen (das tun wir — beliebig viele
+            bestätigte Fälle beweisen nichts, ein einziges Gegenbeispiel würde
+            die Vermutung widerlegen) gegenüber einem formalen mathematischen
+            Beweis für ALLE Zahlen (der noch aussteht). Für die Riemannsche
+            Vermutung gibt es kein Rechenwerkzeug: sag das offen und erfinde
+            keine Nullstellen der Zetafunktion.
           • INFORMATIK, IT-SICHERHEIT, KI — Für Fragen aus Informatik,
             Sicherheit oder KI benutzt du IMMER "solve_cyber" bzw. "solve_ai".
             Hashes, Chiffren, RSA-Schlüssel, Minimalformen, Subnetze,
@@ -718,6 +739,7 @@ export function buildTutorAgent(opts: {
           | Informatik/IT-Sich. | solve_cyber          | Caesar, Vigenère, Lehrbuch-RSA, Hashes, boolesche Minimierung, KV-Diagramm, IPv4-Subnetze |
           | KI/Data Science     | solve_ai             | Matrix-/Skalarprodukt, lineare Regression, Gradientenschritt, Sigmoid/ReLU/Softmax, Perzeptron |
           | Mathematik          | mathe_berechnen      | Ableitung, Integral, DGL, Matrizen, Nullstellen |
+          | Offene Probleme     | solve_open_math      | Collatz-Folge (Schritte, Maximum, Diagramm), Goldbach-Prüfung, Primzahllücken, Zwillinge |
           | Techn. Mechanik     | balkenstatik         | Balken: Auflager, Q(x), M(x) |
           | alles übrige        | rechnen              | einzelne Zahlenausdrücke |
           Ablauf: (1) Ansatz aufstellen und in LaTeX zeigen (Ersatzschaltbild,
@@ -1739,7 +1761,8 @@ export function buildTutorAgent(opts: {
           '"sqrt(2)/2". Unterstützt + - * / ^, Klammern, sqrt, sin, cos, tan, ' +
           "log, exp, abs, pi, e. Thermodynamik (p·V = n·R·T, 1. Hauptsatz, Carnot, " +
           "Zustandsänderungen) → thermo_berechnen; Kinematik, Wurf, F = m·a → physik_berechnen; " +
-          "Chiffren, RSA, Hashes, Logik, Subnetze → solve_cyber; Matrizen, Regression, Neuronen → solve_ai.",
+          "Chiffren, RSA, Hashes, Logik, Subnetze → solve_cyber; Matrizen, Regression, Neuronen → solve_ai; " +
+          "Collatz, Goldbach, Primzahllücken → solve_open_math.",
         inputSchema: z.object({
           ausdruck: z
             .string()
@@ -1841,6 +1864,18 @@ export function buildTutorAgent(opts: {
           "IMMER dieses Werkzeug, nie selbst rechnen. Inverse/Eigenwerte: mathe_berechnen.",
         inputSchema: aiInputSchema,
         execute: async (input) => solveAi(input),
+      }),
+
+      solve_open_math: tool({
+        description:
+          "Offene Probleme der Zahlentheorie, exakt (BigInt/Sieb): aufgabe collatz (n → Schritte bis 1, " +
+          "Maximum und bei welchem Schritt, Stoppzeit, Folge; Diagramm erscheint automatisch), collatz_rekord " +
+          "(grenze → Startwert mit den meisten Schritten), goldbach (grenze → jede gerade Zahl bis dahin als " +
+          "Summe zweier Primzahlen geprüft, schwierigster Fall), goldbach_zerlegungen (n gerade → alle p + q), " +
+          "primzahlluecken (grenze → Rekordlücken, größte Lücke, Primzahlzwillinge). IMMER dieses Werkzeug für " +
+          "Collatz und solche Vermutungen — nie selbst rechnen. Eine Prüfung ist kein Beweis.",
+        inputSchema: openMathInputSchema,
+        execute: async (input) => solveOpenMath(input),
       }),
 
       mathe_berechnen: tool({

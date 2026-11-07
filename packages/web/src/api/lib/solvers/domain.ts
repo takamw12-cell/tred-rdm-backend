@@ -57,6 +57,8 @@ const KEYWORDS: Record<Exclude<Domain, "unbekannt">, [RegExp, number][]> = {
     [/\b(matrix|matrizen|matrice|determinante|déterminant|eigenwert|eigenvektor|eigenvalue|inverse|lgs|gleichungssystem)\b/, 3],
     [/\b(nullstelle|nullstellen|root|racine|grenzwert|limit|taylor|reihe)\b/, 2],
     [/\b(mathe|mathematik|mathématiques|analysis|lineare algebra)\b/, 2],
+    // Offene Probleme : solve_open_math
+    [/\b(collatz|syracuse|3n\s*\+\s*1|goldbach|primzahllücken?|prime gaps?|écarts? entre (les )?(nombres )?premiers|primzahlzwillinge?|twin primes?|nombres premiers jumeaux|riemannsche vermutung|riemann hypothesis|hypothèse de riemann)\b/, 4],
     [/(d\/dx|∫|dy\/dx|y''|y')/, 2],
   ],
   mechanik: [
@@ -208,7 +210,7 @@ const LABEL: Record<Domain, string> = {
 const SOLVER: Record<CoveredDomain, string> = {
   elektrotechnik: "schaltung_berechnen",
   thermodynamik: "thermo_berechnen (auch ideales_gas mit n in mol, erster_hauptsatz) — p-V-Diagramm erscheint automatisch",
-  mathematik: "mathe_berechnen",
+  mathematik: "mathe_berechnen; Collatz, Goldbach, Primzahllücken → solve_open_math (Folge NIE selbst rechnen)",
   mechanik: "balkenstatik (Balken), statik_berechnen (Fachwerk, Reibung, Kraftsystem)",
   physik: "physik_berechnen (kinematik, wurf, newton) — Diagramm s(t)/v(t) bzw. Wurfbahn erscheint automatisch",
   informatik:

@@ -7,7 +7,7 @@
  * oder die Wurfbahn zeigt so genau die Rechnung; Speichern und Übersetzen
  * übernehmen den Block ohne weiteres Zutun.
  */
-const CHART_TOOLS = new Set(["thermo_berechnen", "physik_berechnen", "solve_ai"]);
+const CHART_TOOLS = new Set(["thermo_berechnen", "physik_berechnen", "solve_ai", "solve_open_math"]);
 
 interface ChartLike {
   type?: unknown;
