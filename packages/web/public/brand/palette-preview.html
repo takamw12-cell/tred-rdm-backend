@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>TRED Palette Signal</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0a0a0a;color:#f5f2f1;font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1280px;margin:0 auto;padding:40px 16px 72px}
+h1{font-size:clamp(30px,5vw,48px);line-height:1.05;margin:0 0 8px;letter-spacing:-.02em}
+h2{font-size:22px;margin:56px 0 6px;letter-spacing:-.01em} h2+p{color:#a4a19f;margin:0 0 18px;max-width:760px}
+h3{margin:0 0 14px;font-size:17px} h4{margin:10px 0 2px;font-size:17px}
+code{font:12.5px ui-monospace,SFMono-Regular,Consolas,monospace}
+.hero{display:flex;gap:28px;align-items:center;flex-wrap:wrap}
+.hero .mark svg{width:128px;height:128px;display:block}
+.eyebrow{margin:0 0 6px;color:#a4a19f;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+.lead{color:#d6d4d2;max-width:640px;margin:0 0 14px}
+.stats{display:flex;flex-wrap:wrap;gap:8px}
+.stat{border:1px solid #45403e;border-radius:999px;padding:4px 12px;font-size:13px}
+.stat.good{border-color:#0d9373;color:#3fc6a0} .stat.watch{border-color:#ad6e0a;color:#e59b37}
+.brands{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+@media (max-width:900px){.brands{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.brands{grid-template-columns:1fr}}
+.brand{background:#1f1b19;border:1px solid #2f2a28;border-radius:18px;padding:12px}
+.chip-big{height:120px;border-radius:12px;display:flex;justify-content:space-between;align-items:flex-end;padding:12px;font-weight:700;border:1px solid #2f2a28}
+.chip-big .aa{font-size:28px}
+.brand dl{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;margin:10px 2px 6px;font-size:13px}
+.brand dt{color:#a4a19f} .brand dd{margin:0;text-align:right}
+.use{margin:0;font-size:12.5px;color:#a4a19f}
+.scale{margin-bottom:14px}
+.scale-h{display:flex;gap:10px;align-items:baseline;margin-bottom:6px;flex-wrap:wrap} .scale-h span{color:#a4a19f;font-size:13px}
+.chips{display:grid;grid-template-columns:repeat(11,minmax(76px,1fr));gap:4px;overflow-x:auto;padding-bottom:4px}
+.chip{border-radius:10px;padding:8px 8px 7px;display:flex;flex-direction:column;gap:1px;min-height:84px;font-size:11.5px}
+.chip .st{font-weight:700;font-size:13px} .chip .hx{font-family:ui-monospace,Consolas,monospace;opacity:.92} .chip .cr{margin-top:auto;opacity:.92}
+.modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:900px){.modes{grid-template-columns:1fr}}
+.panel{background:var(--background);color:var(--text);border-radius:22px;padding:18px;border:1px solid var(--border)}
+.mock-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px}
+.muted{color:var(--text-muted);margin:0} .small{font-size:13px}
+.xp{height:10px;border-radius:999px;background:var(--surface-alt);margin:12px 0 4px;overflow:hidden}
+.xp div{height:100%;background:var(--secondary);border-radius:999px}
+.field{display:flex;flex-direction:column;gap:4px;margin:12px 0}
+.input{border:1px solid var(--border-strong);border-radius:10px;padding:8px 10px;background:var(--surface);outline:2px solid var(--focus);outline-offset:2px;font-family:ui-monospace,Consolas,monospace;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 6px}
+.btn{border-radius:10px;padding:8px 14px;font-weight:650;font-size:14px}
+.btn.primary{background:var(--primary);color:var(--on-primary)}
+.btn.ghost{border:1px solid var(--border-strong);color:var(--text)}
+.btn.gold{background:var(--secondary);color:var(--on-secondary)}
+.panel a{color:var(--link);text-decoration:underline;text-underline-offset:3px;font-weight:600}
+.badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.badge{border-radius:999px;padding:3px 10px;font-size:12.5px;font-weight:650}
+.badge.s{background:var(--success-soft);color:var(--success)} .badge.w{background:var(--warning-soft);color:var(--warning)}
+.badge.e{background:var(--error-soft);color:var(--error)} .badge.i{background:var(--info-soft);color:var(--info)}
+.badge.accent-b{background:var(--accent-soft);color:var(--accent);display:inline-block}
+.roles{list-style:none;padding:0;margin:16px 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 14px;font-size:12.5px}
+@media (max-width:520px){.roles{grid-template-columns:1fr}}
+.roles li{display:flex;align-items:center;gap:8px;min-width:0} .roles li span{margin-left:auto;color:var(--text-muted);font-family:ui-monospace,Consolas,monospace}
+.roles i{width:18px;height:18px;border-radius:5px;flex:none;box-shadow:inset 0 0 0 1px rgb(127 127 127/.45)}
+.roles code{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scroll{overflow-x:auto;border:1px solid #2f2a28;border-radius:16px}
+.ct{border-collapse:collapse;width:100%;min-width:620px;font-size:13.5px}
+.ct th,.ct td{padding:8px 12px;border-bottom:1px solid #1f1b19;text-align:left;vertical-align:middle;white-space:nowrap}
+.ct thead th{color:#a4a19f;font-weight:600;background:#120f0d;position:sticky;top:0}
+.ct tbody th{font-weight:500;white-space:normal} .ct small{display:block;color:#767270}
+.ct .min{color:#a4a19f}
+.sample{display:inline-grid;place-items:center;width:44px;height:30px;border-radius:7px;font-weight:700;margin-right:8px;vertical-align:middle;border:1px solid #2f2a28}
+.ratio{font-variant-numeric:tabular-nums;font-weight:600}
+.ok{color:#3fc6a0} .ko{color:#fe8477} .mid{color:#e59b37}
+.cvd-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:16px}
+@media (max-width:900px){.cvd-pair{grid-template-columns:1fr}}
+.cvd-grid{display:grid;grid-template-columns:96px repeat(7,minmax(0,1fr));gap:4px;padding:14px;border-radius:18px;border:1px solid #2f2a28;align-items:center;font-size:11.5px}
+.cvd-grid i{height:34px;border-radius:7px} .cvd-h{text-align:center;line-height:1.15} .cvd-l{font-weight:600}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+.rules{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:760px){.rules{grid-template-columns:1fr}}
+.rules section{border:1px solid #2f2a28;border-radius:16px;padding:14px 18px}
+.rules h3{font-size:15px;margin-bottom:6px} .rules p,.rules li{color:#d6d4d2;font-size:14px;margin:0} .rules ul{padding-left:18px;margin:0}
+footer{margin-top:48px;color:#a4a19f;font-size:13.5px}
+</style>
+</head>
+<body>
+<main>
+  <header class="hero">
+    <div class="mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="TRED — concept A"><title>TRED — concept A</title><path fill="#FF6B00" d="M132.95 16.95L169.05 53.05A7 7 0 0 1 169.05 62.95L132.95 99.05A7 7 0 0 1 123.05 99.05L86.95 62.95A7 7 0 0 1 86.95 53.05L123.05 16.95A7 7 0 0 1 132.95 16.95Z"/><path fill="#FF6B00" d="M190.95 74.95L227.05 111.05A7 7 0 0 1 227.05 120.95L190.95 157.05A7 7 0 0 1 181.05 157.05L144.95 120.95A7 7 0 0 1 144.95 111.05L181.05 74.95A7 7 0 0 1 190.95 74.95Z"/><path fill="#FF6B00" d="M132.95 132.95L169.05 169.05A7 7 0 0 1 169.05 178.95L132.95 215.05A7 7 0 0 1 123.05 215.05L86.95 178.95A7 7 0 0 1 86.95 169.05L123.05 132.95A7 7 0 0 1 132.95 132.95Z"/><path fill="#FF6B00" d="M74.95 74.95L111.05 111.05A7 7 0 0 1 111.05 120.95L74.95 157.05A7 7 0 0 1 65.05 157.05L28.95 120.95A7 7 0 0 1 28.95 111.05L65.05 74.95A7 7 0 0 1 74.95 74.95Z"/><path fill="none" stroke="#EAB308" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" d="M128 116L180 168V208"/><path fill="#EAB308" d="M175 202L185 202A5 5 0 0 1 190 207L190 235A5 5 0 0 1 185 240L175 240A5 5 0 0 1 170 235L170 207A5 5 0 0 1 175 202Z"/><circle cx="128" cy="116" r="7" fill="#EAB308"/></svg>
+</div>
+    <div>
+      <p class="eyebrow">Identité TRED · palette officielle</p>
+      <h1>TRED Signal</h1>
+      <p class="lead">L’orange signal et l’or de la toque sur une nuit d’ingénieur, avec le cyan comme couleur de la précision : focus, résultats vérifiés par les solveurs. Palette tirée du symbole « Boutons-Toque ». Trois teintes en tout, des neutres légèrement chauds et quatre couleurs d’état.</p>
+      <div class="stats">
+        <span class="stat good">56/58 paires au seuil WCAG AA</span>
+        <span class="stat">2 paires réglées par le soulignement des liens</span>
+        <span class="stat good">Audit du skill brand-identity : 0 échec</span>
+        <span class="stat watch">6 couples à doubler d’une icône (daltonisme)</span>
+      </div>
+    </div>
+  </header>
+
+  <h2>Couleurs de marque</h2>
+  <p>Les quatre couleurs du symbole. Elles servent au logo et aux grandes surfaces. Pour l’interface, ce sont les rôles plus bas qui s’ajustent, jamais ces quatre valeurs.</p>
+  <div class="brands">
+  <article class="brand">
+    <div class="chip-big" style="background:#ff6b00;color:#0a0a0a"><span>Orange Signal</span><span class="aa">Aa</span></div>
+    <dl><dt>Hex</dt><dd><code>#FF6B00</code></dd><dt>RVB</dt><dd>255, 107, 0</dd>
+      <dt>Sur blanc</dt><dd>2,85:1</dd><dt>Sur nuit</dt><dd>6,93:1</dd></dl>
+    <p class="use"><code>--tred-brand-orange</code> · Symbole, actions principales en mode sombre</p>
+  </article>
+  <article class="brand">
+    <div class="chip-big" style="background:#eab308;color:#0a0a0a"><span>Or Toque</span><span class="aa">Aa</span></div>
+    <dl><dt>Hex</dt><dd><code>#EAB308</code></dd><dt>RVB</dt><dd>234, 179, 8</dd>
+      <dt>Sur blanc</dt><dd>1,91:1</dd><dt>Sur nuit</dt><dd>10,32:1</dd></dl>
+    <p class="use"><code>--tred-brand-gold</code> · Symbole, XP, récompenses</p>
+  </article>
+  <article class="brand">
+    <div class="chip-big" style="background:#00d4ff;color:#0a0a0a"><span>Cyan Précision</span><span class="aa">Aa</span></div>
+    <dl><dt>Hex</dt><dd><code>#00D4FF</code></dd><dt>RVB</dt><dd>0, 212, 255</dd>
+      <dt>Sur blanc</dt><dd>1,77:1</dd><dt>Sur nuit</dt><dd>11,18:1</dd></dl>
+    <p class="use"><code>--tred-brand-cyan</code> · Focus, badges « vérifié par le solveur »</p>
+  </article>
+  <article class="brand">
+    <div class="chip-big" style="background:#0a0a0a;color:#ffffff"><span>Nuit</span></div>
+    <dl><dt>Hex</dt><dd><code>#0A0A0A</code></dd><dt>RVB</dt><dd>10, 10, 10</dd>
+      <dt>Sur blanc</dt><dd>19,79:1</dd><dt>Sur nuit</dt><dd>1,00:1</dd></dl>
+    <p class="use"><code>--tred-brand-night</code> · Fond du symbole et du mode sombre</p>
+  </article></div>
+
+  <h2>Échelles 50 → 950</h2>
+  <p>Échelles OKLCH à 11 pas. ◆ marque le pas qui contient exactement la couleur de marque. Dans chaque case, « Aa » donne le contraste du texte le plus lisible sur cette couleur (blanc ou nuit).</p>
+  <div class="scale"><div class="scale-h"><code>primary</code><span>Orange Signal : actions, liens, marque</span></div><div class="chips"><div class="chip" style="background:#fff5f1;color:#120f0d" title="--tred-primary-50">
+        <span class="st">50</span>
+        <span class="hx">FFF5F1</span><span class="cr">Aa 17,80</span></div><div class="chip" style="background:#ffebe2;color:#120f0d" title="--tred-primary-100">
+        <span class="st">100</span>
+        <span class="hx">FFEBE2</span><span class="cr">Aa 16,57</span></div><div class="chip" style="background:#fed6c5;color:#120f0d" title="--tred-primary-200">
+        <span class="st">200</span>
+        <span class="hx">FED6C5</span><span class="cr">Aa 14,21</span></div><div class="chip" style="background:#feb999;color:#120f0d" title="--tred-primary-300">
+        <span class="st">300</span>
+        <span class="hx">FEB999</span><span class="cr">Aa 11,46</span></div><div class="chip" style="background:#fe8f5b;color:#120f0d" title="--tred-primary-400">
+        <span class="st">400</span>
+        <span class="hx">FE8F5B</span><span class="cr">Aa 8,45</span></div><div class="chip" style="background:#ff6b00;color:#120f0d" title="--tred-primary-500">
+        <span class="st">500 <span aria-label="couleur de marque exacte">◆</span></span>
+        <span class="hx">FF6B00</span><span class="cr">Aa 6,68</span></div><div class="chip" style="background:#d0580a;color:#120f0d" title="--tred-primary-600">
+        <span class="st">600</span>
+        <span class="hx">D0580A</span><span class="cr">Aa 4,62</span></div><div class="chip" style="background:#ab4706;color:#ffffff" title="--tred-primary-700">
+        <span class="st">700</span>
+        <span class="hx">AB4706</span><span class="cr">Aa 5,77</span></div><div class="chip" style="background:#8d3904;color:#ffffff" title="--tred-primary-800">
+        <span class="st">800</span>
+        <span class="hx">8D3904</span><span class="cr">Aa 7,72</span></div><div class="chip" style="background:#772f03;color:#ffffff" title="--tred-primary-900">
+        <span class="st">900</span>
+        <span class="hx">772F03</span><span class="cr">Aa 9,57</span></div><div class="chip" style="background:#461901;color:#ffffff" title="--tred-primary-950">
+        <span class="st">950</span>
+        <span class="hx">461901</span><span class="cr">Aa 15,00</span></div></div></div><div class="scale"><div class="scale-h"><code>secondary</code><span>Or Toque : XP, récompenses, progression</span></div><div class="chips"><div class="chip" style="background:#fdf8e6;color:#120f0d" title="--tred-secondary-50">
+        <span class="st">50</span>
+        <span class="hx">FDF8E6</span><span class="cr">Aa 17,95</span></div><div class="chip" style="background:#faecc1;color:#120f0d" title="--tred-secondary-100">
+        <span class="st">100</span>
+        <span class="hx">FAECC1</span><span class="cr">Aa 16,21</span></div><div class="chip" style="background:#f9d571;color:#120f0d" title="--tred-secondary-200">
+        <span class="st">200</span>
+        <span class="hx">F9D571</span><span class="cr">Aa 13,44</span></div><div class="chip" style="background:#eab308;color:#120f0d" title="--tred-secondary-300">
+        <span class="st">300 <span aria-label="couleur de marque exacte">◆</span></span>
+        <span class="hx">EAB308</span><span class="cr">Aa 9,95</span></div><div class="chip" style="background:#d29710;color:#120f0d" title="--tred-secondary-400">
+        <span class="st">400</span>
+        <span class="hx">D29710</span><span class="cr">Aa 7,43</span></div><div class="chip" style="background:#c0840d;color:#120f0d" title="--tred-secondary-500">
+        <span class="st">500</span>
+        <span class="hx">C0840D</span><span class="cr">Aa 5,95</span></div><div class="chip" style="background:#a56809;color:#ffffff" title="--tred-secondary-600">
+        <span class="st">600</span>
+        <span class="hx">A56809</span><span class="cr">Aa 4,58</span></div><div class="chip" style="background:#8d5306;color:#ffffff" title="--tred-secondary-700">
+        <span class="st">700</span>
+        <span class="hx">8D5306</span><span class="cr">Aa 6,22</span></div><div class="chip" style="background:#794204;color:#ffffff" title="--tred-secondary-800">
+        <span class="st">800</span>
+        <span class="hx">794204</span><span class="cr">Aa 8,09</span></div><div class="chip" style="background:#693503;color:#ffffff" title="--tred-secondary-900">
+        <span class="st">900</span>
+        <span class="hx">693503</span><span class="cr">Aa 9,94</span></div><div class="chip" style="background:#411d08;color:#ffffff" title="--tred-secondary-950">
+        <span class="st">950</span>
+        <span class="hx">411D08</span><span class="cr">Aa 14,95</span></div></div></div><div class="scale"><div class="scale-h"><code>accent</code><span>Cyan Précision : focus, résultats vérifiés</span></div><div class="chips"><div class="chip" style="background:#ecfaff;color:#120f0d" title="--tred-accent-50">
+        <span class="st">50</span>
+        <span class="hx">ECFAFF</span><span class="cr">Aa 17,89</span></div><div class="chip" style="background:#d2f4ff;color:#120f0d" title="--tred-accent-100">
+        <span class="st">100</span>
+        <span class="hx">D2F4FF</span><span class="cr">Aa 16,47</span></div><div class="chip" style="background:#9ce7fe;color:#120f0d" title="--tred-accent-200">
+        <span class="st">200</span>
+        <span class="hx">9CE7FE</span><span class="cr">Aa 13,88</span></div><div class="chip" style="background:#00d4ff;color:#120f0d" title="--tred-accent-300">
+        <span class="st">300 <span aria-label="couleur de marque exacte">◆</span></span>
+        <span class="hx">00D4FF</span><span class="cr">Aa 10,78</span></div><div class="chip" style="background:#14b7dc;color:#120f0d" title="--tred-accent-400">
+        <span class="st">400</span>
+        <span class="hx">14B7DC</span><span class="cr">Aa 8,03</span></div><div class="chip" style="background:#10a4c5;color:#120f0d" title="--tred-accent-500">
+        <span class="st">500</span>
+        <span class="hx">10A4C5</span><span class="cr">Aa 6,49</span></div><div class="chip" style="background:#0b87a2;color:#120f0d" title="--tred-accent-600">
+        <span class="st">600</span>
+        <span class="hx">0B87A2</span><span class="cr">Aa 4,54</span></div><div class="chip" style="background:#086f86;color:#ffffff" title="--tred-accent-700">
+        <span class="st">700</span>
+        <span class="hx">086F86</span><span class="cr">Aa 5,78</span></div><div class="chip" style="background:#055c70;color:#ffffff" title="--tred-accent-800">
+        <span class="st">800</span>
+        <span class="hx">055C70</span><span class="cr">Aa 7,57</span></div><div class="chip" style="background:#044d5e;color:#ffffff" title="--tred-accent-900">
+        <span class="st">900</span>
+        <span class="hx">044D5E</span><span class="cr">Aa 9,42</span></div><div class="chip" style="background:#012e39;color:#ffffff" title="--tred-accent-950">
+        <span class="st">950</span>
+        <span class="hx">012E39</span><span class="cr">Aa 14,47</span></div></div></div><div class="scale"><div class="scale-h"><code>neutral</code><span>Neutres chauds : textes, surfaces, bordures</span></div><div class="chips"><div class="chip" style="background:#fcfaf9;color:#120f0d" title="--tred-neutral-50">
+        <span class="st">50</span>
+        <span class="hx">FCFAF9</span><span class="cr">Aa 18,34</span></div><div class="chip" style="background:#f5f2f1;color:#120f0d" title="--tred-neutral-100">
+        <span class="st">100</span>
+        <span class="hx">F5F2F1</span><span class="cr">Aa 17,14</span></div><div class="chip" style="background:#e8e5e4;color:#120f0d" title="--tred-neutral-200">
+        <span class="st">200</span>
+        <span class="hx">E8E5E4</span><span class="cr">Aa 15,23</span></div><div class="chip" style="background:#d6d4d2;color:#120f0d" title="--tred-neutral-300">
+        <span class="st">300</span>
+        <span class="hx">D6D4D2</span><span class="cr">Aa 12,91</span></div><div class="chip" style="background:#a4a19f;color:#120f0d" title="--tred-neutral-400">
+        <span class="st">400</span>
+        <span class="hx">A4A19F</span><span class="cr">Aa 7,43</span></div><div class="chip" style="background:#767270;color:#ffffff" title="--tred-neutral-500">
+        <span class="st">500</span>
+        <span class="hx">767270</span><span class="cr">Aa 4,76</span></div><div class="chip" style="background:#595452;color:#ffffff" title="--tred-neutral-600">
+        <span class="st">600</span>
+        <span class="hx">595452</span><span class="cr">Aa 7,46</span></div><div class="chip" style="background:#45403e;color:#ffffff" title="--tred-neutral-700">
+        <span class="st">700</span>
+        <span class="hx">45403E</span><span class="cr">Aa 10,21</span></div><div class="chip" style="background:#2f2a28;color:#ffffff" title="--tred-neutral-800">
+        <span class="st">800</span>
+        <span class="hx">2F2A28</span><span class="cr">Aa 14,16</span></div><div class="chip" style="background:#1f1b19;color:#ffffff" title="--tred-neutral-900">
+        <span class="st">900</span>
+        <span class="hx">1F1B19</span><span class="cr">Aa 17,08</span></div><div class="chip" style="background:#120f0d;color:#ffffff" title="--tred-neutral-950">
+        <span class="st">950</span>
+        <span class="hx">120F0D</span><span class="cr">Aa 19,09</span></div></div></div><div class="scale"><div class="scale-h"><code>neutral-cool</code><span>Neutres froids : code, tableaux techniques</span></div><div class="chips"><div class="chip" style="background:#f8fbfc;color:#120f0d" title="--tred-neutral-cool-50">
+        <span class="st">50</span>
+        <span class="hx">F8FBFC</span><span class="cr">Aa 18,36</span></div><div class="chip" style="background:#f1f4f4;color:#120f0d" title="--tred-neutral-cool-100">
+        <span class="st">100</span>
+        <span class="hx">F1F4F4</span><span class="cr">Aa 17,26</span></div><div class="chip" style="background:#e4e7e8;color:#120f0d" title="--tred-neutral-cool-200">
+        <span class="st">200</span>
+        <span class="hx">E4E7E8</span><span class="cr">Aa 15,36</span></div><div class="chip" style="background:#d1d5d6;color:#120f0d" title="--tred-neutral-cool-300">
+        <span class="st">300</span>
+        <span class="hx">D1D5D6</span><span class="cr">Aa 12,91</span></div><div class="chip" style="background:#9ba3a6;color:#120f0d" title="--tred-neutral-cool-400">
+        <span class="st">400</span>
+        <span class="hx">9BA3A6</span><span class="cr">Aa 7,44</span></div><div class="chip" style="background:#6b7578;color:#ffffff" title="--tred-neutral-cool-500">
+        <span class="st">500</span>
+        <span class="hx">6B7578</span><span class="cr">Aa 4,72</span></div><div class="chip" style="background:#4d575b;color:#ffffff" title="--tred-neutral-cool-600">
+        <span class="st">600</span>
+        <span class="hx">4D575B</span><span class="cr">Aa 7,42</span></div><div class="chip" style="background:#384347;color:#ffffff" title="--tred-neutral-cool-700">
+        <span class="st">700</span>
+        <span class="hx">384347</span><span class="cr">Aa 10,18</span></div><div class="chip" style="background:#232d31;color:#ffffff" title="--tred-neutral-cool-800">
+        <span class="st">800</span>
+        <span class="hx">232D31</span><span class="cr">Aa 14,08</span></div><div class="chip" style="background:#131e21;color:#ffffff" title="--tred-neutral-cool-900">
+        <span class="st">900</span>
+        <span class="hx">131E21</span><span class="cr">Aa 16,99</span></div><div class="chip" style="background:#091113;color:#ffffff" title="--tred-neutral-cool-950">
+        <span class="st">950</span>
+        <span class="hx">091113</span><span class="cr">Aa 19,07</span></div></div></div><div class="scale"><div class="scale-h"><code>success</code><span>Succès</span></div><div class="chips"><div class="chip" style="background:#ecfcf5;color:#120f0d" title="--tred-success-50">
+        <span class="st">50</span>
+        <span class="hx">ECFCF5</span><span class="cr">Aa 18,01</span></div><div class="chip" style="background:#d6f8eb;color:#120f0d" title="--tred-success-100">
+        <span class="st">100</span>
+        <span class="hx">D6F8EB</span><span class="cr">Aa 16,80</span></div><div class="chip" style="background:#98f4d5;color:#120f0d" title="--tred-success-200">
+        <span class="st">200</span>
+        <span class="hx">98F4D5</span><span class="cr">Aa 14,76</span></div><div class="chip" style="background:#66e2bc;color:#120f0d" title="--tred-success-300">
+        <span class="st">300</span>
+        <span class="hx">66E2BC</span><span class="cr">Aa 11,97</span></div><div class="chip" style="background:#3fc6a0;color:#120f0d" title="--tred-success-400">
+        <span class="st">400</span>
+        <span class="hx">3FC6A0</span><span class="cr">Aa 8,90</span></div><div class="chip" style="background:#2bb28e;color:#120f0d" title="--tred-success-500">
+        <span class="st">500</span>
+        <span class="hx">2BB28E</span><span class="cr">Aa 7,14</span></div><div class="chip" style="background:#0d9373;color:#120f0d" title="--tred-success-600">
+        <span class="st">600</span>
+        <span class="hx">0D9373</span><span class="cr">Aa 4,94</span></div><div class="chip" style="background:#08795e;color:#ffffff" title="--tred-success-700">
+        <span class="st">700</span>
+        <span class="hx">08795E</span><span class="cr">Aa 5,37</span></div><div class="chip" style="background:#06644d;color:#ffffff" title="--tred-success-800">
+        <span class="st">800</span>
+        <span class="hx">06644D</span><span class="cr">Aa 7,14</span></div><div class="chip" style="background:#045440;color:#ffffff" title="--tred-success-900">
+        <span class="st">900</span>
+        <span class="hx">045440</span><span class="cr">Aa 8,94</span></div><div class="chip" style="background:#073025;color:#ffffff" title="--tred-success-950">
+        <span class="st">950</span>
+        <span class="hx">073025</span><span class="cr">Aa 14,39</span></div></div></div><div class="scale"><div class="scale-h"><code>warning</code><span>Avertissement</span></div><div class="chips"><div class="chip" style="background:#fff6ec;color:#120f0d" title="--tred-warning-50">
+        <span class="st">50</span>
+        <span class="hx">FFF6EC</span><span class="cr">Aa 17,86</span></div><div class="chip" style="background:#ffebd6;color:#120f0d" title="--tred-warning-100">
+        <span class="st">100</span>
+        <span class="hx">FFEBD6</span><span class="cr">Aa 16,46</span></div><div class="chip" style="background:#f9d9b4;color:#120f0d" title="--tred-warning-200">
+        <span class="st">200</span>
+        <span class="hx">F9D9B4</span><span class="cr">Aa 14,19</span></div><div class="chip" style="background:#f3bd7f;color:#120f0d" title="--tred-warning-300">
+        <span class="st">300</span>
+        <span class="hx">F3BD7F</span><span class="cr">Aa 11,27</span></div><div class="chip" style="background:#e59b37;color:#120f0d" title="--tred-warning-400">
+        <span class="st">400</span>
+        <span class="hx">E59B37</span><span class="cr">Aa 8,25</span></div><div class="chip" style="background:#cf8925;color:#120f0d" title="--tred-warning-500">
+        <span class="st">500</span>
+        <span class="hx">CF8925</span><span class="cr">Aa 6,59</span></div><div class="chip" style="background:#ad6e0a;color:#120f0d" title="--tred-warning-600">
+        <span class="st">600</span>
+        <span class="hx">AD6E0A</span><span class="cr">Aa 4,55</span></div><div class="chip" style="background:#8f5a06;color:#ffffff" title="--tred-warning-700">
+        <span class="st">700</span>
+        <span class="hx">8F5A06</span><span class="cr">Aa 5,78</span></div><div class="chip" style="background:#764a04;color:#ffffff" title="--tred-warning-800">
+        <span class="st">800</span>
+        <span class="hx">764A04</span><span class="cr">Aa 7,63</span></div><div class="chip" style="background:#633d03;color:#ffffff" title="--tred-warning-900">
+        <span class="st">900</span>
+        <span class="hx">633D03</span><span class="cr">Aa 9,54</span></div><div class="chip" style="background:#3a2305;color:#ffffff" title="--tred-warning-950">
+        <span class="st">950</span>
+        <span class="hx">3A2305</span><span class="cr">Aa 14,76</span></div></div></div><div class="scale"><div class="scale-h"><code>error</code><span>Erreur</span></div><div class="chips"><div class="chip" style="background:#fff5f3;color:#120f0d" title="--tred-error-50">
+        <span class="st">50</span>
+        <span class="hx">FFF5F3</span><span class="cr">Aa 17,82</span></div><div class="chip" style="background:#ffe9e6;color:#120f0d" title="--tred-error-100">
+        <span class="st">100</span>
+        <span class="hx">FFE9E6</span><span class="cr">Aa 16,41</span></div><div class="chip" style="background:#fed3cd;color:#120f0d" title="--tred-error-200">
+        <span class="st">200</span>
+        <span class="hx">FED3CD</span><span class="cr">Aa 14,01</span></div><div class="chip" style="background:#feb2a8;color:#120f0d" title="--tred-error-300">
+        <span class="st">300</span>
+        <span class="hx">FEB2A8</span><span class="cr">Aa 11,04</span></div><div class="chip" style="background:#fe8477;color:#120f0d" title="--tred-error-400">
+        <span class="st">400</span>
+        <span class="hx">FE8477</span><span class="cr">Aa 7,98</span></div><div class="chip" style="background:#f86156;color:#120f0d" title="--tred-error-500">
+        <span class="st">500</span>
+        <span class="hx">F86156</span><span class="cr">Aa 6,21</span></div><div class="chip" style="background:#e0312e;color:#ffffff" title="--tred-error-600">
+        <span class="st">600</span>
+        <span class="hx">E0312E</span><span class="cr">Aa 4,51</span></div><div class="chip" style="background:#b4312b;color:#ffffff" title="--tred-error-700">
+        <span class="st">700</span>
+        <span class="hx">B4312B</span><span class="cr">Aa 6,14</span></div><div class="chip" style="background:#922c27;color:#ffffff" title="--tred-error-800">
+        <span class="st">800</span>
+        <span class="hx">922C27</span><span class="cr">Aa 8,04</span></div><div class="chip" style="background:#7a2520;color:#ffffff" title="--tred-error-900">
+        <span class="st">900</span>
+        <span class="hx">7A2520</span><span class="cr">Aa 9,93</span></div><div class="chip" style="background:#471713;color:#ffffff" title="--tred-error-950">
+        <span class="st">950</span>
+        <span class="hx">471713</span><span class="cr">Aa 15,00</span></div></div></div><div class="scale"><div class="scale-h"><code>info</code><span>Information</span></div><div class="chips"><div class="chip" style="background:#f5f7ff;color:#120f0d" title="--tred-info-50">
+        <span class="st">50</span>
+        <span class="hx">F5F7FF</span><span class="cr">Aa 17,84</span></div><div class="chip" style="background:#ebeeff;color:#120f0d" title="--tred-info-100">
+        <span class="st">100</span>
+        <span class="hx">EBEEFF</span><span class="cr">Aa 16,55</span></div><div class="chip" style="background:#d9defe;color:#120f0d" title="--tred-info-200">
+        <span class="st">200</span>
+        <span class="hx">D9DEFE</span><span class="cr">Aa 14,39</span></div><div class="chip" style="background:#bfc7fe;color:#120f0d" title="--tred-info-300">
+        <span class="st">300</span>
+        <span class="hx">BFC7FE</span><span class="cr">Aa 11,65</span></div><div class="chip" style="background:#9fa8fd;color:#120f0d" title="--tred-info-400">
+        <span class="st">400</span>
+        <span class="hx">9FA8FD</span><span class="cr">Aa 8,63</span></div><div class="chip" style="background:#8b94f7;color:#120f0d" title="--tred-info-500">
+        <span class="st">500</span>
+        <span class="hx">8B94F7</span><span class="cr">Aa 6,97</span></div><div class="chip" style="background:#7074e8;color:#120f0d" title="--tred-info-600">
+        <span class="st">600</span>
+        <span class="hx">7074E8</span><span class="cr">Aa 4,86</span></div><div class="chip" style="background:#5b5bd6;color:#ffffff" title="--tred-info-700">
+        <span class="st">700</span>
+        <span class="hx">5B5BD6</span><span class="cr">Aa 5,36</span></div><div class="chip" style="background:#4842c0;color:#ffffff" title="--tred-info-800">
+        <span class="st">800</span>
+        <span class="hx">4842C0</span><span class="cr">Aa 7,45</span></div><div class="chip" style="background:#3c3a98;color:#ffffff" title="--tred-info-900">
+        <span class="st">900</span>
+        <span class="hx">3C3A98</span><span class="cr">Aa 9,33</span></div><div class="chip" style="background:#21234c;color:#ffffff" title="--tred-info-950">
+        <span class="st">950</span>
+        <span class="hx">21234C</span><span class="cr">Aa 14,89</span></div></div></div>
+
+  <h2 id="roles">Rôles : clair et sombre côte à côte</h2>
+  <p>Ce sont les variables à utiliser dans les composants. Le mode sombre inverse les neutres et éclaircit les accents le long de leur propre échelle, sans changer de teinte.</p>
+  <div class="modes">
+  <section class="panel mode-light" style="--background:#fdfbf7;--surface:#ffffff;--surface-alt:#f3f1ed;--border:#dddad2;--border-strong:#767270;--text:#1f1b19;--text-muted:#595452;--primary:#d0580a;--on-primary:#120f0d;--primary-soft:#fff5f1;--secondary:#c0840d;--on-secondary:#120f0d;--accent:#086f86;--on-accent:#ffffff;--accent-soft:#ecfaff;--link:#ab4706;--focus:#086f86;--success:#08795e;--success-soft:#ecfcf5;--warning:#764a04;--warning-soft:#fff6ec;--error:#7a2520;--error-soft:#fff5f3;--info:#5b5bd6;--info-soft:#f5f7ff" aria-label="Mode clair">
+    <h3>Mode clair</h3>
+    <div class="mock">
+      <div class="mock-card">
+        <span class="badge accent-b">✓ Vérifié par le solveur</span>
+        <h4>Série 3 · Transformée de Laplace</h4>
+        <p class="muted">Exercice 4 sur 6 · mode examen</p>
+        <div class="xp" role="img" aria-label="Progression 68 %"><div style="width:68%"></div></div>
+        <p class="muted small">+40 XP · niveau 7</p>
+        <label class="field"><span class="muted small">Ta réponse</span><span class="input">F(s) = 1 / (s + 2)</span></label>
+        <div class="row"><span class="btn primary">Valider</span><span class="btn ghost">Indice</span><span class="btn gold">+40 XP</span></div>
+        <p><a href="#roles">Voir la démonstration pas à pas</a></p>
+        <div class="badges"><span class="badge s">✓ Juste</span><span class="badge w">! Unité manquante</span><span class="badge e">✕ Signe faux</span><span class="badge i">i Rappel de cours</span></div>
+      </div>
+    </div>
+    <ul class="roles"><li><i style="background:#fdfbf7"></i><code>--tred-background</code><span>#FDFBF7</span></li><li><i style="background:#ffffff"></i><code>--tred-surface</code><span>#FFFFFF</span></li><li><i style="background:#f3f1ed"></i><code>--tred-surface-alt</code><span>#F3F1ED</span></li><li><i style="background:#dddad2"></i><code>--tred-border</code><span>#DDDAD2</span></li><li><i style="background:#767270"></i><code>--tred-border-strong</code><span>#767270</span></li><li><i style="background:#1f1b19"></i><code>--tred-text</code><span>#1F1B19</span></li><li><i style="background:#595452"></i><code>--tred-text-muted</code><span>#595452</span></li><li><i style="background:#d0580a"></i><code>--tred-primary</code><span>#D0580A</span></li><li><i style="background:#120f0d"></i><code>--tred-on-primary</code><span>#120F0D</span></li><li><i style="background:#fff5f1"></i><code>--tred-primary-soft</code><span>#FFF5F1</span></li><li><i style="background:#c0840d"></i><code>--tred-secondary</code><span>#C0840D</span></li><li><i style="background:#120f0d"></i><code>--tred-on-secondary</code><span>#120F0D</span></li><li><i style="background:#086f86"></i><code>--tred-accent</code><span>#086F86</span></li><li><i style="background:#ffffff"></i><code>--tred-on-accent</code><span>#FFFFFF</span></li><li><i style="background:#ecfaff"></i><code>--tred-accent-soft</code><span>#ECFAFF</span></li><li><i style="background:#ab4706"></i><code>--tred-link</code><span>#AB4706</span></li><li><i style="background:#086f86"></i><code>--tred-focus</code><span>#086F86</span></li><li><i style="background:#08795e"></i><code>--tred-success</code><span>#08795E</span></li><li><i style="background:#ecfcf5"></i><code>--tred-success-soft</code><span>#ECFCF5</span></li><li><i style="background:#764a04"></i><code>--tred-warning</code><span>#764A04</span></li><li><i style="background:#fff6ec"></i><code>--tred-warning-soft</code><span>#FFF6EC</span></li><li><i style="background:#7a2520"></i><code>--tred-error</code><span>#7A2520</span></li><li><i style="background:#fff5f3"></i><code>--tred-error-soft</code><span>#FFF5F3</span></li><li><i style="background:#5b5bd6"></i><code>--tred-info</code><span>#5B5BD6</span></li><li><i style="background:#f5f7ff"></i><code>--tred-info-soft</code><span>#F5F7FF</span></li></ul>
+  </section>
+  <section class="panel mode-dark" style="--background:#0a0a0a;--surface:#1f1b19;--surface-alt:#2f2a28;--border:#45403e;--border-strong:#767270;--text:#f5f2f1;--text-muted:#a4a19f;--primary:#ff6b00;--on-primary:#120f0d;--primary-soft:#461901;--secondary:#eab308;--on-secondary:#120f0d;--accent:#00d4ff;--on-accent:#120f0d;--accent-soft:#012e39;--link:#ff6b00;--focus:#00d4ff;--success:#66e2bc;--success-soft:#073025;--warning:#f3bd7f;--warning-soft:#3a2305;--error:#fe8477;--error-soft:#471713;--info:#8b94f7;--info-soft:#21234c" aria-label="Mode sombre">
+    <h3>Mode sombre</h3>
+    <div class="mock">
+      <div class="mock-card">
+        <span class="badge accent-b">✓ Vérifié par le solveur</span>
+        <h4>Série 3 · Transformée de Laplace</h4>
+        <p class="muted">Exercice 4 sur 6 · mode examen</p>
+        <div class="xp" role="img" aria-label="Progression 68 %"><div style="width:68%"></div></div>
+        <p class="muted small">+40 XP · niveau 7</p>
+        <label class="field"><span class="muted small">Ta réponse</span><span class="input">F(s) = 1 / (s + 2)</span></label>
+        <div class="row"><span class="btn primary">Valider</span><span class="btn ghost">Indice</span><span class="btn gold">+40 XP</span></div>
+        <p><a href="#roles">Voir la démonstration pas à pas</a></p>
+        <div class="badges"><span class="badge s">✓ Juste</span><span class="badge w">! Unité manquante</span><span class="badge e">✕ Signe faux</span><span class="badge i">i Rappel de cours</span></div>
+      </div>
+    </div>
+    <ul class="roles"><li><i style="background:#0a0a0a"></i><code>--tred-background</code><span>#0A0A0A</span></li><li><i style="background:#1f1b19"></i><code>--tred-surface</code><span>#1F1B19</span></li><li><i style="background:#2f2a28"></i><code>--tred-surface-alt</code><span>#2F2A28</span></li><li><i style="background:#45403e"></i><code>--tred-border</code><span>#45403E</span></li><li><i style="background:#767270"></i><code>--tred-border-strong</code><span>#767270</span></li><li><i style="background:#f5f2f1"></i><code>--tred-text</code><span>#F5F2F1</span></li><li><i style="background:#a4a19f"></i><code>--tred-text-muted</code><span>#A4A19F</span></li><li><i style="background:#ff6b00"></i><code>--tred-primary</code><span>#FF6B00</span></li><li><i style="background:#120f0d"></i><code>--tred-on-primary</code><span>#120F0D</span></li><li><i style="background:#461901"></i><code>--tred-primary-soft</code><span>#461901</span></li><li><i style="background:#eab308"></i><code>--tred-secondary</code><span>#EAB308</span></li><li><i style="background:#120f0d"></i><code>--tred-on-secondary</code><span>#120F0D</span></li><li><i style="background:#00d4ff"></i><code>--tred-accent</code><span>#00D4FF</span></li><li><i style="background:#120f0d"></i><code>--tred-on-accent</code><span>#120F0D</span></li><li><i style="background:#012e39"></i><code>--tred-accent-soft</code><span>#012E39</span></li><li><i style="background:#ff6b00"></i><code>--tred-link</code><span>#FF6B00</span></li><li><i style="background:#00d4ff"></i><code>--tred-focus</code><span>#00D4FF</span></li><li><i style="background:#66e2bc"></i><code>--tred-success</code><span>#66E2BC</span></li><li><i style="background:#073025"></i><code>--tred-success-soft</code><span>#073025</span></li><li><i style="background:#f3bd7f"></i><code>--tred-warning</code><span>#F3BD7F</span></li><li><i style="background:#3a2305"></i><code>--tred-warning-soft</code><span>#3A2305</span></li><li><i style="background:#fe8477"></i><code>--tred-error</code><span>#FE8477</span></li><li><i style="background:#471713"></i><code>--tred-error-soft</code><span>#471713</span></li><li><i style="background:#8b94f7"></i><code>--tred-info</code><span>#8B94F7</span></li><li><i style="background:#21234c"></i><code>--tred-info-soft</code><span>#21234C</span></li></ul>
+  </section></div>
+
+  <h2>Tous les contrastes mesurés</h2>
+  <p>Ratios WCAG 2.2, tronqués au centième : 4,49 compte comme un échec. 4,5:1 pour le texte normal (1.4.3) ; 3:1 pour les composants d’interface et les éléments graphiques (1.4.11) ; un grand texte passe donc dès qu’un texte normal passe.</p>
+  <div class="scroll"><table class="ct"><thead><tr><th scope="col">Paire</th><th scope="col">Seuil</th><th scope="col">Clair</th><th scope="col">Sombre</th></tr></thead><tbody><tr><th scope="row">Texte courant<small><code>text</code> / <code>background</code></small></th><td class="min">4,5:1</td><td><span class="sample" style="background:#fdfbf7;color:#1f1b19;">Aa</span><span class="ratio">16,53:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#0a0a0a;color:#f5f2f1;">Aa</span><span class="ratio">17,77:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Texte sur carte<small><code>text</code> / <code>surface</code></small></th><td class="min">4,5:1</td><td><span class="sample" style="background:#ffffff;color:#1f1b19;">Aa</span><span class="ratio">17,08:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#1f1b19;color:#f5f2f1;">Aa</span><span class="ratio">15,33:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Texte sur surface secondaire<small><code>text</code> / <code>surface-alt</code></small></th><td class="min">4,5:1</td><td><span class="sample" style="background:#f3f1ed;color:#1f1b19;">Aa</span><span class="ratio">15,14:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#2f2a28;color:#f5f2f1;">Aa</span><span class="ratio">12,71:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Texte secondaire<small><code>text-muted</code> / <code>background</code></small></th><td class="min">4,5:1</td><td><span class="sample" style="background:#fdfbf7;color:#595452;">Aa</span><span class="ratio">7,21:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#0a0a0a;color:#a4a19f;">Aa</span><span class="ratio">7,70:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Texte secondaire sur carte<small><code>text-muted</code> / <code>surface</code></small></th><td class="min">4,5:1</td><td><span class="sample" style="background:#ffffff;color:#595452;">Aa</span><span class="ratio">7,46:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#1f1b19;color:#a4a19f;">Aa</span><span class="ratio">6,65:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Texte secondaire sur surface secondaire<small><code>text-muted</code> / <code>surface-alt</code></small></th><td class="min">4,5:1</td><td><span class="sample" style="background:#f3f1ed;color:#595452;">Aa</span><span class="ratio">6,61:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#2f2a28;color:#a4a19f;">Aa</span><span class="ratio">5,51:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Libellé du bouton principal<small><code>on-primary</code> / <code>primary</code></small></th><td class="min">4,5:1</td><td><span class="sample" style="background:#d0580a;color:#120f0d;">Aa</span><span class="ratio">4,62:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#ff6b00;color:#120f0d;">Aa</span><span class="ratio">6,68:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Libellé sur or (XP)<small><code>on-secondary</code> / <code>secondary</code></small></th><td class="min">4,5:1</td><td><span class="sample" style="background:#c0840d;color:#120f0d;">Aa</span><span class="ratio">5,95:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#eab308;color:#120f0d;">Aa</span><span class="ratio">9,95:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Libellé sur cyan<small><code>on-accent</code> / <code>accent</code></small></th><td class="min">4,5:1</td><td><span class="sample" style="background:#086f86;color:#ffffff;">Aa</span><span class="ratio">5,78:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#00d4ff;color:#120f0d;">Aa</span><span class="ratio">10,78:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Texte sur sélection orange<small><code>text</code> / <code>primary-soft</code></small></th><td class="min">4,5:1</td><td><span class="sample" style="background:#fff5f1;color:#1f1b19;">Aa</span><span class="ratio">15,93:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#461901;color:#f5f2f1;">Aa</span><span class="ratio">13,46:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Badge cyan<small><code>accent</code> / <code>accent-soft</code></small></th><td class="min">4,5:1</td><td><span class="sample" style="background:#ecfaff;color:#086f86;">Aa</span><span class="ratio">5,42:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#012e39;color:#00d4ff;">Aa</span><span class="ratio">8,17:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Lien<small><code>link</code> / <code>background</code></small></th><td class="min">4,5:1</td><td><span class="sample" style="background:#fdfbf7;color:#ab4706;">Aa</span><span class="ratio">5,58:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#0a0a0a;color:#ff6b00;">Aa</span><span class="ratio">6,93:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Lien sur carte<small><code>link</code> / <code>surface</code></small></th><td class="min">4,5:1</td><td><span class="sample" style="background:#ffffff;color:#ab4706;">Aa</span><span class="ratio">5,77:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#1f1b19;color:#ff6b00;">Aa</span><span class="ratio">5,98:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Texte succès<small><code>success</code> / <code>background</code></small></th><td class="min">4,5:1</td><td><span class="sample" style="background:#fdfbf7;color:#08795e;">Aa</span><span class="ratio">5,20:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#0a0a0a;color:#66e2bc;">Aa</span><span class="ratio">12,41:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Texte avertissement<small><code>warning</code> / <code>background</code></small></th><td class="min">4,5:1</td><td><span class="sample" style="background:#fdfbf7;color:#764a04;">Aa</span><span class="ratio">7,38:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#0a0a0a;color:#f3bd7f;">Aa</span><span class="ratio">11,68:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Texte erreur<small><code>error</code> / <code>background</code></small></th><td class="min">4,5:1</td><td><span class="sample" style="background:#fdfbf7;color:#7a2520;">Aa</span><span class="ratio">9,61:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#0a0a0a;color:#fe8477;">Aa</span><span class="ratio">8,27:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Texte information<small><code>info</code> / <code>background</code></small></th><td class="min">4,5:1</td><td><span class="sample" style="background:#fdfbf7;color:#5b5bd6;">Aa</span><span class="ratio">5,19:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#0a0a0a;color:#8b94f7;">Aa</span><span class="ratio">7,23:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Badge succès<small><code>success</code> / <code>success-soft</code></small></th><td class="min">4,5:1</td><td><span class="sample" style="background:#ecfcf5;color:#08795e;">Aa</span><span class="ratio">5,07:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#073025;color:#66e2bc;">Aa</span><span class="ratio">9,02:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Badge avertissement<small><code>warning</code> / <code>warning-soft</code></small></th><td class="min">4,5:1</td><td><span class="sample" style="background:#fff6ec;color:#764a04;">Aa</span><span class="ratio">7,13:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#3a2305;color:#f3bd7f;">Aa</span><span class="ratio">8,71:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Badge erreur<small><code>error</code> / <code>error-soft</code></small></th><td class="min">4,5:1</td><td><span class="sample" style="background:#fff5f3;color:#7a2520;">Aa</span><span class="ratio">9,27:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#471713;color:#fe8477;">Aa</span><span class="ratio">6,27:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Badge information<small><code>info</code> / <code>info-soft</code></small></th><td class="min">4,5:1</td><td><span class="sample" style="background:#f5f7ff;color:#5b5bd6;">Aa</span><span class="ratio">5,01:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#21234c;color:#8b94f7;">Aa</span><span class="ratio">5,44:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Bouton principal contre la page<small><code>primary</code> / <code>background</code></small></th><td class="min">3:1</td><td><span class="sample" style="background:#fdfbf7;color:#d0580a;box-shadow:inset 0 0 0 3px #d0580a">◼</span><span class="ratio">3,99:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#0a0a0a;color:#ff6b00;box-shadow:inset 0 0 0 3px #ff6b00">◼</span><span class="ratio">6,93:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Barre d’XP contre la page<small><code>secondary</code> / <code>background</code></small></th><td class="min">3:1</td><td><span class="sample" style="background:#fdfbf7;color:#c0840d;box-shadow:inset 0 0 0 3px #c0840d">◼</span><span class="ratio">3,10:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#0a0a0a;color:#eab308;box-shadow:inset 0 0 0 3px #eab308">◼</span><span class="ratio">10,32:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Élément cyan contre la page<small><code>accent</code> / <code>background</code></small></th><td class="min">3:1</td><td><span class="sample" style="background:#fdfbf7;color:#086f86;box-shadow:inset 0 0 0 3px #086f86">◼</span><span class="ratio">5,59:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#0a0a0a;color:#00d4ff;box-shadow:inset 0 0 0 3px #00d4ff">◼</span><span class="ratio">11,18:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Contour de champ<small><code>border-strong</code> / <code>background</code></small></th><td class="min">3:1</td><td><span class="sample" style="background:#fdfbf7;color:#767270;box-shadow:inset 0 0 0 3px #767270">◼</span><span class="ratio">4,60:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#0a0a0a;color:#767270;box-shadow:inset 0 0 0 3px #767270">◼</span><span class="ratio">4,15:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Contour de champ sur carte<small><code>border-strong</code> / <code>surface</code></small></th><td class="min">3:1</td><td><span class="sample" style="background:#ffffff;color:#767270;box-shadow:inset 0 0 0 3px #767270">◼</span><span class="ratio">4,76:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#1f1b19;color:#767270;box-shadow:inset 0 0 0 3px #767270">◼</span><span class="ratio">3,58:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Anneau de focus<small><code>focus</code> / <code>background</code></small></th><td class="min">3:1</td><td><span class="sample" style="background:#fdfbf7;color:#086f86;box-shadow:inset 0 0 0 3px #086f86">◼</span><span class="ratio">5,59:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#0a0a0a;color:#00d4ff;box-shadow:inset 0 0 0 3px #00d4ff">◼</span><span class="ratio">11,18:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Anneau de focus sur carte<small><code>focus</code> / <code>surface</code></small></th><td class="min">3:1</td><td><span class="sample" style="background:#ffffff;color:#086f86;box-shadow:inset 0 0 0 3px #086f86">◼</span><span class="ratio">5,78:1</span> <b class="ok" aria-label="réussi">✓</b></td><td><span class="sample" style="background:#1f1b19;color:#00d4ff;box-shadow:inset 0 0 0 3px #00d4ff">◼</span><span class="ratio">9,65:1</span> <b class="ok" aria-label="réussi">✓</b></td></tr><tr><th scope="row">Lien contre texte courant<small><code>link</code> / <code>text</code></small></th><td class="min">3:1</td><td><span class="sample" style="background:#1f1b19;color:#ab4706;box-shadow:inset 0 0 0 3px #ab4706">◼</span><span class="ratio">2,95:1</span> <b class="mid">souligné</b></td><td><span class="sample" style="background:#f5f2f1;color:#ff6b00;box-shadow:inset 0 0 0 3px #ff6b00">◼</span><span class="ratio">2,56:1</span> <b class="mid">souligné</b></td></tr></tbody></table></div>
+
+  <h2>Daltonisme</h2>
+  <p>Couleurs simulées avec Machado 2009 (sévérité totale). Le tableau donne l’écart perçu CIEDE2000 : ≥ 10 distinct, 6 à 10 risqué, moins de 6 confondu. L’audit du skill simule la tritanopie avec Brettel 1997 : ses valeurs tritan diffèrent un peu, les autres sont identiques.</p>
+  
+    <div class="cvd-pair">
+    <div class="cvd-grid" style="background:#fdfbf7;color:#1f1b19">
+      <span></span><span class="cvd-h">Orange (action)</span><span class="cvd-h">Or (XP)</span><span class="cvd-h">Cyan</span><span class="cvd-h">Succès</span><span class="cvd-h">Avertissement</span><span class="cvd-h">Erreur</span><span class="cvd-h">Info</span>
+      <span class="cvd-l">Vision normale</span><i style="background:#d0580a" title="#d0580a"></i><i style="background:#c0840d" title="#c0840d"></i><i style="background:#086f86" title="#086f86"></i><i style="background:#08795e" title="#08795e"></i><i style="background:#764a04" title="#764a04"></i><i style="background:#7a2520" title="#7a2520"></i><i style="background:#5b5bd6" title="#5b5bd6"></i><span class="cvd-l">Protanopie</span><i style="background:#7b6c00" title="#7b6c00"></i><i style="background:#9a8700" title="#9a8700"></i><i style="background:#616c87" title="#616c87"></i><i style="background:#75705d" title="#75705d"></i><i style="background:#594d00" title="#594d00"></i><i style="background:#3d371f" title="#3d371f"></i><i style="background:#0070da" title="#0070da"></i><span class="cvd-l">Deutéranopie</span><i style="background:#988700" title="#988700"></i><i style="background:#a89615" title="#a89615"></i><i style="background:#526186" title="#526186"></i><i style="background:#696760" title="#696760"></i><i style="background:#635807" title="#635807"></i><i style="background:#524a1d" title="#524a1d"></i><i style="background:#0066d3" title="#0066d3"></i><span class="cvd-l">Tritanopie</span><i style="background:#e53a4c" title="#e53a4c"></i><i style="background:#d27470" title="#d27470"></i><i style="background:#007776" title="#007776"></i><i style="background:#007a71" title="#007a71"></i><i style="background:#823f3e" title="#823f3e"></i><i style="background:#870d25" title="#870d25"></i><i style="background:#0a7890" title="#0a7890"></i>
+    </div>
+    <div class="cvd-grid" style="background:#0a0a0a;color:#f5f2f1">
+      <span></span><span class="cvd-h">Orange (action)</span><span class="cvd-h">Or (XP)</span><span class="cvd-h">Cyan</span><span class="cvd-h">Succès</span><span class="cvd-h">Avertissement</span><span class="cvd-h">Erreur</span><span class="cvd-h">Info</span>
+      <span class="cvd-l">Vision normale</span><i style="background:#ff6b00" title="#ff6b00"></i><i style="background:#eab308" title="#eab308"></i><i style="background:#00d4ff" title="#00d4ff"></i><i style="background:#66e2bc" title="#66e2bc"></i><i style="background:#f3bd7f" title="#f3bd7f"></i><i style="background:#fe8477" title="#fe8477"></i><i style="background:#8b94f7" title="#8b94f7"></i><span class="cvd-l">Protanopie</span><i style="background:#968400" title="#968400"></i><i style="background:#cbb300" title="#cbb300"></i><i style="background:#baceff" title="#baceff"></i><i style="background:#dcd5ba" title="#dcd5ba"></i><i style="background:#d0bf7a" title="#d0bf7a"></i><i style="background:#a19875" title="#a19875"></i><i style="background:#6fa1fb" title="#6fa1fb"></i><span class="cvd-l">Deutéranopie</span><i style="background:#baa600" title="#baa600"></i><i style="background:#d8c11d" title="#d8c11d"></i><i style="background:#9dbaff" title="#9dbaff"></i><i style="background:#cac7bf" title="#cac7bf"></i><i style="background:#dccc80" title="#dccc80"></i><i style="background:#bfb175" title="#bfb175"></i><i style="background:#6898f5" title="#6898f5"></i><span class="cvd-l">Tritanopie</span><i style="background:#ff445c" title="#ff445c"></i><i style="background:#ffa199" title="#ffa199"></i><i style="background:#00e2e2" title="#00e2e2"></i><i style="background:#25e3d7" title="#25e3d7"></i><i style="background:#ffb0ad" title="#ffb0ad"></i><i style="background:#ff7181" title="#ff7181"></i><i style="background:#67a8ba" title="#67a8ba"></i>
+    </div></div>
+    <div class="scroll"><table class="ct cvd"><thead><tr><th scope="col">Couple</th><th scope="col">Mode</th><th scope="col">Normale</th><th scope="col">Protan</th><th scope="col">Deutan</th><th scope="col">Tritan</th></tr></thead><tbody><tr><th scope="row"><i class="dot" style="background:#d0580a"></i><i class="dot" style="background:#7a2520"></i>Orange (action) / Erreur</th><td>clair</td><td><b class="ok">26,0</b></td><td><b class="ok">23,2</b></td><td><b class="ok">25,6</b></td><td><b class="ok">21,6</b></td></tr><tr><th scope="row"><i class="dot" style="background:#d0580a"></i><i class="dot" style="background:#764a04"></i>Orange (action) / Avertissement</th><td>clair</td><td><b class="ok">21,6</b></td><td><b class="ok">11,6</b></td><td><b class="ok">19,1</b></td><td><b class="ok">19,7</b></td></tr><tr><th scope="row"><i class="dot" style="background:#c0840d"></i><i class="dot" style="background:#764a04"></i>Or (XP) / Avertissement</th><td>clair</td><td><b class="ok">24,5</b></td><td><b class="ok">22,9</b></td><td><b class="ok">25,3</b></td><td><b class="ok">23,8</b></td></tr><tr><th scope="row"><i class="dot" style="background:#764a04"></i><i class="dot" style="background:#7a2520"></i>Avertissement / Erreur</th><td>clair</td><td><b class="ok">21,9</b></td><td><b class="ok">13,2</b></td><td><b class="mid">7,6</b></td><td><b class="mid">9,2</b></td></tr><tr><th scope="row"><i class="dot" style="background:#08795e"></i><i class="dot" style="background:#7a2520"></i>Succès / Erreur</th><td>clair</td><td><b class="ok">53,4</b></td><td><b class="ok">20,1</b></td><td><b class="ok">17,2</b></td><td><b class="ok">56,2</b></td></tr><tr><th scope="row"><i class="dot" style="background:#08795e"></i><i class="dot" style="background:#764a04"></i>Succès / Avertissement</th><td>clair</td><td><b class="ok">37,2</b></td><td><b class="ok">18,7</b></td><td><b class="ok">19,6</b></td><td><b class="ok">47,1</b></td></tr><tr><th scope="row"><i class="dot" style="background:#d0580a"></i><i class="dot" style="background:#086f86"></i>Orange (action) / Cyan</th><td>clair</td><td><b class="ok">46,8</b></td><td><b class="ok">38,8</b></td><td><b class="ok">47,1</b></td><td><b class="ok">56,3</b></td></tr><tr><th scope="row"><i class="dot" style="background:#086f86"></i><i class="dot" style="background:#5b5bd6"></i>Cyan / Info</th><td>clair</td><td><b class="ok">21,5</b></td><td><b class="ok">15,2</b></td><td><b class="ok">12,4</b></td><td><b class="ok">10,7</b></td></tr><tr><th scope="row"><i class="dot" style="background:#d0580a"></i><i class="dot" style="background:#c0840d"></i>Orange (action) / Or (XP)</th><td>clair</td><td><b class="ok">18,9</b></td><td><b class="ok">11,0</b></td><td><b class="ko">5,1</b></td><td><b class="ok">11,2</b></td></tr><tr><th scope="row"><i class="dot" style="background:#ff6b00"></i><i class="dot" style="background:#fe8477"></i>Orange (action) / Erreur</th><td>sombre</td><td><b class="ok">17,7</b></td><td><b class="ok">16,0</b></td><td><b class="ok">11,9</b></td><td><b class="mid">8,2</b></td></tr><tr><th scope="row"><i class="dot" style="background:#ff6b00"></i><i class="dot" style="background:#f3bd7f"></i>Orange (action) / Avertissement</th><td>sombre</td><td><b class="ok">21,9</b></td><td><b class="ok">19,4</b></td><td><b class="ok">13,5</b></td><td><b class="ok">21,2</b></td></tr><tr><th scope="row"><i class="dot" style="background:#eab308"></i><i class="dot" style="background:#f3bd7f"></i>Or (XP) / Avertissement</th><td>sombre</td><td><b class="ok">13,0</b></td><td><b class="ok">11,3</b></td><td><b class="ok">10,2</b></td><td><b class="ko">4,3</b></td></tr><tr><th scope="row"><i class="dot" style="background:#f3bd7f"></i><i class="dot" style="background:#fe8477"></i>Avertissement / Erreur</th><td>sombre</td><td><b class="ok">24,2</b></td><td><b class="ok">13,6</b></td><td><b class="mid">7,5</b></td><td><b class="ok">14,0</b></td></tr><tr><th scope="row"><i class="dot" style="background:#66e2bc"></i><i class="dot" style="background:#fe8477"></i>Succès / Erreur</th><td>sombre</td><td><b class="ok">60,0</b></td><td><b class="ok">16,8</b></td><td><b class="ok">16,6</b></td><td><b class="ok">65,9</b></td></tr><tr><th scope="row"><i class="dot" style="background:#66e2bc"></i><i class="dot" style="background:#f3bd7f"></i>Succès / Avertissement</th><td>sombre</td><td><b class="ok">37,2</b></td><td><b class="ok">11,9</b></td><td><b class="ok">17,9</b></td><td><b class="ok">51,8</b></td></tr><tr><th scope="row"><i class="dot" style="background:#ff6b00"></i><i class="dot" style="background:#00d4ff"></i>Orange (action) / Cyan</th><td>sombre</td><td><b class="ok">54,9</b></td><td><b class="ok">51,0</b></td><td><b class="ok">53,9</b></td><td><b class="ok">68,4</b></td></tr><tr><th scope="row"><i class="dot" style="background:#00d4ff"></i><i class="dot" style="background:#8b94f7"></i>Cyan / Info</th><td>sombre</td><td><b class="ok">29,2</b></td><td><b class="ok">14,5</b></td><td><b class="ok">10,5</b></td><td><b class="ok">18,2</b></td></tr><tr><th scope="row"><i class="dot" style="background:#ff6b00"></i><i class="dot" style="background:#eab308"></i>Orange (action) / Or (XP)</th><td>sombre</td><td><b class="ok">27,3</b></td><td><b class="ok">15,3</b></td><td><b class="mid">7,5</b></td><td><b class="ok">17,7</b></td></tr></tbody></table></div>
+
+  <h2>Règles d’usage</h2>
+  <div class="rules">
+    <section><h3>Liens toujours soulignés</h3><p>Le lien orange est lisible sur la page (≥ 4,5:1), mais trop proche du texte courant pour s’en distinguer par la couleur seule. Le soulignement règle ce point (technique WCAG G183).</p></section>
+    <section><h3>Jamais l’état par la couleur seule</h3><p>Orange, or et ambre sont voisins : un état porte toujours une icône et un mot (✓ Juste, ! Attention, ✕ Erreur). C’est l’exigence WCAG 1.4.1, et c’est indispensable avec une marque orange.</p></section>
+    <section><h3>Un rôle par fonction</h3><ul><li><code>primary</code> : une action principale par écran</li><li><code>secondary</code> (or) : XP, séries, récompenses</li><li><code>accent</code> (cyan) : focus, « vérifié par le solveur »</li><li><code>neutral-cool</code> : blocs de code et tableaux techniques</li></ul></section>
+    <section><h3>La marque n’est pas un rôle</h3><p>En mode clair, l’orange #FF6B00 ne passe pas 3:1 sur la page : les boutons prennent <code>primary-600</code>, et le logo garde #FF6B00. Les couleurs de marque ne sont jamais retouchées pour l’interface.</p></section>
+  </div>
+
+  <footer>
+    <p>Source unique : <code>packages/web/src/web/styles/brand/palette.json</code> (format du skill brand-identity). Fichiers générés : <code>tokens.css</code> et <code>theme.css</code> (Tailwind v4), à côté de la source, ainsi que cette page. Pour regénérer : <code>bun scripts/brand-palette.mjs</code> depuis <code>packages/web</code>.</p>
+  </footer>
+</main>
+</body>
+</html>

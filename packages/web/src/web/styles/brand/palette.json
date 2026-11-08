@@ -1,0 +1,303 @@
+{
+  "schema": "brand-identity/palette@1",
+  "name": "TRED Signal",
+  "direction": "Orange signal et or de la toque sur nuit d'ingénieur, cyan pour la précision.",
+  "brand": [
+    {
+      "id": "brand-1",
+      "name": "Orange Signal",
+      "hex": "#ff6b00",
+      "source": "chosen",
+      "locked": true,
+      "usage": "symbole, actions principales, mode sombre",
+      "print": {
+        "lab_d50": [
+          64.0,
+          54.9,
+          73.0
+        ],
+        "cmyk": null,
+        "pantone_ref": null
+      }
+    },
+    {
+      "id": "brand-2",
+      "name": "Cyan Précision",
+      "hex": "#00d4ff",
+      "source": "chosen",
+      "locked": true,
+      "usage": "focus, badges « vérifié par solveur », éléments techniques",
+      "print": {
+        "lab_d50": [
+          78.0,
+          -33.4,
+          -34.0
+        ],
+        "cmyk": null,
+        "pantone_ref": null
+      }
+    },
+    {
+      "id": "brand-3",
+      "name": "Or Toque",
+      "hex": "#eab308",
+      "source": "chosen",
+      "locked": true,
+      "usage": "symbole, XP, récompenses, progression",
+      "print": {
+        "lab_d50": [
+          76.5,
+          11.7,
+          77.4
+        ],
+        "cmyk": null,
+        "pantone_ref": null
+      },
+      "role": "extended"
+    }
+  ],
+  "scales": {
+    "primary": {
+      "anchor": "500",
+      "steps": {
+        "50": "#fff5f1",
+        "100": "#ffebe2",
+        "200": "#fed6c5",
+        "300": "#feb999",
+        "400": "#fe8f5b",
+        "500": "#ff6b00",
+        "600": "#d0580a",
+        "700": "#ab4706",
+        "800": "#8d3904",
+        "900": "#772f03",
+        "950": "#461901"
+      }
+    },
+    "neutral": {
+      "tint_of": "primary",
+      "steps": {
+        "50": "#fcfaf9",
+        "100": "#f5f2f1",
+        "200": "#e8e5e4",
+        "300": "#d6d4d2",
+        "400": "#a4a19f",
+        "500": "#767270",
+        "600": "#595452",
+        "700": "#45403e",
+        "800": "#2f2a28",
+        "900": "#1f1b19",
+        "950": "#120f0d"
+      }
+    },
+    "accent": {
+      "anchor": "300",
+      "steps": {
+        "50": "#ecfaff",
+        "100": "#d2f4ff",
+        "200": "#9ce7fe",
+        "300": "#00d4ff",
+        "400": "#14b7dc",
+        "500": "#10a4c5",
+        "600": "#0b87a2",
+        "700": "#086f86",
+        "800": "#055c70",
+        "900": "#044d5e",
+        "950": "#012e39"
+      }
+    },
+    "success": {
+      "hue": 170.0,
+      "steps": {
+        "50": "#ecfcf5",
+        "100": "#d6f8eb",
+        "200": "#98f4d5",
+        "300": "#66e2bc",
+        "400": "#3fc6a0",
+        "500": "#2bb28e",
+        "600": "#0d9373",
+        "700": "#08795e",
+        "800": "#06644d",
+        "900": "#045440",
+        "950": "#073025"
+      }
+    },
+    "warning": {
+      "hue": 70.0,
+      "steps": {
+        "50": "#fff6ec",
+        "100": "#ffebd6",
+        "200": "#f9d9b4",
+        "300": "#f3bd7f",
+        "400": "#e59b37",
+        "500": "#cf8925",
+        "600": "#ad6e0a",
+        "700": "#8f5a06",
+        "800": "#764a04",
+        "900": "#633d03",
+        "950": "#3a2305"
+      }
+    },
+    "danger": {
+      "hue": 27.0,
+      "steps": {
+        "50": "#fff5f3",
+        "100": "#ffe9e6",
+        "200": "#fed3cd",
+        "300": "#feb2a8",
+        "400": "#fe8477",
+        "500": "#f86156",
+        "600": "#e0312e",
+        "700": "#b4312b",
+        "800": "#922c27",
+        "900": "#7a2520",
+        "950": "#471713"
+      }
+    },
+    "info": {
+      "hue": 277.0,
+      "steps": {
+        "50": "#f5f7ff",
+        "100": "#ebeeff",
+        "200": "#d9defe",
+        "300": "#bfc7fe",
+        "400": "#9fa8fd",
+        "500": "#8b94f7",
+        "600": "#7074e8",
+        "700": "#5b5bd6",
+        "800": "#4842c0",
+        "900": "#3c3a98",
+        "950": "#21234c"
+      }
+    },
+    "ext-1": {
+      "anchor": "300",
+      "steps": {
+        "50": "#fdf8e6",
+        "100": "#faecc1",
+        "200": "#f9d571",
+        "300": "#eab308",
+        "400": "#d29710",
+        "500": "#c0840d",
+        "600": "#a56809",
+        "700": "#8d5306",
+        "800": "#794204",
+        "900": "#693503",
+        "950": "#411d08"
+      }
+    },
+    "neutral-cool": {
+      "tint_of": "accent",
+      "steps": {
+        "50": "#f8fbfc",
+        "100": "#f1f4f4",
+        "200": "#e4e7e8",
+        "300": "#d1d5d6",
+        "400": "#9ba3a6",
+        "500": "#6b7578",
+        "600": "#4d575b",
+        "700": "#384347",
+        "800": "#232d31",
+        "900": "#131e21",
+        "950": "#091113"
+      }
+    }
+  },
+  "modes": {
+    "light": {
+      "background": "#fdfbf7",
+      "surface": "#ffffff",
+      "surfaceAlt": "#f3f1ed",
+      "border": "#dddad2",
+      "text": "#1f1b19",
+      "textMuted": "#595452",
+      "primary": "#d0580a",
+      "onPrimary": "#120f0d",
+      "accent": "#086f86",
+      "onAccent": "#ffffff",
+      "link": "#ab4706",
+      "focus": "#086f86",
+      "success": "#08795e",
+      "warning": "#764a04",
+      "danger": "#7a2520",
+      "info": "#5b5bd6"
+    },
+    "dark": {
+      "background": "#0a0a0a",
+      "surface": "#1f1b19",
+      "surfaceAlt": "#2f2a28",
+      "border": "#45403e",
+      "text": "#f5f2f1",
+      "textMuted": "#a4a19f",
+      "primary": "#ff6b00",
+      "onPrimary": "#120f0d",
+      "accent": "#00d4ff",
+      "onAccent": "#120f0d",
+      "link": "#ff6b00",
+      "focus": "#00d4ff",
+      "success": "#66e2bc",
+      "warning": "#f3bd7f",
+      "danger": "#fe8477",
+      "info": "#8b94f7"
+    }
+  },
+  "rationale": [],
+  "feels": [
+    "précis",
+    "fiable",
+    "ludique",
+    "futuriste"
+  ],
+  "extended": [
+    {
+      "id": "ext-1",
+      "name": "Or Toque",
+      "hex": "#eab308",
+      "on": "#120f0d",
+      "dark": {
+        "hex": "#eab308",
+        "on": "#120f0d"
+      },
+      "usage": "symbole, XP, récompenses, progression"
+    }
+  ],
+  "build": {
+    "generator": "brand-identity/palette_build.py",
+    "seed": "#ff6b00",
+    "accent": {
+      "hex": "#00d4ff",
+      "how": "given",
+      "strategy": null
+    },
+    "neutral": {
+      "tint_hue": 45.1,
+      "chroma": 0.008
+    },
+    "grounds": {
+      "light": "#FDFBF7",
+      "dark": "#0A0A0A"
+    },
+    "adjustments": [
+      {
+        "mode": "light",
+        "role": "link",
+        "scale": "primary",
+        "from_step": "500",
+        "to_step": "700",
+        "reason": "step 500 is below 4.5:1 on the light surfaces"
+      },
+      {
+        "mode": "light",
+        "role": "focus",
+        "scale": "primary",
+        "from_step": "500",
+        "to_step": "600",
+        "reason": "step 500 is below 3.0:1 on the light surfaces"
+      },
+      "TRED: light.primary -> primary-600, light.accent -> accent-700 + white label (UI fills >= 3:1 on the page)",
+      "TRED: focus -> accent (cyan) in both modes, distinct from the orange actions",
+      "TRED: semantic steps chosen for colour-vision separation (light warning 800, danger 900, info indigo 700; dark warning 300, success 300, info indigo 500); info hue blue -> indigo to clear the cyan accent"
+    ],
+    "warnings": [],
+    "semantic_shifts": []
+  }
+}

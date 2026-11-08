@@ -1,0 +1,166 @@
+/* Palette TRED « Signal » : générée par packages/web/scripts/brand-palette.mjs depuis palette.json. Ne pas modifier à la main. */
+:root {
+  color-scheme: light;
+  /* Couleurs de marque : le logo et les illustrations. Ne jamais les retoucher pour l'interface. */
+  --tred-brand-orange: #ff6b00; /* Orange Signal */
+  --tred-brand-gold: #eab308; /* Or Toque */
+  --tred-brand-cyan: #00d4ff; /* Cyan Précision */
+  --tred-brand-night: #0a0a0a; /* Nuit */
+  /* Échelles 50 → 950 (identiques dans les deux modes) */
+  --tred-primary-50: #fff5f1;
+  --tred-primary-100: #ffebe2;
+  --tred-primary-200: #fed6c5;
+  --tred-primary-300: #feb999;
+  --tred-primary-400: #fe8f5b;
+  --tred-primary-500: #ff6b00;
+  --tred-primary-600: #d0580a;
+  --tred-primary-700: #ab4706;
+  --tred-primary-800: #8d3904;
+  --tred-primary-900: #772f03;
+  --tred-primary-950: #461901;
+  --tred-secondary-50: #fdf8e6;
+  --tred-secondary-100: #faecc1;
+  --tred-secondary-200: #f9d571;
+  --tred-secondary-300: #eab308;
+  --tred-secondary-400: #d29710;
+  --tred-secondary-500: #c0840d;
+  --tred-secondary-600: #a56809;
+  --tred-secondary-700: #8d5306;
+  --tred-secondary-800: #794204;
+  --tred-secondary-900: #693503;
+  --tred-secondary-950: #411d08;
+  --tred-accent-50: #ecfaff;
+  --tred-accent-100: #d2f4ff;
+  --tred-accent-200: #9ce7fe;
+  --tred-accent-300: #00d4ff;
+  --tred-accent-400: #14b7dc;
+  --tred-accent-500: #10a4c5;
+  --tred-accent-600: #0b87a2;
+  --tred-accent-700: #086f86;
+  --tred-accent-800: #055c70;
+  --tred-accent-900: #044d5e;
+  --tred-accent-950: #012e39;
+  --tred-neutral-50: #fcfaf9;
+  --tred-neutral-100: #f5f2f1;
+  --tred-neutral-200: #e8e5e4;
+  --tred-neutral-300: #d6d4d2;
+  --tred-neutral-400: #a4a19f;
+  --tred-neutral-500: #767270;
+  --tred-neutral-600: #595452;
+  --tred-neutral-700: #45403e;
+  --tred-neutral-800: #2f2a28;
+  --tred-neutral-900: #1f1b19;
+  --tred-neutral-950: #120f0d;
+  --tred-neutral-cool-50: #f8fbfc;
+  --tred-neutral-cool-100: #f1f4f4;
+  --tred-neutral-cool-200: #e4e7e8;
+  --tred-neutral-cool-300: #d1d5d6;
+  --tred-neutral-cool-400: #9ba3a6;
+  --tred-neutral-cool-500: #6b7578;
+  --tred-neutral-cool-600: #4d575b;
+  --tred-neutral-cool-700: #384347;
+  --tred-neutral-cool-800: #232d31;
+  --tred-neutral-cool-900: #131e21;
+  --tred-neutral-cool-950: #091113;
+  --tred-success-50: #ecfcf5;
+  --tred-success-100: #d6f8eb;
+  --tred-success-200: #98f4d5;
+  --tred-success-300: #66e2bc;
+  --tred-success-400: #3fc6a0;
+  --tred-success-500: #2bb28e;
+  --tred-success-600: #0d9373;
+  --tred-success-700: #08795e;
+  --tred-success-800: #06644d;
+  --tred-success-900: #045440;
+  --tred-success-950: #073025;
+  --tred-warning-50: #fff6ec;
+  --tred-warning-100: #ffebd6;
+  --tred-warning-200: #f9d9b4;
+  --tred-warning-300: #f3bd7f;
+  --tred-warning-400: #e59b37;
+  --tred-warning-500: #cf8925;
+  --tred-warning-600: #ad6e0a;
+  --tred-warning-700: #8f5a06;
+  --tred-warning-800: #764a04;
+  --tred-warning-900: #633d03;
+  --tred-warning-950: #3a2305;
+  --tred-error-50: #fff5f3;
+  --tred-error-100: #ffe9e6;
+  --tred-error-200: #fed3cd;
+  --tred-error-300: #feb2a8;
+  --tred-error-400: #fe8477;
+  --tred-error-500: #f86156;
+  --tred-error-600: #e0312e;
+  --tred-error-700: #b4312b;
+  --tred-error-800: #922c27;
+  --tred-error-900: #7a2520;
+  --tred-error-950: #471713;
+  --tred-info-50: #f5f7ff;
+  --tred-info-100: #ebeeff;
+  --tred-info-200: #d9defe;
+  --tred-info-300: #bfc7fe;
+  --tred-info-400: #9fa8fd;
+  --tred-info-500: #8b94f7;
+  --tred-info-600: #7074e8;
+  --tred-info-700: #5b5bd6;
+  --tred-info-800: #4842c0;
+  --tred-info-900: #3c3a98;
+  --tred-info-950: #21234c;
+  /* Rôles : mode clair */
+  --tred-background: #fdfbf7;
+  --tred-surface: #ffffff;
+  --tred-surface-alt: #f3f1ed;
+  --tred-border: #dddad2;
+  --tred-border-strong: #767270;
+  --tred-text: #1f1b19;
+  --tred-text-muted: #595452;
+  --tred-primary: #d0580a;
+  --tred-on-primary: #120f0d;
+  --tred-primary-soft: #fff5f1;
+  --tred-secondary: #c0840d;
+  --tred-on-secondary: #120f0d;
+  --tred-accent: #086f86;
+  --tred-on-accent: #ffffff;
+  --tred-accent-soft: #ecfaff;
+  --tred-link: #ab4706;
+  --tred-focus: #086f86;
+  --tred-success: #08795e;
+  --tred-success-soft: #ecfcf5;
+  --tred-warning: #764a04;
+  --tred-warning-soft: #fff6ec;
+  --tred-error: #7a2520;
+  --tred-error-soft: #fff5f3;
+  --tred-info: #5b5bd6;
+  --tred-info-soft: #f5f7ff;
+}
+
+/* Mode sombre : neutres inversés, accents éclaircis le long de leur échelle */
+[data-theme="dark"],
+.dark {
+  color-scheme: dark;
+  --tred-background: #0a0a0a;
+  --tred-surface: #1f1b19;
+  --tred-surface-alt: #2f2a28;
+  --tred-border: #45403e;
+  --tred-border-strong: #767270;
+  --tred-text: #f5f2f1;
+  --tred-text-muted: #a4a19f;
+  --tred-primary: #ff6b00;
+  --tred-on-primary: #120f0d;
+  --tred-primary-soft: #461901;
+  --tred-secondary: #eab308;
+  --tred-on-secondary: #120f0d;
+  --tred-accent: #00d4ff;
+  --tred-on-accent: #120f0d;
+  --tred-accent-soft: #012e39;
+  --tred-link: #ff6b00;
+  --tred-focus: #00d4ff;
+  --tred-success: #66e2bc;
+  --tred-success-soft: #073025;
+  --tred-warning: #f3bd7f;
+  --tred-warning-soft: #3a2305;
+  --tred-error: #fe8477;
+  --tred-error-soft: #471713;
+  --tred-info: #8b94f7;
+  --tred-info-soft: #21234c;
+}

@@ -366,3 +366,32 @@ Règles de politesse : au plus **1 notification par jour** et par étudiant ; pa
 3. Si la liste te convient : **Agent aktivieren**. Le premier cycle part au quart d'heure suivant (entre 9 h et 20 h). **Pause** l'arrête à tout moment.
 
 Réglages Railway (facultatifs) : `RETENTION_INTERVAL_HOURS` (12 par défaut, de 1 à 168), `DISABLE_RETENTION_AGENT=true` pour le couper complètement. Logs : filtre `retention`.
+
+---
+
+## Identité visuelle — logo et palette
+
+Le symbole retenu est le **concept A, « Boutons-Toque »**. Le kit logo est dans `packages/web/public/brand/` ; pour tout voir, ouvrir `public/brand/preview.html`.
+
+| Format | Fichiers |
+|---|---|
+| Icône d'app (fond Nuit, coins arrondis par l'OS) | `tred-app-icon.svg`, `tred-app-icon-1024.png` (sans transparence, pour l'App Store) |
+| Logo horizontal / vertical | `tred-logo-horizontal.svg`, `tred-logo-vertical.svg` (fond clair) et `…-on-dark.svg` (fond sombre) |
+| Favicon (dessiné pour 16 px) | `tred-favicon.svg` |
+| Monochrome | `…-black.svg`, `…-white.svg` (symbole, horizontal, vertical) |
+| Transparent | `tred-symbol.svg`, `tred-symbol-1024.png` |
+
+Le mot « TRED » est en Poppins Bold (licence OFL), converti en tracés : aucune police n'est nécessaire. Pour optimiser les SVG avec SVGO, désactiver `mergePaths` et les simplifications de courbes de `convertPathData` ; sinon le monochrome et le logo vertical bougent légèrement. Les concepts écartés restent dans `public/brand/concepts/`. La palette officielle s'appelle **« TRED Signal »** : Orange Signal `#FF6B00`, Or Toque `#EAB308`, Cyan Précision `#00D4FF` sur Nuit `#0A0A0A`. Planche de contrôle : `packages/web/public/brand/palette-preview.html`, à ouvrir dans le navigateur. Elle montre toutes les couleurs, les deux modes côte à côte, chaque ratio de contraste et la simulation du daltonisme.
+
+| Fichier | Rôle |
+|---|---|
+| `src/web/styles/brand/palette.json` | **la seule source** (format du skill brand-identity) |
+| `src/web/styles/brand/tokens.css` | variables `--tred-*` : `:root` = clair, `[data-theme="dark"]` ou `.dark` = sombre (généré) |
+| `src/web/styles/brand/theme.css` | Tailwind v4 `@theme inline` : `bg-tred-primary`, `text-tred-text-muted`… (généré) |
+| `scripts/brand-palette.mjs` | regénère les trois fichiers et **refuse** toute paire sous le seuil WCAG AA |
+
+**Changer une couleur :** modifier `palette.json`, puis lancer `bun scripts/brand-palette.mjs` depuis `packages/web`. Ne jamais modifier `tokens.css` ni `theme.css` à la main. Contrôle croisé avec le skill : `python3 .claude/skills/brand-identity/scripts/palette_audit.py packages/web/src/web/styles/brand/palette.json`.
+
+**Pas encore branché sur l'app :** les couleurs actuelles restent celles de `styles.css`. Pour basculer, il suffit d'ajouter une ligne après `@import "tailwindcss";` : `@import "./styles/brand/theme.css";`. Il faudra ensuite faire pointer les variables shadcn (`--primary`, `--background`…) vers les rôles `--tred-*`. Ce changement visuel se valide d'abord.
+
+**Outil installé :** le skill `brand-identity` (fatihaydost/brand-identity-skill) est dans `.claude/skills/brand-identity`, installé avec `npx skills@1.7.4 add fatihaydost/brand-identity-skill -s brand-identity -a claude-code --copy`. Ses scripts couleur n'ont besoin que de Python 3. Les parties logo et polices demandent `fonttools`, `uharfbuzz` et `skia-pathops`, qu'il ne faut installer que si on s'en sert.

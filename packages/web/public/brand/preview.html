@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>TRED Kit Logo</title>
+<link rel="icon" href="tred-favicon.svg" type="image/svg+xml">
+<style>
+:root{--night:#0A0A0A;--ink:#F5F2F1;--muted:#A4A19F;--line:#2F2A28;--card:#141110;--paper:#FDFBF7;--orange:#FF6B00;--gold:#EAB308;--cyan:#00D4FF}
+*{box-sizing:border-box}
+html{background:var(--night)}
+body{margin:0;background:var(--night);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--orange);text-underline-offset:3px}
+a:focus-visible,button:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:4px}
+main{max-width:1280px;margin:0 auto;padding:0 16px 72px}
+.hero{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:24px 0 8px}
+@media (max-width:900px){.hero{grid-template-columns:1fr}}
+.stage{border-radius:28px;min-height:320px;display:grid;place-items:center;padding:40px 24px;border:1px solid var(--line)}
+.stage.dark{background:var(--night)} .stage.light{background:var(--paper)}
+.stage img{width:min(100%,520px);height:auto}
+.intro{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin:28px 0 8px}
+h1{font-size:clamp(28px,4vw,40px);line-height:1.1;margin:0;letter-spacing:-.02em}
+.intro p{margin:6px 0 0;color:var(--muted);max-width:720px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;padding:4px 12px 4px 6px;font-size:13px;color:var(--muted)}
+.chip i{width:18px;height:18px;border-radius:50%;border:1px solid #444}
+h2{font-size:22px;margin:56px 0 6px;letter-spacing:-.01em} h2+p{color:var(--muted);margin:0 0 18px;max-width:780px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:1100px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:700px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:16px;display:flex;flex-direction:column}
+.card header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.card h3{margin:0;font-size:17px}
+.num{width:28px;height:28px;border-radius:8px;background:var(--orange);color:var(--night);font-weight:800;display:grid;place-items:center;font-size:14px}
+.split{display:grid;grid-template-columns:1fr 1fr;border-radius:16px;overflow:hidden;border:1px solid var(--line)}
+.half{min-height:190px;display:grid;place-items:center;padding:18px 12px}
+.half.light{background:var(--paper)} .half.dark{background:var(--night)}
+.checker .half.light{background:conic-gradient(#e7e5e4 25%,#fff 0 50%,#e7e5e4 0 75%,#fff 0) 0 0/20px 20px}
+.checker .half.dark{background:conic-gradient(#1f1b19 25%,#0a0a0a 0 50%,#1f1b19 0 75%,#0a0a0a 0) 0 0/20px 20px}
+.appicon{width:112px;height:112px;border-radius:22.4%;box-shadow:0 12px 30px -12px rgb(0 0 0/.6)}
+.half.dark .appicon{box-shadow:0 0 0 1px #2f2a28}
+.h{width:92%;height:auto} .v{height:150px;width:auto} .sym{height:130px;width:auto}
+.fav{display:flex;align-items:flex-end;gap:10px} .fav img:first-child{width:72px;height:72px}
+.mono{display:flex;flex-direction:column;align-items:center;gap:16px} .mono img:first-child{height:70px} .mono img:last-child{width:88%;height:auto}
+.use{color:var(--muted);font-size:14px;margin:12px 2px 6px}
+.files{margin:auto 2px 0;font-size:13px;line-height:1.7}
+.band{border-radius:22px;padding:18px;margin-bottom:16px;border:1px solid var(--line)}
+.band.light{background:var(--paper);color:#1f1b19} .band.dark{background:var(--night)}
+.band h3{margin:0 0 10px;font-size:16px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;min-width:100%}
+th,td{padding:10px 18px 10px 0;text-align:left;vertical-align:middle;white-space:nowrap}
+thead th{font-size:12.5px;font-weight:600;opacity:.65}
+tbody th{font-weight:600;font-size:14px;padding-right:24px}
+td img{display:block}
+.pix{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px} @media (max-width:900px){.pix{grid-template-columns:1fr}} .pgroup{border:1px solid var(--line);border-radius:18px;padding:14px} .pgroup h3{margin:0 0 10px;font-size:15px} .pg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.pix figure{margin:0;display:flex;flex-direction:column;gap:6px;align-items:center}
+.pix canvas{width:100%;max-width:128px;aspect-ratio:1;height:auto;image-rendering:pixelated;border-radius:8px;border:1px solid var(--line)}
+.pix figcaption{font-size:12px;color:var(--muted)}
+.context{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:900px){.context{grid-template-columns:1fr}}
+.ctx{border:1px solid var(--line);border-radius:22px;overflow:hidden;background:var(--card)}
+.ctx p{margin:0;padding:10px 14px;color:var(--muted);font-size:13px}
+.tabs{padding:10px 10px 0;display:flex;flex-direction:column;gap:8px}
+.tabbar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px 10px 0 0;font-size:13px}
+.tabbar img{width:16px;height:16px}
+.tabbar.l{background:#e8e5e4;color:#1f1b19} .tabbar.d{background:#2f2a28;color:#f5f2f1}
+.home{background:linear-gradient(160deg,#1d2b3a,#3a1d10);padding:22px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;justify-items:center}
+.home span{width:54px;height:54px;border-radius:12px;background:rgb(255 255 255/.14)}
+.home img{width:54px;height:54px;border-radius:12px}
+.side{display:grid;grid-template-columns:1fr 1fr}
+.side div{padding:16px 14px;display:flex;flex-direction:column;gap:10px}
+.side .d{background:#120f0d} .side .l{background:#fff}
+.side img{height:26px;width:auto;align-self:flex-start}
+.side i{height:8px;border-radius:4px;background:#45403e;display:block} .side .l i{background:#e8e5e4}
+.tests{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:900px){.tests{grid-template-columns:1fr}}
+.test{border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+.test h3{margin:0 0 4px;font-size:15px;display:flex;gap:8px;align-items:center}
+.test h3 b{color:#3fc6a0}
+.test p{margin:0;color:#d6d4d2;font-size:13.5px}
+.rules{columns:2;column-gap:28px;color:#d6d4d2;padding-left:18px} @media (max-width:760px){.rules{columns:1}}
+.rules li{margin-bottom:6px;break-inside:avoid}
+footer{margin-top:48px;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <div class="stage dark"><img src="tred-logo-horizontal-on-dark.svg" alt="Logo TRED sur fond Nuit"></div>
+    <div class="stage light"><img src="tred-logo-horizontal.svg" alt="Logo TRED sur fond clair"></div>
+  </div>
+  <div class="intro">
+    <div>
+      <h1>TRED · kit logo</h1>
+      <p>Concept A « Boutons-Toque » : vue de dessus, la toque est un losange coupé en quatre boutons de manette, et le cordon du gland passe dans le vide qui les sépare. Couleurs exactes de la palette TRED Signal.</p>
+    </div>
+    <div class="chips">
+      <span class="chip"><i style="background:#FF6B00"></i>Orange #FF6B00</span>
+      <span class="chip"><i style="background:#EAB308"></i>Or #EAB308</span>
+      <span class="chip"><i style="background:#0A0A0A"></i>Nuit #0A0A0A</span>
+    </div>
+  </div>
+
+  <h2>Les 6 formats</h2>
+  <p>Chaque format sur fond clair à gauche et sur fond Nuit à droite. Les liens ouvrent les fichiers SVG eux-mêmes.</p>
+  <div class="grid">
+  <article class="card">
+    <header><span class="num">1</span><h3>Icône d’app</h3></header>
+    <div class="split">
+      <div class="half light"><img class="appicon" src="tred-app-icon.svg" alt="Icône d’app TRED sur fond clair"></div>
+      <div class="half dark"><img class="appicon" src="tred-app-icon.svg" alt="Icône d’app TRED sur fond sombre"></div>
+    </div>
+    <p class="use">Stores, écran d’accueil, PWA. Fond Nuit plein cadre : c’est le système qui arrondit les coins.</p>
+    <p class="files"><a href="tred-app-icon.svg">tred-app-icon.svg</a> · <a href="tred-app-icon-1024.png" title="tred-app-icon-1024.png">PNG 1024 (App Store, sans transparence)</a></p>
+  </article>
+  <article class="card">
+    <header><span class="num">2</span><h3>Logo horizontal</h3></header>
+    <div class="split">
+      <div class="half light"><img class="h" src="tred-logo-horizontal.svg" alt="Logo horizontal TRED sur fond clair"></div>
+      <div class="half dark"><img class="h" src="tred-logo-horizontal-on-dark.svg" alt="Logo horizontal TRED sur fond sombre"></div>
+    </div>
+    <p class="use">Barre latérale, en-tête, signature d’e-mail.</p>
+    <p class="files"><a href="tred-logo-horizontal.svg">tred-logo-horizontal.svg</a> · <a href="tred-logo-horizontal-on-dark.svg" title="tred-logo-horizontal-on-dark.svg">version fond sombre</a></p>
+  </article>
+  <article class="card">
+    <header><span class="num">3</span><h3>Logo vertical</h3></header>
+    <div class="split">
+      <div class="half light"><img class="v" src="tred-logo-vertical.svg" alt="Logo vertical TRED sur fond clair"></div>
+      <div class="half dark"><img class="v" src="tred-logo-vertical-on-dark.svg" alt="Logo vertical TRED sur fond sombre"></div>
+    </div>
+    <p class="use">Affiches, flyers, écran de démarrage, stand.</p>
+    <p class="files"><a href="tred-logo-vertical.svg">tred-logo-vertical.svg</a> · <a href="tred-logo-vertical-on-dark.svg" title="tred-logo-vertical-on-dark.svg">version fond sombre</a></p>
+  </article>
+  <article class="card">
+    <header><span class="num">4</span><h3>Favicon</h3></header>
+    <div class="split">
+      <div class="half light"><span class="fav"><img src="tred-favicon.svg" width="96" height="96" alt="Favicon agrandi"><img src="tred-favicon.svg" width="32" height="32" alt="Favicon 32 px"><img src="tred-favicon.svg" width="16" height="16" alt="Favicon 16 px"></span></div>
+      <div class="half dark"><span class="fav"><img src="tred-favicon.svg" width="96" height="96" alt="Favicon agrandi"><img src="tred-favicon.svg" width="32" height="32" alt="Favicon 32 px"><img src="tred-favicon.svg" width="16" height="16" alt="Favicon 16 px"></span></div>
+    </div>
+    <p class="use">Onglet du navigateur. Dessiné pour 16 px : boutons agrandis, cordon retiré, la houppe or reste.</p>
+    <p class="files"><a href="tred-favicon.svg">tred-favicon.svg</a></p>
+  </article>
+  <article class="card">
+    <header><span class="num">5</span><h3>Monochrome</h3></header>
+    <div class="split">
+      <div class="half light"><span class="mono"><img src="tred-symbol-black.svg" alt="Symbole noir"><img src="tred-logo-horizontal-black.svg" alt="Logo horizontal noir"></span></div>
+      <div class="half dark"><span class="mono"><img src="tred-symbol-white.svg" alt="Symbole blanc"><img src="tred-logo-horizontal-white.svg" alt="Logo horizontal blanc"></span></div>
+    </div>
+    <p class="use">Impression une couleur, gravure, tampon, documents officiels.</p>
+    <p class="files"><a href="tred-symbol-black.svg">tred-symbol-black.svg</a> · <a href="tred-symbol-white.svg" title="tred-symbol-white.svg">symbole blanc</a> · <a href="tred-logo-horizontal-black.svg" title="tred-logo-horizontal-black.svg">horizontal noir</a> · <a href="tred-logo-horizontal-white.svg" title="tred-logo-horizontal-white.svg">horizontal blanc</a> · <a href="tred-logo-vertical-black.svg" title="tred-logo-vertical-black.svg">vertical noir</a> · <a href="tred-logo-vertical-white.svg" title="tred-logo-vertical-white.svg">vertical blanc</a></p>
+  </article>
+  <article class="card">
+    <header><span class="num">6</span><h3>Transparent</h3></header>
+    <div class="split checker">
+      <div class="half light"><img class="sym" src="tred-symbol.svg" alt="Symbole TRED transparent sur damier clair"></div>
+      <div class="half dark"><img class="sym" src="tred-symbol.svg" alt="Symbole TRED transparent sur damier sombre"></div>
+    </div>
+    <p class="use">Symbole seul, sans fond : sur photo, vidéo ou slide. Le damier montre la transparence.</p>
+    <p class="files"><a href="tred-symbol.svg">tred-symbol.svg</a> · <a href="tred-symbol-1024.png" title="tred-symbol-1024.png">PNG 1024 avec transparence</a></p>
+  </article></div>
+
+  <h2>Tailles réelles : 16, 32, 64 et 256 px</h2>
+  <p>Hauteur exacte en pixels CSS, les mêmes fichiers. Sur téléphone, chaque tableau défile horizontalement.</p>
+  
+  <section class="band light" aria-label="Fond clair">
+    <h3>Fond clair</h3>
+    <div class="scroll"><table>
+      <thead><tr><th scope="col">Format</th><th scope="col">16 px</th><th scope="col">32 px</th><th scope="col">64 px</th><th scope="col">256 px</th></tr></thead>
+      <tbody><tr><th scope="row">Icône d’app</th><td><img src="tred-app-icon.svg" style="height:16px" alt="Icône d’app 16 px"></td><td><img src="tred-app-icon.svg" style="height:32px" alt="Icône d’app 32 px"></td><td><img src="tred-app-icon.svg" style="height:64px" alt="Icône d’app 64 px"></td><td><img src="tred-app-icon.svg" style="height:256px" alt="Icône d’app 256 px"></td></tr><tr><th scope="row">Horizontal</th><td><img src="tred-logo-horizontal.svg" style="height:16px" alt="Horizontal 16 px"></td><td><img src="tred-logo-horizontal.svg" style="height:32px" alt="Horizontal 32 px"></td><td><img src="tred-logo-horizontal.svg" style="height:64px" alt="Horizontal 64 px"></td><td><img src="tred-logo-horizontal.svg" style="height:256px" alt="Horizontal 256 px"></td></tr><tr><th scope="row">Vertical</th><td><img src="tred-logo-vertical.svg" style="height:16px" alt="Vertical 16 px"></td><td><img src="tred-logo-vertical.svg" style="height:32px" alt="Vertical 32 px"></td><td><img src="tred-logo-vertical.svg" style="height:64px" alt="Vertical 64 px"></td><td><img src="tred-logo-vertical.svg" style="height:256px" alt="Vertical 256 px"></td></tr><tr><th scope="row">Favicon</th><td><img src="tred-favicon.svg" style="height:16px" alt="Favicon 16 px"></td><td><img src="tred-favicon.svg" style="height:32px" alt="Favicon 32 px"></td><td><img src="tred-favicon.svg" style="height:64px" alt="Favicon 64 px"></td><td><img src="tred-favicon.svg" style="height:256px" alt="Favicon 256 px"></td></tr><tr><th scope="row">Monochrome</th><td><img src="tred-symbol-black.svg" style="height:16px" alt="Monochrome 16 px"></td><td><img src="tred-symbol-black.svg" style="height:32px" alt="Monochrome 32 px"></td><td><img src="tred-symbol-black.svg" style="height:64px" alt="Monochrome 64 px"></td><td><img src="tred-symbol-black.svg" style="height:256px" alt="Monochrome 256 px"></td></tr><tr><th scope="row">Transparent</th><td><img src="tred-symbol.svg" style="height:16px" alt="Transparent 16 px"></td><td><img src="tred-symbol.svg" style="height:32px" alt="Transparent 32 px"></td><td><img src="tred-symbol.svg" style="height:64px" alt="Transparent 64 px"></td><td><img src="tred-symbol.svg" style="height:256px" alt="Transparent 256 px"></td></tr></tbody>
+    </table></div>
+  </section>
+  <section class="band dark" aria-label="Fond sombre">
+    <h3>Fond sombre (Nuit #0A0A0A)</h3>
+    <div class="scroll"><table>
+      <thead><tr><th scope="col">Format</th><th scope="col">16 px</th><th scope="col">32 px</th><th scope="col">64 px</th><th scope="col">256 px</th></tr></thead>
+      <tbody><tr><th scope="row">Icône d’app</th><td><img src="tred-app-icon.svg" style="height:16px" alt="Icône d’app 16 px"></td><td><img src="tred-app-icon.svg" style="height:32px" alt="Icône d’app 32 px"></td><td><img src="tred-app-icon.svg" style="height:64px" alt="Icône d’app 64 px"></td><td><img src="tred-app-icon.svg" style="height:256px" alt="Icône d’app 256 px"></td></tr><tr><th scope="row">Horizontal</th><td><img src="tred-logo-horizontal-on-dark.svg" style="height:16px" alt="Horizontal 16 px"></td><td><img src="tred-logo-horizontal-on-dark.svg" style="height:32px" alt="Horizontal 32 px"></td><td><img src="tred-logo-horizontal-on-dark.svg" style="height:64px" alt="Horizontal 64 px"></td><td><img src="tred-logo-horizontal-on-dark.svg" style="height:256px" alt="Horizontal 256 px"></td></tr><tr><th scope="row">Vertical</th><td><img src="tred-logo-vertical-on-dark.svg" style="height:16px" alt="Vertical 16 px"></td><td><img src="tred-logo-vertical-on-dark.svg" style="height:32px" alt="Vertical 32 px"></td><td><img src="tred-logo-vertical-on-dark.svg" style="height:64px" alt="Vertical 64 px"></td><td><img src="tred-logo-vertical-on-dark.svg" style="height:256px" alt="Vertical 256 px"></td></tr><tr><th scope="row">Favicon</th><td><img src="tred-favicon.svg" style="height:16px" alt="Favicon 16 px"></td><td><img src="tred-favicon.svg" style="height:32px" alt="Favicon 32 px"></td><td><img src="tred-favicon.svg" style="height:64px" alt="Favicon 64 px"></td><td><img src="tred-favicon.svg" style="height:256px" alt="Favicon 256 px"></td></tr><tr><th scope="row">Monochrome</th><td><img src="tred-symbol-white.svg" style="height:16px" alt="Monochrome 16 px"></td><td><img src="tred-symbol-white.svg" style="height:32px" alt="Monochrome 32 px"></td><td><img src="tred-symbol-white.svg" style="height:64px" alt="Monochrome 64 px"></td><td><img src="tred-symbol-white.svg" style="height:256px" alt="Monochrome 256 px"></td></tr><tr><th scope="row">Transparent</th><td><img src="tred-symbol.svg" style="height:16px" alt="Transparent 16 px"></td><td><img src="tred-symbol.svg" style="height:32px" alt="Transparent 32 px"></td><td><img src="tred-symbol.svg" style="height:64px" alt="Transparent 64 px"></td><td><img src="tred-symbol.svg" style="height:256px" alt="Transparent 256 px"></td></tr></tbody>
+    </table></div>
+  </section>
+
+  <h2>Au pixel près</h2>
+  <p>Rendus réels à 16 et 32 px, agrandis sans lissage : c’est ce que voit l’œil dans un onglet ou une liste d’apps.</p>
+  <div class="pix"><div class="pgroup"><h3>Favicon</h3><div class="pg"><figure><canvas data-src="tred-favicon.svg" data-bg="#0A0A0A" data-s="16" role="img" aria-label="Favicon rendu à 16 px sur fond Nuit, agrandi"></canvas><figcaption>16 px · Nuit</figcaption></figure><figure><canvas data-src="tred-favicon.svg" data-bg="#0A0A0A" data-s="32" role="img" aria-label="Favicon rendu à 32 px sur fond Nuit, agrandi"></canvas><figcaption>32 px · Nuit</figcaption></figure><figure><canvas data-src="tred-favicon.svg" data-bg="#FFFFFF" data-s="16" role="img" aria-label="Favicon rendu à 16 px sur fond blanc, agrandi"></canvas><figcaption>16 px · blanc</figcaption></figure><figure><canvas data-src="tred-favicon.svg" data-bg="#FFFFFF" data-s="32" role="img" aria-label="Favicon rendu à 32 px sur fond blanc, agrandi"></canvas><figcaption>32 px · blanc</figcaption></figure></div></div><div class="pgroup"><h3>Icône d’app</h3><div class="pg"><figure><canvas data-src="tred-app-icon.svg" data-bg="#0A0A0A" data-s="16" role="img" aria-label="Icône d’app rendu à 16 px sur fond Nuit, agrandi"></canvas><figcaption>16 px · Nuit</figcaption></figure><figure><canvas data-src="tred-app-icon.svg" data-bg="#0A0A0A" data-s="32" role="img" aria-label="Icône d’app rendu à 32 px sur fond Nuit, agrandi"></canvas><figcaption>32 px · Nuit</figcaption></figure><figure><canvas data-src="tred-app-icon.svg" data-bg="#FFFFFF" data-s="16" role="img" aria-label="Icône d’app rendu à 16 px sur fond blanc, agrandi"></canvas><figcaption>16 px · blanc</figcaption></figure><figure><canvas data-src="tred-app-icon.svg" data-bg="#FFFFFF" data-s="32" role="img" aria-label="Icône d’app rendu à 32 px sur fond blanc, agrandi"></canvas><figcaption>32 px · blanc</figcaption></figure></div></div><div class="pgroup"><h3>Symbole</h3><div class="pg"><figure><canvas data-src="tred-symbol.svg" data-bg="#0A0A0A" data-s="16" role="img" aria-label="Symbole rendu à 16 px sur fond Nuit, agrandi"></canvas><figcaption>16 px · Nuit</figcaption></figure><figure><canvas data-src="tred-symbol.svg" data-bg="#0A0A0A" data-s="32" role="img" aria-label="Symbole rendu à 32 px sur fond Nuit, agrandi"></canvas><figcaption>32 px · Nuit</figcaption></figure><figure><canvas data-src="tred-symbol.svg" data-bg="#FFFFFF" data-s="16" role="img" aria-label="Symbole rendu à 16 px sur fond blanc, agrandi"></canvas><figcaption>16 px · blanc</figcaption></figure><figure><canvas data-src="tred-symbol.svg" data-bg="#FFFFFF" data-s="32" role="img" aria-label="Symbole rendu à 32 px sur fond blanc, agrandi"></canvas><figcaption>32 px · blanc</figcaption></figure></div></div></div>
+
+  <h2>En situation</h2>
+  <p>Trois emplacements courants, pour juger le logo en contexte et pas seulement isolé.</p>
+  <div class="context">
+    <div class="ctx"><div class="tabs"><div class="tabbar l"><img src="tred-favicon.svg" alt="">TRED · Tuteur IA</div><div class="tabbar d"><img src="tred-favicon.svg" alt="">TRED · Tuteur IA</div></div><p>Onglet du navigateur, thème clair et sombre</p></div>
+    <div class="ctx"><div class="home"><span></span><span></span><img src="tred-app-icon.svg" alt="Icône TRED sur l’écran d’accueil"><span></span><span></span><span></span><span></span><span></span></div><p>Écran d’accueil d’un téléphone</p></div>
+    <div class="ctx"><div class="side"><div class="d"><img src="tred-logo-horizontal-on-dark.svg" alt="Logo dans une barre latérale sombre"><i></i><i style="width:70%"></i><i style="width:80%"></i></div><div class="l"><img src="tred-logo-horizontal.svg" alt="Logo dans une barre latérale claire"><i></i><i style="width:70%"></i><i style="width:80%"></i></div></div><p>Barre latérale de l’app</p></div>
+  </div>
+
+  <h2>Tests</h2>
+  <p>Tous mesurés sur les fichiers de ce dossier, sauf la lisibilité, qui est un jugement à partir des rendus ci-dessus.</p>
+  <div class="tests"><div class="test"><h3><b aria-hidden="true">✓</b>Lisible à 16 px</h3><p>Le favicon est dessiné pour 16 px : quatre boutons et la houppe or. Sur le symbole complet, le cordon disparaît sous 32 px ; c’est attendu, d’où le favicon dédié.</p></div><div class="test"><h3><b aria-hidden="true">✓</b>Reconnaissable sans couleur</h3><p>La silhouette (quatre losanges + gland) tient seule en noir et en blanc.</p></div><div class="test"><h3><b aria-hidden="true">✓</b>Visible sur Nuit et sur blanc</h3><p>L’orange fait 6,93:1 sur Nuit et 2,85:1 sur blanc. Les logos sont exemptés de la règle WCAG, et le gland or se lit sur les deux fonds.</p></div><div class="test"><h3><b aria-hidden="true">✓</b>Passe SVGO sans perte</h3><p>13 fichiers sur 13 : 26,7 ko → 17,5 ko (−34 %). Rendu identique (écart ≤ 7/255, aucun pixel au-delà de 8, sauf 6 pixels de bord de l’icône d’app à 28/255). Réglage SVGO à garder : pas de fusion des tracés, pas de simplification des courbes, sinon le monochrome et le mot du logo vertical bougent.</p></div><div class="test"><h3><b aria-hidden="true">✓</b>Aucune police nécessaire</h3><p>0 balise &lt;text&gt;, 0 police, 0 image, 0 masque, 0 trait : uniquement des tracés pleins. « TRED » est en Poppins Bold converti en courbes.</p></div><div class="test"><h3><b aria-hidden="true">✓</b>Audit SVG (skill logo-design)</h3><p>Symboles et favicon 100/100, icône d’app 99/100, logos 90 et 91/100. Seul avertissement : l’angle de 61° de la jambe du R, dessiné ainsi dans Poppins.</p></div></div>
+
+  <h2>Utilisation</h2>
+  <ul class="rules">
+    <li>Laisser autour du logo un espace libre au moins égal à la moitié d’un bouton losange.</li>
+    <li>Taille minimale : symbole 24 px, logo horizontal 24 px de haut. En dessous, utiliser le favicon.</li>
+    <li>Sur fond clair, les fichiers sans suffixe ; sur fond sombre, les fichiers <code>-on-dark</code> ; en une seule couleur, <code>-black</code> ou <code>-white</code>.</li>
+    <li>Ne jamais recolorer les losanges, déformer, ajouter d’ombre ou réécrire « TRED » dans une autre police.</li>
+  </ul>
+
+  <footer>Mot « TRED » : Poppins Bold (SIL Open Font License 1.1), converti en tracés ; aucune police n’est chargée. Fichiers : <code>packages/web/public/brand/</code>.</footer>
+</main>
+<script>
+for (const c of document.querySelectorAll("canvas[data-src]")) {
+  const s = +c.dataset.s; c.width = s; c.height = s;
+  const img = new Image();
+  img.onload = () => { const x = c.getContext("2d"); x.fillStyle = c.dataset.bg; x.fillRect(0, 0, s, s); x.drawImage(img, 0, 0, s, s); c.dataset.done = "1"; };
+  img.src = c.dataset.src;
+}
+</script>
+</body>
+</html>

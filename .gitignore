@@ -79,6 +79,9 @@ packages/web/scripts/*
 !packages/web/scripts/seo-routes.mjs
 # Mesure de latence du chat (voir GUIDE_FOUNDER, « Vitesse du chat »).
 !packages/web/scripts/bench-chat-latency.ts
+# Palette TRED : régénère styles/brand/tokens.css, theme.css et public/brand/palette-preview.html.
+!packages/web/scripts/brand-palette.mjs
+!packages/web/scripts/brand/
 _a-supprimer/
 
 # Sauvegardes des scripts de correctif
