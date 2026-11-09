@@ -21,10 +21,10 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^4.0.88",
-    "@ai-sdk/react": "^4.0.157",
-    "@aws-sdk/client-s3": "^3.1156.0",
-    "@aws-sdk/s3-request-presigner": "^3.1156.0",
+    "@ai-sdk/anthropic": "^4.0.89",
+    "@ai-sdk/react": "^4.0.158",
+    "@aws-sdk/client-s3": "^3.1157.0",
+    "@aws-sdk/s3-request-presigner": "^3.1157.0",
     "@better-auth/expo": "1.7.13",
     "@elevenlabs/elevenlabs-js": "2.74.0",
     "@heygen/liveavatar-web-sdk": "0.0.19",
