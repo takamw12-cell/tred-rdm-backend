@@ -48,32 +48,103 @@ function keepAnimation(tag: string, attrs: string): boolean {
   return true;
 }
 
+/* ── Durcissement (2026-11-09) ─────────────────────────────────────────────
+ * Le SVG est injecté par `dangerouslySetInnerHTML`, donc lu par le parseur
+ * HTML, qui accepte bien plus que du XML propre : `<svg/onload=…>` (le « / »
+ * sépare les attributs), `x="1"onload=…` (sans espace), `href=javascript:…`
+ * (sans guillemets), `&#106;avascript:` (entités). Chaque règle ci-dessous
+ * couvre l'une de ces formes ; tests/svg-sanitize.test.ts les attaque toutes.
+ */
+
+/** Ce qui précède un nom d'attribut pour le parseur HTML : espace, « / » ou guillemet fermant. */
+const ATTR_START = "(?<=[\\s/\"'])";
+/** Une valeur d'attribut : entre guillemets doubles, simples, ou nue. */
+const ATTR_VALUE = "(?:\"[^\"]*\"|'[^']*'|[^\\s>]+)";
+
+/** Éléments retirés AVEC leur contenu (fermés ou non : jusqu'à la fin si non fermés). */
+const DROP_WITH_CONTENT = ["script", "foreignObject", "iframe", "object", "embed", "noscript", "template"];
+/** Balises retirées seules (pas de contenu utile, ou sortie du SVG vers le HTML). */
+const DROP_TAG = /<\/?\s*(?:img|iframe|embed|object|frame|frameset|base|link|meta|form|input|button|textarea|svg:script)\b[^>]*>/gi;
+
+/** Décode les entités et retire ce qu'un navigateur ignore dans un schéma d'URL. */
+function decodeForCheck(value: string): string {
+  return value
+    .replace(/&#x([0-9a-f]+);?/gi, (_m, h: string) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);?/g, (_m, d: string) => String.fromCodePoint(Number(d)))
+    .replace(/&colon;/gi, ":")
+    .replace(/&(?:tab|newline);/gi, "")
+    .split("")
+    // Espaces et caractères de contrôle (U+0000–U+0020, U+007F–U+009F) :
+    // ignorés par le navigateur dans un schéma, donc retirés avant le test.
+    .filter((ch) => {
+      const c = ch.charCodeAt(0);
+      return c > 0x20 && (c < 0x7f || c > 0x9f);
+    })
+    .join("")
+    .toLowerCase();
+}
+
+const DANGEROUS_SCHEME = /(?:javascript|vbscript|livescript):|data:text\/html/;
+
+/**
+ * Une balise ouvrante, guillemets compris : un « > » DANS une valeur entre
+ * guillemets ne ferme pas la balise (le parseur HTML fait pareil). Sans cela,
+ * `<rect title="a>" onload=…>` laisserait passer la suite comme du « texte ».
+ */
+const OPEN_TAG = /<[a-zA-Z][\w:.-]*(?:"[^"]*"|'[^']*'|[^'">])*>/g;
+
+function sanitizeTag(tag: string): string {
+  // on* (onload, onclick, onbegin…) : quel que soit le séparateur.
+  tag = tag.replace(new RegExp(`${ATTR_START}on[a-z]+\\s*=\\s*${ATTR_VALUE}`, "gi"), "");
+  // Liens et sources : seules les références internes (#id) restent —
+  // <mpath href="#fil"/> en dépend.
+  tag = tag.replace(
+    new RegExp(`${ATTR_START}(?:xlink:)?(?:href|src|action|formaction|data)\\s*=\\s*(?:"(?!#)[^"]*"|'(?!#)[^']*'|(?!["'#])[^\\s>]+)`, "gi"),
+    "",
+  );
+  // Tout autre attribut dont la valeur cache un schéma exécutable.
+  return tag.replace(new RegExp(`${ATTR_START}[\\w:.-]+\\s*=\\s*(${ATTR_VALUE})`, "gi"), (whole, value: string) =>
+    DANGEROUS_SCHEME.test(decodeForCheck(value)) ? "" : whole,
+  );
+}
+
+/** Les attributs ne vivent que dans les balises : le texte des étiquettes n'est jamais touché. */
+function stripDangerousAttributes(svg: string): string {
+  return svg.replace(OPEN_TAG, sanitizeTag);
+}
+
+/** CSS (bloc <style> ou attribut style) : aucune ressource externe, aucun script. */
+function neutralizeCss(svg: string): string {
+  return svg
+    .replace(/@import[^;>]*;?/gi, "")
+    .replace(/url\(\s*(['"]?)(?!#)[^)]*\)/gi, "none")
+    .replace(/expression\s*\(/gi, "(")
+    .replace(/behavior\s*:/gi, "x-behavior:");
+}
+
 export function sanitizeSvg(raw: string): string {
-  let svg = raw.trim();
+  let svg = typeof raw === "string" ? raw.trim() : "";
 
-  // Keep only the <svg>…</svg> region if the model wrapped it in prose.
-  const start = svg.toLowerCase().indexOf("<svg");
-  const end = svg.toLowerCase().lastIndexOf("</svg>");
-  if (start >= 0 && end > start) svg = svg.slice(start, end + "</svg>".length);
+  // Seulement la région <svg>…</svg>. Pas de <svg> du tout : ce n'est pas un
+  // schéma, on n'affiche rien (un « schéma » fait d'un <iframe srcdoc> serait
+  // sinon injecté tel quel).
+  const lower = svg.toLowerCase();
+  const start = lower.indexOf("<svg");
+  if (start < 0) return "";
+  const end = lower.lastIndexOf("</svg>");
+  svg = end > start ? svg.slice(start, end + "</svg>".length) : svg.slice(start);
 
-  // Drop <script>…</script> blocks entirely.
-  svg = svg.replace(/<script[\s\S]*?<\/script>/gi, "");
-  // Drop <foreignObject> (can embed arbitrary HTML/scripts).
-  svg = svg.replace(/<foreignObject[\s\S]*?<\/foreignObject>/gi, "");
-  // Strip inline event handlers: onload="…", onclick='…', onmouseover=… .
-  // (Couvre aussi onbegin / onend / onrepeat des animations.)
-  svg = svg.replace(/\son[a-z]+\s*=\s*"[^"]*"/gi, "");
-  svg = svg.replace(/\son[a-z]+\s*=\s*'[^']*'/gi, "");
-  svg = svg.replace(/\son[a-z]+\s*=\s*[^\s>]+/gi, "");
-  // Neutralise external / javascript references in href and xlink:href.
-  // Les références internes (#id) restent : <mpath href="#fil"/> en dépend.
-  svg = svg.replace(/\s(?:xlink:)?href\s*=\s*"(?!#)[^"]*"/gi, "");
-  svg = svg.replace(/\s(?:xlink:)?href\s*=\s*'(?!#)[^']*'/gi, "");
-
-  // Animations : liste fermée d'attributs, <set> interdit.
+  for (const tag of DROP_WITH_CONTENT) {
+    svg = svg.replace(new RegExp(`<\\s*${tag}\\b[\\s\\S]*?(?:<\\/\\s*${tag}\\s*>|$)`, "gi"), "");
+  }
+  svg = svg.replace(DROP_TAG, "");
+  // Animations d'abord : une animation douteuse disparaît EN ENTIER (liste
+  // fermée d'attributs, <set> interdit), avant le filtre d'attributs.
   svg = svg.replace(ANIMATION_RE, (whole, tag: string, attrs: string) =>
     keepAnimation(tag, attrs) ? whole : "",
   );
+  svg = stripDangerousAttributes(svg);
+  svg = neutralizeCss(svg);
 
   return enforceTredPalette(svg).trim();
 }

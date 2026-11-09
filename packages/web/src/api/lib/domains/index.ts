@@ -11,7 +11,7 @@
  * langues et l'histoire, l'indice de famille REMPLACE « il n'y a pas de
  * solveur » par la méthode de la discipline et l'outil evaluate_structure.
  */
-import type { DomainGuess } from "../solvers/domain";
+import { detectDomain, isCoveredDomain, type Domain, type DomainGuess } from "../solvers/domain";
 import { biology } from "./biology";
 import { economics } from "./economics";
 import { highschool } from "./highschool";
@@ -22,9 +22,15 @@ import { medicine } from "./medicine";
 import { philosophy } from "./philosophy";
 import { psychology } from "./psychology";
 import { stem } from "./stem";
+import { detectSpecialization, specializationHint, SPECIALIZATION_THRESHOLD } from "./specialization-router";
+import type { SpecializationMatch } from "./specializations/types";
 import type { DomainFamily, FamilyId } from "./types";
 
 export type { DomainFamily, FamilyId } from "./types";
+export { detectSpecialization, specializationHint, SPECIALIZATION_THRESHOLD } from "./specialization-router";
+export { SUBDOMAINS, FAMILY_LABEL } from "./taxonomy";
+export { SPECIALIZATIONS } from "./specializations";
+export type * from "./specializations/types";
 export { evaluateStructure, SCHEMAS, type StructureDomain, type StructureResult } from "./structure";
 
 export const FAMILIES: Record<FamilyId, DomainFamily> = {
@@ -84,4 +90,68 @@ export function familyHint(family: DomainFamily | null, opts: { school?: boolean
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+export interface DomainContext {
+  /** Matière fine (solvers/domain.ts). */
+  guess: DomainGuess;
+  family: DomainFamily | null;
+  school: boolean;
+  /** Spécialisation avancée (Master/Doctorat), ou null pour une question de base. */
+  specialization: SpecializationMatch | null;
+  /** Messages système, du plus général au plus précis : famille, puis spécialisation. */
+  hints: string[];
+}
+
+/**
+ * Tout le routage de domaine d'une question, en un appel : matière → famille →
+ * spécialisation → messages système. C'est CE chemin que suit le tuteur
+ * (api/index.ts) et que vérifient les tests d'intégration.
+ */
+export function domainContext(
+  text: string | null | undefined,
+  opts: { contextLabel?: string | null; level?: unknown } = {},
+): DomainContext {
+  const question = typeof text === "string" ? text : "";
+  const firstGuess = detectDomain(question, opts.contextLabel ?? null);
+  const detected = resolveFamily(firstGuess, { text: question, level: opts.level });
+  const school = isSchoolContext(question, opts.level);
+  const specText = [question, opts.contextLabel ?? ""].join("\n");
+
+  // La spécialisation dans la famille reconnue, et la meilleure toutes familles.
+  const scoped = detectSpecialization(specText, { family: detected?.id ?? null, school });
+  const free = detectSpecialization(specText, { school });
+  // La matière peut être AMBIGUË (« Haftung » = adhérence en mécanique ET
+  // responsabilité en droit : mechanik 3, recht 3). Une spécialisation nette
+  // l'emporte alors : si sa famille a aussi marqué des points, ou si son score
+  // est très élevé, c'est elle qui décide de la famille et de la matière.
+  const overrides =
+    free !== null &&
+    detected !== null &&
+    free.family !== detected.id &&
+    (free.score >= 2 * SPECIALIZATION_THRESHOLD || familySubjectScore(firstGuess, free.family) >= 2);
+  const specialization = overrides ? free : scoped;
+
+  // Une spécialisation reconnue désigne aussi sa famille quand la matière ne
+  // l'a pas été (« NSTEMI », « Schlaganfall ») : la méthode de la famille et
+  // ses garde-fous (pas de diagnostic pour une personne réelle) s'appliquent.
+  const family = overrides && free ? FAMILIES[free.family] : (detected ?? (specialization ? FAMILIES[specialization.family] : null));
+  // Matière recalée sur la famille retenue : pas d'indice de solveur de
+  // mécanique dans une question de droit des sociétés.
+  const guess = overrides && free ? retarget(firstGuess, free.family) : firstGuess;
+  const hints = [familyHint(family, { school }), specializationHint(specialization)].filter((h): h is string => Boolean(h));
+  return { guess, family, school, specialization, hints };
+}
+
+/** Meilleur score, dans la détection de matière, d'une matière de la famille. */
+function familySubjectScore(guess: DomainGuess, family: FamilyId): number {
+  return Math.max(0, ...FAMILIES[family].subjects.map((s) => guess.scores[s] ?? 0));
+}
+
+/** La matière de la famille la mieux notée (ou la première de la famille). */
+function retarget(guess: DomainGuess, family: FamilyId): DomainGuess {
+  const subjects = FAMILIES[family].subjects;
+  const domain: Domain =
+    [...subjects].sort((a, b) => (guess.scores[b] ?? 0) - (guess.scores[a] ?? 0))[0] ?? guess.domain;
+  return { ...guess, domain, covered: isCoveredDomain(domain), also: guess.also.filter((d) => d !== domain) };
 }

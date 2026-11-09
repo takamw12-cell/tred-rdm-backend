@@ -22,10 +22,22 @@ interface Props {
   children: ReactNode;
   /** Nom de la zone, pour distinguer les rapports. */
   area?: string;
+  /**
+   * « page » (défaut) : écran de secours plein cadre.
+   * « inline » : seul CE composant est remplacé par une ligne discrète — un
+   * schéma, un message ou la Tafel qui plante ne fait pas tomber la page.
+   */
+  variant?: "page" | "inline";
+  /** Texte de la ligne de secours (variante inline). */
+  label?: string;
+  /** Quand cette valeur change (nouvelle page, texte qui avance), on réessaie. */
+  resetKey?: unknown;
 }
 
 interface State {
   error: Error | null;
+  /** resetKey vu au dernier rendu : s'il change, on réessaie. */
+  resetKey?: unknown;
 }
 
 /** Envoie le rapport au serveur. Ne lève jamais : au pire, on perd un rapport. */
@@ -57,7 +69,17 @@ function report(payload: Record<string, unknown>): void {
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = { error: null };
+  state: State = { error: null, resetKey: this.props.resetKey };
+  /**
+   * Dernier message signalé : la même erreur, rejouée à chaque morceau d'un
+   * texte en flux (resetKey), n'est rapportée qu'une fois.
+   */
+  private lastReported: string | null = null;
+
+  static getDerivedStateFromProps(props: Props, state: State): Partial<State> | null {
+    // Nouvelle page, nouveau texte : on retente le rendu.
+    return props.resetKey !== state.resetKey ? { error: null, resetKey: props.resetKey } : null;
+  }
 
   static getDerivedStateFromError(error: Error): State {
     return { error };
@@ -68,6 +90,8 @@ export class ErrorBoundary extends Component<Props, State> {
     // Ancienne version de l'app après un déploiement : on recharge, on ne
     // signale pas une panne qui n'en est pas une (lib/stale-build.ts).
     if (isStaleBuildError(error) && reloadForNewBuild()) return;
+    if (this.lastReported === error.message) return;
+    this.lastReported = error.message;
     report({
       kind: "render",
       area: this.props.area ?? "app",
@@ -80,6 +104,25 @@ export class ErrorBoundary extends Component<Props, State> {
   render(): ReactNode {
     const { error } = this.state;
     if (!error) return this.props.children;
+
+    if (this.props.variant === "inline") {
+      return (
+        <output
+          data-slot="error-inline"
+          className="border-border bg-muted/40 text-muted-foreground my-2 flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2 text-xs"
+        >
+          <AlertTriangle className="text-warning size-4 shrink-0" />
+          <span>{this.props.label ?? "Dieser Teil konnte nicht angezeigt werden."}</span>
+          <button
+            type="button"
+            onClick={() => (isStaleBuildError(error) ? window.location.reload() : this.setState({ error: null }))}
+            className="hover:text-foreground underline underline-offset-2"
+          >
+            Erneut versuchen
+          </button>
+        </output>
+      );
+    }
 
     return (
       <div className="bg-background flex min-h-[60vh] items-center justify-center p-6">

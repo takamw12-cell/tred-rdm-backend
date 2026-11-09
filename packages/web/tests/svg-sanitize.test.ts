@@ -83,3 +83,59 @@ describe("charte TRED — aucun violet dans un schéma", () => {
     expect(out).toContain("fill:#ffffff");
   });
 });
+
+/**
+ * Attaques réelles (2026-11-09) : le SVG est lu par le parseur HTML, bien plus
+ * permissif que le XML. Aucune de ces formes ne doit laisser un gestionnaire
+ * d'événement, un schéma exécutable ou un élément actif.
+ */
+describe("sanitizeSvg — attaques XSS du parseur HTML", () => {
+  /** Ce qui ne doit JAMAIS survivre, quelle que soit la forme. */
+  const unsafe = (out: string) =>
+    /(?<=[\s/"'])on[a-z]+\s*=|javascript:|vbscript:|<\s*(script|iframe|embed|object|img|foreignobject)\b|data:text\/html|@import/i.test(out);
+
+  test.each([
+    ["séparateur « / »", "<svg/onload=alert(1)><rect/></svg>"],
+    ["sans espace après une valeur", '<svg viewBox="0 0 1 1"onload="alert(1)"></svg>'],
+    ["valeur sans guillemets", "<svg><rect onclick=alert(1) /></svg>"],
+    ["majuscules", '<svg><rect OnMouseOver="alert(1)"/></svg>'],
+    ["« > » dans une valeur entre guillemets", '<svg><rect title="a>" onload="alert(1)"/></svg>'],
+    ["href sans guillemets", "<svg><a href=javascript:alert(1)><text>x</text></a></svg>"],
+    ["xlink:href en entités", '<svg><a xlink:href="&#106;avascript:alert(1)"><text>x</text></a></svg>'],
+    ["schéma coupé par une tabulation", '<svg><a href="java&#9;script:alert(1)"><text>x</text></a></svg>'],
+    ["&colon;", '<svg><a href="javascript&colon;alert(1)"><text>x</text></a></svg>'],
+    ["script non fermé", "<svg><script>alert(1)</svg>"],
+    ["fermeture de script avec espace", "<svg><script>alert(1)</script ></svg>"],
+    ["img qui sort du SVG", "<svg><img src=x onerror=alert(1)></svg>"],
+    ["img dans un <title> (point d'intégration HTML)", "<svg><title><img src=x onerror=alert(1)></title></svg>"],
+    ["iframe srcdoc", '<svg><iframe srcdoc="<script>alert(1)</script>"></iframe></svg>'],
+    ["embed / object", '<svg><embed src="javascript:alert(1)"/><object data="javascript:alert(1)"></object></svg>'],
+    ["use vers un SVG en data:", '<svg><use href="data:image/svg+xml;base64,PHN2ZyBvbmxvYWQ9YWxlcnQoMSk+"/></svg>'],
+    ["image externe (pistage)", '<svg><image href="https://evil.example/pixel.png"/></svg>'],
+    ["foreignObject", '<svg><foreignObject><body onload="alert(1)"/></foreignObject></svg>'],
+    ["CSS @import et url() externe", '<svg><style>@import url(https://evil.example/x.css); rect{fill:url(https://evil.example/p)}</style></svg>'],
+    ["style inline javascript:", '<svg><rect style="background:url(javascript:alert(1))"/></svg>'],
+    ["formaction", '<svg><a formaction="javascript:alert(1)"><text>x</text></a></svg>'],
+  ])("%s", (_name, payload) => {
+    expect(unsafe(sanitizeSvg(payload))).toBe(false);
+  });
+
+  test("pas de <svg> du tout : rien n'est affiché", () => {
+    expect(sanitizeSvg('<iframe srcdoc="<script>alert(1)</script>"></iframe>')).toBe("");
+    expect(sanitizeSvg("<img src=x onerror=alert(1)>")).toBe("");
+    expect(sanitizeSvg("")).toBe("");
+  });
+
+  test("le légitime reste intact : texte des étiquettes, dégradés, références internes, animations", () => {
+    const ok =
+      '<svg viewBox="0 0 100 40"><defs><linearGradient id="g"><stop offset="0" stop-color="#EAB308"/></linearGradient>' +
+      '<path id="fil" d="M0 0 L10 10"/></defs><rect fill="url(#g)" width="10" height="10"/>' +
+      '<text x="1" y="20">actio = reactio, action = reaction, data = 5</text>' +
+      '<circle r="2"><animateMotion dur="2s" repeatCount="indefinite"><mpath href="#fil"/></animateMotion></circle></svg>';
+    const out = sanitizeSvg(ok);
+    expect(out).toContain('fill="url(#g)"');
+    expect(out).toContain("action = reaction, data = 5");
+    expect(out).toContain('<mpath href="#fil"/>');
+    expect(out).toContain("animateMotion");
+  });
+});

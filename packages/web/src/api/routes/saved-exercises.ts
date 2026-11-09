@@ -10,7 +10,7 @@ import { savedExercise } from "../database/schema";
 export const savedExercises = {
   // Lightweight list for the history view — no heavy statement/solution text.
   list: authed
-    .input(z.object({ semesterId: z.string().nullable().optional() }).optional())
+    .input(z.object({ semesterId: z.string().max(128).nullable().optional() }).optional())
     .handler(async ({ input, context }) => {
       const filters = [eq(savedExercise.userId, context.user.id)];
       if (input?.semesterId) filters.push(eq(savedExercise.semesterId, input.semesterId));
@@ -37,7 +37,7 @@ export const savedExercises = {
 
   // Full record including statement + solution, to reopen / export.
   get: authed
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.string().max(128) }))
     .handler(async ({ input, context }) => {
       const row = await db
         .select()
@@ -50,7 +50,7 @@ export const savedExercises = {
     }),
 
   remove: authed
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.string().max(128) }))
     .handler(async ({ input, context }) => {
       await db
         .delete(savedExercise)

@@ -6,8 +6,12 @@ import { chatConversation, chatMessage } from "../database/schema";
 
 const messageInput = z.object({
   role: z.enum(["user", "assistant"]),
-  content: z.string(),
+  // Une réponse avec schémas SVG pèse quelques dizaines de Ko : 200 000 laisse
+  // une large marge et refuse proprement (400) un envoi absurde.
+  content: z.string().max(200_000),
 });
+/** Plafond d'une conversation entière, tous messages confondus. */
+const MAX_CONVERSATION_CHARS = 4_000_000;
 
 export const chats = {
   // List the user's saved conversations, most recently updated first.
@@ -59,7 +63,7 @@ export const chats = {
 
   // Load one conversation with its messages (ownership enforced).
   get: authed
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.string().max(128) }))
     .handler(async ({ input, context }) => {
       const conv = await db
         .select()
@@ -85,13 +89,18 @@ export const chats = {
   save: authed
     .input(
       z.object({
-        id: z.string(),
+        id: z.string().max(128),
         title: z.string().max(200).optional(),
-        semesterId: z.string().nullish(),
-        documentId: z.string().nullish(),
-        documentTitle: z.string().nullish(),
+        semesterId: z.string().max(128).nullish(),
+        documentId: z.string().max(128).nullish(),
+        documentTitle: z.string().max(500).nullish(),
         lang: z.string().max(5).optional(),
-        messages: z.array(messageInput).max(500),
+        messages: z
+          .array(messageInput)
+          .max(500)
+          .refine((ms) => ms.reduce((n, m) => n + m.content.length, 0) <= MAX_CONVERSATION_CHARS, {
+            message: "Unterhaltung zu lang.",
+          }),
       }),
     )
     .handler(async ({ input, context }) => {
@@ -156,7 +165,7 @@ export const chats = {
   // Soft-delete: move a conversation to the trash. Messages are kept so it can
   // be fully restored later.
   remove: authed
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.string().max(128) }))
     .handler(async ({ input, context }) => {
       const owned = await db
         .select({ id: chatConversation.id })
@@ -178,7 +187,7 @@ export const chats = {
 
   // Restore a conversation from the trash back into the active list.
   restore: authed
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.string().max(128) }))
     .handler(async ({ input, context }) => {
       const owned = await db
         .select({ id: chatConversation.id })
@@ -200,7 +209,7 @@ export const chats = {
 
   // Permanently delete a single conversation (only allowed from the trash).
   purge: authed
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.string().max(128) }))
     .handler(async ({ input, context }) => {
       const owned = await db
         .select({ id: chatConversation.id })

@@ -43,9 +43,9 @@ import {
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { buildTutorAgent } from "./agent";
-import { detectDomain, domainHint } from "./lib/solvers/domain";
+import { domainHint } from "./lib/solvers/domain";
 import { routeChat } from "./lib/chat-routing";
-import { familyHint, isSchoolContext, resolveFamily } from "./lib/domains";
+import { domainContext } from "./lib/domains";
 import { resolveFastPath, withFastPathResult } from "./lib/fast-path";
 import { createStreamTimer, lastUserHasAttachment, perfLine } from "./lib/chat-perf";
 import { curriculumFor, domainPackText } from "./prompts";
@@ -187,6 +187,9 @@ app.use(
 app.use("/api/tikz/*", rateLimitMiddleware({ limit: 30, scope: "tikz" }));
 // Voix premium : facturée au caractère, donc bornée.
 app.use("/api/tts", rateLimitMiddleware({ limit: 20, scope: "tts" }));
+// Recherche YouTube : chaque appel coûte du quota Google et un petit modèle.
+app.use("/api/youtube/search", rateLimitMiddleware({ limit: 20, scope: "youtube" }));
+
 
 // Better Auth handler (Hono v4 uses single `*` wildcard).
 // ── Sperre: greift vor jeder API-Anfrage ──────────────────────────────────
@@ -636,18 +639,15 @@ app.post("/api/agent/messages", async (c) => {
   // Professeur choisi (vestiaire). Ne lève jamais (→ « genius »).
   const professor = await readProfessor(uid);
 
-  // Fachgebiet der Frage → welcher Fachlöser (oder ehrlich: keiner).
-  const fach = detectDomain(lastUserText, contextLabel);
-
-  // Domain-Based Agent universel : famille (lib/domains/ — méthode du droit,
-  // de la médecine, de l'éco, de la biologie, de la psychologie, de la
-  // philosophie, des langues, de l'histoire ; niveau scolaire), indice de
-  // solveur, module de la matière (prompts/).
+  // Domain-Based Agent universel (lib/domains/) : matière → famille (méthode
+  // du droit, de la médecine, de l'éco… ; niveau scolaire) → spécialisation
+  // avancée (sous-domaine, mode Vorlesung, Skripte d'abord), puis l'indice de
+  // solveur et le module de la matière (prompts/).
   const level = (studyProfile as { level?: unknown } | null | undefined)?.level;
-  const family = resolveFamily(fach, { text: lastUserText, level });
-  const school = isSchoolContext(lastUserText, level);
-  const curriculum = school ? "highschool" : curriculumFor(studyProfile);
-  const fachHint = [familyHint(family, { school }), domainHint(fach), domainPackText(fach, curriculum)].filter(Boolean).join("\n\n");
+  const routing = domainContext(lastUserText, { contextLabel, level });
+  const fach = routing.guess;
+  const curriculum = routing.school ? "highschool" : curriculumFor(studyProfile);
+  const fachHint = [...routing.hints, domainHint(fach), domainPackText(fach, curriculum)].filter(Boolean).join("\n\n");
 
   // Collatz + un nombre : le serveur calcule tout de suite (lib/fast-path.ts),
   // le graphique part avant le premier token et le modèle n'a qu'à expliquer.
@@ -1614,6 +1614,12 @@ function parseLooseJson(raw: string): unknown {
   }
 }
 
+const youtubeSearchBody = z.object({
+  topic: z.string().max(20_000).optional(),
+  question: z.string().max(5_000).optional(),
+  locale: z.string().max(10).optional(),
+});
+
 // Passende Erklärvideos auf YouTube suchen (Studyflix, simpleclub, Uni-Kanäle …).
 // Ergänzung zum generierten Erklärvideo: manchmal will man einfach ein echtes
 // Video zum Thema sehen. Der API-Key bleibt serverseitig, Ergebnisse werden
@@ -1622,16 +1628,9 @@ app.post("/api/youtube/search", async (c) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);
 
-  let body: { topic?: string; question?: string; locale?: string };
-  try {
-    body = (await c.req.json()) as {
-      topic?: string;
-      question?: string;
-      locale?: string;
-    };
-  } catch {
-    return c.json({ error: "invalid body" }, 400);
-  }
+  const parsed = youtubeSearchBody.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: "invalid body" }, 400);
+  const body = parsed.data;
 
   if (!youtubeConfigured()) return c.json({ error: "not_configured" }, 503);
 

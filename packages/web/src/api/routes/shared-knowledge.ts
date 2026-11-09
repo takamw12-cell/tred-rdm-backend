@@ -27,7 +27,7 @@ async function assertMember(userId: string, courseId: string) {
 
 export const sharedKnowledgeRoutes = {
   list: authed
-    .input(z.object({ courseId: z.string().min(1), limit: z.number().int().min(1).max(100).optional() }))
+    .input(z.object({ courseId: z.string().max(128).min(1), limit: z.number().int().min(1).max(100).optional() }))
     .handler(async ({ input, context }) => {
       await assertMember(context.user.id, input.courseId);
       const rows = await db
@@ -58,7 +58,7 @@ export const sharedKnowledgeRoutes = {
       return rows.map((r) => ({ ...r, votedByMe: mine.has(r.id) }));
     }),
 
-  upvote: authed.input(z.object({ id: z.string().min(1) })).handler(async ({ input, context }) => {
+  upvote: authed.input(z.object({ id: z.string().max(128).min(1) })).handler(async ({ input, context }) => {
     const [entry] = await db
       .select({ courseId: sharedKnowledge.courseId, status: sharedKnowledge.status })
       .from(sharedKnowledge)
@@ -83,7 +83,7 @@ export const sharedKnowledgeRoutes = {
   contribute: authed
     .input(
       z.object({
-        courseId: z.string().min(1),
+        courseId: z.string().max(128).min(1),
         topic: z.string().max(80),
         question: z.string().min(5).max(1000),
         answer: z.string().min(20).max(12_000),

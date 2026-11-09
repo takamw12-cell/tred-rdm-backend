@@ -54,7 +54,7 @@ export const subjects = {
    * tous les documents du semestre pour n'en afficher que le nombre.
    */
   list: authed
-    .input(z.object({ semesterId: z.string() }))
+    .input(z.object({ semesterId: z.string().max(128) }))
     .handler(async ({ input, context }) => {
       const rows = await db
         .select()
@@ -94,7 +94,7 @@ export const subjects = {
   create: authed
     .input(
       z.object({
-        semesterId: z.string(),
+        semesterId: z.string().max(128),
         name: z.string().trim().min(1).max(MAX_NAME),
         color: z.enum(SUBJECT_COLORS).optional(),
       }),
@@ -128,7 +128,7 @@ export const subjects = {
   rename: authed
     .input(
       z.object({
-        id: z.string(),
+        id: z.string().max(128),
         name: z.string().trim().min(1).max(MAX_NAME).optional(),
         color: z.enum(SUBJECT_COLORS).optional(),
       }),
@@ -156,7 +156,7 @@ export const subjects = {
    * « supprimer » appliqué à un Fach ne le laisse présager.
    */
   remove: authed
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.string().max(128) }))
     .handler(async ({ input, context }) => {
       const res = await db
         .update(document)
@@ -187,7 +187,7 @@ export const subjects = {
     .input(
       z.object({
         documentIds: z.array(z.string()).min(1).max(200),
-        subjectId: z.string().nullable(),
+        subjectId: z.string().max(128).nullable(),
       }),
     )
     .handler(async ({ input, context }) => {

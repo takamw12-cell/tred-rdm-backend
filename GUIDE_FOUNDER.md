@@ -404,3 +404,39 @@ Le mot « TRED » est en Poppins Bold (licence OFL), converti en tracés : aucun
 **Après un changement d'icône :** incrémenter le `?v=` des liens d'icônes dans `index.html` (`?v=2` aujourd'hui). Sur un iPhone ou un iPad où TRED est déjà sur l'écran d'accueil, il faut supprimer l'icône puis refaire Partager → « Sur l'écran d'accueil » : iOS ne met jamais à jour une icône déjà posée.
 
 **Outil installé :** le skill `brand-identity` (fatihaydost/brand-identity-skill) est dans `.claude/skills/brand-identity`, installé avec `npx skills@1.7.4 add fatihaydost/brand-identity-skill -s brand-identity -a claude-code --copy`. Ses scripts couleur n'ont besoin que de Python 3. Les parties logo et polices demandent `fonttools`, `uharfbuzz` et `skia-pathops`, qu'il ne faut installer que si on s'en sert.
+
+## Spécialisations avancées (Master / Doctorat)
+
+Quand une question porte sur une spécialisation (aérodynamique, droit des sociétés, neurologie…), TRED charge une méthode propre à ce sous-domaine. Il passe aussi en **mode Vorlesung** : le ton d'un professeur en cours de Master, une dérivation complète, les hypothèses et les limites de validité. La règle est « **Skripte d'abord** » : il cherche d'abord dans les documents de l'étudiant, fait les calculs avec les solveurs, et dit clairement quand un document manque. Une question de base (« Was ist ein Vertrag? ») ou une question de lycée ne déclenche jamais ce mode.
+
+| Famille | Sous-domaines | Spécialisations (un fichier chacune) |
+|---|---|---|
+| Ingénierie | aerospace, fluid_dynamics, mechanical, electrical, civil | `aerodynamics`, `compressible_flow`, `finite_elements`, `power_electronics`, `reinforced_concrete` |
+| Droit | corporate, criminal, international | `corporate_law`, `criminal_law`, `international_law` |
+| Médecine | cardiology, neurology, surgery | `cardiology`, `neurology`, `surgery` |
+
+Les fichiers sont dans `packages/web/src/api/lib/domains/` :
+- `taxonomy.ts` : la méthode de chaque sous-domaine.
+- `specializations/*.ts` : un fichier par spécialisation, avec ses mots-clés pondérés et `rules: []` pour les règles métier à ajouter plus tard.
+- `specialization-router.ts` : la détection.
+
+**Ajouter une spécialisation :**
+1. Copier un fichier existant dans `specializations/`.
+2. Ajouter son identifiant à `SpecializationId` dans `types.ts` et au registre dans `index.ts`.
+3. Lancer `bun test`. Les tests vérifient que chaque identifiant a son fichier et que chaque outil cité existe vraiment.
+
+## Sécurité — protocole du 2026-11-09
+
+- **Documents piégés :** chaque extrait de PDF est enfermé dans un bloc `<dokument>` que le contenu ne peut ni fermer ni imiter (`lib/untrusted.ts`). Le prompt (NIVEAU 10) dit que les documents sont des données, jamais des instructions, et qu'il n'existe pas de « code admin ».
+- **Schémas SVG :** le nettoyage (`web/lib/svg-sanitize.ts`) résiste maintenant aux formes que le navigateur accepte :
+  - `<svg/onload=…>` ;
+  - `href=javascript:…` sans guillemets ;
+  - entités du type `&#106;avascript:` ;
+  - `<iframe srcdoc>`.
+
+  Les SVG des vidéos explicatives passent aussi par ce nettoyage. 21 attaques sont testées dans `tests/svg-sanitize.test.ts`.
+- **Comptes bloqués :** un compte bloqué pouvait se reconnecter et garder l'accès à toutes les procédures `/api/rpc/*`. C'est corrigé : la connexion est refusée et chaque procédure vérifie que le compte est actif.
+- **Entrées :** chaque champ texte des procédures oRPC a une longueur maximale, et un test refuse tout nouveau champ sans borne.
+- **Solveurs :** un solveur qui plante renvoie un résultat propre. TRED dit alors « je ne peux pas calculer cela pour l'instant » et explique la théorie, sans inventer de chiffre.
+- **Affichage :** un schéma, un message, la Tafel ou le professeur qui plante ne fait plus tomber la page. Seule la partie fautive affiche « Dieser Teil konnte nicht angezeigt werden ».
+- **Typecheck :** `bun run typecheck` vérifie vraiment le code. Avant, `tsc --noEmit` ne contrôlait **aucun** fichier, à cause des références de `tsconfig.json`.

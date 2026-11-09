@@ -16,7 +16,7 @@ export const notifications = {
   registerToken: authed
     .input(
       z.object({
-        token: z.string().min(1),
+        token: z.string().min(1).max(4096),
         platform: z.enum(["ios", "android"]),
         deviceName: z.string().max(120).optional(),
         appVersion: z.string().max(40).optional(),
@@ -42,7 +42,7 @@ export const notifications = {
 
   /** Beim Abmelden aufrufen, sonst bekommt das Gerät weiter Nachrichten. */
   unregisterToken: authed
-    .input(z.object({ token: z.string().min(1) }))
+    .input(z.object({ token: z.string().min(1).max(4096) }))
     .handler(async ({ input, context }) => {
       await unregisterPushToken(context.user.id, input.token);
       return { ok: true };

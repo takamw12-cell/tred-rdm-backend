@@ -38,7 +38,7 @@ export const examPredictor = {
   }),
 
   predict: authed
-    .input(z.object({ subjectId: z.string().optional(), courseId: z.string().optional() }).optional())
+    .input(z.object({ subjectId: z.string().max(128).optional(), courseId: z.string().max(128).optional() }).optional())
     .handler(async () => {
       throw new ORPCError("NOT_IMPLEMENTED", { message: "exam_predictor_not_implemented" });
     }),

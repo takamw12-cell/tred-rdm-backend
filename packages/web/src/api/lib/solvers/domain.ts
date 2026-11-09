@@ -284,6 +284,11 @@ export function detectDomain(...texts: (string | null | undefined)[]): DomainGue
   };
 }
 
+/** Un Fachlöser existe-t-il pour cette matière ? (même règle que detectDomain) */
+export function isCoveredDomain(domain: Domain): boolean {
+  return COVERED.has(domain);
+}
+
 const LABEL: Record<Domain, string> = {
   elektrotechnik: "Elektrotechnik",
   thermodynamik: "Thermodynamik",

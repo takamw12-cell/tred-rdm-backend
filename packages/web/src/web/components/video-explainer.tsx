@@ -6,6 +6,7 @@ import { SvgDiagramFrame } from "@/components/diagram-frame";
 import { MarkdownContent } from "@/components/markdown-content";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
+import { sanitizeSvg } from "@/lib/svg-sanitize";
 import { pickVoice } from "@/lib/speech";
 import { getPreferredVoice } from "@/lib/voice";
 
@@ -54,6 +55,7 @@ export function VideoExplainer({
 
   const scenes = script?.scenes ?? [];
   const scene = scenes[index];
+  const sceneSvg = useMemo(() => (scene ? sanitizeSvg(scene.svg) : ""), [scene]);
 
   const speechSupported = useMemo(
     () => typeof window !== "undefined" && "speechSynthesis" in window,
@@ -201,13 +203,15 @@ export function VideoExplainer({
                   </ul>
                 )}
 
-                {scene.svg.trim() && (
+                {/* SVG écrit par le modèle (qui lit les PDF de l'étudiant) :
+                    nettoyé comme tout schéma avant d'être injecté. */}
+                {sceneSvg && (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.3 }}
                   >
-                    <SvgDiagramFrame svg={scene.svg} name="szene" background="card" />
+                    <SvgDiagramFrame svg={sceneSvg} name="szene" background="card" />
                   </motion.div>
                 )}
 

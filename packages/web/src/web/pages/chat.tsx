@@ -104,6 +104,7 @@ import {
 } from "@/queries/chats";
 import { startHoersaalTimer } from "@/lib/analytics";
 import { useT } from "@/i18n";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { cn } from "@/lib/utils";
 
 /** Outils de calcul : leur présence met le tampon « Berechnet mit dem Löser » sur la Tafel. */
@@ -1747,11 +1748,13 @@ export default function ChatPage() {
           <HoersaalStage
             bottomNav
             board={
-              <TafelBoard
-                steps={activeBoard?.steps ?? []}
-                solverUsed={activeBoard?.solverUsed ?? false}
-                writing={busy && activeBoardId === lastMsg?.id}
-              />
+              <ErrorBoundary area="tafel" variant="inline" label="Die Tafel konnte nicht angezeigt werden." resetKey={activeBoardId}>
+                <TafelBoard
+                  steps={activeBoard?.steps ?? []}
+                  solverUsed={activeBoard?.solverUsed ?? false}
+                  writing={busy && activeBoardId === lastMsg?.id}
+                />
+              </ErrorBoundary>
             }
             dock={
               <>
@@ -2141,6 +2144,7 @@ export default function ChatPage() {
           >
             {/* Le professeur flottant, posé sur le tableau : de dos pendant
                 qu'il écrit, il se retourne à la fin du flux et lit sa réponse. */}
+            <ErrorBoundary area="professor" variant="inline" label="Der Professor kann gerade nicht angezeigt werden.">
             <FloatingProfessor
               professor={professor}
               pose={choreo.pose}
@@ -2184,6 +2188,7 @@ export default function ChatPage() {
                 </>
               }
             />
+            </ErrorBoundary>
           </HoersaalStage>
         </div>
       </div>
@@ -2240,6 +2245,7 @@ export default function ChatPage() {
       />
       <AnimatePresence>
         {videoOpen && (
+          <ErrorBoundary area="video" variant="inline" label="Das Erklärvideo konnte nicht angezeigt werden.">
           <VideoExplainer
             script={videoScript}
             loading={videoLoading}
@@ -2247,6 +2253,7 @@ export default function ChatPage() {
             onClose={() => setVideoOpen(false)}
             onRetry={() => void runVideo(lastTopic.current)}
           />
+          </ErrorBoundary>
         )}
         {ytOpen && (
           <VideoSearch
@@ -2407,7 +2414,10 @@ function MessageBubble({
             {isUser ? (
               <p className="text-sm leading-relaxed whitespace-pre-wrap">{text}</p>
             ) : (
-              <AiAnswer text={text} />
+              // Une réponse qui ne s'affiche pas ne fait pas tomber la conversation.
+              <ErrorBoundary area="chat-message" variant="inline" resetKey={text}>
+                <AiAnswer text={text} />
+              </ErrorBoundary>
             )}
           </div>
         )}

@@ -102,7 +102,7 @@ export interface SearchHit {
 const input = z.object({
   q: z.string().max(120),
   /** Restreindre à un semestre. Absent = tout le compte. */
-  semesterId: z.string().nullish(),
+  semesterId: z.string().max(128).nullish(),
   /** Nombre de résultats par famille. */
   limit: z.number().int().min(1).max(20).optional(),
 });

@@ -8,11 +8,11 @@
     "./ads": "./src/web/lib/ad-mediation.ts"
   },
   "scripts": {
-    "build": "tsc --noEmit && vite build && bun scripts/prerender.mjs",
+    "build": "bun run typecheck && vite build && bun scripts/prerender.mjs",
     "prerender": "bun scripts/prerender.mjs",
     "dev": "vite",
     "start": "bun src/__server.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit",
     "lint": "cd ../.. && oxlint packages/web --deny-warnings --no-error-on-unmatched-pattern",
     "preview": "bun run build && vite preview",
     "db:generate": "bun --env-file=../../.env drizzle-kit generate",

@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
 import { eq } from "drizzle-orm";
 import {
   mailCanReachAnyone,
@@ -14,6 +15,7 @@ import { userAccess } from "./database/schema";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { expo } from "@better-auth/expo";
 import { db } from "./database";
+import { getAccess } from "./lib/access";
 
 // Social logins are optional: each is enabled only when its env vars are set.
 const googleEnabled =
@@ -127,6 +129,20 @@ export const auth = betterAuth({
     },
   },
   secret: process.env.BETTER_AUTH_SECRET,
+  // Un compte bloqué (admin → « Sperren ») ne peut plus ouvrir de session :
+  // sans cela il se reconnectait, et seule la garde par requête le retenait.
+  // En cas de panne de la base, on n'empêche pas TOUT LE MONDE de se
+  // connecter : la garde par requête (authed, « Sperre ») reste en place.
+  databaseHooks: {
+    session: {
+      create: {
+        before: async (session) => {
+          const access = await getAccess(session.userId).catch(() => null);
+          if (access && !access.isActive) throw new APIError("FORBIDDEN", { message: "ACCOUNT_DISABLED" });
+        },
+      },
+    },
+  },
   ...(googleEnabled || appleEnabled
     ? {
         socialProviders: {

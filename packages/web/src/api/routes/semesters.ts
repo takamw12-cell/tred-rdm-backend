@@ -58,7 +58,7 @@ export const semesters = {
     }),
 
   remove: authed
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.string().max(128) }))
     .handler(async ({ input, context }) => {
       // Detach documents (keep them, just unassign) then delete the semester.
       await db
@@ -81,7 +81,7 @@ export const semesters = {
   // ── Sharing ─────────────────────────────────────────────────────────
   // Unambiguous 6-char code (no 0/O/1/I) so it survives being read aloud.
   shareCreate: authed
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.string().max(128) }))
     .handler(async ({ input, context }) => {
       const owned = await db
         .select({ id: semester.id })

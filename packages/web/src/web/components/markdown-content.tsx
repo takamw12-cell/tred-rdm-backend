@@ -15,6 +15,8 @@ import { MarkdownMedia, MediaCard } from "./media-card";
 import { MEDIA_LANG } from "@/lib/media-block";
 import { MODEL3D_LANG } from "@/lib/model3d";
 import { Model3DBlock } from "./model3d-block";
+import { ErrorBoundary } from "./error-boundary";
+import type { ReactNode } from "react";
 
 // Intercept fenced code blocks: ```mermaid renders a real diagram, ```chart
 // renders a plotted graph (Q/M curves, Mohr circle, …). Everything else keeps
@@ -83,26 +85,34 @@ const components: Components = {
     // Un bloc ```json qui décrit une structure de cours devient le
     // Course Structure Navigator. Tout autre JSON garde l'affichage normal —
     // d'où le `parseCurriculum` qui renvoie null plutôt que de lever.
+    // Chaque bloc riche a sa propre barrière : un schéma qui plante devient une
+    // ligne « Dieser Teil konnte nicht angezeigt werden », le reste de la
+    // réponse reste lisible.
+    const guard = (node: ReactNode) => (
+      <ErrorBoundary area={`block-${lang ?? "code"}`} variant="inline" resetKey={raw}>
+        {node}
+      </ErrorBoundary>
+    );
     if (lang === "json") {
       const curriculum = parseCurriculum(raw);
-      if (curriculum) return <Curriculum data={curriculum} />;
+      if (curriculum) return guard(<Curriculum data={curriculum} />);
     }
-    if (lang === BEAM_LANG) return <BeamDiagram code={raw} />;
-    if (lang === MEDIA_LANG) return <MediaCard code={raw} />;
-    if (lang === MODEL3D_LANG) return <Model3DBlock code={raw} />;
-    if (lang === "mermaid") return <MermaidDiagram code={raw} />;
-    if (lang === "chart") return <ChartBlock code={raw} />;
-    if (lang === "svg") return <SvgBlock code={raw} />;
+    if (lang === BEAM_LANG) return guard(<BeamDiagram code={raw} />);
+    if (lang === MEDIA_LANG) return guard(<MediaCard code={raw} />);
+    if (lang === MODEL3D_LANG) return guard(<Model3DBlock code={raw} />);
+    if (lang === "mermaid") return guard(<MermaidDiagram code={raw} />);
+    if (lang === "chart") return guard(<ChartBlock code={raw} />);
+    if (lang === "svg") return guard(<SvgBlock code={raw} />);
     // « circuitikz » est le mot que le tuteur écrit pour un schéma
     // électrique. Le même compilateur les traite : circuitikz N'EST qu'un
     // paquet TikZ. Deux noms parce qu'un modèle qui dessine un circuit écrit
     // spontanément le second, et refuser ce mot ferait tomber le bloc en
     // code brut.
-    if (lang === "tikz" || lang === "circuitikz") return <TikzDiagram code={raw} />;
+    if (lang === "tikz" || lang === "circuitikz") return guard(<TikzDiagram code={raw} />);
     // Multiline code fences in a highlightable language -> rich CodeBlock
     // (copy / download / explain). Inline code has no language + no newline.
     if (isHighlightableLang(lang) && raw.includes("\n"))
-      return <CodeBlock code={raw.replace(/\n$/, "")} lang={lang as string} />;
+      return guard(<CodeBlock code={raw.replace(/\n$/, "")} lang={lang as string} />);
     return <code className={className}>{children}</code>;
   },
   // Diagram blocks render their own container — skip the <pre> wrapper so we

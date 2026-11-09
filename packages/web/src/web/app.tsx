@@ -87,6 +87,7 @@ function LoadingScreen() {
 }
 
 function AuthedApp() {
+  const [location] = useLocation();
   return (
     <Switch>
       <Route path="/" component={RootRedirect} />
@@ -96,6 +97,10 @@ function AuthedApp() {
       <Route>
         <ErrorBoundary area="app">
         <AppLayout>
+          {/* Une page qui plante n'emporte plus la barre latérale : seule la
+              zone de la page affiche l'écran de secours ; changer de page
+              réessaie (resetKey). La barrière « app » reste le dernier filet. */}
+          <ErrorBoundary area="page" resetKey={location}>
           <Switch>
             <Route path="/dashboard" component={DashboardPage} />
             <Route path="/chat" component={ChatPage} />
@@ -118,6 +123,7 @@ function AuthedApp() {
             <Route path="/admin" component={AdminPage} />
             <Route component={RootRedirect} />
           </Switch>
+          </ErrorBoundary>
         </AppLayout>
         </ErrorBoundary>
       </Route>

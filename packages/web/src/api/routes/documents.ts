@@ -17,11 +17,11 @@ export const documents = {
     .input(
       z
         .object({
-          semesterId: z.string().nullable().optional(),
+          semesterId: z.string().max(128).nullable().optional(),
           /** Filtre par Fach. La chaîne "none" isole les documents encore non
            *  classés — `null` ne peut pas servir ici, il signifie déjà
            *  « pas de filtre ». */
-          subjectId: z.string().nullable().optional(),
+          subjectId: z.string().max(128).nullable().optional(),
         })
         .optional(),
     )
@@ -48,7 +48,7 @@ export const documents = {
     }),
 
   get: authed
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.string().max(128) }))
     .handler(async ({ input, context }) => {
       const row = await db
         .select()
@@ -65,10 +65,11 @@ export const documents = {
       z.object({
         title: z.string().min(1).max(300),
         kind: KIND,
-        textContent: z.string().min(1),
+        // Tronqué à MAX_CHARS plus bas ; la borne refuse seulement l'absurde.
+        textContent: z.string().min(1).max(5_000_000),
         pageCount: z.number().int().nonnegative(),
-        semesterId: z.string().nullable().optional(),
-        subjectId: z.string().nullable().optional(),
+        semesterId: z.string().max(128).nullable().optional(),
+        subjectId: z.string().max(128).nullable().optional(),
       }),
     )
     .handler(async ({ input, context }) => {
@@ -90,7 +91,7 @@ export const documents = {
   // Presigned GET URL for the original PDF, so the student can view the exact
   // source document in-app. Returns null when no PDF is stored (legacy rows).
   fileUrl: authed
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.string().max(128) }))
     .handler(async ({ input, context }) => {
       const row = await db
         .select({ fileKey: document.fileKey })
@@ -113,12 +114,12 @@ export const documents = {
   assign: authed
     .input(
       z.object({
-        id: z.string(),
-        semesterId: z.string().nullable(),
+        id: z.string().max(128),
+        semesterId: z.string().max(128).nullable(),
         /** Absent = on ne touche pas au Fach. `null` = on l'en sort.
          *  Sans cette distinction, déplacer un document d'un semestre à
          *  l'autre effacerait silencieusement son classement. */
-        subjectId: z.string().nullable().optional(),
+        subjectId: z.string().max(128).nullable().optional(),
       }),
     )
     .handler(async ({ input, context }) => {
@@ -135,7 +136,7 @@ export const documents = {
     }),
 
   remove: authed
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.string().max(128) }))
     .handler(async ({ input, context }) => {
       await db
         .delete(document)
@@ -147,7 +148,7 @@ export const documents = {
 
   // Bulk delete — used by the dashboard "Mes documents" multi-select bar.
   removeMany: authed
-    .input(z.object({ ids: z.array(z.string()).min(1) }))
+    .input(z.object({ ids: z.array(z.string().max(128)).min(1).max(500) }))
     .handler(async ({ input, context }) => {
       await db
         .delete(document)

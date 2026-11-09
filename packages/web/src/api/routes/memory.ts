@@ -68,14 +68,14 @@ export const memory = {
    * l'app oubliait ce qu'elle venait d'apprendre sur l'étudiant.
    */
   review: authed
-    .input(z.object({ id: z.string().min(1), ok: z.boolean() }))
+    .input(z.object({ id: z.string().max(128).min(1), ok: z.boolean() }))
     .handler(async ({ input, context }) => {
       return reviewGap(context.user.id, input.id, input.ok);
     }),
 
   /** « J'ai compris » : l'étudiant peut clore une lacune lui-même. */
   resolve: authed
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.string().max(128) }))
     .handler(async ({ input, context }) => {
       await db
         .update(misconception)
@@ -91,7 +91,7 @@ export const memory = {
 
   /** « Ce n'est pas vrai » : suppression définitive. */
   remove: authed
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.string().max(128) }))
     .handler(async ({ input, context }) => {
       await db
         .delete(misconception)

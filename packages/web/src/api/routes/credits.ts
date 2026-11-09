@@ -140,7 +140,7 @@ export const credits = {
   purchase: authed
     .input(
       z.object({
-        priceId: z.string().min(1),
+        priceId: z.string().max(128).min(1),
         mode: z.enum(["checkout", "payment_link"]).optional(),
         successUrl: z.string().url().optional(),
         cancelUrl: z.string().url().optional(),

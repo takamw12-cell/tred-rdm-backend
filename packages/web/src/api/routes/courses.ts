@@ -239,7 +239,7 @@ export const courses = {
 
   /** Rejoindre un cours existant. Sans effet si on en est déjà membre. */
   join: authed
-    .input(z.object({ courseId: z.string().min(1) }))
+    .input(z.object({ courseId: z.string().max(128).min(1) }))
     .handler(async ({ input, context }) => {
       const existe = await db
         .select({ id: course.id })
@@ -264,7 +264,7 @@ export const courses = {
    * Pour retirer ses documents, il y a `unshare`, qui le dit.
    */
   leave: authed
-    .input(z.object({ courseId: z.string().min(1) }))
+    .input(z.object({ courseId: z.string().max(128).min(1) }))
     .handler(async ({ input, context }) => {
       await db
         .delete(courseMember)
@@ -279,7 +279,7 @@ export const courses = {
 
   /** Les documents partagés d'un cours dont je suis membre. */
   documents: authed
-    .input(z.object({ courseId: z.string().min(1) }))
+    .input(z.object({ courseId: z.string().max(128).min(1) }))
     .handler(async ({ input, context }) => {
       if (!(await estMembre(context.user.id, input.courseId))) {
         throw new ORPCError("FORBIDDEN");
@@ -344,7 +344,7 @@ export const courses = {
    * cours que l'on ne suit pas.
    */
   share: authed
-    .input(z.object({ documentId: z.string().min(1), courseId: z.string().min(1) }))
+    .input(z.object({ documentId: z.string().max(128).min(1), courseId: z.string().max(128).min(1) }))
     .handler(async ({ input, context }) => {
       const mien = await db
         .select({ id: document.id })
@@ -376,7 +376,7 @@ export const courses = {
    * donc rien n'empêche de le faire au premier doute.
    */
   unshare: authed
-    .input(z.object({ documentId: z.string().min(1) }))
+    .input(z.object({ documentId: z.string().max(128).min(1) }))
     .handler(async ({ input, context }) => {
       const res = await db
         .update(document)

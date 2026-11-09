@@ -97,7 +97,7 @@ export const flashcards = {
     }),
 
   review: authed
-    .input(z.object({ id: z.string().min(1), knew: z.boolean() }))
+    .input(z.object({ id: z.string().max(128).min(1), knew: z.boolean() }))
     .handler(async ({ input, context }) => {
       const [card] = await db
         .select()
@@ -152,7 +152,7 @@ export const flashcards = {
       return { id };
     }),
 
-  remove: authed.input(z.object({ id: z.string().min(1) })).handler(async ({ input, context }) => {
+  remove: authed.input(z.object({ id: z.string().max(128).min(1) })).handler(async ({ input, context }) => {
     await db.delete(flashcard).where(and(eq(flashcard.id, input.id), eq(flashcard.userId, context.user.id)));
     return { ok: true };
   }),
