@@ -209,7 +209,7 @@ export function AiAnswer({ text }: { text: string }) {
   );
 }
 
-function SourceCard({ variant, text }: { variant: "official" | "aerostudy"; text: string }) {
+export function SourceCard({ variant, text }: { variant: "official" | "aerostudy"; text: string }) {
   const { t } = useT();
   const official = variant === "official";
   const showSource = useContext(SourceViewContext);

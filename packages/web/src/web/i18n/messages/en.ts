@@ -219,6 +219,13 @@ export const en: Messages = {
     progress: "Steps on the board",
     solver: "Computed with the solver",
     showOnBoard: "On the board · {n} steps",
+    yourQuestion: "Your question",
+    pages: "Board pages",
+    page: "{n} / {total}",
+    prevPage: "Previous board",
+    nextPage: "Next board",
+    chooseAnswer: "Choose an answer",
+    yourChoice: "Your choice",
   },
   chat: {
     untitledConversation: "New conversation",

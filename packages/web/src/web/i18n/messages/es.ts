@@ -231,6 +231,13 @@ export const es: Messages = {
     progress: "Pasos en la pizarra",
     solver: "Calculado con el solucionador",
     showOnBoard: "En la pizarra · {n} pasos",
+    yourQuestion: "Tu pregunta",
+    pages: "Páginas de la pizarra",
+    page: "{n} / {total}",
+    prevPage: "Pizarra anterior",
+    nextPage: "Pizarra siguiente",
+    chooseAnswer: "Elige una respuesta",
+    yourChoice: "Tu elección",
   },
   chat: {
     untitledConversation: "Nueva conversación",

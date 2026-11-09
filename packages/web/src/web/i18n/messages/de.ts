@@ -218,6 +218,13 @@ export const de = {
     progress: "Schritte an der Tafel",
     solver: "Berechnet mit dem Löser",
     showOnBoard: "An der Tafel · {n} Schritte",
+    yourQuestion: "Deine Frage",
+    pages: "Tafelbilder",
+    page: "{n} / {total}",
+    prevPage: "Vorheriges Tafelbild",
+    nextPage: "Nächstes Tafelbild",
+    chooseAnswer: "Antwort wählen",
+    yourChoice: "Deine Wahl",
   },
   chat: {
     untitledConversation: "Neue Unterhaltung",

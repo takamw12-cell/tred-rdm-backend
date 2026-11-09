@@ -1,6 +1,6 @@
 import { Check, Palette, RotateCcw } from "lucide-react";
 import { BOARD_THEMES, useBoardTheme, type BoardTheme } from "@/stores/board-theme";
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
 import { ProfessorPortrait } from "@/components/professor-portrait";
 import type { Professor } from "@/lib/professors";
 import { DEFAULT_TAFEL_COLORS, effectiveBoardTheme, tafelStyle } from "@/lib/tafel-colors";
@@ -45,6 +45,7 @@ export function GlassBoard({
   status,
   children,
   className,
+  bodyRef,
   "aria-label": ariaLabel,
 }: {
   eyebrow?: ReactNode;
@@ -53,6 +54,8 @@ export function GlassBoard({
   status?: ReactNode;
   children: ReactNode;
   className?: string;
+  /** La zone qui défile (le tuteur la fait suivre l'écriture). */
+  bodyRef?: Ref<HTMLDivElement>;
   "aria-label"?: string;
 }) {
   const theme = useBoardTheme((s) => s.theme);
@@ -114,6 +117,7 @@ export function GlassBoard({
 
         {/* Contenu du tableau */}
         <div
+          ref={bodyRef}
           data-slot="tafel-board"
           className="relative flex min-h-0 flex-1 flex-col items-center gap-6 overflow-y-auto px-5 pt-4 pb-8 sm:px-10"
         >

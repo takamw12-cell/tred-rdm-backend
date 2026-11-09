@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { MarkdownContent } from "@/components/markdown-content";
 import { BoardStatus, GlassBoard, PaperNote, SolverStamp, StepChecklist } from "@/components/hoersaal";
 import { FloatingProfessor, HoersaalStage } from "@/components/hoersaal-stage";
+import { BoardText, ChoiceButtons } from "@/components/tafel-board";
 import { TURN_MS, type ProfessorPose } from "@/lib/professor-choreography";
 import { professorText, useProfessor } from "@/lib/professors";
 import { useT } from "@/i18n";
@@ -23,7 +24,7 @@ import { cn } from "@/lib/utils";
  *   │ ═══ rebord « Farben » : couleurs du tableau ═══│
  *   └──────────────────────────────────────────────┘
  *       ┌──────────────────────────────┐
- *       │ bulle du prof + saisie (verre)│ ← barre du chat, tout en bas
+ *       │ saisie seule (verre dépoli)  │ ← plus de bulles : tout est au tableau
  *       └──────────────────────────────┘
  *
  * Écriture : police manuscrite Caveat (auto-hébergée, public/fonts) pour ce
@@ -111,8 +112,13 @@ export function VirtualClassroom({ board, avatar }: VirtualClassroomSlots = {}) 
   );
 }
 
-/** Contenu de démonstration : sera remplacé par les étapes réelles (lib/tafel.ts). */
+/**
+ * Contenu de démonstration. Comme dans le vrai tuteur, TOUT est au tableau :
+ * l'étape calculée, le commentaire du professeur et sa question, avec les
+ * options cliquables (components/tafel-board.tsx).
+ */
 function TafelPlaceholderContent() {
+  const [chosen, setChosen] = useState<string | null>(null);
   return (
     <>
       <StepChecklist
@@ -132,6 +138,20 @@ function TafelPlaceholderContent() {
         <p className="font-hand mt-2 text-xl text-[color:var(--board-muted)]">
           R₂ ∥ R₃ — zwei gleiche Widerstände parallel ergeben die Hälfte.
         </p>
+      </PaperNote>
+      <PaperNote title="Frage" tilt={0.4}>
+        <BoardText text="Was passiert mit $I_1$, wenn $R_3 \\to \\infty$?" />
+        <div className="mt-3">
+          <ChoiceButtons
+            options={[
+              { key: "A", text: "$I_1$ steigt" },
+              { key: "B", text: "$I_1$ sinkt auf 2 A" },
+              { key: "C", text: "$I_1$ bleibt 3 A" },
+            ]}
+            onChoice={(a) => setChosen(a.slice(0, 1))}
+            chosen={chosen}
+          />
+        </div>
       </PaperNote>
     </>
   );
@@ -171,20 +191,11 @@ function ModeSwitch({ mode, onChange }: { mode: ProfessorMode; onChange: (m: Pro
   );
 }
 
-/** Messages + saisie, dans la barre en verre dépoli (comme le vrai tuteur). */
+/** La saisie seule, dans la barre en verre dépoli (comme le vrai tuteur). */
 function ClassroomDock() {
   const [mode, setMode] = useState<ProfessorMode>("answer");
   return (
     <div className="text-foreground">
-      <div data-slot="dock-messages" className="px-3 pt-3 sm:px-5">
-        <div
-          data-slot="professor-bubble"
-          className="bg-card ring-border max-w-[85%] rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm leading-relaxed shadow-sm ring-1"
-        >
-          Regarde la Tafel : R₂ et R₃ sont en parallèle, donc on les remplace par 2 Ω.
-          <p className="mt-1.5 font-medium">À toi : que se passe-t-il pour I₁ si R₃ → ∞ ?</p>
-        </div>
-      </div>
       <div data-slot="chat-composer" className="p-2.5 sm:p-3">
         <div className="mb-2">
           <ModeSwitch mode={mode} onChange={setMode} />

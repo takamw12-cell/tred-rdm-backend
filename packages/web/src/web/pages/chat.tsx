@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useUserStore } from "@/stores/user";
 import { useChat } from "@ai-sdk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -35,13 +35,12 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
-import { AiAnswer, ListenButton, SourceViewContext } from "@/components/ai-answer";
-import { TafelBoard } from "@/components/tafel-board";
-import { moveFencedToBoard, splitTafel, type TafelSplit } from "@/lib/tafel";
+import { ListenButton, SourceViewContext } from "@/components/ai-answer";
+import { BoardChip, TafelBoard, type TafelPage } from "@/components/tafel-board";
+import { chosenKey, moveFencedToPageTop, pageSplit, tafelPage } from "@/lib/tafel";
 import { ReportAnswer } from "@/components/report-answer";
 import { CodeExplainContext, CodeSendContext } from "@/components/code-block";
 import { DocumentViewer } from "@/components/document-viewer";
-import { ImageFrame } from "@/components/diagram-frame";
 import { BEAM_LANG, beamBlockFromPart } from "@/components/beam-diagram";
 import { solverChartBlockFromPart } from "@/lib/solver-charts";
 import { chatPhase, PHASE_KEY } from "@/lib/chat-phase";
@@ -58,7 +57,7 @@ import { INTERSTITIAL_RULES } from "@/lib/ad-mediation";
 import { creditsMeKey } from "@/queries/credits";
 import { useFeatures } from "@/queries/features";
 import { Link } from "wouter";
-import { ChevronDown, ChevronUp, Repeat2, Volume2, VolumeX } from "lucide-react";
+import { Repeat2, Volume2, VolumeX } from "lucide-react";
 import { useProfessorChoreography } from "@/components/hologram-professor";
 import { spokenAnswer } from "@/lib/professor-choreography";
 import { VideoExplainer, type VideoScript } from "@/components/video-explainer";
@@ -78,9 +77,7 @@ import {
 import { usePreferencesStore } from "@/stores/preferences";
 import { DocumentLibrary } from "@/components/document-library";
 import { Button } from "@/components/ui/button";
-import { LogoMark } from "@/components/logo";
 import { FloatingProfessor, HoersaalStage } from "@/components/hoersaal-stage";
-import { ProfessorPortrait } from "@/components/professor-portrait";
 import { professorText, professorUi, useProfessor } from "@/lib/professors";
 import { client } from "@/lib/api";
 import { useSemesterStore } from "@/stores/semester";
@@ -160,16 +157,6 @@ function messageText(m: UIMessage): string {
 // Le tuteur est-il en train d'ÉCRIRE du texte visible en ce moment ?
 // Faux pendant un raisonnement ou un appel d'outil — y compris APRÈS une
 // première phrase déjà affichée (« Voici l'animation 👇 » puis recherche).
-/** Une ligne lisible d'une réponse Markdown : le « sous-titre » du professeur dans la barre repliée. */
-function plainLine(md: string): string {
-  return md
-    .replace(/```[\s\S]*?```/g, " ")
-    .replace(/\$\$?([^$]+)\$\$?/g, "$1")
-    .replace(/[*_#>`]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 function isStreamingText(m: UIMessage): boolean {
   const parts = m.parts.filter((p) => p.type !== "step-start");
   const last = parts[parts.length - 1] as { type: string; state?: string } | undefined;
@@ -212,7 +199,6 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [libOpen, setLibOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const listRef = useRef<HTMLDivElement>(null);
 
   // ── Mode Calcul (MATLAB / Python) ─────────────────────────────────────
   const [calcMode, setCalcMode] = useState(false);
@@ -483,6 +469,8 @@ export default function ChatPage() {
           // Filière, Hochschule, semestre : le tuteur adapte ses exemples
           // (LRT, Maschinenbau …). Lu au moment de l'envoi.
           studyProfile: pickStudyProfile(useUserStore.getState().profile),
+          // Hörsaal sans chat : le tuteur écrit TOUTE sa réponse au tableau.
+          hoersaal: true,
         }),
       }),
     [],
@@ -516,43 +504,70 @@ export default function ChatPage() {
     return overrides[m.id] ?? messageText(m);
   }
 
-  // ── Tuteur Actif : la Tafel ─────────────────────────────────────────────
-  // Chaque réponse du tuteur est découpée en deux voix : les étapes (format
-  // NIVEAU 7) vont au tableau, le reste est le commentaire du Professeur. Le
-  // schéma de poutre calculé par le code rejoint le tableau en tête.
-  const tafelById = new Map<string, TafelSplit & { solverUsed: boolean }>();
-  for (const m of messages) {
-    if (m.role !== "assistant") continue;
-    // Le schéma de poutre et les médias générés vont au tableau, en tête.
-    const split = moveFencedToBoard(
-      moveFencedToBoard(splitTafel(displayText(m)), MEDIA_LANG, "Medium"),
-      BEAM_LANG,
-      "Skizze",
-    );
-    const solverUsed = m.parts.some(
-      (p) => SOLVER_TOOLS.has(p.type),
-    );
-    tafelById.set(m.id, { ...split, solverUsed });
+  // ── Le Hörsaal sans chat : chaque réponse est une PAGE de la Tafel ───────
+  // Décision fondateur (2026-11-09) : la barre du bas ne garde que la saisie.
+  // La question de l'étudiant, puis TOUTE la réponse (blocs [[TAFEL]],
+  // @@STEP, texte libre) s'écrivent au tableau. Le schéma de poutre et les
+  // médias calculés par le code passent en tête de la page.
+  const pages: TafelPage[] = [];
+  {
+    let question: UIMessage | null = null;
+    for (const m of messages) {
+      if (m.role === "user") {
+        question = m;
+        continue;
+      }
+      if (m.role !== "assistant") continue;
+      pages.push({
+        id: m.id,
+        messageId: m.id,
+        question: question ? displayText(question) : undefined,
+        images: question ? messageImages(question) : undefined,
+        blocks: moveFencedToPageTop(
+          moveFencedToPageTop(tafelPage(displayText(m)), MEDIA_LANG, "Medium"),
+          BEAM_LANG,
+          "Skizze",
+        ),
+        solverUsed: m.parts.some((p) => SOLVER_TOOLS.has(p.type)),
+      });
+      question = null;
+    }
+    // La question vient de partir : sa page est déjà au tableau, vide.
+    if (question) {
+      pages.push({
+        id: `q-${question.id}`,
+        question: displayText(question),
+        images: messageImages(question),
+        blocks: [],
+        solverUsed: false,
+      });
+    }
   }
-  // La Tafel montre la réponse choisie, sinon la dernière qui a un tableau.
+  const pageById = new Map(pages.map((p) => [p.id, p]));
+  const lastPage = pages[pages.length - 1];
+  // La Tafel montre la page choisie (‹ ›), sinon la dernière.
   const [boardId, setBoardId] = useState<string | null>(null);
-  const lastBoardId =
-    [...messages].reverse().find((m) => (tafelById.get(m.id)?.steps.length ?? 0) > 0)?.id ?? null;
-  const activeBoardId =
-    boardId && (tafelById.get(boardId)?.steps.length ?? 0) > 0 ? boardId : lastBoardId;
-  const activeBoard = activeBoardId ? tafelById.get(activeBoardId) : undefined;
-  // Une nouvelle réponse avec tableau reprend la main sur un ancien choix.
+  const chosenIndex = boardId ? pages.findIndex((p) => p.id === boardId) : -1;
+  const pageIndex = chosenIndex >= 0 ? chosenIndex : pages.length - 1;
+  const activePage = pages[pageIndex];
+  const onLastPage = pageIndex === pages.length - 1;
+  // Une nouvelle page reprend la main sur un ancien choix.
   useEffect(() => {
     setBoardId(null);
-  }, [lastBoardId]);
+  }, [lastPage?.id]);
+  // L'option choisie sur une ancienne page : la question qui la suit.
+  const chosenOnPage = chosenKey(pages[pageIndex + 1]?.question);
 
   // Le professeur hologramme : de dos pendant que la réponse s'écrit, il se
   // retourne à la fin du flux et la lit à voix haute (components/hologram-professor.tsx).
   const choreo = useProfessorChoreography({
     busy,
     failed: Boolean(error),
-    answerText: () =>
-      lastMsg?.role === "assistant" ? spokenAnswer(tafelById.get(lastMsg.id), displayText(lastMsg)) : "",
+    answerText: () => {
+      if (lastMsg?.role !== "assistant") return "";
+      const pg = pageById.get(lastMsg.id);
+      return spokenAnswer(pg ? pageSplit(pg.blocks) : undefined, displayText(lastMsg));
+    },
     locale,
     professor,
   });
@@ -566,19 +581,6 @@ export default function ChatPage() {
           : busy
             ? t("tafel.profWriting")
             : undefined;
-
-  // La barre du bas : la conversation se replie pour libérer le tableau. Une
-  // réponse sans tableau (ou une erreur) se lit dans la barre : elle se rouvre.
-  const [dockOpen, setDockOpen] = useState(true);
-  const lastHasBoard = lastMsg?.role === "assistant" && (tafelById.get(lastMsg.id)?.steps.length ?? 0) > 0;
-  useEffect(() => {
-    if (!busy && (error || (lastMsg?.role === "assistant" && !lastHasBoard))) setDockOpen(true);
-  }, [busy, error, lastMsg?.id, lastMsg?.role, lastHasBoard]);
-  // Dès que le professeur écrit au tableau, la conversation se replie : on
-  // regarde la Tafel ; sa dernière phrase reste en sous-titre dans la barre.
-  useEffect(() => {
-    if (lastHasBoard) setDockOpen(false);
-  }, [lastHasBoard, lastMsg?.id]);
 
   // Pull image attachments out of a UI message's file parts for rendering.
   function messageImages(m: UIMessage): { url: string; name?: string }[] {
@@ -970,12 +972,6 @@ export default function ChatPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locale]);
 
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
-    });
-  }, [messages, status, dockOpen]);
-
   function send(text: string) {
     const q = text.trim();
     if (busy) return;
@@ -1281,13 +1277,6 @@ export default function ChatPage() {
         : t("dashboard.allCourses");
 
   const suggestions = [t("chat.q1"), t("chat.q2"), t("chat.q3")];
-  // Barre repliée : ce que dit le professeur, en une ligne.
-  const lastAnswer = [...messages].reverse().find((m) => m.role === "assistant" && m !== lastAssistantEmpty);
-  const dockSubtitle = waitingForText
-    ? t(PHASE_KEY[phase])
-    : lastAnswer
-      ? plainLine(tafelById.get(lastAnswer.id)?.commentary || displayText(lastAnswer))
-      : "";
 
   return (
     <div className="flex h-[calc(100vh-4rem)]">
@@ -1750,139 +1739,103 @@ export default function ChatPage() {
           <HoersaalStage
             bottomNav
             board={
-              <ErrorBoundary area="tafel" variant="inline" label="Die Tafel konnte nicht angezeigt werden." resetKey={activeBoardId}>
+              <ErrorBoundary area="tafel" variant="inline" label="Die Tafel konnte nicht angezeigt werden." resetKey={activePage?.id}>
+                <SourceViewContext.Provider value={showSource}>
+                <CodeExplainContext.Provider value={explainCode}>
+                <CodeSendContext.Provider value={sendFromCode}>
                 <TafelBoard
-                  steps={activeBoard?.steps ?? []}
-                  solverUsed={activeBoard?.solverUsed ?? false}
-                  writing={busy && activeBoardId === lastMsg?.id}
-                />
-              </ErrorBoundary>
-            }
-            dock={
-              <>
-                {/* Replier la conversation libère le tableau. */}
-                {messages.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setDockOpen((v) => !v)}
-                    aria-expanded={dockOpen}
-                    className="text-muted-foreground hover:text-foreground flex w-full items-center justify-center gap-1.5 rounded-t-3xl px-4 pt-2 pb-0.5 text-[11px] font-medium transition-colors"
-                  >
-                    {dockOpen ? <ChevronDown className="size-3.5" /> : <ChevronUp className="size-3.5" />}
-                    {dockOpen ? t("tafel.hideConversation") : t("tafel.showConversation", { n: messages.length })}
-                  </button>
-                )}
-                {messages.length > 0 && !dockOpen && dockSubtitle && (
-                  <button
-                    type="button"
-                    data-slot="dock-subtitle"
-                    onClick={() => setDockOpen(true)}
-                    className="flex w-full items-start gap-2 px-4 pt-1 text-left sm:px-5"
-                  >
-                    <span className="text-foreground/80 line-clamp-2 text-sm leading-snug">{dockSubtitle}</span>
-                  </button>
-                )}
-                <div
-                  ref={listRef}
-                  hidden={messages.length > 0 && !dockOpen}
-                  className={cn(
-                    "overflow-y-auto overscroll-contain",
-                    // Avec un tableau, la barre reste basse : on lit la Tafel.
-                    activeBoard
-                      ? "max-h-[22vh] sm:max-h-[26vh] lg:max-h-[30vh]"
-                      : "max-h-[30vh] sm:max-h-[38vh] lg:max-h-[44vh]",
-                  )}
-                >
-                  <div className="px-3 py-3 sm:px-5">
-                    {messages.length === 0 ? (
-                      <DockSuggestions label={t("chat.suggested")} suggestions={suggestions} onPick={send} />
-                    ) : (
-                        <div className="space-y-5">
-                          {translating && (
-                            <div className="bg-primary/5 text-primary sticky top-0 z-10 flex items-center justify-center gap-2 rounded-full py-1.5 text-xs font-medium backdrop-blur-sm">
-                              <RefreshCw className="size-3.5 animate-spin" />
-                              {t("chat.translating")}
-                            </div>
-                          )}
-                          <SourceViewContext.Provider value={showSource}>
-                            <CodeExplainContext.Provider value={explainCode}>
-                            <CodeSendContext.Provider value={sendFromCode}>
-                              {messages
-                                // Une bulle vide n'apprend rien : l'indicateur ou la
-                                // bulle d'erreur ci-dessous prend sa place.
-                                .filter((m) => m !== lastAssistantEmpty)
-                                .map((m) => {
-                                const board = tafelById.get(m.id);
-                                const hasBoard = (board?.steps.length ?? 0) > 0;
-                                return (
-                                <MessageBubble
-                                  key={m.id}
-                                  role={m.role}
-                                  // Le Professeur ne répète pas la Tafel : sa bulle ne
-                                  // garde que son commentaire.
-                                  text={hasBoard ? board!.commentary : displayText(m)}
-                                  fullText={displayText(m)}
-                                  tafel={
-                                    hasBoard
-                                      ? {
-                                          label: t("tafel.showOnBoard", { n: board!.steps.length }),
-                                          active: m.id === activeBoardId,
-                                          onShow: () => setBoardId(m.id),
-                                        }
-                                      : undefined
-                                  }
-                                  images={messageImages(m)}
-                                  youLabel={t("chat.you")}
-                                  aiLabel={t("chat.ai")}
-                                  showActions={m.role === "assistant" && !busy}
-                                  onAction={(a) => handleAction(m.id, a)}
-                                  messageId={m.id}
-                                  conversationId={convId}
-                                  locale={locale}
-                                  actionLabels={{
-                                    why: t("chat.why"),
-                                    explain: t("chat.explainDifferently"),
-                                    engineer: t("chat.engineerMode"),
-                                    // Masqués quand le serveur n'a pas la clé.
-                                    video: features.explainerVideo ? t("video.chip") : undefined,
-                                    ytsearch: features.videoSearch ? t("videoSearch.chip") : undefined,
-                                    quiz: features.quiz ? t("quiz.chip") : undefined,
-                                    flashcards: features.flashcards ? t("flashcards.chip") : undefined,
-                                  }}
-                                />
-                                );
-                              })}
-                            </CodeSendContext.Provider>
-                            </CodeExplainContext.Provider>
-                          </SourceViewContext.Provider>
-                          {waitingForText && (
-                            <motion.div
-                              initial={{ opacity: 0, y: 8 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              className="space-y-2"
+                  page={activePage}
+                  writing={busy && onLastPage}
+                  status={
+                    translating
+                      ? t("chat.translating")
+                      : busy && onLastPage
+                        ? waitingForText
+                          ? t(PHASE_KEY[phase])
+                          : t("tafel.writing")
+                        : undefined
+                  }
+                  pager={{
+                    index: pageIndex,
+                    count: pages.length,
+                    onPrev: () => setBoardId(pages[Math.max(0, pageIndex - 1)]?.id ?? null),
+                    onNext: () => setBoardId(pages[Math.min(pages.length - 1, pageIndex + 1)]?.id ?? null),
+                  }}
+                  // Les options A/B/C ne répondent que sur la dernière page.
+                  onChoice={onLastPage && !busy ? (answer) => send(answer) : undefined}
+                  chosen={chosenOnPage}
+                  emptyExtra={
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {suggestions.map((q) => (
+                        <BoardChip key={q} icon={<Sparkles className="size-3.5" />} label={q} onClick={() => send(q)} />
+                      ))}
+                    </div>
+                  }
+                  notice={
+                    onLastPage && (emptyAnswer || error) ? (
+                      <div className="bg-card text-card-foreground ring-border space-y-2 rounded-xl p-4 shadow-sm ring-1">
+                    {emptyAnswer && (
+                      <div className="border-destructive/30 bg-destructive/5 flex flex-wrap items-center gap-2 rounded-xl border p-3 text-sm">
+                        <p className="text-destructive">{t("chat.emptyAnswer")}</p>
+                        <button
+                          type="button"
+                          onClick={retryNow}
+                          className="text-primary hover:bg-primary/10 rounded-md border border-current px-2 py-0.5 text-xs font-medium transition-colors"
+                        >
+                          {t("chat.retryNow")}
+                        </button>
+                      </div>
+                    )}
+                    {error && (
+                      /* Trois refus distincts, trois messages distincts. Afficher
+                         « la connexion a été interrompue » à quelqu'un dont le
+                         forfait est épuisé lui fait croire à une panne — et il
+                         s'en va au lieu de s'abonner. */
+                      <div className="flex flex-wrap items-center gap-2 text-sm">
+                        {echec.kind === "quota" ? (
+                          <>
+                            <p className="text-foreground">
+                              {echec.message || t("chat.quotaReached")}
+                            </p>
+                            {/* Vers /credits et non /pricing : quelqu'un bloqué en
+                                pleine révision veut continuer ce soir, pas
+                                s'engager au mois. La page des tarifs reste à un
+                                clic de là. */}
+                            <Link
+                              href="/credits"
+                              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
                             >
-                              <div className="text-muted-foreground flex items-center gap-2 text-sm">
-                                <LogoMark className="size-6" />
-                                {/* Calme : pas de points qui sautillent, le professeur écrit en silence. */}
-                                <span className="flex items-center gap-1">{t(PHASE_KEY[phase])}</span>
-                              </div>
-                              {/* Squelette de réponse tant qu'AUCUN texte n'est arrivé :
-                                  la place de la réponse est déjà là, l'attente se lit. */}
-                              {(lastMsg?.role !== "assistant" || lastAssistantEmpty) && (
-                                <div
-                                  aria-hidden
-                                  className="border-border bg-card/80 ms-9 max-w-xl space-y-2.5 rounded-2xl border px-4 py-3.5 opacity-70"
-                                >
-                                  <div className="bg-secondary h-2.5 w-11/12 rounded-full" />
-                                  <div className="bg-secondary h-2.5 w-4/5 rounded-full" />
-                                  <div className="bg-secondary h-2.5 w-2/3 rounded-full" />
-                                </div>
-                              )}
-                            </motion.div>
-                          )}
-                          {emptyAnswer && (
-                            <div className="border-destructive/30 bg-destructive/5 flex flex-wrap items-center gap-2 rounded-xl border p-3 text-sm">
-                              <p className="text-destructive">{t("chat.emptyAnswer")}</p>
+                              {t("chat.topUpNow")}
+                            </Link>
+                            {paywallDismissed === error && (
+                              <button
+                                type="button"
+                                onClick={() => setPaywallDismissed(null)}
+                                className="text-primary hover:bg-primary/10 rounded-md border border-current px-2 py-0.5 text-xs font-medium transition-colors"
+                              >
+                                {adText.paywallReopen}
+                              </button>
+                            )}
+                            <SmartPaywallModal
+                              open={paywallOpen}
+                              onClose={() => setPaywallDismissed(error ?? null)}
+                              offer={echec.rewardedAd ?? null}
+                              onUnlocked={() => {
+                                // +1 crédit en base : la question bloquée repart.
+                                void qc.invalidateQueries({ queryKey: creditsMeKey() });
+                                clearError();
+                                void regenerate();
+                              }}
+                            />
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-destructive">
+                              {echec.kind === "rate"
+                                ? echec.message || t("chat.tooFast")
+                                : t("chat.error")}
+                            </p>
+                            {!busy && (
                               <button
                                 type="button"
                                 onClick={retryNow}
@@ -1890,75 +1843,43 @@ export default function ChatPage() {
                               >
                                 {t("chat.retryNow")}
                               </button>
-                            </div>
-                          )}
-                          {error && (
-                            /* Trois refus distincts, trois messages distincts. Afficher
-                               « la connexion a été interrompue » à quelqu'un dont le
-                               forfait est épuisé lui fait croire à une panne — et il
-                               s'en va au lieu de s'abonner. */
-                            <div className="flex flex-wrap items-center gap-2 text-sm">
-                              {echec.kind === "quota" ? (
-                                <>
-                                  <p className="text-foreground">
-                                    {echec.message || t("chat.quotaReached")}
-                                  </p>
-                                  {/* Vers /credits et non /pricing : quelqu'un bloqué en
-                                      pleine révision veut continuer ce soir, pas
-                                      s'engager au mois. La page des tarifs reste à un
-                                      clic de là. */}
-                                  <Link
-                                    href="/credits"
-                                    className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
-                                  >
-                                    {t("chat.topUpNow")}
-                                  </Link>
-                                  {paywallDismissed === error && (
-                                    <button
-                                      type="button"
-                                      onClick={() => setPaywallDismissed(null)}
-                                      className="text-primary hover:bg-primary/10 rounded-md border border-current px-2 py-0.5 text-xs font-medium transition-colors"
-                                    >
-                                      {adText.paywallReopen}
-                                    </button>
-                                  )}
-                                  <SmartPaywallModal
-                                    open={paywallOpen}
-                                    onClose={() => setPaywallDismissed(error ?? null)}
-                                    offer={echec.rewardedAd ?? null}
-                                    onUnlocked={() => {
-                                      // +1 crédit en base : la question bloquée repart.
-                                      void qc.invalidateQueries({ queryKey: creditsMeKey() });
-                                      clearError();
-                                      void regenerate();
-                                    }}
-                                  />
-                                </>
-                              ) : (
-                                <>
-                                  <p className="text-destructive">
-                                    {echec.kind === "rate"
-                                      ? echec.message || t("chat.tooFast")
-                                      : t("chat.error")}
-                                  </p>
-                                  {!busy && (
-                                    <button
-                                      type="button"
-                                      onClick={retryNow}
-                                      className="text-primary hover:bg-primary/10 rounded-md border border-current px-2 py-0.5 text-xs font-medium transition-colors"
-                                    >
-                                      {t("chat.retryNow")}
-                                    </button>
-                                  )}
-                                </>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                            )}
+                          </>
+                        )}
+                      </div>
                     )}
-                  </div>
-                </div>
-
+                      </div>
+                    ) : undefined
+                  }
+                  footer={
+                    activePage?.messageId && !(busy && onLastPage) ? (
+                      <PageActions
+                        messageId={activePage.messageId}
+                        fullText={displayText(messages.find((m) => m.id === activePage.messageId) ?? ({ parts: [] } as unknown as UIMessage))}
+                        conversationId={convId}
+                        locale={locale}
+                        onAction={(a) => handleAction(activePage.messageId!, a)}
+                        labels={{
+                          why: t("chat.why"),
+                          explain: t("chat.explainDifferently"),
+                          engineer: t("chat.engineerMode"),
+                          // Masqués quand le serveur n'a pas la clé.
+                          video: features.explainerVideo ? t("video.chip") : undefined,
+                          ytsearch: features.videoSearch ? t("videoSearch.chip") : undefined,
+                          quiz: features.quiz ? t("quiz.chip") : undefined,
+                          flashcards: features.flashcards ? t("flashcards.chip") : undefined,
+                        }}
+                      />
+                    ) : undefined
+                  }
+                />
+                </CodeSendContext.Provider>
+                </CodeExplainContext.Provider>
+                </SourceViewContext.Provider>
+              </ErrorBoundary>
+            }
+            dock={
+              <>
                 {/* La saisie, au bas de la barre en verre. */}
                 <div data-slot="chat-composer" className="px-2.5 pt-1 pb-2.5 sm:px-3 sm:pb-3">
                   {/* Le solde, juste au-dessus du champ de saisie. C'est le seul
@@ -2288,68 +2209,28 @@ export default function ChatPage() {
   );
 }
 
-/** Barre vide : les questions suggérées, en pastilles (le tableau, lui, invite à poser la question). */
-function DockSuggestions({
-  label,
-  suggestions,
-  onPick,
-}: {
-  label: string;
-  suggestions: string[];
-  onPick: (q: string) => void;
-}) {
-  return (
-    <div>
-      <p className="text-muted-foreground mb-2 flex items-center gap-1.5 text-[11px] font-semibold tracking-wide uppercase">
-        <Sparkles className="size-3.5" />
-        {label}
-      </p>
-      <div className="flex flex-wrap gap-2">
-        {suggestions.map((q) => (
-          <button
-            key={q}
-            type="button"
-            onClick={() => onPick(q)}
-            className="border-border bg-card/70 hover:border-primary/50 hover:bg-accent rounded-full border px-3 py-1.5 text-left text-xs font-medium transition-colors"
-          >
-            {q}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
+type PageAction = "why" | "explain" | "engineer" | "video" | "ytsearch" | "quiz" | "flashcards";
 
-function MessageBubble({
-  role,
-  text,
-  images,
-  youLabel,
-  aiLabel,
-  showActions,
-  onAction,
-  actionLabels,
+/**
+ * Les gestes sous une page de la Tafel : écouter, « Pourquoi ? », autre
+ * explication, quiz, cartes, vidéo — puis le drapeau de signalement, en
+ * dernier et en gris (on le trouve quand on le cherche, pas du pouce).
+ */
+function PageActions({
   messageId,
+  fullText,
   conversationId,
   locale,
-  fullText,
-  tafel,
+  onAction,
+  labels,
 }: {
-  role: string;
-  text: string;
-  /** Réponse complète (Tafel comprise) : pour le signalement. */
-  fullText?: string;
-  /** Cette réponse a un tableau : pastille qui l'affiche dans la Tafel. */
-  tafel?: { label: string; active: boolean; onShow: () => void };
-  images?: { url: string; name?: string }[];
-  youLabel: string;
-  aiLabel: string;
-  messageId?: string;
+  messageId: string;
+  /** La réponse complète : lecture à voix haute et signalement. */
+  fullText: string;
   conversationId?: string;
-  locale?: string;
-  showActions?: boolean;
-  onAction?: (a: "why" | "explain" | "engineer" | "video" | "ytsearch" | "quiz" | "flashcards") => void;
-  actionLabels?: {
+  locale: string;
+  onAction: (a: PageAction) => void;
+  labels: {
     why: string;
     explain: string;
     engineer: string;
@@ -2359,169 +2240,22 @@ function MessageBubble({
     flashcards?: string;
   };
 }) {
-  const isUser = role === "user";
-  const professorForBubble = useProfessor();
+  if (!fullText.trim()) return null;
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-      className={cn("flex gap-3", isUser && "flex-row-reverse")}
-    >
-      <div className="shrink-0">
-        {isUser ? (
-          <span className="bg-secondary text-secondary-foreground grid size-8 place-items-center rounded-full text-xs font-bold">
-            {youLabel[0]}
-          </span>
-        ) : (
-          // Le professeur choisi parle, pas un logo.
-          <span
-            title={aiLabel}
-            className="block size-8 overflow-hidden rounded-full text-sm ring-2 ring-[#EAB308]/70"
-          >
-            <ProfessorPortrait professor={professorForBubble} />
-          </span>
-        )}
-      </div>
-      <div className={cn("min-w-0 max-w-[92%]", isUser && "flex flex-col items-end")}>
-        <div className="mb-1 flex items-center gap-2">
-          <p className="text-muted-foreground text-xs font-semibold">
-            {isUser ? youLabel : professorForBubble.name}
-          </p>
-          {/* Lecture à voix haute — une fois la réponse complète (showActions
-              est faux pendant la génération). */}
-          {!isUser && showActions && text.trim() && (
-            <ListenButton text={text} locale={locale ?? "de"} />
-          )}
-        </div>
-        {images && images.length > 0 && (
-          <div
-            className={cn(
-              "mb-2 flex flex-wrap gap-2",
-              isUser && "justify-end",
-            )}
-          >
-            {images.map((img, i) => (
-              <ImageFrame key={i} src={img.url} alt={img.name} />
-            ))}
-          </div>
-        )}
-        {(text.trim() || (!tafel && !(images && images.length > 0))) && (
-          <div
-            className={cn(
-              "rounded-2xl px-4 py-2.5",
-              isUser ? "bg-primary text-primary-foreground" : "glass bg-card border-border border",
-            )}
-          >
-            {isUser ? (
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">{text}</p>
-            ) : (
-              // Une réponse qui ne s'affiche pas ne fait pas tomber la conversation.
-              <ErrorBoundary area="chat-message" variant="inline" resetKey={text}>
-                <AiAnswer text={text} />
-              </ErrorBoundary>
-            )}
-          </div>
-        )}
-
-        {tafel && (
-          <button
-            type="button"
-            onClick={tafel.onShow}
-            aria-pressed={tafel.active}
-            className={cn(
-              "mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-              tafel.active
-                ? "border-signature bg-accent text-foreground"
-                : "border-border bg-card text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <span aria-hidden className="bg-signature size-1.5 rounded-full" />
-            {tafel.label}
-          </button>
-        )}
-
-        {showActions && onAction && actionLabels && (text.trim() || tafel) && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            <ActionChip
-              icon={<HelpCircle className="size-3.5" />}
-              label={actionLabels.why}
-              onClick={() => onAction("why")}
-            />
-            <ActionChip
-              icon={<RefreshCw className="size-3.5" />}
-              label={actionLabels.explain}
-              onClick={() => onAction("explain")}
-            />
-            <ActionChip
-              icon={<Cog className="size-3.5" />}
-              label={actionLabels.engineer}
-              onClick={() => onAction("engineer")}
-            />
-            {actionLabels.quiz && (
-              <ActionChip
-                icon={<ListChecks className="size-3.5" />}
-                label={actionLabels.quiz}
-                onClick={() => onAction("quiz")}
-              />
-            )}
-            {actionLabels.flashcards && (
-              <ActionChip
-                icon={<GalleryVerticalEnd className="size-3.5" />}
-                label={actionLabels.flashcards}
-                onClick={() => onAction("flashcards")}
-              />
-            )}
-            {actionLabels.video && (
-              <ActionChip
-                icon={<Clapperboard className="size-3.5" />}
-                label={actionLabels.video}
-                onClick={() => onAction("video")}
-              />
-            )}
-            {actionLabels.ytsearch && (
-              <ActionChip
-                icon={<Youtube className="size-3.5" />}
-                label={actionLabels.ytsearch}
-                onClick={() => onAction("ytsearch")}
-              />
-            )}
-
-            {/* Le drapeau ferme la rangée, en gris. Les puces au-dessus sont
-                des gestes fréquents ; celui-ci doit se trouver quand on le
-                cherche, et pas s'attraper du pouce quand on ne le cherche
-                pas. */}
-            {messageId && conversationId && (
-              <ReportAnswer
-                conversationId={conversationId}
-                messageId={messageId}
-                text={fullText ?? text}
-                locale={locale ?? "de"}
-              />
-            )}
-          </div>
-        )}
-      </div>
-    </motion.div>
-  );
-}
-
-function ActionChip({
-  icon,
-  label,
-  onClick,
-}: {
-  icon: ReactNode;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="border-border text-muted-foreground hover:border-primary/50 hover:text-primary hover:bg-primary/5 flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors"
-    >
-      {icon}
-      {label}
-    </button>
+    <>
+      <ListenButton text={fullText} locale={locale} />
+      <BoardChip icon={<HelpCircle className="size-3.5" />} label={labels.why} onClick={() => onAction("why")} />
+      <BoardChip icon={<RefreshCw className="size-3.5" />} label={labels.explain} onClick={() => onAction("explain")} />
+      <BoardChip icon={<Cog className="size-3.5" />} label={labels.engineer} onClick={() => onAction("engineer")} />
+      {labels.quiz && <BoardChip icon={<ListChecks className="size-3.5" />} label={labels.quiz} onClick={() => onAction("quiz")} />}
+      {labels.flashcards && (
+        <BoardChip icon={<GalleryVerticalEnd className="size-3.5" />} label={labels.flashcards} onClick={() => onAction("flashcards")} />
+      )}
+      {labels.video && <BoardChip icon={<Clapperboard className="size-3.5" />} label={labels.video} onClick={() => onAction("video")} />}
+      {labels.ytsearch && <BoardChip icon={<Youtube className="size-3.5" />} label={labels.ytsearch} onClick={() => onAction("ytsearch")} />}
+      {conversationId && (
+        <ReportAnswer conversationId={conversationId} messageId={messageId} text={fullText} locale={locale} />
+      )}
+    </>
   );
 }

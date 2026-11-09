@@ -509,8 +509,11 @@ app.post("/api/agent/messages", async (c) => {
     calcMode,
     codeLang,
     studyProfile,
+    hoersaal,
   } = body as {
       studyProfile?: StudyProfileInput | null;
+      /** Le Hörsaal web : toute la réponse au tableau (NIVEAU 7). */
+      hoersaal?: boolean;
       messages: unknown[];
       documentId?: string | null;
       subjectId?: string | null;
@@ -688,6 +691,7 @@ app.post("/api/agent/messages", async (c) => {
     studentName: session.user.name,
     examMode: examMode === true,
     calcMode: calcMode === true,
+    board: hoersaal === true,
     codeLang: codeLang === "matlab" ? "matlab" : "python",
     // Bild-/Videogenerierung (Replicate) — nur wenn REPLICATE_API_TOKEN gesetzt ist.
     media: replicateConfigured()

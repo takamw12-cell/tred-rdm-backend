@@ -219,6 +219,13 @@ export const fr: Messages = {
     progress: "Étapes au tableau",
     solver: "Calculé avec le solveur",
     showOnBoard: "Au tableau · {n} étapes",
+    yourQuestion: "Ta question",
+    pages: "Pages du tableau",
+    page: "{n} / {total}",
+    prevPage: "Tableau précédent",
+    nextPage: "Tableau suivant",
+    chooseAnswer: "Choisis une réponse",
+    yourChoice: "Ton choix",
   },
   chat: {
     untitledConversation: "Nouvelle conversation",

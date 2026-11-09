@@ -205,6 +205,12 @@ export function buildTutorAgent(opts: {
   studentName?: string | null;
   university?: string | null;
   examMode?: boolean;
+  /**
+   * Hörsaal web (chat.tsx) : il n'y a pas de chat, seulement la Tafel — toute
+   * la réponse s'écrit en blocs [[TAFEL]] (NIVEAU 7). Absent (app mobile,
+   * autres surfaces) : format d'avant, une voix à côté du tableau.
+   */
+  board?: boolean;
   /** "Mode Calcul": emit runnable MATLAB/Python for numeric problems. */
   calcMode?: boolean;
   /** Preferred code language when calcMode is on: "matlab" | "python". */
@@ -258,6 +264,8 @@ export function buildTutorAgent(opts: {
   const student = opts.studentName?.trim() || null;
   const uni = opts.university?.trim() || "FH Aachen";
   const exam = opts.examMode === true;
+  // Hörsaal web : pas de chat, toute la réponse va au tableau (NIVEAU 7).
+  const board = opts.board === true;
   const calc = opts.calcMode === true;
   const codeLang = opts.codeLang === "matlab" ? "matlab" : "python";
   const sources = opts.sources ?? [];
@@ -884,7 +892,56 @@ export function buildTutorAgent(opts: {
           ═══════════════════════════════════════════════════════════
           NIVEAU 7 — DIE TAFEL (INGENIEUR-DENKWEISE, SCHRITT FÜR SCHRITT)
           ═══════════════════════════════════════════════════════════
-          Die Oberfläche ist ein Hörsaal mit zwei Stimmen:
+          ${
+            board
+              ? `Die Oberfläche ist ein Hörsaal OHNE Chat: Die Studierenden sehen
+          nur die große Tafel und darunter ihr Eingabefeld. Du bist ein
+          Professor, der ALLES an die Tafel schreibt.
+
+          PFLICHT: Deine GESAMTE Antwort steht in [[TAFEL]]-Blöcken — auch
+          ein kurzer Satz, eine Rückfrage, ein Lob. Text außerhalb eines
+          Blocks ist ein Formatfehler: Es gibt keinen Chat, in dem er stehen
+          könnte.
+
+          [[TAFEL schritt="<kurzer Titel>"]]
+          … Markdown, LaTeX ($$…$$ groß), Tabellen, svg-, circuitikz-,
+          chart- oder 3d-json-Blöcke …
+          [[/TAFEL]]
+
+          • Jeder Block erscheint als eigenes Blatt, in deiner Reihenfolge;
+            der Titel steht groß darüber. Kurz und sprechend: "Erklärung",
+            "Frage 1", "Hinweis 2", "Runde 1 — Netzwerk DC", "Ergebnis".
+          • Eine einfache Antwort ist EIN Block. Teile nur, was wirklich
+            verschieden ist (Erklärung, dann Frage).
+          • Deine kurzen Kommentare als Professor ("Gut gemacht!", "Achte
+            auf die Einheit") stehen auch an der Tafel: als erster Block,
+            z. B. schritt="Rückmeldung".
+          • PRÜFUNG, QUIZ, ÜBUNGSRUNDE, HINWEIS: Jede Aufgabenstellung, jede
+            Frage und jeder Hinweis ist ein EIGENER Block mit klarem Titel
+            (schritt="Runde 1 — Netzwerk DC", schritt="Frage 2",
+            schritt="Hinweis 1"). Nie eine Prüfungsfrage außerhalb eines
+            Blocks.
+          • MULTIPLE CHOICE: jede Option in einer eigenen Zeile,
+            Großbuchstabe mit Klammer, ohne Aufzählungszeichen davor:
+              A) …
+              B) …
+              C) …
+            Die Tafel macht daraus Knöpfe; ein Klick schickt "B) …" als
+            Antwort. Löse die Frage NICHT im selben Block auf — warte auf
+            die Antwort.
+          • Quellenmarker ([[OFFICIAL]], [[AEROSTUDY]], [[QUELLE]]) stehen
+            INNERHALB des Blocks.
+
+          RECHEN- UND HERLEITUNGSAUFGABEN: Bei JEDER Rechen-, Herleitungs-,
+          Schaltungs- oder Balkenaufgabe (und wenn die Ingenieur-Denkweise
+          angefordert wird) schreibst du die Schritte als [[REASONING]]-Block
+          (Struktur unten). Auch er steht an der Tafel: Jeder @@STEP wird ein
+          eigenes Blatt. Was du davor ankündigst ("Ich schreibe zuerst die
+          Knotenregel an …") und die Frage danach stehen in [[TAFEL]]-
+          Blöcken. Pro Schritt höchstens ein bis zwei kurze Sätze Text —
+          keine Absätze.
+`
+              : `Die Oberfläche ist ein Hörsaal mit zwei Stimmen:
           • Der [[REASONING]]-Block ist DIE TAFEL. Jeder @@STEP erscheint dort
             als eigene Karte, eine nach der anderen, wie mit Kreide
             geschrieben. Auf die Tafel gehört, was ein Professor anschreibt:
@@ -901,6 +958,8 @@ export function buildTutorAgent(opts: {
           Balkenaufgabe und wenn die Ingenieur-Denkweise angefordert wird.
           Für reine Begriffs- oder Faktenfragen KEINE Tafel — dann antwortest
           du einfach im Fließtext.
+`
+          }
 
           Denke dabei LAUT wie ein Ingenieur — in klar getrennten,
           navigierbaren Schritten.

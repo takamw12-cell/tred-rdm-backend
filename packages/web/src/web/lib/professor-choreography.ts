@@ -46,9 +46,15 @@ export function nextPose(pose: ProfessorPose, event: ChoreographyEvent): Profess
  * Ce que le professeur DIT : sa parole (le commentaire hors Tafel). S'il n'a
  * rien écrit hors du tableau, il lit les étapes du tableau, dans l'ordre.
  */
+/** Titres de feuille qui n'apportent rien à l'oral. */
+const GENERIC_LABEL = /^(?:rückmeldung|kommentar|feedback|erklärung|antwort|schritt \d+|commentaire|explication|réponse|comment|explanation|answer)$/i;
+
 export function spokenAnswer(split: Pick<TafelSplit, "steps" | "commentary"> | undefined, fullText: string): string {
   if (!split) return answerToSpeech(fullText);
   const voice = answerToSpeech(split.commentary);
   if (voice) return voice;
-  return answerToSpeech(split.steps.map((s) => `${s.label}. ${s.body}`).join("\n\n"));
+  // Les titres génériques (« Rückmeldung », « Erklärung ») ne se lisent pas.
+  return answerToSpeech(
+    split.steps.map((s) => (GENERIC_LABEL.test(s.label) ? s.body : `${s.label}. ${s.body}`)).join("\n\n"),
+  );
 }

@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
  *   │  ═══ rebord « Farben » : couleurs du tableau ═══│
  *   └───────────────────────────────────────────────┘
  *        ┌─────────────────────────────────┐
- *        │ messages + saisie (verre dépoli)│ ← barre du chat, tout en bas
+ *        │ saisie seule (verre dépoli)     │ ← barre du bas : plus aucun message
  *        └─────────────────────────────────┘
  *
  * Décision fondateur (2026-11-09) : le rebord « Farben » reste TOUJOURS
@@ -41,7 +41,10 @@ export function HoersaalStage({
 }: {
   /** Le tableau (plein cadre). */
   board: ReactNode;
-  /** Le contenu de la barre du chat (messages + saisie). */
+  /**
+   * La barre du bas : la SAISIE seulement. Depuis le 2026-11-09, aucun
+   * message n'y apparaît — tout s'écrit au tableau (tafel-board.tsx).
+   */
   dock: ReactNode;
   /** Les éléments posés sur le tableau (le professeur flottant). */
   children?: ReactNode;
