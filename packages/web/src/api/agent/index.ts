@@ -29,6 +29,13 @@ import dedent from "dedent";
 import { gateway } from "./gateway";
 import { SONNET, type Route } from "../lib/chat-routing";
 import { withConversationCacheBreakpoint } from "./prompt-cache";
+import { reactPromptRule } from "../lib/reasoning-engine";
+
+/**
+ * La Denkspur (ReAct) du NIVEAU 2, générée par lib/reasoning-engine.ts —
+ * ré-indentée pour rester alignée dans le prompt (dedent).
+ */
+const REACT_RULE = reactPromptRule().replace(/\n/g, "\n          ");
 
 
 /**
@@ -492,6 +499,8 @@ export function buildTutorAgent(opts: {
           Person selbst.
 
           LERNZYKLUS: Frage → Hinweis → Überprüfung → Erklärung.
+
+          ${REACT_RULE}
 
           UMGANG MIT FEHLERN: Ein Fehler ist eine Chance.
           - NIEMALS sagen: "Das ist falsch", "Das ist offensichtlich",
@@ -962,39 +971,32 @@ export function buildTutorAgent(opts: {
           }
 
           Denke dabei LAUT wie ein Ingenieur — in klar getrennten,
-          navigierbaren Schritten.
+          navigierbaren Schritten: die Denkspur aus NIVEAU 2 (ReAct). Jeder
+          @@STEP erscheint an der Tafel als eigener Notizzettel mit Symbol
+          (Auge = Beobachtung, Gehirn = Gedanke, Werkzeug = Aktion, Ziel =
+          Ergebnis, Lupe = Reflexion, Pfeil zurück = Korrektur).
 
           Nutze dafür diese exakte Struktur:
 
           [[REASONING]]
           @@STEP: Beobachtung
-          … was ist gegeben, was wird gesucht …
-          @@STEP: Physik
-          … welches physikalische Prinzip greift …
-          @@STEP: Freikörperbild
-          … Kräfte/Momente, Skizze in Worten …
-          @@STEP: Annahmen
-          … Vereinfachungen und ihre Gültigkeit …
-          @@STEP: Gleichgewicht
-          … Gleichgewichtsbedingungen aufstellen …
-          @@STEP: Differentialgleichung
-          … falls nötig, die DGL formulieren …
-          @@STEP: Integration
-          … Lösung/Integration durchführen …
-          @@STEP: Randbedingungen
-          … Konstanten aus Randbedingungen bestimmen …
-          @@STEP: Endgleichung
-          … das finale Ergebnis, in LaTeX …
-          @@STEP: Ingenieurmäßige Interpretation
-          … was bedeutet das praktisch, Größenordnung, Plausibilität …
+          … was ist gegeben (mit Einheiten), was wird gesucht …
+          @@STEP: Gedanke
+          … welches Prinzip, welcher Ansatz, welche Annahmen — und warum …
+          @@STEP: Aktion
+          … das Werkzeug (balkenstatik, rechnen …) bzw. der Rechenschritt …
+          @@STEP: Ergebnis
+          … die Zahlen des Lösers, wörtlich, als $$…$$ …
+          @@STEP: Reflexion
+          … Einheit, Größenordnung, Probe/Grenzfall, praktische Bedeutung …
           [[/REASONING]]
 
           REGELN:
-          - Jeder Schritt beginnt mit "@@STEP: <Titel>" in einer eigenen Zeile.
-          - Lass Schritte weg, die für die konkrete Aufgabe nicht passen —
-            erfinde keine künstlichen Schritte.
-          - Reihenfolge beibehalten; jeder Schritt kurz und eigenständig
-            verständlich, damit man Schritt für Schritt durchklicken kann.
+          - Jeder Schritt beginnt mit "@@STEP: <Titel>" in einer eigenen Zeile,
+            mit GENAU diesen Titeln (bei weiteren Durchläufen "Gedanke 2",
+            "Aktion 2" …; bei einem echten Fehler "Korrektur").
+          - Jeder Schritt kurz und eigenständig verständlich: höchstens ein
+            bis zwei Sätze Text plus Formeln.
           - LaTeX und Dimensionskontrollen wie gewohnt verwenden.
 
           ═══════════════════════════════════════════════════════════

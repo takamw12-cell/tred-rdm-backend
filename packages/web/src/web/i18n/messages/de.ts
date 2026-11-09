@@ -225,6 +225,7 @@ export const de = {
     nextPage: "Nächstes Tafelbild",
     chooseAnswer: "Antwort wählen",
     yourChoice: "Deine Wahl",
+    thinking: "denkt nach …",
   },
   chat: {
     untitledConversation: "Neue Unterhaltung",

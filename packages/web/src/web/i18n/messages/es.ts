@@ -238,6 +238,7 @@ export const es: Messages = {
     nextPage: "Pizarra siguiente",
     chooseAnswer: "Elige una respuesta",
     yourChoice: "Tu elección",
+    thinking: "reflexiona …",
   },
   chat: {
     untitledConversation: "Nueva conversación",

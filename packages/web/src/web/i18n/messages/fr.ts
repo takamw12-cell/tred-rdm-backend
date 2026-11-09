@@ -226,6 +226,7 @@ export const fr: Messages = {
     nextPage: "Tableau suivant",
     chooseAnswer: "Choisis une réponse",
     yourChoice: "Ton choix",
+    thinking: "réfléchit …",
   },
   chat: {
     untitledConversation: "Nouvelle conversation",

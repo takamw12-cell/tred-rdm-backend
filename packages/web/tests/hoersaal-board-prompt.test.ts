@@ -28,7 +28,7 @@ describe("NIVEAU 7 — tout au tableau", () => {
     expect(p).toContain("A) …");
     expect(p).not.toContain("ALLES AUSSERHALB des Blocks ist DEINE STIMME");
     // La structure des calculs reste la même.
-    expect(p).toContain("@@STEP: Endgleichung");
+    expect(p).toContain("@@STEP: Reflexion");
   });
 
   test("autres surfaces (mobile) : format d'avant, inchangé", () => {

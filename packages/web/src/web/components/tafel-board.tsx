@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Brain, ChevronLeft, ChevronRight, Eye, RotateCcw, SearchCheck, Target, Wrench, type LucideIcon } from "lucide-react";
+import { reasoningKind, type ReasoningKind } from "../../api/lib/reasoning-engine";
 import { MarkdownContent } from "@/components/markdown-content";
 import { AiAnswer, parseAnswer, SourceCard } from "@/components/ai-answer";
 import { BoardStatus, GlassBoard, INK, PaperNote, SolverStamp, StepChecklist } from "@/components/hoersaal";
@@ -82,6 +83,12 @@ export function TafelBoard({
   const derivSteps = steps.filter((s) => s.derivation);
   const derivation = derivSteps.length >= 2;
   const lastIndex = blocks.length - 1;
+  // La feuille « résultat » mise en avant : le DERNIER Ergebnis / Endgleichung
+  // (dans une chaîne ReAct, la Reflexion vient encore après).
+  let lastFinalIndex = -1;
+  blocks.forEach((b, i) => {
+    if (b.kind === "step" && isFinalStep(b.label)) lastFinalIndex = i;
+  });
   const textLength = blocks.reduce((n, b) => n + b.body.length, 0);
 
   // Nouvelle page : on la lit depuis le haut.
@@ -164,8 +171,28 @@ export function TafelBoard({
               );
             }
             const n = steps.indexOf(b);
-            const final = isFinalStep(b.label) && n === steps.length - 1;
+            const final = i === lastFinalIndex;
             const inProgress = !b.complete || live;
+            const react = reasoningKind(b.label);
+            const title = b.derivation && derivation ? `${derivSteps.indexOf(b) + 1}. ${b.label}` : b.label;
+            const stamp =
+              final && page?.solverUsed && !inProgress ? <SolverStamp label={t("tafel.solver")} sublabel="" /> : undefined;
+            if (react) {
+              return (
+                <ReasoningPostIt
+                  key={key}
+                  kind={react}
+                  title={title}
+                  tilt={n % 2 === 0 ? -0.8 : 0.6}
+                  delay={writing ? 0 : Math.min(i, 6) * 0.12}
+                  thinking={inProgress && writing}
+                  highlight={final}
+                  stamp={stamp}
+                >
+                  <BoardText text={b.body} writing={writing} live={inProgress} offset={i} onChoice={onChoice} chosen={chosen} />
+                </ReasoningPostIt>
+              );
+            }
             return (
               <motion.div
                 key={key}
@@ -178,12 +205,8 @@ export function TafelBoard({
                   // Deux feuilles voisines ne sont jamais parallèles.
                   tilt={n % 2 === 0 ? -0.5 : 0.4}
                   highlight={final}
-                  title={b.derivation && derivation ? `${derivSteps.indexOf(b) + 1}. ${b.label}` : b.label}
-                  stamp={
-                    final && page?.solverUsed && !inProgress ? (
-                      <SolverStamp label={t("tafel.solver")} sublabel="" />
-                    ) : undefined
-                  }
+                  title={title}
+                  stamp={stamp}
                 >
                   {/* Formules en grand : la Tafel se lit de loin. */}
                   <div
@@ -427,6 +450,93 @@ function BoardPager({
         <ChevronRight className="size-4" />
       </button>
     </nav>
+  );
+}
+
+/* ── La Denkspur (ReAct) : un post-it par étape ─────────────────────── */
+
+const POSTIT: Record<ReasoningKind, { icon: LucideIcon; paper: string; badge: string; de: string }> = {
+  beobachtung: { icon: Eye, paper: "#FEF9C3", badge: "#0369A1", de: "sieht" },
+  gedanke: { icon: Brain, paper: "#FEF3C7", badge: "#7C3AED", de: "überlegt" },
+  aktion: { icon: Wrench, paper: "#FFEDD5", badge: "#C2410C", de: "rechnet" },
+  ergebnis: { icon: Target, paper: "#DCFCE7", badge: "#15803D", de: "hält fest" },
+  reflexion: { icon: SearchCheck, paper: "#E0F2FE", badge: "#1D4ED8", de: "prüft" },
+  korrektur: { icon: RotateCcw, paper: "#FFE4E6", badge: "#BE123C", de: "korrigiert" },
+};
+
+/**
+ * Un post-it collé au tableau (bande adhésive, pas d'aimant) : l'icône dit
+ * le type d'étape — œil, cerveau, outil, cible, loupe, flèche retour. Le
+ * papier reste clair sur tous les fonds (vert, sombre) : l'encre est fixe.
+ * Pendant l'écriture, le cerveau « réfléchit » (pulsation) à côté du titre.
+ */
+function ReasoningPostIt({
+  kind,
+  title,
+  tilt,
+  delay,
+  thinking,
+  highlight,
+  stamp,
+  children,
+}: {
+  kind: ReasoningKind;
+  title: string;
+  tilt: number;
+  delay: number;
+  thinking: boolean;
+  highlight: boolean;
+  stamp?: ReactNode;
+  children: ReactNode;
+}) {
+  const { t } = useT();
+  const look = POSTIT[kind];
+  const Icon = look.icon;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 14, rotate: tilt * 3, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, rotate: tilt, scale: 1 }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay }}
+      className="flex w-full justify-center"
+    >
+      <article
+        data-slot="tafel-postit"
+        data-kind={kind}
+        className={cn(
+          "relative w-full max-w-3xl rounded-[3px] px-5 pt-7 pb-5 text-[#1A1A1A] shadow-[0_1px_1px_rgb(15_23_42/0.1),0_14px_24px_-12px_rgb(15_23_42/0.45),inset_0_-12px_18px_-14px_rgb(0_0_0/0.18)] sm:px-7",
+          highlight && "ring-2 ring-[#EAB308]",
+        )}
+        style={{ background: `linear-gradient(175deg, ${look.paper} 0%, ${look.paper} 88%, rgb(0 0 0 / 0.03) 100%)` }}
+      >
+        {/* Bande adhésive */}
+        <span
+          aria-hidden
+          className="absolute -top-2.5 left-1/2 h-5 w-20 -translate-x-1/2 rotate-[-2deg] bg-white/55 shadow-[0_1px_2px_rgb(0_0_0/0.12)] backdrop-blur-[1px]"
+        />
+        <header className="mb-2 flex items-start justify-between gap-3">
+          <h2 className="flex items-center gap-2.5">
+            <span
+              aria-hidden
+              className="grid size-8 shrink-0 place-items-center rounded-full text-white shadow-sm"
+              style={{ background: look.badge }}
+            >
+              <Icon className={cn("size-4", thinking && "motion-safe:animate-pulse")} strokeWidth={2.4} />
+            </span>
+            <span className="font-hand text-2xl leading-none font-bold sm:text-[1.7rem]">{title}</span>
+            {thinking && (
+              <span className="ml-1 flex items-center gap-1 text-xs font-medium text-[#475569]">
+                <Brain className="size-3.5 motion-safe:animate-pulse" aria-hidden />
+                {t("tafel.thinking")}
+              </span>
+            )}
+          </h2>
+          {stamp}
+        </header>
+        <div className="[&_.katex-display]:my-2 [&_.katex-display]:!overflow-x-auto [&_.katex-display_.katex]:text-[1.2em]">
+          {children}
+        </div>
+      </article>
+    </motion.div>
   );
 }
 

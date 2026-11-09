@@ -226,6 +226,7 @@ export const en: Messages = {
     nextPage: "Next board",
     chooseAnswer: "Choose an answer",
     yourChoice: "Your choice",
+    thinking: "thinking …",
   },
   chat: {
     untitledConversation: "New conversation",

@@ -576,6 +576,15 @@ html:lang(ar) body { line-height: 1.7; }
 :is([data-board-theme="green"], [data-board-theme="dark"]) [data-slot="tafel-board"] :is(th, td) { border-color: rgb(255 255 255 / 0.25); }
 :is([data-board-theme="green"], [data-board-theme="dark"]) [data-slot="tafel-board"] th { background: rgb(255 255 255 / 0.08); }
 
+/* Les post-its de la Denkspur restent du papier clair sur tous les fonds :
+   leur encre ne suit pas la craie. */
+[data-slot="tafel-board"] [data-slot="tafel-postit"],
+[data-slot="tafel-board"] [data-slot="tafel-postit"] :is(strong, a, code, .text-muted-foreground, .text-foreground) {
+  color: #1a1a1a;
+}
+[data-slot="tafel-board"] [data-slot="tafel-postit"] code { background: rgb(0 0 0 / 0.06); }
+[data-slot="tafel-board"] [data-slot="tafel-postit"] :is(th, td) { border-color: rgb(0 0 0 / 0.15); }
+
 /* Schémas : transparents, et leurs traits inversés pour rester lisibles. */
 :is([data-board-theme="green"], [data-board-theme="dark"]) [data-slot="diagram"] {
   background: transparent;
