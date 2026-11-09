@@ -369,8 +369,8 @@
 
 /* Cartes en verre sombre : flou derrière la transparence de --card. */
 .dark [data-slot="card"] {
-  backdrop-filter: blur(14px) saturate(1.2);
-  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), var(--shadow-card);
 }
 
@@ -483,13 +483,16 @@ html:lang(ar) body { line-height: 1.7; }
 /* ── Verre dépoli (toute l'app, via le layout) ─────────────────────────
    Toutes les cartes ui/card d'une zone `.glass-scope` laissent deviner le
    fond photo (DynamicBackground) sans perdre le contraste du texte.
-   80 % de blanc et non 70 : sur la photo la plus sombre (engrenages noirs),
-   70 % ramenait le texte secondaire #6B6B6B sous 4,5:1 ; 80 % le garde au-
-   dessus. La carte d'appel à l'action (bg-primary, encre pleine) est exclue. */
+   60 % de blanc et un flou plus fort (24 px) depuis le 2026-11-09 : la photo
+   transparaît davantage. Pour que le texte gris reste ≥ 4,5:1 sur la photo
+   la plus sombre (engrenages noirs), il fonce un peu DANS le verre :
+   #6B6B6B → #5C5C5C (voir --muted-foreground juste en dessous ; calcul :
+   5,6:1 au pire cas en page de lecture, 4,9:1 sur le Dashboard).
+   La carte d'appel à l'action (bg-primary, encre pleine) est exclue. */
 .glass-scope [data-slot="card"]:not(.bg-primary) {
-  background-color: rgb(255 255 255 / 0.8);
-  -webkit-backdrop-filter: blur(14px) saturate(1.2);
-  backdrop-filter: blur(14px) saturate(1.2);
+  background-color: rgb(255 255 255 / 0.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  backdrop-filter: blur(24px) saturate(1.4);
   border-color: rgb(255 255 255 / 0.6);
   /* Profondeur du Hörsaal : la carte avance hors de la photo, comme le
      tableau hors du mur — ombre longue et douce + liseré de lumière. */
@@ -611,9 +614,11 @@ html:lang(ar) body { line-height: 1.7; }
   color: #fff;
 }
 /* Dans la salle sombre, les cartes sont des écrans éclairés : plus opaques,
-   sinon le blanc à 80 % sur le bleu nuit vire au gris. */
+   sinon le blanc translucide sur le bleu nuit vire au gris. 86 % (et non
+   94 %) : la photo se devine ; en dessous, le texte gris passerait sous
+   4,5:1 sur la photo la plus sombre — aucune ombre portée ne le rattrape. */
 [data-room="dark"] [data-slot="card"]:not(.bg-primary) {
-  background-color: rgb(255 255 255 / 0.94);
+  background-color: rgb(255 255 255 / 0.86);
 }
 [data-room="dark"] [data-slot="app-footer"] {
   border-color: rgb(255 255 255 / 0.08);
@@ -658,20 +663,30 @@ html:lang(ar) body { line-height: 1.7; }
    (classe `.glass` / `.glass-chip`) là où ce ne sont pas des ui/card. */
 .glass-scope .glass,
 .glass-scope .glass-chip {
-  background-color: rgb(255 255 255 / 0.8);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
+  background-color: rgb(255 255 255 / 0.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  backdrop-filter: blur(24px) saturate(1.4);
+}
+
+/* Texte secondaire DANS le verre clair : un cran plus foncé que #6B6B6B,
+   pour compenser la transparence (contraste ≥ 4,5:1 sur toute photo).
+   Thème clair seulement : en sombre, le texte clair a toute la marge. */
+:root:not(.dark) .glass-scope [data-slot="card"]:not(.bg-primary):not(.paper-sheet),
+:root:not(.dark) .glass-scope .glass,
+:root:not(.dark) .glass-scope .glass-chip {
+  --muted-foreground: #5c5c5c;
 }
 
 /* Barre latérale bleu nuit (#0F172A), en verre sombre : la photo de fond
-   transparaît à peine, le texte blanc garde un contraste > 12:1.
+   transparaît (80 % depuis le 2026-11-09, 92 % avant). Pire cas — fond crème
+   derrière — le blanc reste à 9,7:1 et le blanc à 60 % à 4,6:1.
    Identique en thème clair et sombre — c'est la signature de l'app. */
 .sidebar-night,
 .glass-scope .sidebar-night {
-  background-color: rgb(15 23 42 / 0.92);
-  border-color: rgb(255 255 255 / 0.08);
-  -webkit-backdrop-filter: blur(16px) saturate(1.2);
-  backdrop-filter: blur(16px) saturate(1.2);
+  background-color: rgb(15 23 42 / 0.8);
+  border-color: rgb(255 255 255 / 0.12);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  backdrop-filter: blur(24px) saturate(1.4);
   color: #fff;
 }
 
@@ -680,8 +695,10 @@ html:lang(ar) body { line-height: 1.7; }
    le texte clair garde son contraste. Les feuilles d'exercice restent du
    PAPIER (on les pose sur la Tafel) : encre foncée forcée dessus. */
 .dark .glass-scope [data-slot="card"]:not(.bg-primary) {
-  background-color: rgb(15 23 42 / 0.74);
-  border-color: rgb(255 255 255 / 0.08);
+  /* 55 % (74 % avant le 2026-11-09) : derrière, la photo est déjà assombrie
+     par le voile bleu nuit ; le texte clair garde > 5:1 au pire cas. */
+  background-color: rgb(15 23 42 / 0.55);
+  border-color: rgb(255 255 255 / 0.15);
   box-shadow:
     0 44px 80px -28px rgb(0 0 0 / 0.7),
     0 18px 34px -16px rgb(0 0 0 / 0.45),
@@ -690,7 +707,7 @@ html:lang(ar) body { line-height: 1.7; }
 }
 .dark .glass-scope .glass,
 .dark .glass-scope .glass-chip {
-  background-color: rgb(15 23 42 / 0.74);
+  background-color: rgb(15 23 42 / 0.55);
 }
 .dark .paper-sheet {
   --foreground: #0f172a;
