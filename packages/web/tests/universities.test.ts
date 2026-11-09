@@ -1,11 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import {
   BUNDESLAENDER,
   findUniversity,
-  flagUrl,
   groupByLand,
+  initialsOf,
+  LOGO_DOMAINS,
   searchUniversities,
   UNIVERSITIES,
   type LandCode,
@@ -14,21 +15,25 @@ import {
 const PUBLIC = join(import.meta.dir, "..", "public");
 const LANDS = Object.keys(BUNDESLAENDER) as LandCode[];
 
-describe("drapeaux des 16 Länder", () => {
-  test("16 Länder, un SVG local pour chacun", () => {
+describe("logos des établissements (plus de drapeaux des Länder)", () => {
+  test("16 Länder, et les drapeaux ont quitté le dépôt", () => {
     expect(LANDS).toHaveLength(16);
-    for (const l of LANDS) expect(existsSync(join(PUBLIC, flagUrl(l)))).toBe(true);
+    expect(existsSync(join(PUBLIC, "flags"))).toBe(false);
   });
-  test("SVG sûrs : ni script, ni gestionnaire, ni ressource externe", () => {
-    for (const l of LANDS) {
-      const svg = readFileSync(join(PUBLIC, flagUrl(l)), "utf8");
-      expect(svg).toContain("<svg");
-      expect(svg).not.toMatch(/<script|<foreignObject|\son[a-z]+=|href="(https?:|\/\/|data:)/i);
-    }
+  test("chaque établissement a un domaine officiel, unique et bien formé", () => {
+    for (const u of UNIVERSITIES) expect(u.domain).toMatch(/^[a-z0-9-]+(\.[a-z0-9-]+)*\.(de|edu|berlin)$/);
+    expect(LOGO_DOMAINS.size).toBe(UNIVERSITIES.length);
+    expect(findUniversity("RWTH Aachen")?.domain).toBe("rwth-aachen.de");
+    expect(findUniversity("FH Aachen")?.domain).toBe("fh-aachen.de");
+    expect(findUniversity("TU München")?.domain).toBe("tum.de");
   });
-  test("code drapeau ISO 3166-2 : de-nw pour Nordrhein-Westfalen", () => {
-    expect(flagUrl("nw")).toBe("/flags/de-nw.svg");
-    expect(BUNDESLAENDER.nw).toBe("Nordrhein-Westfalen");
+  test("monogramme d'un établissement hors liste : ses initiales", () => {
+    expect(initialsOf("Sorbonne Université")).toBe("SU");
+    expect(initialsOf("Lycée Victor Hugo")).toBe("LVH");
+    expect(initialsOf("École des Ponts ParisTech")).toBe("ÉPP");
+    expect(initialsOf("RWTH")).toBe("RWTH");
+    expect(initialsOf("")).toBe("TRED");
+    expect(initialsOf(null)).toBe("TRED");
   });
 });
 

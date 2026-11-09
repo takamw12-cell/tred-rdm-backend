@@ -291,10 +291,10 @@ export default function SettingsPage() {
           label={t("common.university")}
           description={
             locale === "de"
-              ? "Mit der Flagge deines Bundeslandes — und für die Kurse deiner Kommilitonen."
+              ? "Mit dem Logo deiner Hochschule — und für die Kurse deiner Kommilitonen."
               : locale === "fr"
-                ? "Avec le drapeau de ton Land — et pour retrouver les cours de tes camarades."
-                : "Shown with your state's flag — and used to find your classmates' courses."
+                ? "Avec le logo de ton établissement — et pour retrouver les cours de tes camarades."
+                : "Shown with your university's logo — and used to find your classmates' courses."
           }
         >
           <UniversityPicker />

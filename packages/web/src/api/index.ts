@@ -30,6 +30,7 @@ import { courses, myCourseIds } from "./routes/courses";
 import { visibleDocuments } from "./lib/visible-documents";
 import { auth } from "./auth";
 import { rateLimitMiddleware } from "./middleware/rate-limit";
+import { fetchInstitutionLogo, isAllowedLogoDomain } from "./lib/institution-logo";
 import { db } from "./database";
 import {
   contentReport,
@@ -174,6 +175,8 @@ for (const p of ["/api/auth/sign-in/*", "/api/auth/sign-up/*", "/api/auth/forget
 }
 // Rapports d'erreurs du navigateur : publics, donc bornés (anti-spam de logs).
 app.use("/api/errors", rateLimitMiddleware({ limit: 20, scope: "errors", by: "ip" }));
+// Logos des établissements : publics, liste fermée, en cache — bornés quand même.
+app.use("/api/logo/*", rateLimitMiddleware({ limit: 120, scope: "logo", by: "ip" }));
 app.use("/api/agent/*", rateLimitMiddleware({ limit: 5, scope: "agent" }));
 app.use(
   "/api/documents/upload",
@@ -375,6 +378,22 @@ app.post("/api/errors", async (c) => {
     /* corps illisible : rien à journaliser, rien à signaler */
   }
   return c.body(null, 204);
+});
+
+// Logo d'un établissement (lib/institution-logo.ts) : relayé par NOTRE
+// serveur pour que le navigateur ne contacte aucun tiers (RGPD). 404 = pas de
+// logo utilisable → le navigateur affiche le monogramme.
+app.get("/api/logo/:domain", async (c) => {
+  const domain = c.req.param("domain").toLowerCase();
+  if (!isAllowedLogoDomain(domain)) return c.body(null, 404);
+  const logo = await fetchInstitutionLogo(domain);
+  if (!logo.ok) return c.body(null, 404, { "Cache-Control": "public, max-age=86400" });
+  return c.body(logo.body, 200, {
+    "Content-Type": logo.type,
+    "Cache-Control": "public, max-age=604800, stale-while-revalidate=86400",
+    "X-Content-Type-Options": "nosniff",
+    "Content-Security-Policy": "default-src 'none'",
+  });
 });
 
 app.get("/api/config", (c) =>

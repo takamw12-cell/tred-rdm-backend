@@ -5,20 +5,15 @@ import { useLocaleStore } from "@/stores/locale";
 import { Modal } from "@/components/modal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  BUNDESLAENDER,
-  findUniversity,
-  flagUrl,
-  groupByLand,
-  searchUniversities,
-  type LandCode,
-  type University,
-} from "@/lib/universities";
+import { BUNDESLAENDER, findUniversity, groupByLand, searchUniversities } from "@/lib/universities";
+import { InstitutionLogo } from "@/components/institution-logo";
 import { cn } from "@/lib/utils";
 
 /**
  * Hochschule — réglages. Une modale : recherche, Hochschulen groupées par
- * Land avec le drapeau du Land, et « andere Hochschule » en texte libre.
+ * Land, chacune avec SON logo (components/institution-logo.tsx — plus de
+ * drapeaux des Länder, décision fondateur 2026-11-09), et « andere
+ * Hochschule » en texte libre (monogramme de ses initiales).
  * Écrit `profile.university` (nom officiel), que lit aussi la recherche de
  * cours du Dashboard.
  */
@@ -30,42 +25,6 @@ const COPY = {
 };
 export function universityCopy(locale: string) {
   return locale === "de" ? COPY.de : locale === "fr" ? COPY.fr : COPY.en;
-}
-
-/** Petit drapeau du Land en « pill » : 5:3, coins arrondis, liseré discret (clair et sombre). */
-export function LandFlag({ land, className }: { land: LandCode; className?: string }) {
-  return (
-    <img
-      src={flagUrl(land)}
-      alt={BUNDESLAENDER[land]}
-      title={BUNDESLAENDER[land]}
-      width={20}
-      height={12}
-      loading="lazy"
-      decoding="async"
-      className={cn(
-        "inline-block h-3 w-5 shrink-0 rounded-[3px] object-cover",
-        "shadow-[0_0_0_1px_rgb(15_23_42/0.12)] dark:shadow-[0_0_0_1px_rgb(255_255_255/0.18)]",
-        className,
-      )}
-    />
-  );
-}
-
-/** Monogramme à la place du logo (les logos sont des marques protégées). */
-export function UniMonogram({ u, className }: { u: University; className?: string }) {
-  return (
-    <span
-      aria-hidden
-      className={cn(
-        "grid h-8 min-w-8 shrink-0 place-items-center rounded-lg px-1.5 text-[10px] leading-none font-bold tracking-tight",
-        "bg-[#0F172A] text-[#EAB308] dark:bg-[#EAB308]/15",
-        className,
-      )}
-    >
-      {u.short}
-    </span>
-  );
 }
 
 export function UniversityPicker() {
@@ -97,7 +56,11 @@ export function UniversityPicker() {
         aria-haspopup="dialog"
         className="border-input bg-background hover:bg-accent flex w-72 max-w-full items-center gap-2.5 rounded-lg border px-3 py-2 text-left text-sm transition-colors"
       >
-        {current ? <LandFlag land={current.land} /> : null}
+        {current ? (
+          <InstitutionLogo domain={current.domain} name={current.name} short={current.short} size={24} />
+        ) : profile.university ? (
+          <InstitutionLogo name={profile.university} size={24} />
+        ) : null}
         <span className="min-w-0 flex-1 truncate">{current?.name ?? (profile.university || c.choose)}</span>
         <ChevronDown className="text-muted-foreground size-4 shrink-0" aria-hidden />
       </button>
@@ -112,8 +75,7 @@ export function UniversityPicker() {
           {groups.length === 0 && <p className="text-muted-foreground py-4 text-center text-sm">{c.none}</p>}
           {groups.map(({ land, items }) => (
             <section key={land} className="mb-3">
-              <h3 className="text-muted-foreground mb-1.5 flex items-center gap-2 font-sans text-[11px] font-semibold tracking-wide uppercase">
-                <LandFlag land={land} />
+              <h3 className="text-muted-foreground mb-1.5 font-sans text-[11px] font-semibold tracking-wide uppercase">
                 {BUNDESLAENDER[land]}
               </h3>
               <ul className="space-y-1">
@@ -130,13 +92,10 @@ export function UniversityPicker() {
                           selected ? "border-[#EAB308] bg-[#EAB308]/10" : "hover:bg-accent border-transparent",
                         )}
                       >
-                        <UniMonogram u={u} />
+                        <InstitutionLogo domain={u.domain} name={u.name} short={u.short} size={32} />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-medium">{u.name}</span>
-                          <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
-                            <LandFlag land={u.land} className="h-2.5 w-4" />
-                            {u.city}
-                          </span>
+                          <span className="text-muted-foreground block truncate text-xs">{u.city}</span>
                         </span>
                         {selected && <Check className="size-4 shrink-0 text-[#EAB308]" aria-hidden />}
                       </button>
@@ -162,19 +121,33 @@ export function UniversityPicker() {
   );
 }
 
-/** Drapeau + nom, en pastille — Dashboard (sur la photo sombre). */
+/** Logo + nom + ville, en pastille — Dashboard (sur la photo sombre). */
 export function UniversityBadge({ className }: { className?: string }) {
   const university = useUserStore((s) => s.profile.university);
   const u = findUniversity(university);
-  if (!u) return null;
+  // Établissement hors liste (texte libre) : son monogramme, sans ville.
+  if (!u) {
+    if (!university?.trim()) return null;
+    return (
+      <span
+        className={cn(
+          "inline-flex max-w-full items-center gap-2 rounded-full border border-white/20 bg-white/10 py-1 pr-3 pl-1 text-xs font-medium text-white backdrop-blur-md",
+          className,
+        )}
+      >
+        <InstitutionLogo name={university} size={24} />
+        <span className="truncate">{university}</span>
+      </span>
+    );
+  }
   return (
     <span
       className={cn(
-        "inline-flex max-w-full items-center gap-2 rounded-full border border-white/20 bg-white/10 py-1 pr-3 pl-1.5 text-xs font-medium text-white backdrop-blur-md",
+        "inline-flex max-w-full items-center gap-2 rounded-full border border-white/20 bg-white/10 py-1 pr-3 pl-1 text-xs font-medium text-white backdrop-blur-md",
         className,
       )}
     >
-      <LandFlag land={u.land} className="h-3.5 w-[22px] rounded-full shadow-[0_0_0_1px_rgb(255_255_255/0.35)]" />
+      <InstitutionLogo domain={u.domain} name={u.name} short={u.short} size={24} />
       <span className="truncate">{u.name}</span>
       <span className="text-white/60">· {u.city}</span>
     </span>
