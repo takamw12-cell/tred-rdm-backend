@@ -695,9 +695,10 @@ html:lang(ar) body { line-height: 1.7; }
    le texte clair garde son contraste. Les feuilles d'exercice restent du
    PAPIER (on les pose sur la Tafel) : encre foncée forcée dessus. */
 .dark .glass-scope [data-slot="card"]:not(.bg-primary) {
-  /* 55 % (74 % avant le 2026-11-09) : derrière, la photo est déjà assombrie
-     par le voile bleu nuit ; le texte clair garde > 5:1 au pire cas. */
-  background-color: rgb(15 23 42 / 0.55);
+  /* 66 % (74 % avant le 2026-11-09) : plancher calculé pour que le gris
+     clair #94A3B8 reste ≥ 4,5:1 sous le voile allégé, photo blanche derrière
+     (tests/background-sets.test.ts). */
+  background-color: rgb(15 23 42 / 0.66);
   border-color: rgb(255 255 255 / 0.15);
   box-shadow:
     0 44px 80px -28px rgb(0 0 0 / 0.7),
@@ -707,7 +708,25 @@ html:lang(ar) body { line-height: 1.7; }
 }
 .dark .glass-scope .glass,
 .dark .glass-scope .glass-chip {
-  background-color: rgb(15 23 42 / 0.55);
+  background-color: rgb(15 23 42 / 0.66);
+}
+
+/* Texte posé DIRECTEMENT sur la photo de fond (titres de page, en-tête du
+   Dashboard, pied de page) : un halo de la couleur du voile détache chaque
+   lettre, même quand la photo est chargée derrière. Crème en clair, nuit en
+   sombre et dans la salle sombre (Dashboard, Hörsaal). */
+.on-photo {
+  text-shadow:
+    0 0 2px rgb(253 251 247 / 0.95),
+    0 0 12px rgb(253 251 247 / 0.85),
+    0 0 24px rgb(253 251 247 / 0.6);
+}
+.dark .on-photo,
+[data-room="dark"] .on-photo {
+  text-shadow:
+    0 1px 2px rgb(0 0 0 / 0.75),
+    0 0 12px rgb(0 0 0 / 0.6),
+    0 0 24px rgb(0 0 0 / 0.4);
 }
 .dark .paper-sheet {
   --foreground: #0f172a;

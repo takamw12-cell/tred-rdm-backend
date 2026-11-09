@@ -195,6 +195,63 @@ const R = {
     query: "Architektur Modellbau Set Schneidematte Cutter",
     icon: "tool",
   },
+  // Hors ingénierie (2026-11-09) : des classiques réels des cursus allemands.
+  sobotta: {
+    id: "sobotta",
+    title: "Sobotta: Atlas der Anatomie",
+    why: "Der Anatomie-Atlas für Präparierkurs und Physikum.",
+    query: "Sobotta Atlas der Anatomie",
+    icon: "book",
+  },
+  silbernagl: {
+    id: "silbernagl-physiologie",
+    title: "Silbernagl: Taschenatlas Physiologie",
+    why: "Physiologie kompakt, Bild und Text auf einer Doppelseite.",
+    query: "Silbernagl Taschenatlas Physiologie",
+    icon: "book",
+  },
+  herold: {
+    id: "herold-innere",
+    title: "Herold: Innere Medizin",
+    why: "Das Standardwerk für die Innere — jedes Jahr aktualisiert.",
+    query: "Herold Innere Medizin",
+    icon: "book",
+  },
+  schoenfelder: {
+    id: "schoenfelder",
+    title: "Schönfelder: Deutsche Gesetze",
+    why: "Die Gesetzessammlung, die in den Klausuren auf dem Tisch liegt.",
+    query: "Schönfelder Deutsche Gesetze",
+    icon: "book",
+  },
+  brox: {
+    id: "brox-bgb-at",
+    title: "Brox/Walker: Allgemeiner Teil des BGB",
+    why: "Der Einstieg ins Zivilrecht, mit Fällen zum Üben.",
+    query: "Brox Walker Allgemeiner Teil des BGB",
+    icon: "book",
+  },
+  creifelds: {
+    id: "creifelds",
+    title: "Creifelds: Rechtswörterbuch",
+    why: "Jeder Rechtsbegriff kurz und verlässlich erklärt.",
+    query: "Creifelds Rechtswörterbuch",
+    icon: "book",
+  },
+  mankiw: {
+    id: "mankiw-vwl",
+    title: "Mankiw/Taylor: Grundzüge der Volkswirtschaftslehre",
+    why: "Die VWL-Einführung mit vielen Beispielen.",
+    query: "Mankiw Taylor Grundzüge der Volkswirtschaftslehre",
+    icon: "book",
+  },
+  coenenberg: {
+    id: "coenenberg",
+    title: "Coenenberg: Jahresabschluss und Jahresabschlussanalyse",
+    why: "Rechnungswesen und Bilanzanalyse, Schritt für Schritt.",
+    query: "Coenenberg Jahresabschluss und Jahresabschlussanalyse",
+    icon: "book",
+  },
 } satisfies Record<string, PartnerResource>;
 
 export const RESOURCES_BY_CATEGORY: Record<BackgroundCategory, PartnerResource[]> = {
@@ -214,6 +271,9 @@ export const RESOURCES_BY_CATEGORY: Record<BackgroundCategory, PartnerResource[]
   civil: [R.schneider, R.gross, R.casio],
   informatics: [R.cleanCode, R.papula, R.casio],
   physics: [R.tipler, R.papula, R.casio],
+  medicine: [R.sobotta, R.silbernagl, R.herold],
+  law: [R.schoenfelder, R.brox, R.creifelds],
+  economics: [R.woehe, R.mankiw, R.coenenberg],
 };
 
 export function resourcesFor(category: BackgroundCategory): PartnerResource[] {

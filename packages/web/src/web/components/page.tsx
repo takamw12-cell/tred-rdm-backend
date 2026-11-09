@@ -48,10 +48,11 @@ export function Reveal({
 export function PageHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <Reveal className="mb-6">
-      <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
+      {/* Posés directement sur la photo de fond : halo de lisibilité (.on-photo). */}
+      <h1 className="on-photo font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
         {title}
       </h1>
-      {subtitle && <p className="text-muted-foreground mt-1.5 text-sm sm:text-base">{subtitle}</p>}
+      {subtitle && <p className="on-photo text-muted-foreground mt-1.5 text-sm sm:text-base">{subtitle}</p>}
     </Reveal>
   );
 }

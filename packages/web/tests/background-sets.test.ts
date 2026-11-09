@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  AWAITING_IMAGES,
   CATEGORY_IMAGES,
   GENERAL,
   backgroundsFor,
@@ -35,7 +36,19 @@ describe("fonds selon la filière", () => {
     ["Mathematik/Physik", "mathematics"],
     ["Technische Physik", "physics"],
     ["Physik", "physics"],
-    ["Betriebswirtschaft", "general"],
+    // Hors ingénierie (2026-11-09)
+    ["Medizin", "medicine"],
+    ["Humanmedizin", "medicine"],
+    ["Biomedizinische Technik", "biomedical"],
+    ["Medizintechnik", "biomedical"],
+    ["Rechtswissenschaften", "law"],
+    ["Jura", "law"],
+    ["Droit des affaires", "law"],
+    ["Wirtschaftswissenschaften", "economics"],
+    ["Betriebswirtschaft", "economics"],
+    ["BWL", "economics"],
+    ["Wirtschaftsingenieurwesen", "industrial"],
+    ["Theologie", "general"],
     ["", "general"],
   ] as const)("%s → %s", (program, category) => {
     expect(categoryForProgram(program)).toBe(category);
@@ -47,15 +60,23 @@ describe("fonds selon la filière", () => {
 
   test("au moins 3 images thématiques par filière (propres, ou voisines en attendant)", () => {
     for (const [cat, own] of Object.entries(CATEGORY_IMAGES)) {
-      if (cat === "general") continue;
+      if (cat === "general" || (AWAITING_IMAGES as readonly string[]).includes(cat)) continue;
       expect(own.length).toBeGreaterThanOrEqual(3);
       expect(own[0]).not.toContain("/general/");
       expect(backgroundsFor(cat as keyof typeof CATEGORY_IMAGES)).toEqual(own);
     }
   });
 
+  test("images en attente : le fond général, jamais vide — et la liste se vide dès qu'elles arrivent", () => {
+    for (const cat of AWAITING_IMAGES) {
+      if (CATEGORY_IMAGES[cat].length === 0) expect(backgroundsFor(cat)).toEqual(GENERAL);
+      // Des images sont arrivées : retirer la filière de AWAITING_IMAGES.
+      else expect(CATEGORY_IMAGES[cat].length).toBeLessThan(3);
+    }
+  });
+
   test("filière inconnue → fond général", () => {
-    expect(backgroundsFor(categoryForProgram("Betriebswirtschaft"))).toEqual(GENERAL);
+    expect(backgroundsFor(categoryForProgram("Theologie"))).toEqual(GENERAL);
   });
 
   test("chaque image et sa variante portrait existent dans public/", () => {
@@ -102,12 +123,71 @@ describe("voile : contraste AA dans le pire cas", () => {
     expect(stops).toHaveLength(3);
   });
 
-  test("texte blanc et texte blanc à 70 % lisibles même sur une photo blanche", () => {
+  test("en haut (titre, date, sous-titre) : blanc et blanc à 70 % ≥ 4,5:1 même sur une photo blanche", () => {
     const WHITE = [255, 255, 255];
-    for (const { c, a } of stops) {
-      const bg = mix(c, WHITE, a); // voile posé sur le pixel le plus clair
-      expect(contrast(WHITE, bg)).toBeGreaterThanOrEqual(4.5);
-      expect(contrast(mix(WHITE, bg, 0.7), bg)).toBeGreaterThanOrEqual(4.5);
-    }
+    const { c, a } = stops[0];
+    const bg = mix(c, WHITE, a); // voile posé sur le pixel le plus clair
+    expect(contrast(WHITE, bg)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(mix(WHITE, bg, 0.7), bg)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  test("plus bas (voile allégé) : le blanc reste ≥ 3:1 sur une photo blanche, le halo .on-photo fait le reste", () => {
+    const WHITE = [255, 255, 255];
+    for (const { c, a } of stops) expect(contrast(WHITE, mix(c, WHITE, a))).toBeGreaterThanOrEqual(3);
+  });
+
+  test("le voile laisse vraiment voir la photo (≤ 50 % au milieu)", () => {
+    expect(stops[1].a).toBeLessThanOrEqual(0.5);
+  });
+});
+
+/**
+ * Le verre ET le voile ensemble : le texte gris d'une carte reste ≥ 4,5:1
+ * dans le pire cas — voile le plus léger, photo la plus défavorable derrière.
+ * Les valeurs sont relues dans styles.css et VEILS : baisser une opacité
+ * sous son plancher fait échouer ce test.
+ */
+describe("cartes en verre : contraste AA dans le pire cas", () => {
+  const css = readFileSync(join(import.meta.dir, "../src/web/styles.css"), "utf8");
+  const lin = (c: number) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  const lum = ([r, g, b]: number[]) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  const mix = (fg: number[], bg: number[], a: number) => fg.map((c, i) => c * a + bg[i] * (1 - a));
+  const contrast = (a: number[], b: number[]) => {
+    const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+    return (x + 0.05) / (y + 0.05);
+  };
+  const hex = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  /** Opacité de fond de la première règle CSS qui commence par `selector`. */
+  const alphaOf = (selector: string, color: string) => {
+    const block = css.slice(css.indexOf(selector));
+    const m = new RegExp(`background-color: rgb\\(${color} / ([0-9.]+)\\)`).exec(block.slice(0, block.indexOf("}")));
+    if (!m) throw new Error(`opacité introuvable pour ${selector}`);
+    return Number(m[1]);
+  };
+  const calmMin = Math.min(...[...VEILS.calm.matchAll(/background\/(\d+)/g)].map((m) => Number(m[1]) / 100));
+  const CREAM = hex("#FDFBF7");
+  const NIGHT = hex("#0F172A");
+  const BLACK = [0, 0, 0];
+  const WHITE = [255, 255, 255];
+
+  test("clair : gris #5C5C5C sur carte en verre, voile le plus léger, photo noire", () => {
+    const card = alphaOf('.glass-scope [data-slot="card"]:not(.bg-primary) {', "255 255 255");
+    const behind = mix(CREAM, BLACK, calmMin);
+    expect(css).toContain("--muted-foreground: #5c5c5c;");
+    expect(contrast(hex("#5C5C5C"), mix(WHITE, behind, card))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  test("sombre : gris clair #94A3B8 sur carte bleu nuit, voile le plus léger, photo blanche", () => {
+    const card = alphaOf('.dark .glass-scope [data-slot="card"]:not(.bg-primary) {', "15 23 42");
+    const behind = mix(NIGHT, WHITE, calmMin);
+    expect(contrast(hex("#94A3B8"), mix(NIGHT, behind, card))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  test("salle sombre (Dashboard) : gris #5C5C5C sur carte claire, photo noire", () => {
+    const card = alphaOf('[data-room="dark"] [data-slot="card"]:not(.bg-primary) {', "255 255 255");
+    expect(contrast(hex("#5C5C5C"), mix(WHITE, BLACK, card))).toBeGreaterThanOrEqual(4.5);
   });
 });

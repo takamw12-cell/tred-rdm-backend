@@ -77,6 +77,9 @@ function SidebarPanel({
 export function AppLayout({ children }: { children: ReactNode }) {
   const { t } = useT();
   const [location] = useLocation();
+  // Salle sombre : le Dashboard et le Hörsaal (/chat), où la photo de la
+  // filière se voit sous un voile sombre (dynamic-background.tsx, « vivid »).
+  const darkRoom = location.startsWith("/dashboard") || location.startsWith("/chat");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   // Mémorisé : `useSearchShortcut` dépend de cette fonction ; une nouvelle à
@@ -117,9 +120,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
       className="glass-scope relative flex min-h-screen"
       // Salle sombre : la barre du haut et le pied de page passent en clair
       // sur sombre (styles.css, [data-room="dark"]).
-      data-room={location.startsWith("/dashboard") ? "dark" : undefined}
+      data-room={darkRoom ? "dark" : undefined}
     >
-      <DynamicBackground variant={location.startsWith("/dashboard") ? "vivid" : "calm"} />
+      <DynamicBackground variant={darkRoom ? "vivid" : "calm"} />
       {/* ── Colonne PC ────────────────────────────────────────────────
           `hidden lg:flex` sur le conteneur, jamais sur le panneau : c'est ce
           qui empêche le panneau de disparaître à mi-largeur. La largeur
@@ -231,7 +234,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <OnboardingGuide />
 
         {/* « Ständig verfügbar » : joignable depuis chaque page. */}
-        <footer data-slot="app-footer" className="border-border border-t px-4 py-5 pb-20 lg:pb-5">
+        <footer data-slot="app-footer" className="on-photo border-border border-t px-4 py-5 pb-20 lg:pb-5">
           <LegalFooter />
         </footer>
       </div>

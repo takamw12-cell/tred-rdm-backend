@@ -51,13 +51,17 @@ function readDebugSeconds(): number | null {
  *           cartes en verre assurent le contraste du texte.
  */
 export const VEILS = {
-  // Dashboard : l'amphithéâtre sombre du Hörsaal (validé le 5 nov. 2026).
-  // La photo de la filière reste visible, assombrie ; les cartes en verre
-  // ressortent comme des écrans éclairés. Le texte posé hors carte est blanc.
-  vivid: "from-[#070B14]/90 via-[#0B1222]/72 to-[#070B14]/85",
-  // 80 % minimum : sur la photo la plus sombre, le texte gris posé hors des
-  // bulles (nom « TRED », boutons d'action) reste vers 4:1.
-  calm: "from-background/90 via-background/85 to-background/80",
+  // Dashboard et Hörsaal : la salle sombre (validée le 5 nov. 2026). Voile
+  // allégé le 2026-11-09 pour que la photo de la filière se voie : dense en
+  // HAUT (80 %), où le titre est posé sur la photo — blanc et blanc à 70 %
+  // restent ≥ 4,5:1 même sur un pixel blanc (tests/background-sets.test.ts) ;
+  // léger au milieu (45 %), où les cartes en verre portent leur propre fond.
+  // Le texte posé hors carte plus bas porte un halo (.on-photo, styles.css).
+  vivid: "from-[#070B14]/80 via-[#0B1222]/45 to-[#070B14]/60",
+  // Pages de lecture : 85 → 60 %. Plancher : sous 60 %, le texte gris des
+  // cartes en verre passerait sous 4,5:1 sur la photo la plus sombre (calcul
+  // dans tests/background-sets.test.ts). Titres hors carte : halo .on-photo.
+  calm: "from-background/85 via-background/65 to-background/60",
 } as const;
 
 export function DynamicBackground({ variant = "calm" }: { variant?: keyof typeof VEILS }) {

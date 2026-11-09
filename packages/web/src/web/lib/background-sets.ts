@@ -36,7 +36,11 @@ export type BackgroundCategory =
   | "informatics"
   | "datascience"
   | "mathematics"
-  | "physics";
+  | "physics"
+  // Hors ingénierie (2026-11-09) : TRED couvre toutes les filières.
+  | "medicine"
+  | "law"
+  | "economics";
 
 const G = (n: number) => `/backgrounds/general/bg-0${n}.webp`;
 const F = (folder: string, ns: number[]) =>
@@ -51,10 +55,10 @@ export const GENERAL = [G(1), G(2), G(3), G(4), G(5), G(6), G(7), G(8)];
 const PLANNED: Record<BackgroundCategory, string[]> = {
   general: [],
   // La fusée d'abord : c'est la première image que voit un étudiant LRT.
-  aerospace: F("aerospace", [2, 1, 3]),
+  aerospace: F("aerospace", [2, 1, 3, 4]),
   mechatronics: F("mechatronics", [1, 2, 3]),
   robotics: F("robotics", [1, 2, 3, 4]),
-  electrical: F("electrical", [1, 2, 3]), // pylônes, éclair
+  electrical: F("electrical", [1, 2, 3, 4]), // pylônes, éclair, circuit imprimé
   mechanical: [...F("mechanical", [1, 2, 3, 4]), G(4)],
   // Les ponts du fond général sont, eux aussi, du génie civil.
   civil: [...F("civil", [1, 2, 3, 4]), G(3), G(6), G(7), G(8)],
@@ -63,10 +67,13 @@ const PLANNED: Record<BackgroundCategory, string[]> = {
   chemical: F("chemical", [1, 2, 3, 4]),
   environmental: F("environmental", [1, 2, 3, 4]),
   biomedical: F("biomedical", [1, 2, 3, 4]),
-  informatics: F("informatics", [1, 2, 3]), // code à l'écran
+  informatics: F("informatics", [1, 2, 3, 4]), // code à l'écran, data center
   datascience: F("datascience", [1, 2, 3, 4]),
   mathematics: F("mathematics", [1, 2, 3, 4]),
-  physics: F("physics", [1, 2, 3]), // nébuleuse, Voie lactée, tableau
+  physics: F("physics", [1, 2, 3, 4]), // nébuleuse, Voie lactée, tableau, accélérateur
+  medicine: F("medicine", [1, 2, 3, 4, 5]), // ADN, bloc opératoire, blouse, IRM, microscope
+  law: F("law", [1, 2, 3, 4, 5]), // bibliothèque, Justitia, palais de justice, marteau, salle de lecture
+  economics: F("economics", [1, 2, 3, 4, 5]), // graphiques, quartier d'affaires, salle des marchés
 };
 
 /**
@@ -82,6 +89,15 @@ const BORROWED: Partial<Record<BackgroundCategory, string[]>> = {
   biomedical: F("mechatronics", [1, 3]),
   mechanical: F("mechatronics", [2]),
 };
+
+/**
+ * Filières dont les images sont commandées mais pas encore là (génération
+ * Replicate bloquée faute de crédit le 2026-11-09 : relancer
+ * `bun --env-file=.env scripts/generate-backgrounds.mjs medicine law economics`).
+ * En attendant : le fond général, jamais un fond vide. Les tests vérifient que
+ * cette liste se vide dès que les images arrivent.
+ */
+export const AWAITING_IMAGES: readonly BackgroundCategory[] = ["medicine", "law", "economics"];
 
 export const CATEGORY_IMAGES: Record<BackgroundCategory, string[]> = Object.fromEntries(
   (Object.keys(PLANNED) as BackgroundCategory[]).map((c) => {
@@ -113,6 +129,12 @@ const RULES: [BackgroundCategory, RegExp][] = [
   ["mechanical", /maschinenbau|mechanical|mécanique|mechanik|produktion/i],
   // Après l'électrotechnique : « Informationstechnik » y reste.
   ["informatics", /informatik|informatique|computer|software/i],
+  // Après la biomédicale (« Biomedizin », « Medizintechnik » y restent).
+  ["medicine", /medizin|medicine|médecine|medicina|pharma/i],
+  ["law", /rechtswiss|\bjura\b|jurisprudenz|\blaw\b|\bdroit\b|derecho|giurisprudenza|direito/i],
+  // Après le génie industriel (« Wirtschaftsingenieurwesen ») et l'informatique
+  // (« Wirtschaftsinformatik ») : seules les sciences économiques arrivent ici.
+  ["economics", /wirtschaftswiss|betriebswirt|volkswirt|\bbwl\b|\bvwl\b|economics|économie|economía|economia|business|finanz|finance/i],
   ["mathematics", /mathe|math/i],
   ["physics", /physik|physics|physique|física|fisica/i],
 ];

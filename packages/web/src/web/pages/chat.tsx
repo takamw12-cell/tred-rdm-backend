@@ -1646,8 +1646,10 @@ export default function ChatPage() {
 
       {/* Chat column */}
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Scope bar */}
-        <div className="border-border bg-background/80 flex h-12 items-center gap-2 border-b px-4 backdrop-blur-md">
+        {/* Scope bar — 95 % de crème : la page est une salle sombre (voile
+            « vivid »), à 80 % la barre virait au gris et ses libellés gris
+            perdaient leur contraste. */}
+        <div className="border-border bg-background/95 flex h-12 items-center gap-2 border-b px-4 backdrop-blur-md">
           <Button
             variant="ghost"
             size="icon"

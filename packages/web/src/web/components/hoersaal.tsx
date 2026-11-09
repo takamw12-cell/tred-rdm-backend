@@ -24,9 +24,14 @@ import { cn } from "@/lib/utils";
  */
 export const INK = "var(--board-ink, #1B2A4A)";
 
-/** Fond « salle sombre » : bleu nuit éclairé par le haut. */
+/**
+ * Fond « salle sombre » : bleu nuit éclairé par le haut. Translucide depuis
+ * le 2026-11-09 : la photo de la filière (DynamicBackground, voile sombre
+ * « vivid ») se devine autour du tableau. Rien n'est écrit directement
+ * dessus : la Tafel, la barre du chat et le professeur ont leur propre fond.
+ */
 export const ROOM_BG =
-  "bg-[#070B14] bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,#1E2A44_0%,#0B1222_55%,#070B14_100%)]";
+  "bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgb(30_42_68/0.55)_0%,rgb(11_18_34/0.65)_55%,rgb(7_11_20/0.8)_100%)]";
 
 /**
  * Le tableau : verre trempé dans un cadre en métal brossé, posé sur un

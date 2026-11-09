@@ -296,11 +296,11 @@ export default function DashboardPage() {
           {/* Date du jour, dans la langue de l'interface — rien à traduire. */}
           {/* Salle sombre (comme le Hörsaal) : ces lignes sont posées sur la
               photo assombrie, sans carte — donc en blanc. */}
-          <p className="mb-2 text-sm text-white/75 capitalize">{today}</p>
-          <h1 className="font-display text-3xl leading-tight font-semibold text-white drop-shadow-[0_2px_12px_rgb(0_0_0/0.5)] sm:text-4xl">
+          <p className="on-photo mb-2 text-sm text-white/75 capitalize">{today}</p>
+          <h1 className="on-photo font-display text-3xl leading-tight font-semibold text-white sm:text-4xl">
             {t("dashboard.greeting", { name: profile.firstName })}
           </h1>
-          <p className="mt-2 max-w-xl text-white/75">{t("dashboard.subtitle")}</p>
+          <p className="on-photo mt-2 max-w-xl text-white/75">{t("dashboard.subtitle")}</p>
           {/* Sa Hochschule, avec le drapeau du Land (rien si hors liste). */}
           <UniversityBadge className="mt-3" />
         </div>
@@ -333,7 +333,7 @@ export default function DashboardPage() {
             onClick={() => setActive(null)}
           />
           {semsLoading ? (
-            <span className="flex items-center gap-2 text-sm text-white/60">
+            <span className="on-photo flex items-center gap-2 text-sm text-white/60">
               <Loader2 className="size-4 animate-spin" />
             </span>
           ) : (
@@ -350,12 +350,12 @@ export default function DashboardPage() {
             ))
           )}
           {activeId !== null && (
-            <Button variant="ghost" size="sm" className="gap-1.5 rounded-full text-white hover:bg-white/10 hover:text-white" onClick={() => void openShare()}>
+            <Button variant="ghost" size="sm" className="on-photo gap-1.5 rounded-full text-white hover:bg-white/10 hover:text-white" onClick={() => void openShare()}>
               <Share2 className="size-4" />
               {t("share.button")}
             </Button>
           )}
-          <Button variant="ghost" size="sm" className="gap-1.5 rounded-full text-white hover:bg-white/10 hover:text-white" onClick={() => { setRedeemOpen(true); setRedeemState({ kind: "idle" }); }}>
+          <Button variant="ghost" size="sm" className="on-photo gap-1.5 rounded-full text-white hover:bg-white/10 hover:text-white" onClick={() => { setRedeemOpen(true); setRedeemState({ kind: "idle" }); }}>
             <Ticket className="size-4" />
             {t("share.redeemTitle")}
           </Button>
