@@ -1,0 +1,55 @@
+# Mises à jour automatiques des dépendances (Dependabot).
+#
+# Chaque lundi, Dependabot ouvre des Pull Requests :
+#   • mineures + correctifs (souvent de sécurité) : UNE PR groupée. Si la CI
+#     est verte (typecheck, tests, build), elle est fusionnée automatiquement
+#     (.github/workflows/ci.yml, job « automerge ») — puis Railway déploie ;
+#   • majeures (peuvent casser le code) : une PR par paquet, JAMAIS fusionnée
+#     automatiquement. C'est toi qui valides (voir MAINTENANCE.md).
+#
+# cooldown 14 jours : une version n'est proposée que 14 jours après sa
+# publication (règle du projet, CLAUDE.md) — le temps qu'un paquet piégé ou
+# cassé soit repéré et retiré par la communauté.
+version: 2
+updates:
+  - package-ecosystem: "bun"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Berlin"
+    cooldown:
+      default-days: 14
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      mineures-et-correctifs:
+        update-types:
+          - "minor"
+          - "patch"
+    # L'app mobile (Expo) se met à jour par SDK complet (`npx expo install
+    # --fix`), jamais paquet par paquet : une mise à jour isolée casse la
+    # compatibilité entre Expo et React Native.
+    ignore:
+      - dependency-name: "expo"
+      - dependency-name: "expo-*"
+      - dependency-name: "@expo/*"
+      - dependency-name: "react-native"
+      - dependency-name: "react-native-*"
+      - dependency-name: "@react-native/*"
+
+  # Les actions GitHub de la CI elles-mêmes : une fois par mois suffit.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 14
+    commit-message:
+      prefix: "chore(ci)"
+    groups:
+      actions:
+        patterns:
+          - "*"

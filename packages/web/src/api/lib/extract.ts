@@ -3,6 +3,7 @@ import { mathpixConfigured, mathpixOcr } from "./mathpix";
 import { generateText } from "ai";
 import { unzipSync, strFromU8 } from "fflate";
 import { gateway } from "../agent/gateway";
+import { PRIMARY_MODEL } from "./ai-models";
 
 const TRANSCRIBE_PROMPT =
   "Transkribiere diese Seite eines Ingenieur-Dokuments " +
@@ -22,7 +23,7 @@ const TRANSCRIBE_PROMPT =
  */
 async function visionTranscribe(bytes: Uint8Array, mediaType: string): Promise<string> {
   const { text } = await generateText({
-    model: gateway("anthropic/claude-sonnet-4.6"),
+    model: gateway(PRIMARY_MODEL),
     messages: [
       {
         role: "user",

@@ -101,6 +101,7 @@ import {
 } from "./lib/translation-cache";
 import { getStripe } from "./lib/stripe";
 import type Stripe from "stripe";
+import { PRIMARY_MODEL } from "./lib/ai-models";
 
 // API features are oRPC procedures, one file per feature in ./routes/,
 // composed into this router — typed end-to-end via the clients
@@ -928,7 +929,7 @@ app.post("/api/agent/translate", async (c) => {
     Anführungszeichen, keine Erklärung.
   `;
 
-  const model = gateway("anthropic/claude-sonnet-4.6");
+  const model = gateway(PRIMARY_MODEL);
 
   let hits = 0;
   let misses = 0;
@@ -1173,7 +1174,7 @@ Die Felder title/points/statement/solution/scale werden strukturiert zurückgege
   async function runExercise() {
     try {
       const { object } = await generateObject({
-        model: gateway("anthropic/claude-sonnet-4.6"),
+        model: gateway(PRIMARY_MODEL),
         schema: exerciseSchema,
         system,
         prompt,
@@ -1191,7 +1192,7 @@ Die Felder title/points/statement/solution/scale werden strukturiert zurückgege
       // repair common invalid LaTeX escapes) before giving up.
       console.warn("[exercise] generateObject failed, falling back to text", objErr);
       const { text } = await generateText({
-        model: gateway("anthropic/claude-sonnet-4.6"),
+        model: gateway(PRIMARY_MODEL),
         system: `${system}\n\nGib AUSSCHLIESSLICH gültiges JSON zurück (keine Code-Fences, keine Einleitung).`,
         prompt,
       });
@@ -1390,7 +1391,7 @@ ANFORDERUNGEN:
   async function runFormulas() {
     try {
       const { object } = await generateObject({
-        model: gateway("anthropic/claude-sonnet-4.6"),
+        model: gateway(PRIMARY_MODEL),
         schema: formulasSchema,
         system,
         prompt,
@@ -1399,7 +1400,7 @@ ANFORDERUNGEN:
     } catch (objErr) {
       console.warn("[formulas] generateObject failed, falling back to text", objErr);
       const { text } = await generateText({
-        model: gateway("anthropic/claude-sonnet-4.6"),
+        model: gateway(PRIMARY_MODEL),
         system:
           system +
           `\n\nAntworte AUSSCHLIESSLICH mit einem JSON-Objekt {"title": string, "content": string} ohne Markdown-Zäune.`,
@@ -1560,7 +1561,7 @@ Bleibe strikt bei der Notation der Kursunterlagen.`;
   async function runVideo() {
     try {
       const { object } = await generateObject({
-        model: gateway("anthropic/claude-sonnet-4.6"),
+        model: gateway(PRIMARY_MODEL),
         schema: videoSchema,
         system,
         prompt,
@@ -1569,7 +1570,7 @@ Bleibe strikt bei der Notation der Kursunterlagen.`;
     } catch (objErr) {
       console.warn("[video] generateObject failed, falling back to text", objErr);
       const { text } = await generateText({
-        model: gateway("anthropic/claude-sonnet-4.6"),
+        model: gateway(PRIMARY_MODEL),
         system:
           system +
           `\n\nAntworte AUSSCHLIESSLICH mit einem JSON-Objekt {"title": string, "scenes": [{"heading": string, "narration": string, "bullets": string[], "formula": string, "svg": string, "seconds": number}]} ohne Markdown-Zäune.`,
@@ -1678,7 +1679,7 @@ app.post("/api/agent/quiz", async (c) => {
 
   try {
     const { object, usage } = await generateObject({
-      model: gateway("anthropic/claude-sonnet-4.6"),
+      model: gateway(PRIMARY_MODEL),
       schema: quizModelSchema,
       system: quizSystemPrompt(langLabel),
       prompt: `GESPRÄCHSAUSSCHNITT:\n\n${quizContext(parsed.data.messages)}`,

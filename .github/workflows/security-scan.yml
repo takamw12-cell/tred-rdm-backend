@@ -1,0 +1,48 @@
+# Scan de sécurité mensuel (et à la demande : onglet Actions → « Scan de
+# sécurité » → « Run workflow »).
+#
+#   1. dépendances : `bun audit` cherche les failles connues (CVE) dans les
+#      paquets installés. Rouge = au moins une faille publiée → MAINTENANCE.md.
+#   2. site en ligne : OWASP ZAP en mode « baseline » — scan PASSIF (il lit
+#      les pages et les en-têtes, il n'attaque rien). Le rapport HTML est
+#      téléchargeable en bas de la page du run (« rapport-owasp-zap »).
+name: Scan de sécurité
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Le 1er de chaque mois, 06:00 UTC.
+    - cron: "0 6 1 * *"
+
+permissions:
+  contents: read
+
+jobs:
+  dependencies:
+    name: Failles connues dans les dépendances
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - run: bun audit
+
+  zap:
+    name: OWASP ZAP — scan passif de www.tred-tutor.de
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Scan baseline
+        run: |
+          mkdir -p zap && chmod 777 zap
+          docker run --rm -v "$PWD/zap:/zap/wrk:rw" ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py -t https://www.tred-tutor.de -r rapport-zap.html -J rapport-zap.json -I
+      - name: Rapport
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapport-owasp-zap
+          path: zap/

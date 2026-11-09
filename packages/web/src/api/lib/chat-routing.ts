@@ -18,6 +18,7 @@
  * c'est « complex » qui gagne : une réponse lente vaut mieux qu'une fausse.
  */
 import type { Domain } from "./solvers/domain";
+import { FAST_MODEL, PRIMARY_MODEL } from "./ai-models";
 
 export type Tier = "smalltalk" | "concept" | "complex";
 
@@ -40,8 +41,13 @@ export interface Route {
   reason: string;
 }
 
-export const SONNET = "anthropic/claude-sonnet-4.6";
-export const HAIKU = "anthropic/claude-haiku-4.5";
+/**
+ * Noms historiques : « SONNET » = le modèle principal, « HAIKU » = le modèle
+ * rapide. Les vrais identifiants viennent de PRIMARY_AI_MODEL et FAST_AI_MODEL
+ * (lib/ai-models.ts) — changer de modèle ne demande aucune modification ici.
+ */
+export const SONNET = PRIMARY_MODEL;
+export const HAIKU = FAST_MODEL;
 
 /** Au-delà, la question est assez longue pour mériter un brouillon. */
 export const MAX_WORDS_WITHOUT_THINKING = 50;

@@ -1,6 +1,10 @@
-// Direct Anthropic provider (replaces the Runable AI gateway).
-// Call sites keep the same signature: gateway("anthropic/claude-sonnet-4.6").
+// Fournisseur des modèles d'IA. Les call sites passent un identifiant
+// « fournisseur/modèle » venu de lib/ai-models.ts (PRIMARY_AI_MODEL,
+// FAST_AI_MODEL) : gateway(PRIMARY_MODEL).
+//   anthropic/…   → Anthropic en direct (ANTHROPIC_API_KEY), comme avant ;
+//   autre/…       → passerelle Vercel AI Gateway de l'AI SDK (AI_GATEWAY_API_KEY).
 import { createAnthropic } from "@ai-sdk/anthropic";
+import { gateway as aiGateway } from "ai";
 import { stripLoneSurrogateEscapes } from "../lib/unicode-safe";
 
 /**
@@ -30,12 +34,14 @@ const anthropic = createAnthropic({
   fetch: safeFetch,
 });
 
-const MODEL_MAP: Record<string, string> = {
-  "anthropic/claude-sonnet-4.6": "claude-sonnet-4-6",
-};
+/** Identifiant de passerelle → identifiant de l'API Anthropic (« 4.6 » → « 4-6 »). */
+export function anthropicModelId(modelId: string): string {
+  return modelId.replace(/^anthropic\//, "").replace(/\./g, "-");
+}
 
 export function gateway(modelId: string) {
-  const mapped =
-    MODEL_MAP[modelId] ?? modelId.replace(/^anthropic\//, "").replace(/\./g, "-");
-  return anthropic(mapped);
+  if (modelId.startsWith("anthropic/")) return anthropic(anthropicModelId(modelId));
+  // Autre fournisseur (OpenAI, Google…) : lib/ai-models.ts n'accepte ces
+  // identifiants que si AI_GATEWAY_API_KEY est présente.
+  return aiGateway(modelId);
 }

@@ -1,0 +1,79 @@
+# Garde-fou de chaque modification : typecheck, tests, build de production.
+#
+# Tourne sur chaque Pull Request (dont celles de Dependabot) et sur chaque
+# push sur master. Une étape rouge = la PR n'est pas fusionnée.
+#
+# Les mises à jour MINEURES et CORRECTIFS de Dependabot sont fusionnées
+# automatiquement par le job « automerge », qui ne démarre QUE si « verify »
+# a réussi (needs). Les mises à jour MAJEURES ne le sont jamais : elles
+# attendent ta validation (MAINTENANCE.md).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: typecheck · tests · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      # Même version de Bun que le projet (« packageManager » de package.json).
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Installer les dépendances (lockfile figé)
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck (application + serveur)
+        run: bun run --cwd packages/web typecheck
+
+      - name: Tests
+        run: bun test --cwd packages/web
+
+      # Le build pré-rend les pages publiques dans Chromium (comme le Dockerfile).
+      - name: Chromium pour le pré-rendu
+        run: bunx playwright@1.64.1 install --with-deps chromium
+
+      - name: Build de production
+        run: bun run --cwd packages/web build
+
+  automerge:
+    name: Fusion auto (Dependabot — mineures et correctifs)
+    needs: verify
+    # Seulement une PR OUVERTE PAR Dependabot, et seulement si « verify » est vert.
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - id: meta
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Fusionner (mineure ou correctif)
+        if: steps.meta.outputs.update-type == 'version-update:semver-minor' || steps.meta.outputs.update-type == 'version-update:semver-patch'
+        run: gh pr merge "$PR_URL" --squash
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Majeure — en attente de validation manuelle
+        if: steps.meta.outputs.update-type == 'version-update:semver-major'
+        run: |
+          echo "Mise à jour MAJEURE — non fusionnée automatiquement, à valider à la main (MAINTENANCE.md)."

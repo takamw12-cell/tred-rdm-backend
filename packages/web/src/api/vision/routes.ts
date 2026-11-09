@@ -26,7 +26,7 @@ export function registerVisionRoutes(app: Hono) {
     if (now - (lastFrame.get(uid) ?? 0) < MIN_FRAME_INTERVAL_MS) return c.json({ error: "too_fast" }, 429);
     lastFrame.set(uid, now);
 
-    // À venir : generateObject({ model: gateway("anthropic/claude-sonnet-4.6"),
+    // À venir : generateObject({ model: gateway(PRIMARY_MODEL),
     //   messages: [{ role: "user", content: [{ type: "image", image }, { type: "text", text }] }],
     //   schema: VisionObservation }) avec le prompt du Super-Professeur.
     return c.json({ error: "not_implemented" }, 501);

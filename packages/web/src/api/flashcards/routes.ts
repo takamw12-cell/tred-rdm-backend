@@ -20,6 +20,7 @@ import {
   flashcardSystemPrompt,
   newCardSchedule,
 } from "../lib/flashcards";
+import { PRIMARY_MODEL } from "../lib/ai-models";
 
 /**
  * POST /api/flashcards/generate — l'IA lit une source et écrit des cartes.
@@ -113,7 +114,7 @@ export function registerFlashcardRoutes(app: Hono) {
 
     try {
       const { object, usage } = await generateObject({
-        model: gateway("anthropic/claude-sonnet-4.6"),
+        model: gateway(PRIMARY_MODEL),
         schema: flashcardModelSchema,
         system: flashcardSystemPrompt(langLabel, n, req.source),
         prompt: sourceText,

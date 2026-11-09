@@ -440,3 +440,6 @@ Les fichiers sont dans `packages/web/src/api/lib/domains/` :
 - **Solveurs :** un solveur qui plante renvoie un résultat propre. TRED dit alors « je ne peux pas calculer cela pour l'instant » et explique la théorie, sans inventer de chiffre.
 - **Affichage :** un schéma, un message, la Tafel ou le professeur qui plante ne fait plus tomber la page. Seule la partie fautive affiche « Dieser Teil konnte nicht angezeigt werden ».
 - **Typecheck :** `bun run typecheck` vérifie vraiment le code. Avant, `tsc --noEmit` ne contrôlait **aucun** fichier, à cause des références de `tsconfig.json`.
+
+## Maintenance mensuelle et mises à jour automatiques
+Tout est dans **`MAINTENANCE.md`** : ce qui tourne tout seul (Dependabot chaque lundi, CI sur chaque modification, scan de sécurité le 1er du mois), les 5 actions du début de mois, et comment changer de modèle d'IA ou de voix sans toucher au code (`PRIMARY_AI_MODEL`, `FAST_AI_MODEL`, `ELEVENLABS_VOICE_*`).

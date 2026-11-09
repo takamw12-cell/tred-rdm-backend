@@ -1,6 +1,7 @@
 import { generateObject } from "ai";
 import { z } from "zod";
 import { gateway } from "../agent/gateway";
+import { FAST_MODEL } from "./ai-models";
 
 /**
  * « Video dazu finden » : la requête YouTube est RÉDIGÉE par un petit modèle
@@ -15,7 +16,8 @@ import { gateway } from "../agent/gateway";
  * Coût : Haiku, ~1 500 jetons d'entrée, une fois par réponse (mis en cache).
  */
 
-const QUERY_MODEL = "anthropic/claude-haiku-4.5";
+/** Petite tâche : le modèle rapide (FAST_AI_MODEL, lib/ai-models.ts). */
+const QUERY_MODEL = FAST_MODEL;
 const TIMEOUT_MS = 8000;
 const MAX_ANSWER = 3500;
 const MAX_QUESTION = 800;
