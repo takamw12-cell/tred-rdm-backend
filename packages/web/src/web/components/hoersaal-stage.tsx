@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, type ReactNode, type RefObject } from "react";
+import { createContext, useContext, useRef, type ReactNode, type RefObject } from "react";
 import { motion } from "framer-motion";
 import { GripHorizontal } from "lucide-react";
 import { ROOM_BG } from "@/components/hoersaal";
@@ -8,24 +8,25 @@ import type { ProfessorPose } from "@/lib/professor-choreography";
 import { cn } from "@/lib/utils";
 
 /**
- * La scène du Hörsaal — UN seul conteneur, tout le reste en `absolute` :
+ * La scène du Hörsaal. De haut en bas, sur TOUS les écrans, dans le flux
+ * (flex-col) :
  *
  *   ┌───────────────────────────────────────────────┐
- *   │  la Tafel : 100 % de la largeur et de la      │
- *   │  hauteur                       ┌──────────┐   │
+ *   │  la Tafel                      ┌──────────┐   │
  *   │                                │ prof     │ ← flottant, déplaçable (drag)
  *   │                                │ holo.    │   │
  *   │                                └──────────┘   │
- *   │      ┌─────────────────────────────────┐      │
- *   │      │ messages + saisie (verre dépoli)│ ← barre flottante, centrée
- *   │      └─────────────────────────────────┘      │
- *   │  ═══ rebord : couleurs du tableau ═══         │
+ *   │  ═══ rebord « Farben » : couleurs du tableau ═══│
  *   └───────────────────────────────────────────────┘
+ *        ┌─────────────────────────────────┐
+ *        │ messages + saisie (verre dépoli)│ ← barre du chat, tout en bas
+ *        └─────────────────────────────────┘
  *
- * La barre flotte AU-DESSUS du rebord : les réglages de couleur restent
- * accessibles. Sa hauteur est mesurée et publiée dans `--dock-space` ; le
- * tableau ajoute cet espace en fin de défilement (components/hoersaal.tsx),
- * pour que la dernière étape ne reste jamais cachée derrière la barre.
+ * Décision fondateur (2026-11-09) : le rebord « Farben » reste TOUJOURS
+ * visible au-dessus de la saisie. Avant, la barre du chat flottait
+ * (absolute) à une distance fixe du bas et recouvrait les réglages dès
+ * qu'une hauteur changeait (barre de navigation, zone sûre de l'iPhone,
+ * taille du texte). Dans le flux, aucun chevauchement n'est possible.
  */
 
 /** Le conteneur de la scène : limite du glisser-déposer du professeur. */
@@ -40,7 +41,7 @@ export function HoersaalStage({
 }: {
   /** Le tableau (plein cadre). */
   board: ReactNode;
-  /** Le contenu de la barre flottante du bas (messages + saisie). */
+  /** Le contenu de la barre du chat (messages + saisie). */
   dock: ReactNode;
   /** Les éléments posés sur le tableau (le professeur flottant). */
   children?: ReactNode;
@@ -49,54 +50,38 @@ export function HoersaalStage({
   className?: string;
 }) {
   const stageRef = useRef<HTMLDivElement>(null);
-  const dockRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const stage = stageRef.current;
-    const dock = dockRef.current;
-    if (!stage || !dock || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(() => {
-      stage.style.setProperty("--dock-space", `${Math.ceil(dock.getBoundingClientRect().height) + 16}px`);
-    });
-    ro.observe(dock);
-    return () => ro.disconnect();
-  }, []);
 
   return (
     <StageContext.Provider value={stageRef}>
       <div
         ref={stageRef}
         data-slot="hoersaal-stage"
-        className={cn("relative isolate min-h-0 w-full flex-1 overflow-hidden", ROOM_BG, className)}
+        className={cn("relative isolate flex min-h-0 w-full flex-1 flex-col overflow-hidden", ROOM_BG, className)}
       >
-        {/* La Tafel, plein cadre */}
-        <div
-          data-slot="stage-board"
-          className={cn(
-            "absolute inset-0 flex flex-col p-2 sm:p-3 lg:p-4",
-            bottomNav && "pb-[calc(4.25rem+env(safe-area-inset-bottom))] sm:pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-4",
-          )}
-        >
+        {/* La Tafel et son rebord « Farben » : tout l'espace au-dessus de la barre du chat */}
+        <div data-slot="stage-board" className="relative flex min-h-0 flex-1 flex-col p-2 sm:p-3 lg:p-4">
           {board}
         </div>
 
         {/* Ce qui est posé sur le tableau */}
         {children}
 
-        {/* La barre du bas : centrée, en verre dépoli, au-dessus du rebord */}
+        {/* La barre du chat : sous le rebord, tout en bas */}
         <div
           data-slot="stage-dock"
           className={cn(
-            "pointer-events-none absolute inset-x-0 z-30 flex justify-center px-3 sm:px-6",
+            "relative z-30 flex shrink-0 justify-center px-2 sm:px-3 lg:px-4",
+            // Au-dessus de la barre de navigation mobile (fixe), jamais dessous.
             bottomNav
-              ? "bottom-[calc(7.75rem+env(safe-area-inset-bottom))] sm:bottom-[calc(8.25rem+env(safe-area-inset-bottom))] lg:bottom-[4.75rem]"
-              : "bottom-[4.25rem] sm:bottom-[4.5rem] lg:bottom-[4.75rem]",
+              ? "pb-[calc(4.25rem+env(safe-area-inset-bottom))] sm:pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-4"
+              : "pb-2 sm:pb-3 lg:pb-4",
           )}
         >
+          {/* Posée sur la salle sombre : à 50 % la barre virerait au gris et le
+              texte gris tomberait à 1,4:1 → 95 % de crème, le flou reste. */}
           <div
-            ref={dockRef}
             data-slot="chat-dock"
-            className="border-border/50 bg-background/70 supports-[backdrop-filter]:bg-background/50 pointer-events-auto w-full max-w-3xl rounded-3xl border shadow-[0_24px_60px_-18px_rgb(0_0_0/0.75),0_2px_10px_-2px_rgb(0_0_0/0.35)] ring-1 ring-white/30 backdrop-blur-xl backdrop-saturate-150 dark:ring-white/10"
+            className="border-border/50 bg-background/95 w-full max-w-3xl rounded-3xl border shadow-[0_24px_60px_-18px_rgb(0_0_0/0.75),0_2px_10px_-2px_rgb(0_0_0/0.35)] ring-1 ring-white/30 backdrop-blur-xl backdrop-saturate-150 dark:ring-white/10"
           >
             {dock}
           </div>

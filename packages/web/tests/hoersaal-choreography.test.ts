@@ -109,17 +109,22 @@ describe("Câblage", () => {
     expect(chat).toContain('localStorage.getItem("tred.chatRail.v2") === "open"');
   });
 
-  test("scène : un conteneur, tout en absolute ; prof déplaçable ; barre en verre dépoli", () => {
+  test("scène : Tafel, rebord « Farben », puis barre du chat, dans le flux ; prof déplaçable", () => {
     const stage = read("src/web/components/hoersaal-stage.tsx");
-    expect(stage).toContain('"absolute inset-0 flex flex-col');
+    // De haut en bas, sur tous les écrans : la Tafel (et son rebord), puis la
+    // barre du chat. Plus de barre flottante à distance fixe du bas, qui
+    // finissait par recouvrir le rebord « Farben » (décision du 2026-11-09).
+    expect(stage).toContain("relative isolate flex min-h-0 w-full flex-1 flex-col");
+    expect(stage).toContain('"relative flex min-h-0 flex-1 flex-col p-2 sm:p-3 lg:p-4"');
+    expect(stage.indexOf('data-slot="stage-board"')).toBeLessThan(stage.indexOf('data-slot="stage-dock"'));
+    expect(stage).not.toMatch(/\bbottom-\[/);
+    expect(stage).not.toContain('"--dock-space"');
+    expect(read("src/web/components/hoersaal.tsx")).not.toContain("dock-spacer");
     expect(stage).toContain("dragConstraints={stage ?? undefined}");
     expect(stage).toMatch(/<motion\.div\s+data-slot="floating-professor"[\s\S]*?\bdrag\b/);
     expect(stage).toContain("backdrop-blur-xl");
     expect(stage).toContain("max-w-3xl");
     expect(stage).not.toMatch(/grid-cols-2|flex-row/);
-    // La dernière étape n'est jamais cachée derrière la barre.
-    expect(stage).toContain('"--dock-space"');
-    expect(read("src/web/components/hoersaal.tsx")).toContain('height: "var(--dock-space, 0px)"');
   });
 
   test("maquette /classroom : même scène, sans colonnes", () => {

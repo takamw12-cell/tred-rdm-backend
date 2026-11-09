@@ -12,19 +12,19 @@ import { cn } from "@/lib/utils";
  * Digitaler Hörsaal — maquette visuelle (aucune donnée, aucune IA).
  *
  * L'idée : entrer dans un amphithéâtre, pas sur un site web. UN seul
- * conteneur plein écran, tout le reste posé dessus en `absolute`
- * (components/hoersaal-stage.tsx, la même scène que le vrai tuteur /chat) :
+ * conteneur plein écran (components/hoersaal-stage.tsx, la même scène que le
+ * vrai tuteur /chat). De haut en bas, dans le flux : la Tafel, son rebord
+ * « Farben », puis la barre du chat (détails dans hoersaal-stage.tsx) :
  *
  *   ┌──────────────────────────────────────────────┐
- *   │ la Tafel : 100 % largeur × 100 % hauteur      │
- *   │                                  ┌────────┐   │
+ *   │ la Tafel                         ┌────────┐   │
  *   │                                  │ prof   │ ← flottant, déplaçable
  *   │                                  └────────┘   │
- *   │       ┌──────────────────────────────┐       │
- *   │       │ bulle du prof + saisie (verre)│ ← barre du bas, centrée
- *   │       └──────────────────────────────┘       │
- *   │ ═══ rebord : couleurs du tableau ═══          │
+ *   │ ═══ rebord « Farben » : couleurs du tableau ═══│
  *   └──────────────────────────────────────────────┘
+ *       ┌──────────────────────────────┐
+ *       │ bulle du prof + saisie (verre)│ ← barre du chat, tout en bas
+ *       └──────────────────────────────┘
  *
  * Écriture : police manuscrite Caveat (auto-hébergée, public/fonts) pour ce
  * que le professeur ÉCRIT ; Inter / Fraunces pour l'interface. Les formules
