@@ -384,7 +384,7 @@ export function ImageFrame({
         />
         <div className="absolute top-2 right-2 z-10 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
           <button
-            onClick={() => triggerDownload(src, "aerostudy-image.png")}
+            onClick={() => triggerDownload(src, "tred-image.png")}
             className="bg-background/90 text-muted-foreground hover:text-foreground grid size-8 place-items-center rounded-lg border shadow-sm backdrop-blur"
             aria-label={t("diagram.download")}
             title={t("diagram.download")}
@@ -405,7 +405,7 @@ export function ImageFrame({
       <ZoomOverlay
         open={open}
         onClose={() => setOpen(false)}
-        onDownloadPng={() => triggerDownload(src, "aerostudy-image.png")}
+        onDownloadPng={() => triggerDownload(src, "tred-image.png")}
       >
         <img src={src} alt={alt ?? ""} className="max-h-[80vh] w-auto max-w-none" />
       </ZoomOverlay>

@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { orpc } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { adminTitle, useDocumentTitle } from "@/hooks/use-document-title";
 
 /**
  * Betreiber: das Retention-Agent (lib/retention/) — wer wurde erinnert,
@@ -44,6 +45,7 @@ function Tile({ label, value, hint }: { label: string; value: string; hint?: str
 }
 
 export default function AdminRetentionPage() {
+  useDocumentTitle(adminTitle("Retention"));
   const qc = useQueryClient();
   const overview = useQuery(orpc.retention.overview.queryOptions());
   const [showPreview, setShowPreview] = useState(false);

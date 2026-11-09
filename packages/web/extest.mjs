@@ -1,6 +1,6 @@
 import { createGateway, generateText } from "ai";
 const gateway = createGateway({ baseURL: process.env.AI_GATEWAY_BASE_URL, apiKey: process.env.AI_GATEWAY_API_KEY });
-const system = `Du bist AeroStudy AI, Professor für Ingenieurwissenschaften. Erstelle eine vollständige Übungsklausur (Technische Mechanik, Balkenbiegung).
+const system = `Du bist TRED, Professor für Ingenieurwissenschaften. Erstelle eine vollständige Übungsklausur (Technische Mechanik, Balkenbiegung).
 - Formeln als LaTeX zwischen $...$.
 - Wo eine Skizze hilft (Balken, Querschnitt): füge einen \`\`\`tikz-Codeblock ein (nur \\begin{tikzpicture}...\\end{tikzpicture}).
 - Erzeuge 3-5 Aufgaben mit Punkten (Summe 100) plus Bewertungsschema.

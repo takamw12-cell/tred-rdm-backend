@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { orpc } from "@/lib/api";
 import { PROFESSORS, isProfessorId } from "../../api/lib/professors";
 import { cn } from "@/lib/utils";
+import { adminTitle, useDocumentTitle } from "@/hooks/use-document-title";
 
 /**
  * Betreiber: Feedback der Beta-Tester (Fehler, Ideen, Allgemeines).
@@ -29,6 +30,7 @@ const TYPE: Record<string, { label: string; icon: typeof Bug; tone: string }> = 
 const dateFmt = new Intl.DateTimeFormat("de-DE", { dateStyle: "short", timeStyle: "short" });
 
 export default function AdminFeedbackPage() {
+  useDocumentTitle(adminTitle("Feedback"));
   const [status, setStatus] = useState<Status>("open");
   const qc = useQueryClient();
   const listOptions = orpc.feedback.list.queryOptions({ input: { status, limit: 200 } });

@@ -1,4 +1,4 @@
-# CLAUDE.md — TRED / AeroStudy AI
+# CLAUDE.md — TRED (nom technique du dépôt : aerostudy-ai)
 
 Règles permanentes pour toutes les conversations sur ce dépôt. Le fondateur parle français ; réponds en français.
 

@@ -90,7 +90,7 @@ export function CodeBlock({ code, lang }: { code: string; lang: string }) {
 
   function download() {
     const ext = isMatlab ? "m" : "py";
-    triggerDownload(code, `aerostudy-code.${ext}`);
+    triggerDownload(code, `tred-code.${ext}`);
   }
 
   return (

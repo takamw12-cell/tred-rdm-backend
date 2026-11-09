@@ -6,6 +6,7 @@ import { PageContainer, PageHeader } from "@/components/page";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { analyticsAvailable } from "@/lib/analytics";
+import { adminTitle, useDocumentTitle } from "@/hooks/use-document-title";
 
 /**
  * Betreiber-Dashboard: Wer kommt, wer bleibt, was wird benutzt?
@@ -46,6 +47,7 @@ const isErr = (v: unknown): v is { error: string } => !!v && typeof v === "objec
 const dayFmt = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit" });
 
 export default function AdminAnalyticsPage() {
+  useDocumentTitle(adminTitle("Analytics"));
   // Chaque clic sur « Aktualisieren » change la clé : nouvelle requête, et
   // le serveur ignore son cache de 5 min (?refresh=1).
   const [tick, setTick] = useState(0);

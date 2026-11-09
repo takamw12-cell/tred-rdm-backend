@@ -72,17 +72,14 @@ l'interface reste silencieux pour que cette distinction se voie.
 
 ## Le logo
 
-Un **T** de deux barres, exact et d'aplomb, traversé d'un trait de surligneur
-légèrement incliné. La rigueur de la construction, plus la marque faite à la
-main dans le cours.
+**Concept A « Boutons-Toque »** (validé le 2026-11-08) : vue de dessus, la
+toque est un losange ; coupée en quatre, elle devient les quatre boutons d'une
+manette, et le cordon du gland passe dans le vide qui les sépare.
 
-Fichiers : `packages/web/public/icon.svg` (tuile) et `logo.svg` (détouré). Les
-tracés sont dupliqués dans `src/web/components/logo.tsx` pour que la marque
-hérite des couleurs du thème — **modifier les deux** en cas de changement, puis
-régénérer les PNG.
-
-La version 16 px utilise un trait droit (`favicon-16.png`) : l'inclinaison se
-perd de toute façon à cette taille et brouille la lecture.
+Dans l'app : losanges et mot « TRED » en `currentColor` (encre sur crème, blanc
+sur la barre latérale), gland jaune `#EAB308`. Icônes : même dessin sur une
+tuile crème. Fichiers et règles : section « Identité visuelle » de
+`GUIDE_FOUNDER.md`, kit complet dans `packages/web/public/brand/`.
 
 ## Dette assumée
 

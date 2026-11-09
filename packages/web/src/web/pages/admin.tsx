@@ -5,6 +5,7 @@ import { PageContainer, PageHeader } from "@/components/page";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { adminTitle, useDocumentTitle } from "@/hooks/use-document-title";
 
 /**
  * Betreiberbereich: wer darf hinein, wer nicht.
@@ -54,6 +55,7 @@ const REASON_LABEL: Record<string, string> = {
 const dateFmt = new Intl.DateTimeFormat("de-DE", { dateStyle: "short" });
 
 export default function AdminPage() {
+  useDocumentTitle(adminTitle());
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [reports, setReports] = useState<AdminReport[]>([]);
   const [loading, setLoading] = useState(true);

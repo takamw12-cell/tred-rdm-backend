@@ -1,4 +1,4 @@
-# GUIDE FOUNDER — TRED / AeroStudy AI, de A à Z
+# GUIDE FOUNDER — TRED, de A à Z
 
 > Mis à jour le 5 novembre 2026. Les prix viennent des pages tarifs et de comparatifs récents. **Vérifie toujours la page officielle avant de payer**, ils changent souvent.
 >
@@ -396,5 +396,11 @@ Le mot « TRED » est en Poppins Bold (licence OFL), converti en tracés : aucun
 - **Couleurs inchangées :** l'app garde crème `#FDFBF7`, encre `#1A1A1A`, jaune `#EAB308`, et le bleu nuit `#0F172A` en sombre (`styles.css`). La palette « TRED Signal » est mise de côté : elle reste dans `styles/brand/`, mais n'est importée nulle part. Pour la brancher plus tard, ajouter `@import "./styles/brand/theme.css";` après `@import "tailwindcss";`, puis faire pointer les variables shadcn vers les rôles `--tred-*`.
 - **Logo :** le nouveau logo est en place (`components/logo.tsx`, tracés dans `components/logo-paths.ts`). Dans l'app, les losanges et le mot « TRED » suivent la couleur du texte : encre sur crème, blanc sur la barre latérale bleu nuit. Le gland garde le jaune `#EAB308`. L'orange du kit jurait à côté du jaune de l'interface.
 - **Icônes :** le favicon, `favicon.ico`, l'icône Apple, les icônes PWA et le manifest suivent la même règle que le logo : losanges encre et gland jaune sur une tuile crème. Sources : `public/brand/tred-app-icon-ink.svg` (+ `tred-app-icon-ink-1024.png`) et `tred-favicon-ink.svg`. Le kit orange d'origine reste dans `public/brand/`, mis de côté avec la palette.
+
+**Nom officiel : TRED (2026-11-09).** Tout ce que voit l'utilisateur dit « TRED » : titre de l'onglet, nom sur l'écran d'accueil (manifest et `apple-mobile-web-app-title`), fichiers téléchargés (`tred-code.*`, `tred-image.png`), image de partage. « AeroStudy » ne reste que dans des noms techniques invisibles, gardés exprès : le dossier `aerostudy-ai`, les clés `aerostudy-*` du navigateur (les renommer effacerait thème, langue et brouillons de chaque utilisateur), les balises `[[AEROSTUDY]]` des réponses de l'IA (déjà enregistrées dans les conversations), et l'adresse Railway `aerostudy-production-….up.railway.app`.
+
+**Image de partage** (aperçu WhatsApp, iMessage, LinkedIn) : `public/og-image.png` (1200 × 630), source `public/og-image.svg` (logo vertical, encre et gland jaune sur crème). Son URL dans `index.html` est absolue, sinon les messageries l'ignorent. WhatsApp garde un aperçu en cache plusieurs jours : un lien déjà partagé peut montrer l'ancien.
+
+**Après un changement d'icône :** incrémenter le `?v=` des liens d'icônes dans `index.html` (`?v=2` aujourd'hui). Sur un iPhone ou un iPad où TRED est déjà sur l'écran d'accueil, il faut supprimer l'icône puis refaire Partager → « Sur l'écran d'accueil » : iOS ne met jamais à jour une icône déjà posée.
 
 **Outil installé :** le skill `brand-identity` (fatihaydost/brand-identity-skill) est dans `.claude/skills/brand-identity`, installé avec `npx skills@1.7.4 add fatihaydost/brand-identity-skill -s brand-identity -a claude-code --copy`. Ses scripts couleur n'ont besoin que de Python 3. Les parties logo et polices demandent `fonttools`, `uharfbuzz` et `skia-pathops`, qu'il ne faut installer que si on s'en sert.

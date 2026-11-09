@@ -1,9 +1,9 @@
-# AeroStudy AI — Design System
+# TRED — Design System
 
 EdTech platform for engineering students at German-speaking universities. Apple-inspired: minimalist, calm, precise, generous whitespace, soft depth.
 
 ## Brand
-- **Product**: AeroStudy AI — logo is a stylized aircraft wing (upward swept chevron) in the primary gradient.
+- **Product**: TRED (technical repo name: aerostudy-ai). Logo « Boutons-Toque » (concept A, validated 2026-11-08): a mortarboard seen from above, split into four controller-button diamonds, with a yellow tassel. Kit: `packages/web/public/brand/`, component: `src/web/components/logo.tsx`.
 - **Voice**: focused, encouraging, technical-but-clear. Trilingual DE / FR / EN, with German technical terms always preserved.
 
 ## Typography

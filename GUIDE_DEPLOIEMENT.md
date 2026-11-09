@@ -1,4 +1,4 @@
-# 🚀 AeroStudy AI — Guide de déploiement autonome (sans Runable)
+# 🚀 TRED — Guide de déploiement autonome (sans Runable)
 
 ## Ce qui a été modifié dans le code
 1. **IA** : le gateway Runable → API Anthropic directe (`packages/web/src/api/agent/gateway.ts`). Il te faut une clé `ANTHROPIC_API_KEY`.
@@ -83,7 +83,7 @@ La base Turso et le bucket S3 actuels ont été provisionnés par Runable : tes 
 Le quota gratuit de Google est de 10 000 unités/jour et une recherche coûte 100 unités, soit **~100 recherches par jour**. Le serveur met les résultats en cache 12 h (même sujet = 0 unité) et s'arrête à 9 000 unités (`YOUTUBE_DAILY_BUDGET`) pour éviter un blocage sec. Sans la clé, le bouton reste visible mais affiche un message clair.
 
 ### Remplacer le logo plus tard
-Les fichiers de marque sont dans `packages/web/public/` : `icon.png` (tuile carrée, utilisée dans l'interface) et `logo.png` (aile détourée sur fond transparent, écran de connexion). Ce sont des extractions directes du fichier logo original. Pour changer le logo : remplace ces deux fichiers, puis régénère les déclinaisons `icon-192`, `icon-512`, `icon-maskable-512`, `apple-touch-icon`, `favicon-16/32` et `favicon.ico` à partir de `icon.png`.
+Le logo actuel (« Boutons-Toque ») et toutes ses déclinaisons sont décrits dans `GUIDE_FOUNDER.md`, section « Identité visuelle — logo et palette ». Après tout changement d'icône, incrémenter le `?v=` des liens d'icônes dans `packages/web/index.html` : sinon Safari (iPhone, iPad) garde l'ancienne.
 
 ## Corrections déjà incluses (jamais déployées chez Runable)
 - Schémas : rendu SVG natif (fini le code TikZ brut affiché)
