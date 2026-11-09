@@ -147,5 +147,8 @@ describe("Câblage", () => {
     expect(vc).not.toContain("function ProfessorPanel");
     expect(vc).not.toContain("flex-row");
     expect(vc).toContain("composer={composer}");
+    // Formule de la question de démo : dans un attribut JSX "…", « \\to »
+    // resterait un double backslash (= saut de ligne KaTeX) — vu en prod.
+    expect(vc).toContain("String.raw`Was passiert mit $I_1$, wenn $R_3 \\to \\infty$?`");
   });
 });

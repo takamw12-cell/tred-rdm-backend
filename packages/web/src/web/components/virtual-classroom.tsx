@@ -141,7 +141,7 @@ function TafelPlaceholderContent() {
         </p>
       </PaperNote>
       <PaperNote title="Frage" tilt={0.4}>
-        <BoardText text="Was passiert mit $I_1$, wenn $R_3 \\to \\infty$?" />
+        <BoardText text={String.raw`Was passiert mit $I_1$, wenn $R_3 \to \infty$?`} />
         <div className="mt-3">
           <ChoiceButtons
             options={[
