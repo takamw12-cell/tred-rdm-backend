@@ -109,22 +109,27 @@ describe("Câblage", () => {
     expect(chat).toContain('localStorage.getItem("tred.chatRail.v2") === "open"');
   });
 
-  test("scène : Tafel, rebord « Farben », puis barre du chat, dans le flux ; prof déplaçable", () => {
+  test("scène immersive : saisie DANS le rebord, à droite de « Farben » ; titre qui s'efface ; prof déplaçable", () => {
     const stage = read("src/web/components/hoersaal-stage.tsx");
-    // De haut en bas, sur tous les écrans : la Tafel (et son rebord), puis la
-    // barre du chat. Plus de barre flottante à distance fixe du bas, qui
-    // finissait par recouvrir le rebord « Farben » (décision du 2026-11-09).
+    const board = read("src/web/components/hoersaal.tsx");
+    // Décision fondateur (2026-11-09, 2e version) : plus de barre sous le
+    // tableau. « Farben » à gauche, la saisie à droite, une seule ligne flex
+    // dans le rebord — aucun chevauchement possible.
     expect(stage).toContain("relative isolate flex min-h-0 w-full flex-1 flex-col");
-    expect(stage).toContain('"relative flex min-h-0 flex-1 flex-col p-2 sm:p-3 lg:p-4"');
-    expect(stage.indexOf('data-slot="stage-board"')).toBeLessThan(stage.indexOf('data-slot="stage-dock"'));
     expect(stage).not.toMatch(/\bbottom-\[/);
     expect(stage).not.toContain('"--dock-space"');
-    expect(read("src/web/components/hoersaal.tsx")).not.toContain("dock-spacer");
+    expect(board).not.toContain("dock-spacer");
+    expect(board).toContain('data-slot="ledge-composer"');
+    expect(board).toMatch(/data-slot="tafel-ledge"[\s\S]*?flex-row items-center/);
+    expect(board.indexOf("<TafelColorControls")).toBeLessThan(board.indexOf('data-slot="ledge-composer"'));
+    // Le grand titre n'existe que sur le tableau vide, et s'efface en fondu.
+    expect(board).toContain("<AnimatePresence");
+    expect(read("src/web/components/tafel-board.tsx")).toContain("showHeader={blank}");
+    // Le texte ne passe pas sous le professeur (marge réservée), et on le déplace.
+    expect(board).toContain("md:pr-48");
     expect(stage).toContain("dragConstraints={stage ?? undefined}");
     expect(stage).toMatch(/<motion\.div\s+data-slot="floating-professor"[\s\S]*?\bdrag\b/);
-    expect(stage).toContain("backdrop-blur-xl");
-    expect(stage).toContain("max-w-3xl");
-    expect(stage).not.toMatch(/grid-cols-2|flex-row/);
+    expect(read("src/web/pages/chat.tsx")).not.toContain("dock={");
   });
 
   test("maquette /classroom : même scène, sans colonnes", () => {
@@ -135,5 +140,6 @@ describe("Câblage", () => {
     expect(vc).not.toContain("function Sidebar");
     expect(vc).not.toContain("function ProfessorPanel");
     expect(vc).not.toContain("flex-row");
+    expect(vc).toContain("composer={composer}");
   });
 });

@@ -1278,6 +1278,197 @@ export default function ChatPage() {
 
   const suggestions = [t("chat.q1"), t("chat.q2"), t("chat.q3")];
 
+  // La saisie vit DANS le rebord du tableau, à droite de « Farben »
+  // (décision fondateur 2026-11-09) : une seule ligne, jamais de
+  // chevauchement. Verre dépoli clair, encre fixe : le rebord est toujours
+  // en métal clair, quel que soit le thème de l'app.
+  const composerRow = (
+    <div data-slot="chat-composer" className="flex items-end gap-2">
+      <div className="flex flex-1 items-end gap-2 rounded-2xl border border-white/50 bg-white/45 px-3 py-1.5 shadow-[inset_0_1px_0_rgb(255_255_255/0.6),0_6px_16px_-10px_rgb(0_0_0/0.5)] backdrop-blur-xl backdrop-saturate-150 transition-[box-shadow,background] focus-within:bg-white/70 focus-within:ring-2 focus-within:ring-inset focus-within:ring-[#EAB308]/60">
+        {/* Hidden inputs targeted by the three menu options */}
+        <input
+          ref={filesInputRef}
+          type="file"
+          accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,application/pdf,image/png,image/jpeg,image/webp,text/plain"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            void addFiles(e.target.files);
+            e.target.value = "";
+          }}
+        />
+        <input
+          ref={galleryInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            void addFiles(e.target.files, true);
+            e.target.value = "";
+          }}
+        />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="text-muted-foreground hover:text-primary hover:bg-accent grid size-8 shrink-0 place-items-center rounded-lg transition-colors"
+              title={t("chat.attachHint")}
+              aria-label={t("chat.attach")}
+            >
+              <Paperclip className="size-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" side="top" className="w-60">
+            <DropdownMenuItem
+              className="gap-3 py-2.5"
+              onSelect={() => filesInputRef.current?.click()}
+            >
+              <FolderOpen className="size-4 shrink-0" />
+              <div className="flex flex-col">
+                <span className="text-sm font-medium">{t("chat.attachFiles")}</span>
+                <span className="text-muted-foreground text-xs">
+                  {t("chat.attachFilesHint")}
+                </span>
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="gap-3 py-2.5"
+              onSelect={() => galleryInputRef.current?.click()}
+            >
+              <ImageIcon className="size-4 shrink-0" />
+              <div className="flex flex-col">
+                <span className="text-sm font-medium">{t("chat.attachGallery")}</span>
+                <span className="text-muted-foreground text-xs">
+                  {t("chat.attachGalleryHint")}
+                </span>
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="gap-3 py-2.5"
+              onSelect={() => {
+                setAttachError(null);
+                setCameraOpen(true);
+              }}
+            >
+              <Camera className="size-4 shrink-0" />
+              <div className="flex flex-col">
+                <span className="text-sm font-medium">{t("chat.attachCamera")}</span>
+                <span className="text-muted-foreground text-xs">
+                  {t("chat.attachCameraHint")}
+                </span>
+              </div>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <button
+          type="button"
+          onClick={() => setCalcMode((v) => !v)}
+          className={cn(
+            "grid size-8 shrink-0 place-items-center rounded-lg transition-colors",
+            calcMode
+              ? "bg-primary/15 text-primary"
+              : "text-muted-foreground hover:text-primary hover:bg-accent",
+          )}
+          title={
+            calcMode
+              ? codeLang === "matlab"
+                ? t("chat.calcModeOnMatlab")
+                : t("chat.calcModeOnPython")
+              : t("chat.calcModeHint")
+          }
+          aria-label={t("chat.calcMode")}
+          aria-pressed={calcMode}
+        >
+          <Calculator className="size-4" />
+        </button>
+        <textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              send(input);
+            }
+          }}
+          rows={1}
+          placeholder={t("chat.placeholder")}
+          className="placeholder:truncate max-h-32 min-w-0 flex-1 resize-none bg-transparent py-1.5 text-sm outline-none"
+        />
+        <Button
+          size="icon"
+          className="brand-gradient size-8 shrink-0 text-white"
+          onClick={() => send(input)}
+          disabled={(!input.trim() && attachments.length === 0) || busy}
+          aria-label={t("common.send")}
+        >
+          <Send className="size-4" />
+        </Button>
+      </div>
+    </div>
+  );
+  // Ce qui accompagne la saisie (solde, pièces jointes, mode calcul) : posé
+  // juste au-dessus du rebord, dans le flux.
+  const composerExtras = (
+    <>
+      {/* Le solde, juste au-dessus du champ de saisie. C'est le seul
+          endroit où l'information arrive avant la décision d'écrire —
+          partout ailleurs elle arrive après le refus. */}
+      <QuotaBanner />
+      {/* Upload error (unsupported type / too large) */}
+      {attachError && (
+        <div className="text-destructive mb-2 flex items-center gap-2 text-xs">
+          <X className="size-3.5 shrink-0" />
+          <span>{attachError}</span>
+        </div>
+      )}
+      {/* Attachment previews — images as thumbnails, docs as chips */}
+      {attachments.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-2">
+          {attachments.map((a) =>
+            a.kind === "image" ? (
+              <div
+                key={a.id}
+                className="border-border relative size-16 overflow-hidden rounded-lg border"
+              >
+                <img src={a.url} alt={a.name} className="size-full object-cover" />
+                <button
+                  onClick={() => removeAttachment(a.id)}
+                  className="absolute right-0.5 top-0.5 grid size-5 place-items-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80"
+                  aria-label={t("chat.removeImage")}
+                >
+                  <X className="size-3" />
+                </button>
+              </div>
+            ) : (
+              <div
+                key={a.id}
+                className="border-border bg-muted/40 relative flex h-16 max-w-[12rem] items-center gap-2 rounded-lg border px-3 pr-8"
+              >
+                <FileIcon className="text-muted-foreground size-5 shrink-0" />
+                <span className="truncate text-xs font-medium">{a.name}</span>
+                <button
+                  onClick={() => removeAttachment(a.id)}
+                  className="absolute right-1 top-1 grid size-5 place-items-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70"
+                  aria-label={t("chat.removeFile")}
+                >
+                  <X className="size-3" />
+                </button>
+              </div>
+            ),
+          )}
+        </div>
+      )}
+      {calcMode && (
+        <p className="text-muted-foreground mt-1.5 px-1 text-xs">
+          {codeLang === "matlab"
+            ? t("chat.calcModeOnMatlab")
+            : t("chat.calcModeOnPython")}
+        </p>
+      )}
+    </>
+  );
+
   return (
     <div className="flex h-[calc(100vh-4rem)]">
       {/* Kursliste — Schiene auf großen Bildschirmen, einklappbar */}
@@ -1744,6 +1935,8 @@ export default function ChatPage() {
                 <CodeExplainContext.Provider value={explainCode}>
                 <CodeSendContext.Provider value={sendFromCode}>
                 <TafelBoard
+                  composer={composerRow}
+                  composerExtras={composerExtras}
                   page={activePage}
                   writing={busy && onLastPage}
                   status={
@@ -1877,192 +2070,6 @@ export default function ChatPage() {
                 </CodeExplainContext.Provider>
                 </SourceViewContext.Provider>
               </ErrorBoundary>
-            }
-            dock={
-              <>
-                {/* La saisie, au bas de la barre en verre. */}
-                <div data-slot="chat-composer" className="px-2.5 pt-1 pb-2.5 sm:px-3 sm:pb-3">
-                  {/* Le solde, juste au-dessus du champ de saisie. C'est le seul
-                      endroit où l'information arrive avant la décision d'écrire —
-                      partout ailleurs elle arrive après le refus. */}
-                  <QuotaBanner />
-                  {/* Upload error (unsupported type / too large) */}
-                  {attachError && (
-                    <div className="text-destructive mb-2 flex items-center gap-2 text-xs">
-                      <X className="size-3.5 shrink-0" />
-                      <span>{attachError}</span>
-                    </div>
-                  )}
-                  {/* Attachment previews — images as thumbnails, docs as chips */}
-                  {attachments.length > 0 && (
-                    <div className="mb-2 flex flex-wrap gap-2">
-                      {attachments.map((a) =>
-                        a.kind === "image" ? (
-                          <div
-                            key={a.id}
-                            className="border-border relative size-16 overflow-hidden rounded-lg border"
-                          >
-                            <img src={a.url} alt={a.name} className="size-full object-cover" />
-                            <button
-                              onClick={() => removeAttachment(a.id)}
-                              className="absolute right-0.5 top-0.5 grid size-5 place-items-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80"
-                              aria-label={t("chat.removeImage")}
-                            >
-                              <X className="size-3" />
-                            </button>
-                          </div>
-                        ) : (
-                          <div
-                            key={a.id}
-                            className="border-border bg-muted/40 relative flex h-16 max-w-[12rem] items-center gap-2 rounded-lg border px-3 pr-8"
-                          >
-                            <FileIcon className="text-muted-foreground size-5 shrink-0" />
-                            <span className="truncate text-xs font-medium">{a.name}</span>
-                            <button
-                              onClick={() => removeAttachment(a.id)}
-                              className="absolute right-1 top-1 grid size-5 place-items-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70"
-                              aria-label={t("chat.removeFile")}
-                            >
-                              <X className="size-3" />
-                            </button>
-                          </div>
-                        ),
-                      )}
-                    </div>
-                  )}
-
-                  <div className="flex items-end gap-2">
-                    <div className="border-input focus-within:border-primary/60 focus-within:ring-primary/20 bg-card flex flex-1 items-end gap-2 rounded-2xl border px-3 py-2 transition-colors focus-within:ring-4">
-                      {/* Hidden inputs targeted by the three menu options */}
-                      <input
-                        ref={filesInputRef}
-                        type="file"
-                        accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,application/pdf,image/png,image/jpeg,image/webp,text/plain"
-                        multiple
-                        className="hidden"
-                        onChange={(e) => {
-                          void addFiles(e.target.files);
-                          e.target.value = "";
-                        }}
-                      />
-                      <input
-                        ref={galleryInputRef}
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp,image/*"
-                        multiple
-                        className="hidden"
-                        onChange={(e) => {
-                          void addFiles(e.target.files, true);
-                          e.target.value = "";
-                        }}
-                      />
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            type="button"
-                            className="text-muted-foreground hover:text-primary hover:bg-accent grid size-8 shrink-0 place-items-center rounded-lg transition-colors"
-                            title={t("chat.attachHint")}
-                            aria-label={t("chat.attach")}
-                          >
-                            <Paperclip className="size-4" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" side="top" className="w-60">
-                          <DropdownMenuItem
-                            className="gap-3 py-2.5"
-                            onSelect={() => filesInputRef.current?.click()}
-                          >
-                            <FolderOpen className="size-4 shrink-0" />
-                            <div className="flex flex-col">
-                              <span className="text-sm font-medium">{t("chat.attachFiles")}</span>
-                              <span className="text-muted-foreground text-xs">
-                                {t("chat.attachFilesHint")}
-                              </span>
-                            </div>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="gap-3 py-2.5"
-                            onSelect={() => galleryInputRef.current?.click()}
-                          >
-                            <ImageIcon className="size-4 shrink-0" />
-                            <div className="flex flex-col">
-                              <span className="text-sm font-medium">{t("chat.attachGallery")}</span>
-                              <span className="text-muted-foreground text-xs">
-                                {t("chat.attachGalleryHint")}
-                              </span>
-                            </div>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="gap-3 py-2.5"
-                            onSelect={() => {
-                              setAttachError(null);
-                              setCameraOpen(true);
-                            }}
-                          >
-                            <Camera className="size-4 shrink-0" />
-                            <div className="flex flex-col">
-                              <span className="text-sm font-medium">{t("chat.attachCamera")}</span>
-                              <span className="text-muted-foreground text-xs">
-                                {t("chat.attachCameraHint")}
-                              </span>
-                            </div>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                      <button
-                        type="button"
-                        onClick={() => setCalcMode((v) => !v)}
-                        className={cn(
-                          "grid size-8 shrink-0 place-items-center rounded-lg transition-colors",
-                          calcMode
-                            ? "bg-primary/15 text-primary"
-                            : "text-muted-foreground hover:text-primary hover:bg-accent",
-                        )}
-                        title={
-                          calcMode
-                            ? codeLang === "matlab"
-                              ? t("chat.calcModeOnMatlab")
-                              : t("chat.calcModeOnPython")
-                            : t("chat.calcModeHint")
-                        }
-                        aria-label={t("chat.calcMode")}
-                        aria-pressed={calcMode}
-                      >
-                        <Calculator className="size-4" />
-                      </button>
-                      <textarea
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            send(input);
-                          }
-                        }}
-                        rows={1}
-                        placeholder={t("chat.placeholder")}
-                        className="placeholder:truncate max-h-32 min-w-0 flex-1 resize-none bg-transparent py-1.5 text-sm outline-none"
-                      />
-                      <Button
-                        size="icon"
-                        className="brand-gradient size-8 shrink-0 text-white"
-                        onClick={() => send(input)}
-                        disabled={(!input.trim() && attachments.length === 0) || busy}
-                        aria-label={t("common.send")}
-                      >
-                        <Send className="size-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  {calcMode && (
-                    <p className="text-muted-foreground mt-1.5 px-1 text-xs">
-                      {codeLang === "matlab"
-                        ? t("chat.calcModeOnMatlab")
-                        : t("chat.calcModeOnPython")}
-                    </p>
-                  )}
-                </div>
-              </>
             }
           >
             {/* Le professeur flottant, posé sur le tableau : de dos pendant

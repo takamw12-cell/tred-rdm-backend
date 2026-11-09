@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from "framer-motion";
 import { Check, Palette, RotateCcw } from "lucide-react";
 import { BOARD_THEMES, useBoardTheme, type BoardTheme } from "@/stores/board-theme";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
@@ -46,6 +47,9 @@ export function GlassBoard({
   children,
   className,
   bodyRef,
+  showHeader = true,
+  composer,
+  composerExtras,
   "aria-label": ariaLabel,
 }: {
   eyebrow?: ReactNode;
@@ -56,6 +60,16 @@ export function GlassBoard({
   className?: string;
   /** La zone qui défile (le tuteur la fait suivre l'écriture). */
   bodyRef?: Ref<HTMLDivElement>;
+  /**
+   * Le grand titre « Digitaler Hörsaal / Die Tafel ». Faux dès qu'une
+   * question est posée : il s'efface (fondu) et rend toute la hauteur à la
+   * résolution ; la pastille d'état reste, en surimpression discrète.
+   */
+  showHeader?: boolean;
+  /** La saisie : posée DANS le rebord, à droite de « Farben ». */
+  composer?: ReactNode;
+  /** Au-dessus du rebord, dans le flux : solde, pièces jointes… */
+  composerExtras?: ReactNode;
   "aria-label"?: string;
 }) {
   const theme = useBoardTheme((s) => s.theme);
@@ -96,36 +110,63 @@ export function GlassBoard({
           className="pointer-events-none absolute inset-0 opacity-[0.025] [background-image:radial-gradient(ellipse_30%_6%_at_22%_88%,#1B2A4A,transparent)]"
         />
 
-        {/* En-tête écrit au feutre */}
-        <header className="relative flex shrink-0 items-start justify-between gap-4 px-6 pt-6 sm:px-10 sm:pt-8">
-          <div className="min-w-0">
-            {eyebrow && (
-              <p className="truncate font-mono text-[11px] tracking-[0.16em] text-[color:var(--board-muted)] uppercase">
-                {eyebrow}
-              </p>
-            )}
-            <h1
-              className="font-hand mt-1 text-4xl leading-none font-bold sm:text-5xl"
-              style={{ color: INK }}
+        {/* En-tête écrit au feutre — il s'efface dès que la page s'écrit. */}
+        <AnimatePresence initial={false}>
+          {showHeader && (
+            <motion.header
+              key="tafel-header"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.45, ease: [0.33, 1, 0.68, 1] }}
+              className="relative shrink-0 overflow-hidden"
             >
-              {title}
-            </h1>
-            <HandUnderline />
+              <div className="flex items-start justify-between gap-4 px-6 pt-6 sm:px-10 sm:pt-8">
+                <div className="min-w-0">
+                  {eyebrow && (
+                    <p className="truncate font-mono text-[11px] tracking-[0.16em] text-[color:var(--board-muted)] uppercase">
+                      {eyebrow}
+                    </p>
+                  )}
+                  <h1 className="font-hand mt-1 text-4xl leading-none font-bold sm:text-5xl" style={{ color: INK }}>
+                    {title}
+                  </h1>
+                  <HandUnderline />
+                </div>
+                {status}
+              </div>
+            </motion.header>
+          )}
+        </AnimatePresence>
+        {/* Sans titre : l'état (pages, « écrit… ») flotte en haut à gauche. */}
+        {!showHeader && status && (
+          <div data-slot="tafel-status" className="pointer-events-none absolute top-2 left-3 z-10 [&>*]:pointer-events-auto sm:top-3 sm:left-4">
+            {status}
           </div>
-          {status}
-        </header>
+        )}
 
         {/* Contenu du tableau */}
         <div
           ref={bodyRef}
           data-slot="tafel-board"
-          className="relative flex min-h-0 flex-1 flex-col items-center gap-6 overflow-y-auto px-5 pt-4 pb-8 sm:px-10"
+          className={cn(
+            "relative flex min-h-0 flex-1 flex-col items-center gap-6 overflow-y-auto px-4 pb-8 sm:px-8",
+            // Sans titre : la page commence sous la pastille d'état ; à droite,
+            // une marge pour le professeur flottant (le texte ne passe jamais
+            // sous lui ; sur téléphone, on le déplace du doigt).
+            showHeader ? "pt-4" : "pt-14 md:pr-48 lg:pr-52",
+          )}
         >
           {children}
         </div>
       </div>
 
-      <ChalkLedge />
+      {composerExtras && (
+        <div data-slot="ledge-extras" className="relative mx-2 mt-2 sm:mx-6 [&:empty]:hidden">
+          {composerExtras}
+        </div>
+      )}
+      <ChalkLedge composer={composer} />
     </section>
   );
 }
@@ -162,18 +203,29 @@ export function HandUnderline() {
  * mais les vrais réglages — les couleurs du tableau et de la craie, avec leur
  * densité, et les trois fonds prêts à l'emploi.
  */
-function ChalkLedge() {
+function ChalkLedge({ composer }: { composer?: ReactNode }) {
   const theme = useBoardTheme((s) => s.theme);
   const custom = useBoardTheme((s) => s.custom);
   const setTheme = useBoardTheme((s) => s.setTheme);
   return (
     <div
       data-slot="tafel-ledge"
-      className="relative mx-6 mt-2 -mb-[10px] flex h-12 shrink-0 items-center gap-3 rounded-b-xl bg-[linear-gradient(180deg,#B9C0C8_0%,#8E97A2_40%,#6B7480_100%)] px-4 shadow-[0_14px_24px_-10px_rgb(0_0_0/0.8),inset_0_1px_0_rgb(255_255_255/0.6)]"
+      className={cn(
+        "relative mt-2 -mb-[10px] flex shrink-0 flex-row items-center rounded-b-xl bg-[linear-gradient(180deg,#B9C0C8_0%,#8E97A2_40%,#6B7480_100%)] shadow-[0_14px_24px_-10px_rgb(0_0_0/0.8),inset_0_1px_0_rgb(255_255_255/0.6)]",
+        composer ? "mx-2 min-h-14 gap-2 px-2 py-2 sm:mx-6 sm:gap-4 sm:px-4" : "mx-6 h-12 gap-3 px-4",
+      )}
     >
-      <TafelColorControls />
-      {/* Couleurs libres actives : aucun des trois fonds n'est « sélectionné ». */}
-      <ThemePicker theme={custom ? null : theme} onTheme={setTheme} />
+      {/* À gauche, les réglages ; à droite, la saisie : une seule ligne. */}
+      <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <TafelColorControls compact={Boolean(composer)} />
+        {/* Couleurs libres actives : aucun des trois fonds n'est « sélectionné ». */}
+        <ThemePicker theme={custom ? null : theme} onTheme={setTheme} hideOnPhone={Boolean(composer)} />
+      </div>
+      {composer && (
+        <div data-slot="ledge-composer" className="min-w-0 flex-1 text-[#0F172A] [&_.text-muted-foreground]:text-[#334155]">
+          {composer}
+        </div>
+      )}
     </div>
   );
 }
@@ -183,11 +235,13 @@ function ChalkLedge() {
  * densité (opacité). Chaque mouvement s'applique tout de suite au verre
  * (--tafel-bg, --tafel-text) ; « Zurücksetzen » revient au thème choisi.
  */
-function TafelColorControls() {
+function TafelColorControls({ compact = false }: { compact?: boolean }) {
   const { t } = useT();
   const custom = useBoardTheme((s) => s.custom);
   const setCustom = useBoardTheme((s) => s.setCustom);
   const resetCustom = useBoardTheme((s) => s.resetCustom);
+  const theme = useBoardTheme((s) => s.theme);
+  const setTheme = useBoardTheme((s) => s.setTheme);
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const c = custom ?? DEFAULT_TAFEL_COLORS;
@@ -255,7 +309,7 @@ function TafelColorControls() {
         )}
       >
         <Palette className="size-4" aria-hidden />
-        {t("tafel.colors")}
+        <span className={cn(compact && "sr-only sm:not-sr-only")}>{t("tafel.colors")}</span>
         {custom && (
           <span
             aria-hidden
@@ -269,6 +323,12 @@ function TafelColorControls() {
           <legend className="sr-only">{t("tafel.colors")}</legend>
           {row("bg")}
           {row("ink")}
+          {/* Sur téléphone, les trois fonds prêts à l'emploi sont ici (le rebord est pris par la saisie). */}
+          {compact && (
+            <div className="sm:hidden">
+              <ThemePicker theme={custom ? null : theme} onTheme={setTheme} inPanel />
+            </div>
+          )}
           <button
             type="button"
             onClick={resetCustom}
@@ -504,9 +564,24 @@ const THEME_SWATCH: Record<BoardTheme, { label: string; bg: string; ring: string
  * Les trois fonds prêts à l'emploi, posés sur le rebord comme trois petits
  * aimants. En choisir un efface les couleurs libres.
  */
-function ThemePicker({ theme, onTheme }: { theme: BoardTheme | null; onTheme: (t: BoardTheme) => void }) {
+function ThemePicker({
+  theme,
+  onTheme,
+  hideOnPhone = false,
+  inPanel = false,
+}: {
+  theme: BoardTheme | null;
+  onTheme: (t: BoardTheme) => void;
+  hideOnPhone?: boolean;
+  inPanel?: boolean;
+}) {
   return (
-    <fieldset className="relative ml-auto flex items-center gap-1.5 border-0 p-0">
+    <fieldset
+      className={cn(
+        "relative items-center gap-1.5 border-0 p-0",
+        inPanel ? "flex" : hideOnPhone ? "hidden sm:flex" : "ml-auto flex",
+      )}
+    >
       <legend className="sr-only">Tafel-Hintergrund</legend>
       {BOARD_THEMES.map((t) => {
         const sw = THEME_SWATCH[t];

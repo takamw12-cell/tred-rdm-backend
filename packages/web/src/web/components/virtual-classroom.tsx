@@ -23,9 +23,8 @@ import { cn } from "@/lib/utils";
  *   │                                  └────────┘   │
  *   │ ═══ rebord « Farben » : couleurs du tableau ═══│
  *   └──────────────────────────────────────────────┘
- *       ┌──────────────────────────────┐
- *       │ saisie seule (verre dépoli)  │ ← plus de bulles : tout est au tableau
- *       └──────────────────────────────┘
+ *   (dans le rebord : « Farben » à gauche, la saisie en verre dépoli à
+ *    droite — une seule ligne ; plus de barre séparée sous le tableau)
  *
  * Écriture : police manuscrite Caveat (auto-hébergée, public/fonts) pour ce
  * que le professeur ÉCRIT ; Inter / Fraunces pour l'interface. Les formules
@@ -80,6 +79,7 @@ const POSE_STATUS: Partial<Record<ProfessorPose, string>> = {
 
 export function VirtualClassroom({ board, avatar }: VirtualClassroomSlots = {}) {
   const { t, locale } = useT();
+  const { composer, extras } = useClassroomComposer();
   const professor = useProfessor();
   const pose = useDemoPose();
   const status = POSE_STATUS[pose];
@@ -91,13 +91,14 @@ export function VirtualClassroom({ board, avatar }: VirtualClassroomSlots = {}) 
             eyebrow="Digitaler Hörsaal · Grundlagen der Elektrotechnik"
             title="Kirchhoffsche Gesetze"
             status={pose === "schreiben" ? <BoardStatus>{t("tafel.writing")}</BoardStatus> : undefined}
+            composer={composer}
+            composerExtras={extras}
           >
             <div data-slot="tafel" className="flex flex-1 flex-col items-center justify-center gap-6">
               {board ?? <TafelPlaceholderContent />}
             </div>
           </GlassBoard>
         }
-        dock={<ClassroomDock />}
       >
         <FloatingProfessor
           professor={professor}
@@ -191,28 +192,26 @@ function ModeSwitch({ mode, onChange }: { mode: ProfessorMode; onChange: (m: Pro
   );
 }
 
-/** La saisie seule, dans la barre en verre dépoli (comme le vrai tuteur). */
-function ClassroomDock() {
+/**
+ * La saisie, dans le rebord du tableau (comme le vrai tuteur) : « Farben »
+ * à gauche, le champ à droite, sur la même ligne. Le choix « Je réponds /
+ * Pose une question » est posé juste au-dessus du rebord.
+ */
+function useClassroomComposer() {
   const [mode, setMode] = useState<ProfessorMode>("answer");
-  return (
-    <div className="text-foreground">
-      <div data-slot="chat-composer" className="p-2.5 sm:p-3">
-        <div className="mb-2">
-          <ModeSwitch mode={mode} onChange={setMode} />
-        </div>
-        <div className="border-input bg-card flex items-center gap-2 rounded-2xl border px-3 py-2 transition-shadow focus-within:ring-4 focus-within:ring-[#EAB308]/30">
-          <input
-            aria-label={mode === "ask" ? "Ta question au professeur" : "Ta réponse au professeur"}
-            placeholder={mode === "ask" ? "Pose ta question au professeur…" : "Réponds au professeur…"}
-            className="placeholder:text-muted-foreground min-w-0 flex-1 bg-transparent py-1 text-sm outline-none"
-          />
-          <button type="button" className="rounded-xl bg-[#EAB308] px-3 py-1.5 text-xs font-semibold text-[#0F172A]">
-            {mode === "ask" ? "Demander" : "Envoyer"}
-          </button>
-        </div>
-      </div>
+  const composer = (
+    <div data-slot="chat-composer" className="flex items-center gap-2 rounded-2xl border border-white/50 bg-white/45 px-3 py-1.5 shadow-[inset_0_1px_0_rgb(255_255_255/0.6),0_6px_16px_-10px_rgb(0_0_0/0.5)] backdrop-blur-xl backdrop-saturate-150 focus-within:bg-white/70 focus-within:ring-2 focus-within:ring-inset focus-within:ring-[#EAB308]/60">
+      <input
+        aria-label={mode === "ask" ? "Ta question au professeur" : "Ta réponse au professeur"}
+        placeholder={mode === "ask" ? "Pose ta question au professeur…" : "Réponds au professeur…"}
+        className="min-w-0 flex-1 bg-transparent py-1 text-sm text-[#0F172A] outline-none placeholder:text-[#475569]"
+      />
+      <button type="button" className="rounded-xl bg-[#EAB308] px-3 py-1.5 text-xs font-semibold text-[#0F172A]">
+        {mode === "ask" ? "Demander" : "Envoyer"}
+      </button>
     </div>
   );
+  return { composer, extras: <ModeSwitch mode={mode} onChange={setMode} /> };
 }
 
 /** Route /classroom : wouter passe ses propres props, on ne les transmet pas. */

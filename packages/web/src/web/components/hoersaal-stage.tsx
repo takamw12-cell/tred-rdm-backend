@@ -42,10 +42,11 @@ export function HoersaalStage({
   /** Le tableau (plein cadre). */
   board: ReactNode;
   /**
-   * La barre du bas : la SAISIE seulement. Depuis le 2026-11-09, aucun
-   * message n'y apparaît — tout s'écrit au tableau (tafel-board.tsx).
+   * Ancienne barre du bas, sous le tableau. Depuis le 2026-11-09 (décision
+   * fondateur), la saisie vit DANS le rebord du tableau (GlassBoard
+   * `composer`) : on ne passe plus de `dock`.
    */
-  dock: ReactNode;
+  dock?: ReactNode;
   /** Les éléments posés sur le tableau (le professeur flottant). */
   children?: ReactNode;
   /** La page vit sous la barre de navigation mobile (fixe, en bas) : on lui laisse sa place. */
@@ -62,14 +63,23 @@ export function HoersaalStage({
         className={cn("relative isolate flex min-h-0 w-full flex-1 flex-col overflow-hidden", ROOM_BG, className)}
       >
         {/* La Tafel et son rebord « Farben » : tout l'espace au-dessus de la barre du chat */}
-        <div data-slot="stage-board" className="relative flex min-h-0 flex-1 flex-col p-2 sm:p-3 lg:p-4">
+        <div
+          data-slot="stage-board"
+          className={cn(
+            "relative flex min-h-0 flex-1 flex-col p-1.5 sm:p-2.5 lg:p-3",
+            // Sans barre du bas, le tableau descend jusqu'à la barre de navigation mobile.
+            !dock && bottomNav && "pb-[calc(4.6rem+env(safe-area-inset-bottom))] sm:pb-[calc(4.9rem+env(safe-area-inset-bottom))] lg:pb-4",
+            !dock && !bottomNav && "pb-4",
+          )}
+        >
           {board}
         </div>
 
         {/* Ce qui est posé sur le tableau */}
         {children}
 
-        {/* La barre du chat : sous le rebord, tout en bas */}
+        {/* L'ancienne barre du bas (plus utilisée par le tuteur ni par la maquette). */}
+        {dock && (
         <div
           data-slot="stage-dock"
           className={cn(
@@ -89,6 +99,7 @@ export function HoersaalStage({
             {dock}
           </div>
         </div>
+        )}
       </div>
     </StageContext.Provider>
   );
@@ -136,10 +147,15 @@ export function FloatingProfessor({
       whileDrag={{ scale: 1.04 }}
       title={dragLabel}
       className={cn(
-        "absolute top-[5.5rem] right-3 z-20 flex cursor-grab touch-none flex-col items-center gap-2 select-none active:cursor-grabbing sm:top-28 sm:right-8 [&_img]:pointer-events-none",
+        "absolute top-2 right-1 z-20 cursor-grab touch-none select-none active:cursor-grabbing sm:top-28 sm:right-8 [&_img]:pointer-events-none",
         className,
       )}
     >
+      {/* Sur téléphone, le professeur se fait plus petit (75 %) et monte dans
+          le coin : il cache moins la résolution — et on le déplace du doigt.
+          L'échelle est sur ce conteneur, pas sur le motion.div : framer-motion
+          écrit lui-même son transform (glisser). */}
+      <div className="flex origin-top-right flex-col items-center gap-2 max-sm:scale-75">
       {video ?? <HologramProfessor professor={professor} pose={pose} beat={beat} size="float" />}
       <div className="flex max-w-[15rem] items-center gap-1 rounded-full border border-white/10 bg-slate-950/60 py-1 pr-1 pl-2 text-white shadow-[0_10px_30px_-10px_rgb(0_0_0/0.8)] backdrop-blur-md">
         <GripHorizontal className="size-3.5 shrink-0 text-white/40" aria-hidden />
@@ -155,6 +171,7 @@ export function FloatingProfessor({
             {actions}
           </div>
         )}
+      </div>
       </div>
     </motion.div>
   );

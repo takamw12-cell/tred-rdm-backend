@@ -52,6 +52,8 @@ export function TafelBoard({
   chosen,
   notice,
   footer,
+  composer,
+  composerExtras,
   className,
 }: {
   page?: TafelPage;
@@ -70,6 +72,10 @@ export function TafelBoard({
   notice?: ReactNode;
   /** Les gestes sous la réponse. */
   footer?: ReactNode;
+  /** La saisie, dans le rebord du tableau (à droite de « Farben »). */
+  composer?: ReactNode;
+  /** Solde, pièces jointes : au-dessus du rebord. */
+  composerExtras?: ReactNode;
   className?: string;
 }) {
   const { t, locale } = useT();
@@ -117,12 +123,15 @@ export function TafelBoard({
   const showPager = pager && pager.count > 1;
   const pill =
     status || showPager ? (
-      <div className="flex shrink-0 flex-col items-end gap-2">
+      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
         {showPager && <BoardPager {...pager} />}
         {status && <BoardStatus>{status}</BoardStatus>}
       </div>
     ) : undefined;
 
+  // Le grand titre n'existe que sur le tableau vide : dès qu'une question est
+  // posée, il s'efface et la résolution prend toute la hauteur.
+  const blank = !page && !notice;
   return (
     <GlassBoard
       aria-label={t("tafel.title")}
@@ -131,8 +140,11 @@ export function TafelBoard({
       status={pill}
       className={className}
       bodyRef={body}
+      showHeader={blank}
+      composer={composer}
+      composerExtras={composerExtras}
     >
-      {!page && !notice ? (
+      {blank ? (
         <div className="my-auto flex max-w-xl flex-col items-center gap-6">
           <p className="font-hand text-center text-3xl leading-snug text-[color:var(--board-muted)]">
             {EMPTY[locale === "de" || locale === "fr" ? locale : "en"]}
@@ -140,7 +152,7 @@ export function TafelBoard({
           {emptyExtra}
         </div>
       ) : (
-        <div key={page?.id} data-slot="tafel-page" className="flex w-full max-w-3xl flex-col items-center gap-6">
+        <div key={page?.id} data-slot="tafel-page" className="flex w-full flex-col items-center gap-5">
           {page?.question && (
             <QuestionLine question={page.question} images={page.images} label={t("tafel.yourQuestion")} />
           )}
@@ -202,6 +214,7 @@ export function TafelBoard({
                 className="flex w-full justify-center"
               >
                 <PaperNote
+                  className="max-w-none"
                   // Deux feuilles voisines ne sont jamais parallèles.
                   tilt={n % 2 === 0 ? -0.5 : 0.4}
                   highlight={final}
@@ -503,7 +516,7 @@ function ReasoningPostIt({
         data-slot="tafel-postit"
         data-kind={kind}
         className={cn(
-          "relative w-full max-w-3xl rounded-[3px] px-5 pt-7 pb-5 text-[#1A1A1A] shadow-[0_1px_1px_rgb(15_23_42/0.1),0_14px_24px_-12px_rgb(15_23_42/0.45),inset_0_-12px_18px_-14px_rgb(0_0_0/0.18)] sm:px-7",
+          "relative w-full rounded-[3px] px-5 pt-7 pb-5 text-[#1A1A1A] shadow-[0_1px_1px_rgb(15_23_42/0.1),0_14px_24px_-12px_rgb(15_23_42/0.45),inset_0_-12px_18px_-14px_rgb(0_0_0/0.18)] sm:px-7",
           highlight && "ring-2 ring-[#EAB308]",
         )}
         style={{ background: `linear-gradient(175deg, ${look.paper} 0%, ${look.paper} 88%, rgb(0 0 0 / 0.03) 100%)` }}
