@@ -15,7 +15,7 @@
         "@tursodatabase/api": "^1.9.2",
         "@types/bun": "1.4.4",
         "@types/semver": "^7.7.1",
-        "konsistent": "^1.0.0-beta.2",
+        "konsistent": "^1.0.0-beta.12",
         "oxfmt": "0.74.0",
         "oxlint": "1.89.0",
         "semver": "^7.7.2",
@@ -682,7 +682,7 @@
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
-    "@konsistent/convention": ["@konsistent/convention@1.0.0-beta.8", "", { "dependencies": { "citty": "^0.2", "jiti": "^2" }, "peerDependencies": { "zod": "^4" }, "bin": { "konsistent-convention": "./dist/cli.js" } }, "sha512-UivnVtnoMgW9s7FoZ97qdMlJnzOlcyl7WHE41MfDNqfFa4iux/8IKoj+72H4PYMYf/nnqex3hHqNAvjTxdA2/A=="],
+    "@konsistent/convention": ["@konsistent/convention@1.0.0-beta.12", "", { "dependencies": { "citty": "^0.2", "jiti": "^2" }, "peerDependencies": { "zod": "^4" }, "bin": { "konsistent-convention": "./dist/cli.js" } }, "sha512-pb5GHUVWgEmqaS4EVIbD9E6+JOrYbtWJ+c4/xydvRj1lsvGwrJ3MgMVOuWCyhP7jFnsTUxJVASgB9ZRNYNy/0w=="],
 
     "@kurkle/color": ["@kurkle/color@0.3.4", "", {}, "sha512-M5UknZPHRu3DEDWoipU6sE8PdkZ6Z/S+v4dD+Ke8IaNlpdSQah50lz1KtcFBa2vsdOnwbbnxJwVM4wty6udA5w=="],
 
@@ -2184,7 +2184,7 @@
 
     "kleur": ["kleur@3.0.3", "", {}, "sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w=="],
 
-    "konsistent": ["konsistent@1.0.0-beta.8", "", { "dependencies": { "@konsistent/convention": "1.0.0-beta.8", "citty": "^0.2", "picocolors": "^1", "picomatch": "^4", "resolve.exports": "^2", "tinyglobby": "^0.2", "typescript": "^5.7", "zod": "^4" }, "bin": { "konsistent": "./dist/cli.js" } }, "sha512-bXun4xBRTJH235WuVy6Wlcd2gXhy5KGW9IQQAhoLfaR3wccGzlPXV3ZJXN1IHvVSWhk+QTFQskrxb+oMoPOgQw=="],
+    "konsistent": ["konsistent@1.0.0-beta.12", "", { "dependencies": { "@konsistent/convention": "1.0.0-beta.12", "citty": "^0.2", "picocolors": "^1", "picomatch": "^4", "resolve.exports": "^2", "tinyglobby": "^0.2", "typescript": "^5.7", "zod": "^4" }, "bin": { "konsistent": "./dist/cli.js" } }, "sha512-nQbpa53gOinXoKIpG/aliM+jrttdbI7wXIEhQZe2Bb+grqG/AcJtANouSebh0hOjx3wCrp/c23J6wc+tdUc3UQ=="],
 
     "kysely": ["kysely@0.29.5", "", {}, "sha512-ooa+eSbBNPTo3MycPEuW5jdrxQdQwdtB3LC3h43FiXQbIry5tR0C5lDG7eealK0E4D7XjrnOP5DIUg/LyjRMYQ=="],
 
