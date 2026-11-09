@@ -157,7 +157,10 @@ export function GlassBoard({
             // une marge pour le professeur flottant (le texte ne passe jamais
             // sous lui ; sur téléphone, on le déplace du doigt).
             // Sans titre : place pour la pastille d'état seulement si elle existe.
-            showHeader ? "pt-4" : cn(status ? "pt-12" : "pt-4", "md:pr-48 lg:pr-52"),
+            // Avec titre (/classroom) : les feuilles prennent toute la largeur ;
+            // sur grand écran paysage seulement, elles s'arrêtent avant le
+            // professeur (sinon il cache le tampon « Berechnet »).
+            showHeader ? "pt-4 lg:pr-52" : cn(status ? "pt-12" : "pt-4", "md:pr-48 lg:pr-52"),
           )}
         >
           {children}
@@ -409,11 +412,14 @@ export function PaperNote({
     <article
       data-slot="tafel-note"
       className={cn(
-        "relative w-full max-w-2xl bg-[#FFFDF6] px-6 pt-9 pb-7 shadow-[0_1px_1px_rgb(15_23_42/0.08),0_18px_30px_-14px_rgb(15_23_42/0.45),0_4px_10px_-4px_rgb(15_23_42/0.15)] sm:px-10",
+        "relative w-full max-w-full bg-[#FFFDF6] px-6 pt-9 pb-7 shadow-[0_1px_1px_rgb(15_23_42/0.08),0_18px_30px_-14px_rgb(15_23_42/0.45),0_4px_10px_-4px_rgb(15_23_42/0.15)] sm:px-10 lg:px-14",
+        "[transform:rotate(var(--tilt))] lg:[transform:rotate(calc(var(--tilt)*0.5))]",
         highlight && "ring-2 ring-[#EAB308]/70",
         className,
       )}
-      style={{ transform: `rotate(${tilt}deg)` }}
+      // Feuille très large : inclinaison réduite de moitié, sinon le bord
+      // monte de 20 px d'un côté à l'autre.
+      style={{ "--tilt": `${tilt}deg` } as CSSProperties}
     >
       {/* Aimant */}
       <span
@@ -434,7 +440,10 @@ export function PaperNote({
         {stamp}
       </div>
 
-      <div className="relative" style={{ color: INK }}>
+      {/* Toute la largeur du tableau ; seuls les longs paragraphes gardent une
+          longueur de ligne lisible (max-w-4xl). Formules centrées (KaTeX),
+          tableaux et options A/B/C prennent toute la feuille. */}
+      <div className="relative [&_p]:max-w-4xl" style={{ color: INK }}>
         {children}
       </div>
     </article>

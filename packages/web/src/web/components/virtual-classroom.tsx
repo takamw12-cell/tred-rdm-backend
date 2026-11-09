@@ -94,7 +94,7 @@ export function VirtualClassroom({ board, avatar }: VirtualClassroomSlots = {}) 
             composer={composer}
             composerExtras={extras}
           >
-            <div data-slot="tafel" className="flex flex-1 flex-col items-center justify-center gap-6">
+            <div data-slot="tafel" className="flex w-full flex-1 flex-col items-center justify-center gap-6">
               {board ?? <TafelPlaceholderContent />}
             </div>
           </GlassBoard>

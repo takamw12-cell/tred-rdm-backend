@@ -214,7 +214,6 @@ export function TafelBoard({
                 className="flex w-full justify-center"
               >
                 <PaperNote
-                  className="max-w-none"
                   // Deux feuilles voisines ne sont jamais parallèles.
                   tilt={n % 2 === 0 ? -0.5 : 0.4}
                   highlight={final}
@@ -391,7 +390,11 @@ export function ChoiceButtons({
 }) {
   const { t } = useT();
   return (
-    <fieldset data-slot="tafel-choices" className="m-0 grid min-w-0 gap-2 border-0 p-0 sm:grid-cols-2">
+    <fieldset data-slot="tafel-choices" className={cn(
+        "m-0 grid min-w-0 gap-2 border-0 p-0 sm:grid-cols-2",
+        // Feuille large : trois options sur une ligne ; quatre restent en 2 × 2.
+        options.length === 3 && "lg:grid-cols-3",
+      )}>
       <legend className="sr-only">{t("tafel.chooseAnswer")}</legend>
       {options.map((o) => {
         const picked = chosen === o.key;
