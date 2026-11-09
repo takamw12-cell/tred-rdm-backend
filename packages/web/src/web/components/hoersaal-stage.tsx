@@ -60,16 +60,18 @@ export function HoersaalStage({
       <div
         ref={stageRef}
         data-slot="hoersaal-stage"
-        className={cn("relative isolate flex min-h-0 w-full flex-1 flex-col overflow-hidden", ROOM_BG, className)}
+        className={cn("relative isolate flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden", ROOM_BG, className)}
       >
         {/* La Tafel et son rebord « Farben » : tout l'espace au-dessus de la barre du chat */}
         <div
           data-slot="stage-board"
           className={cn(
-            "relative flex min-h-0 flex-1 flex-col p-1.5 sm:p-2.5 lg:p-3",
-            // Sans barre du bas, le tableau descend jusqu'à la barre de navigation mobile.
-            !dock && bottomNav && "pb-[calc(4.6rem+env(safe-area-inset-bottom))] sm:pb-[calc(4.9rem+env(safe-area-inset-bottom))] lg:pb-4",
-            !dock && !bottomNav && "pb-4",
+            // Décision fondateur (2026-11-09) : la Tafel colle à la barre de
+            // contexte et occupe toute la largeur — aucune marge autour.
+            "relative flex h-full min-h-0 w-full flex-1 flex-col p-0",
+            // En bas, seulement la place de la barre de navigation mobile
+            // (fixe) : la saisie, dans le rebord, n'est jamais cachée.
+            !dock && bottomNav && "pb-[calc(4.25rem+env(safe-area-inset-bottom))] lg:pb-0",
           )}
         >
           {board}

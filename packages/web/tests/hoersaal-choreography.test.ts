@@ -115,7 +115,13 @@ describe("Câblage", () => {
     // Décision fondateur (2026-11-09, 2e version) : plus de barre sous le
     // tableau. « Farben » à gauche, la saisie à droite, une seule ligne flex
     // dans le rebord — aucun chevauchement possible.
-    expect(stage).toContain("relative isolate flex min-h-0 w-full flex-1 flex-col");
+    expect(stage).toContain("relative isolate flex h-full min-h-0 w-full flex-1 flex-col");
+    // Plein cadre (2026-11-09) : aucune marge entre la barre de contexte et
+    // la Tafel ; hauteur dynamique (dvh) pour Safari iPhone/iPad.
+    expect(stage).toContain('"relative flex h-full min-h-0 w-full flex-1 flex-col p-0"');
+    expect(board).toMatch(/data-slot="tafel-frame"[\s\S]*?h-full min-h-0 w-full flex-1 flex-col rounded-t-none/);
+    expect(read("src/web/pages/chat.tsx")).toContain("h-[calc(100dvh-4rem)]");
+    expect(read("src/web/components/layout.tsx")).toContain('!location.startsWith("/chat") && "pb-16 lg:pb-0"');
     expect(stage).not.toMatch(/\bbottom-\[/);
     expect(stage).not.toContain('"--dock-space"');
     expect(board).not.toContain("dock-spacer");

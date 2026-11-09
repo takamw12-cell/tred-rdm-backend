@@ -269,7 +269,11 @@ function QuestionLine({
   label: string;
 }) {
   return (
-    <div data-slot="tafel-question" className="w-full border-b border-dashed border-current/25 pb-3">
+    <div
+      data-slot="tafel-question"
+      // Sur téléphone, le professeur flotte en haut à droite : la question ne passe pas dessous.
+      className="w-full border-b border-dashed border-current/25 pr-28 pb-3 sm:pr-36 md:pr-0"
+    >
       <p className="font-mono text-[11px] tracking-[0.16em] text-[color:var(--board-muted)] uppercase">{label}</p>
       {/* Markdown sans HTML (react-markdown) : les formules d'une option
           choisie (« B) $3\,\mathrm{A}$ ») s'affichent en KaTeX. */}

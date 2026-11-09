@@ -80,14 +80,16 @@ export function GlassBoard({
       aria-label={ariaLabel}
       data-slot="tafel-frame"
       className={cn(
-        "relative flex min-h-0 flex-1 flex-col rounded-[22px] bg-[linear-gradient(180deg,#E6E9ED_0%,#A9B1BB_48%,#C9CFD6_52%,#8D96A1_100%)] p-[10px] shadow-[0_50px_100px_-30px_rgb(0_0_0/0.9),0_20px_40px_-20px_rgb(0_0_0/0.7),inset_0_1px_0_rgb(255_255_255/0.8)]",
+        // Plein cadre : collé à la barre de contexte (coins du haut droits),
+        // bord à bord, toute la hauteur jusqu'à la saisie.
+        "relative flex h-full min-h-0 w-full flex-1 flex-col rounded-t-none rounded-b-[16px] bg-[linear-gradient(180deg,#E6E9ED_0%,#A9B1BB_48%,#C9CFD6_52%,#8D96A1_100%)] px-1.5 pt-1.5 pb-[10px] shadow-[inset_0_1px_0_rgb(255_255_255/0.8)]",
         className,
       )}
     >
       {/* Grain du métal brossé */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 rounded-[22px] opacity-40 mix-blend-overlay [background-image:repeating-linear-gradient(90deg,rgb(255_255_255/0.35)_0px,rgb(0_0_0/0.15)_1px,transparent_2px,transparent_4px)]"
+        className="pointer-events-none absolute inset-0 rounded-b-[16px] opacity-40 mix-blend-overlay [background-image:repeating-linear-gradient(90deg,rgb(255_255_255/0.35)_0px,rgb(0_0_0/0.15)_1px,transparent_2px,transparent_4px)]"
       />
 
       {/* Le verre */}
@@ -96,7 +98,7 @@ export function GlassBoard({
         data-board-theme={effectiveBoardTheme(theme, custom)}
         data-tafel-custom={custom ? "" : undefined}
         style={tafelStyle(custom) as CSSProperties | undefined}
-        className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[14px] transition-[background] duration-500"
+        className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[10px] transition-[background] duration-500"
       >
         {/* Reflet diagonal : on sait tout de suite que c'est du verre */}
         <div
@@ -154,7 +156,8 @@ export function GlassBoard({
             // Sans titre : la page commence sous la pastille d'état ; à droite,
             // une marge pour le professeur flottant (le texte ne passe jamais
             // sous lui ; sur téléphone, on le déplace du doigt).
-            showHeader ? "pt-4" : "pt-14 md:pr-48 lg:pr-52",
+            // Sans titre : place pour la pastille d'état seulement si elle existe.
+            showHeader ? "pt-4" : cn(status ? "pt-12" : "pt-4", "md:pr-48 lg:pr-52"),
           )}
         >
           {children}

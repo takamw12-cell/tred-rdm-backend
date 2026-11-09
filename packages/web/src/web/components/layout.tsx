@@ -226,7 +226,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
         {/* `min-w-0` plus haut : sans lui, un tableau ou un bloc de code large
             pousse la colonne et fait défiler la page entière de côté. */}
-        <main className="min-w-0 flex-1 pb-16 lg:pb-0">{children}</main>
+        {/* Le Hörsaal (/chat) gère lui-même la place de la barre de navigation
+            mobile (hoersaal-stage.tsx) : sans ce retrait, la page défilait de
+            64 px et poussait la saisie hors de l'écran. */}
+        <main className={cn("min-w-0 flex-1", !location.startsWith("/chat") && "pb-16 lg:pb-0")}>{children}</main>
 
         {/* Le guide du premier lancement. Monté ici et pas dans une page :
             il doit pouvoir éclairer l'en-tête et la barre latérale, qui

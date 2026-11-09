@@ -1470,7 +1470,7 @@ export default function ChatPage() {
   );
 
   return (
-    <div className="flex h-[calc(100vh-4rem)]">
+    <div className="flex h-[calc(100dvh-4rem)]">
       {/* Kursliste — Schiene auf großen Bildschirmen, einklappbar */}
       <aside
         className={cn(
