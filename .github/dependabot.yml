@@ -1,11 +1,19 @@
 # Mises à jour automatiques des dépendances (Dependabot).
 #
 # Chaque lundi, Dependabot ouvre des Pull Requests :
-#   • mineures + correctifs (souvent de sécurité) : UNE PR groupée. Si la CI
-#     est verte (typecheck, tests, build), elle est fusionnée automatiquement
-#     (.github/workflows/ci.yml, job « automerge ») — puis Railway déploie ;
+#   • mineures + correctifs STABLES (souvent de sécurité) : UNE PR groupée.
+#     Si la CI est verte (typecheck, tests, build), elle est fusionnée
+#     automatiquement (.github/workflows/ci.yml, job « automerge ») — puis
+#     Railway déploie ;
+#   • paquets en pré-version (beta…) ou en 0.x : leur propre PR groupée,
+#     pour ne jamais bloquer la précédente. Leurs correctifs 0.x stables
+#     passent seuls ; une pré-version ou une mineure 0.x attend ta validation ;
 #   • majeures (peuvent casser le code) : une PR par paquet, JAMAIS fusionnée
 #     automatiquement. C'est toi qui valides (voir MAINTENANCE.md).
+#
+# La DÉCISION de fusionner est prise dans ci.yml (étape « Stable et sans
+# risque ? ») : Dependabot ne fait qu'ouvrir les PR. Ce fichier ne peut pas,
+# à lui seul, interdire une fusion.
 #
 # cooldown 14 jours : une version n'est proposée que 14 jours après sa
 # publication (règle du projet, CLAUDE.md) — le temps qu'un paquet piégé ou
@@ -25,6 +33,26 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     groups:
+      # Pré-versions et 0.x (liste à tenir à jour quand on en ajoute un) :
+      # « une mineure peut casser ». Un paquet va dans le PREMIER groupe qui
+      # lui correspond.
+      preversions-et-0x:
+        patterns:
+          - "konsistent"
+          - "oxfmt"
+          - "@libsql/*"
+          - "@heygen/*"
+          - "class-variance-authority"
+          - "drizzle-*"
+          - "fflate"
+          - "katex"
+          - "lucide-react"
+          - "three"
+          - "@types/three"
+          - "sharp"
+        update-types:
+          - "minor"
+          - "patch"
       mineures-et-correctifs:
         update-types:
           - "minor"

@@ -3,9 +3,10 @@
 # Tourne sur chaque Pull Request (dont celles de Dependabot) et sur chaque
 # push sur master. Une étape rouge = la PR n'est pas fusionnée.
 #
-# Les mises à jour MINEURES et CORRECTIFS de Dependabot sont fusionnées
-# automatiquement par le job « automerge », qui ne démarre QUE si « verify »
-# a réussi (needs). Les mises à jour MAJEURES ne le sont jamais : elles
+# Les mises à jour MINEURES et CORRECTIFS STABLES de Dependabot sont
+# fusionnées automatiquement par le job « automerge », qui ne démarre QUE si
+# « verify » a réussi (needs). Jamais fusionnées seules : les MAJEURES, les
+# PRÉ-VERSIONS (alpha, beta, rc…) et les mineures d'un paquet en 0.x — elles
 # attendent ta validation (MAINTENANCE.md).
 name: CI
 
@@ -66,14 +67,43 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: Fusionner (mineure ou correctif)
-        if: steps.meta.outputs.update-type == 'version-update:semver-minor' || steps.meta.outputs.update-type == 'version-update:semver-patch'
+      # Garde-fou (décision fondateur 2026-11-09, après konsistent 1.0.0-beta) :
+      # on ne fusionne seul QUE du stable. Bloqué si UNE SEULE dépendance de
+      # la PR est :
+      #   • une majeure ;
+      #   • une pré-version (alpha, beta, rc, canary, next, dev, preview…),
+      #     avant OU après la mise à jour — pour semver, beta.8 → beta.12 est
+      #     un « correctif », d'où la vérification explicite ;
+      #   • une MINEURE d'un paquet en 0.x : en 0.x, une « mineure » peut
+      #     casser (règle semver). Les correctifs 0.x passent.
+      # Tout le reste (mineures et correctifs stables, y compris les
+      # correctifs de sécurité) est fusionné si « verify » est vert.
+      - name: Stable et sans risque ?
+        id: gate
+        env:
+          DEPS: ${{ steps.meta.outputs.updated-dependencies-json }}
+        run: |
+          echo "$DEPS" | jq -r '.[] | "\(.dependencyName): \(.prevVersion) -> \(.newVersion) (\(.updateType))"'
+          blocked=$(echo "$DEPS" | jq -r '
+            [ .[]
+              | select(
+                  (.updateType != "version-update:semver-minor" and .updateType != "version-update:semver-patch")
+                  or ((.prevVersion // "") | test("-"))
+                  or ((.newVersion // "") | test("-"))
+                  or (.updateType == "version-update:semver-minor" and ((.prevVersion // "") | test("^0\\.")))
+                )
+              | .dependencyName ] | join(", ")')
+          if [ -n "$blocked" ]; then
+            echo "Non fusionnée automatiquement (majeure, pré-version ou 0.x) : $blocked"
+            echo "Validation manuelle : MAINTENANCE.md"
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fusionner (mineure ou correctif STABLE)
+        if: steps.gate.outputs.ok == 'true'
         run: gh pr merge "$PR_URL" --squash
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Majeure — en attente de validation manuelle
-        if: steps.meta.outputs.update-type == 'version-update:semver-major'
-        run: |
-          echo "Mise à jour MAJEURE — non fusionnée automatiquement, à valider à la main (MAINTENANCE.md)."

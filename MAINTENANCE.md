@@ -8,11 +8,11 @@ TRED change de modèle d'IA, de voix et de bibliothèques **sans toucher au code
 
 | Quand | Quoi | Ce que tu fais |
 |---|---|---|
-| Chaque lundi, 06:00 | Dependabot propose les mises à jour des paquets (React, Hono, Drizzle, AI SDK…), 14 jours après leur sortie | Rien pour les mineures : elles sont fusionnées toutes seules **si les tests passent**, puis Railway déploie. Les **majeures** t'attendent (voir plus bas). |
+| Chaque lundi, 06:00 | Dependabot propose les mises à jour des paquets (React, Hono, Drizzle, AI SDK…), 14 jours après leur sortie | Rien pour les mineures et correctifs **stables** : ils sont fusionnés tout seuls **si les tests passent**, puis Railway déploie. T'attendent (voir plus bas) : les **majeures**, les **pré-versions** (alpha, beta, rc…) et les **mineures d'un paquet en 0.x**. |
 | Chaque modification | CI : typecheck, plus de 1 000 tests, build de production | Rien. Une croix rouge sur une PR = elle n'est pas fusionnée. |
 | Le 1er du mois, 06:00 UTC | Scan de sécurité : failles connues des dépendances et scan OWASP ZAP passif du site | Lire le résultat (action 4). |
 
-**Une mise à jour MAJEURE** (ex. React 20, Hono 5) arrive comme une Pull Request à part, jamais fusionnée automatiquement :
+**Une mise à jour MAJEURE** (ex. React 20, Hono 5), **une PRÉ-VERSION** (ex. `1.0.0-beta.12`) ou **une mineure d'un paquet en 0.x** (ex. katex 0.19 → 0.20) arrive comme une Pull Request jamais fusionnée automatiquement (étape « Stable et sans risque ? » de la CI) :
 1. GitHub → **Pull requests** → la PR « chore(deps): bump … ».
 2. Vérifie que la coche **CI** est verte. Rouge : ne fusionne pas, demande-moi.
 3. Lis le lien « Release notes » de la PR. Si tu as un doute, demande-moi : je lis les changements cassants et je teste.
