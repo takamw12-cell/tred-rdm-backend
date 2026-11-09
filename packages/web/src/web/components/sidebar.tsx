@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard,
@@ -40,7 +41,14 @@ export const navItems = [
   { to: "/settings", icon: Settings, key: "nav.settings" },
 ];
 
-export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+export function SidebarContent({
+  onNavigate,
+  headerAction,
+}: {
+  onNavigate?: () => void;
+  /** Posé à droite du logo, sur la même ligne (le bouton X du panneau). */
+  headerAction?: ReactNode;
+}) {
   const [location] = useLocation();
   const { t } = useT();
   const profile = useUserStore((s) => s.profile);
@@ -51,11 +59,12 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="px-5 py-6">
+      <div className="flex items-center justify-between gap-2 py-6 pr-3 pl-5">
         <Link to="/dashboard" onClick={onNavigate}>
           {/* Sidebar bleu nuit : losanges et mot « TRED » passent en blanc, le gland reste jaune. */}
           <Logo markClassName="text-white" />
         </Link>
+        {headerAction}
       </div>
 
       <nav className="flex-1 space-y-1 px-3" data-tour="nav">

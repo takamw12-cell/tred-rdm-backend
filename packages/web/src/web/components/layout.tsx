@@ -51,24 +51,24 @@ function SidebarPanel({
 
   return (
     <div className="sidebar-night flex h-full flex-col overflow-hidden rounded-2xl border text-white shadow-sm">
-      <div className="flex items-center justify-between px-4 pt-4">
-        <Link to="/dashboard" onClick={onNavigate} aria-label="TRED">
-          <LogoMark className="size-8 text-white" />
-        </Link>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-white/70 hover:bg-white/10 hover:text-white"
-          onClick={onClose}
-          aria-label={t("nav.hideMenu")}
-          title={t("nav.hideMenu")}
-        >
-          <X className="size-5" />
-        </Button>
-      </div>
-
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <SidebarContent onNavigate={onNavigate} />
+        {/* Un seul logo : le X se range sur la ligne du logo complet (le petit
+            symbole qui le doublait au-dessus a été retiré, 2026-11-09). */}
+        <SidebarContent
+          onNavigate={onNavigate}
+          headerAction={
+            <Button
+              variant="ghost"
+              size="icon"
+              className="shrink-0 text-white/70 hover:bg-white/10 hover:text-white"
+              onClick={onClose}
+              aria-label={t("nav.hideMenu")}
+              title={t("nav.hideMenu")}
+            >
+              <X className="size-5" />
+            </Button>
+          }
+        />
       </div>
     </div>
   );
