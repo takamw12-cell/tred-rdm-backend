@@ -82,24 +82,47 @@ jobs:
         id: gate
         env:
           DEPS: ${{ steps.meta.outputs.updated-dependencies-json }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "$DEPS" | jq -r '.[] | "\(.dependencyName): \(.prevVersion) -> \(.newVersion) (\(.updateType))"'
-          blocked=$(echo "$DEPS" | jq -r '
-            [ .[]
-              | select(
-                  (.updateType != "version-update:semver-minor" and .updateType != "version-update:semver-patch")
-                  or ((.prevVersion // "") | test("-"))
-                  or ((.newVersion // "") | test("-"))
-                  or (.updateType == "version-update:semver-minor" and ((.prevVersion // "") | test("^0\\.")))
-                )
-              | .dependencyName ] | join(", ")')
-          if [ -n "$blocked" ]; then
-            echo "Non fusionnée automatiquement (majeure, pré-version ou 0.x) : $blocked"
-            echo "Validation manuelle : MAINTENANCE.md"
-            echo "ok=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "ok=true" >> "$GITHUB_OUTPUT"
-          fi
+          # Pour une PR GROUPÉE, fetch-metadata ne donne pas les versions : on
+          # les lit dans le tableau « Package | From | To » de la PR (et les
+          # lignes « Bumps/Updates X from A to B »). Version introuvable =
+          # PAS de fusion automatique (sécurité par défaut).
+          gh pr view "$PR_URL" --json body -q .body > pr-body.md
+          python3 - <<'PY'
+          import json, os, re
+          deps = json.loads(os.environ.get("DEPS") or "[]")
+          body = open("pr-body.md", encoding="utf-8").read()
+          seen = {}
+          for name, a, b in re.findall(r"^\|\s*\[?([^\]|]+?)\]?(?:\([^)]*\))?\s*\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|", body, re.M):
+              seen[name.strip()] = (a.strip(), b.strip())
+          for name, a, b in re.findall(r"(?:Bumps|Updates) \[?`?([^\]`\s]+)`?\]?(?:\([^)]*\))? from ([^\s]+) to ([^\s.]+(?:\.[^\s.]+)*?)\.?(?:\s|$)", body):
+              seen.setdefault(name.strip(), (a.strip(), b.strip()))
+          blocked = []
+          for d in deps:
+              name = d.get("dependencyName", "?")
+              kind = d.get("updateType", "")
+              prev = d.get("prevVersion") or seen.get(name, ("", ""))[0]
+              new = d.get("newVersion") or seen.get(name, ("", ""))[1]
+              print(f"{name}: {prev or '?'} -> {new or '?'} ({kind})")
+              if kind not in ("version-update:semver-minor", "version-update:semver-patch"):
+                  blocked.append(f"{name} (majeure)")
+              elif not prev or not new:
+                  blocked.append(f"{name} (version illisible)")
+              elif "-" in prev or "-" in new:
+                  blocked.append(f"{name} (pré-version {new})")
+              elif kind.endswith("minor") and prev.startswith("0."):
+                  blocked.append(f"{name} (mineure 0.x {prev} -> {new})")
+          if not deps:
+              blocked.append("aucune dépendance lue")
+          ok = not blocked
+          if not ok:
+              print("Non fusionnée automatiquement : " + ", ".join(blocked))
+              print("Validation manuelle : MAINTENANCE.md")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"ok={'true' if ok else 'false'}\n")
+          PY
 
       - name: Fusionner (mineure ou correctif STABLE)
         if: steps.gate.outputs.ok == 'true'
