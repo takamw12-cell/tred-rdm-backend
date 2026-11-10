@@ -68,3 +68,27 @@ Le plan complet est dans `docs/V2_ARCHITECTURE.md`.
 - **Pilier 3, co-pilote vision** : en fondations. On utilise les API natives du navigateur, sans nouveau paquet. Les images ne sont jamais stockées.
 - **Pilier 4, intelligence collective** : en fondations. Contribuer exige le consentement, une modération et une mention dans la Datenschutzerklärung avant ouverture.
 
+
+## Outils installés (11 nov. 2026)
+
+Claude Code peut les utiliser de lui-même, sans demander, dans les limites des règles ci-dessus : pas de compte créé, pas de dépense, pas de push sans demande.
+
+**Serveurs MCP du projet** (`.mcp.json`, versions exactes publiées depuis au moins 14 jours). À la première ouverture du dépôt, Claude Code demande de les approuver (`/mcp`).
+
+| Serveur | Usage | Prérequis |
+|---|---|---|
+| `playwright` (`@playwright/mcp@0.0.83`) | ouvrir l'app, cliquer, prendre des captures, tester l'UI | aucun |
+| `context7` (`@upstash/context7-mcp@4.4.4`) | documentation à jour des bibliothèques (Remotion, AI SDK, React…) | aucun |
+| `github` (serveur **officiel** distant de GitHub, `api.githubcopilot.com/mcp/`) | issues, PR, CI du dépôt | variable `GITHUB_PERSONAL_ACCESS_TOKEN`. Le paquet `@modelcontextprotocol/server-github` est archivé et sans garantie de sécurité ; il a été remplacé par ce serveur officiel. `gh` reste disponible. |
+| `supabase` (`@supabase/mcp-server-supabase@0.14.0`, **lecture seule**) | uniquement si un projet Supabase est utilisé un jour : TRED n'utilise pas Supabase (base libSQL) | variable `SUPABASE_ACCESS_TOKEN`. Le paquet `@supabase/mcp-server` n'existe pas. |
+| `figma`, `replicate` | maquettes Figma, médias Replicate | jetons respectifs |
+
+**Plugins et skills** (niveau utilisateur, `~/.claude`) :
+- `superpowers` (claude-plugins-official) : TDD, brainstorming, débogage méthodique, plans d'implémentation.
+- `frontend-design` (claude-plugins-official) : design d'interface distinctif, anti « AI slop ».
+- `ui-ux-pro-max` : design system, palettes, typographie.
+- `tdd` (glebis/claude-skills) : cycle test → code → refactor.
+- skill `design-taste` (h3nryprod01/design-taste @ 3218793) : goût visuel, critique et finition d'UI.
+- skill `security-audit` (cloudflare/security-audit-skill @ c1c8a8c) : audit de sécurité en plusieurs phases, avec findings vérifiés.
+- Déjà présents : `design-taste-frontend`, `anthropic-skills:pdf` (extraction de PDF).
+- **Non installés :** `luminary19/atelier` (2 étoiles, aucun commit depuis juin 2026, 366 fichiers dont des scripts de génération d'images : impossible à vérifier, donc hors des critères « officiel et maintenu ») ; `security-audit-mcp` (paquet npm d'un auteur isolé, remplacé par le skill officiel de Cloudflare).
