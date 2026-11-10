@@ -1,0 +1,28 @@
+/* La feuille de styles de l'app web, telle quelle (Tailwind v4, thème, Tafel). */
+@import "../../web/src/web/styles.css";
+
+/* Tailwind ne génère que les classes qu'il voit : on lui montre les composants de l'app. */
+@source "../../web/src/web/components";
+@source "../../web/src/web/lib";
+@source "./";
+
+/* Les polices de l'app sont servies sur /fonts/ par le serveur web ; ici, on
+   les embarque dans le bundle (mêmes fichiers, mêmes familles). */
+@font-face {
+  font-family: "Fraunces";
+  font-style: normal;
+  font-weight: 500 700;
+  src: url("../../web/public/fonts/fraunces-latin.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  src: url("../../web/public/fonts/inter-latin.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Caveat";
+  font-style: normal;
+  font-weight: 400 700;
+  src: url("../../web/public/fonts/caveat-latin.woff2") format("woff2");
+}

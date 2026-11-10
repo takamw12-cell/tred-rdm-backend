@@ -425,6 +425,20 @@ Les fichiers sont dans `packages/web/src/api/lib/domains/` :
 2. Ajouter son identifiant à `SpecializationId` dans `types.ts` et au registre dans `index.ts`.
 3. Lancer `bun test`. Les tests vérifient que chaque identifiant a son fichier et que chaque outil cité existe vraiment.
 
+## Vidéos promotionnelles — Remotion (`packages/video`)
+
+Les vidéos TikTok / Reels de TRED sont du **code React** : elles réutilisent les vrais composants de l'app (la Tafel, le professeur, le logo, le solveur RDM). Choix fait le 2026-11-10 après comparaison de Remotion, Revideo et HyperFrames (voir `CLAUDE.md`, Règle de Veille Technologique).
+
+- **Rien à installer côté serveur.** `packages/video` n'est ni un workspace de l'app, ni dans l'image Docker (`.dockerignore`). Railway ne le déploie pas.
+- **Refaire la vidéo** (WSL ou Linux, Node 22) :
+  ```bash
+  cd packages/video
+  npm install --legacy-peer-deps   # une fois ; React vient de l'app (une seule copie)
+  npm run studio                   # aperçu interactif dans le navigateur
+  npm run render                   # → out/tred-hoersaal-15s.mp4 (1080×1920, 15 s)
+  ```
+- **Licence (vérifiée le 2026-11-10).** Gratuite pour une personne seule et pour les entreprises de **3 personnes au plus**, y compris en usage commercial. **Dès la 4ᵉ personne dans l'entreprise, une « Company License » est obligatoire.** Les prix publiés par des sites tiers se contredisent (de 25 $ à 100 $ par mois et plus) : vérifier le tarif officiel sur https://www.remotion.pro/license le jour de la 4ᵉ embauche. Aucun compte ni aucune clé ne sont nécessaires aujourd'hui.
+
 ## Sécurité — protocole du 2026-11-09
 
 - **Documents piégés :** chaque extrait de PDF est enfermé dans un bloc `<dokument>` que le contenu ne peut ni fermer ni imiter (`lib/untrusted.ts`). Le prompt (NIVEAU 10) dit que les documents sont des données, jamais des instructions, et qu'il n'existe pas de « code admin ».

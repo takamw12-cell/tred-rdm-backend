@@ -1,0 +1,16 @@
+{
+  "name": "@tred/video",
+  "private": true,
+  "description": "Vidéos promotionnelles de TRED, rendues avec Remotion à partir des vrais composants de packages/web.",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts HoersaalPromo out/tred-hoersaal-15s.mp4 --scale=2 --codec=h264 --crf=18",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@remotion/cli": "4.0.539",
+    "@remotion/tailwind-v4": "4.0.539",
+    "@tailwindcss/postcss": "4.3.3",
+    "remotion": "4.0.539"
+  }
+}

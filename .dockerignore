@@ -19,6 +19,8 @@ packages/mobile/.expo
 packages/mobile/android
 packages/mobile/ios
 packages/desktop
+# Les vidéos promotionnelles (Remotion) : un outil de bureau, jamais servi.
+packages/video
 
 # Sorties de construction locales — reconstruites dans l'image.
 packages/web/dist
