@@ -3,6 +3,13 @@
  *
  *   [[TAFEL schritt="Runde 1"]] … [[/TAFEL]]          (format du prompt, NIVEAU 7)
  *   [[REASONING]] @@STEP: Physik … [[/REASONING]]     (calculs, NIVEAU 7)
+ *   [[PROFESSEUR]] … [[/PROFESSEUR]]                 (ce que le prof DIT, NIVEAU 7)
+ *
+ * Depuis le 2026-11-11 (décision fondateur), ce que le professeur dit à voix
+ * haute n'est plus le contenu du tableau : un vrai prof écrit la formule en
+ * silence, puis se retourne et explique l'intuition. Le bloc [[PROFESSEUR]]
+ * n'est PAS écrit au tableau ; c'est le seul texte que la voix (ElevenLabs)
+ * reçoit.
  *
  * Depuis le 2026-11-09 (décision fondateur), le Hörsaal n'a plus de chat :
  * TOUTE la réponse s'affiche sur la Tafel. `tafelPage` la découpe, dans
@@ -29,8 +36,10 @@ export interface TafelStep {
 
 export interface TafelSplit {
   steps: TafelStep[];
-  /** La voix du Professeur : tout ce qui est hors des blocs TAFEL. */
+  /** Le texte hors des blocs (écrit sur le verre, sans feuille). */
   commentary: string;
+  /** Les paroles du professeur : le contenu des blocs [[PROFESSEUR]]. */
+  spoken: string;
 }
 
 const CLOSE_RE = /\[\[\s*\/\s*TAFEL\s*\]\]/i;
@@ -75,6 +84,8 @@ function reasoningSteps(body: string, closed: boolean): TafelStep[] {
  */
 export type TafelBlock =
   | { kind: "voice"; body: string }
+  /** [[PROFESSEUR]] : dit à voix haute, jamais écrit au tableau. */
+  | { kind: "spoken"; body: string; complete: boolean }
   | ({
       kind: "step";
       /** Clé stable (feuilles déplacées en tête). */
@@ -83,8 +94,9 @@ export type TafelBlock =
       derivation?: boolean;
     } & TafelStep);
 
-const ANY_OPEN_RE = /\[\[\s*(REASONING|TAFEL)\b([^\]]*)\]\]/gi;
+const ANY_OPEN_RE = /\[\[\s*(REASONING|TAFEL|PROFESSEUR|PROFESSOR|PROFESOR|PROFESSORE)\b([^\]]*)\]\]/gi;
 const REASONING_CLOSE_RE = /\[\[\s*\/\s*REASONING\s*\]\]/i;
+const SPOKEN_CLOSE_RE = /\[\[\s*\/\s*(?:PROFESSEUR|PROFESSOR|PROFESOR|PROFESSORE)\s*\]\]/i;
 /** Un marqueur « [[… » coupé en plein streaming (ou un « [ » seul) en fin de texte. */
 const PARTIAL_TAIL_RE = /(?:\[\[[^\]\n]*\]?|\[)\s*$/;
 
@@ -120,10 +132,14 @@ export function tafelPage(raw: string): TafelBlock[] {
     voice(raw.slice(cursor, m.index), false);
     const bodyStart = m.index + m[0].length;
     const rest = raw.slice(bodyStart);
-    const reasoning = (m[1] ?? "").toUpperCase() === "REASONING";
-    const close = (reasoning ? REASONING_CLOSE_RE : CLOSE_RE).exec(rest);
+    const tag = (m[1] ?? "").toUpperCase();
+    const reasoning = tag === "REASONING";
+    const spoken = tag.startsWith("PROF");
+    const close = (reasoning ? REASONING_CLOSE_RE : spoken ? SPOKEN_CLOSE_RE : CLOSE_RE).exec(rest);
     const body = close ? rest.slice(0, close.index) : rest.replace(PARTIAL_TAIL_RE, "");
-    if (reasoning) {
+    if (spoken) {
+      if (body.trim()) blocks.push({ kind: "spoken", body: body.trim(), complete: !!close });
+    } else if (reasoning) {
       for (const s of reasoningSteps(body, !!close)) blocks.push({ kind: "step", derivation: true, ...s });
     } else {
       blocks.push(...tafelBlockSteps(labelOf(m[2] ?? "", stepCount()), body, !!close));
@@ -140,11 +156,13 @@ export function tafelPage(raw: string): TafelBlock[] {
 export function pageSplit(blocks: TafelBlock[]): TafelSplit {
   const steps: TafelStep[] = [];
   const voices: string[] = [];
+  const spoken: string[] = [];
   for (const b of blocks) {
     if (b.kind === "step") steps.push({ label: b.label, body: b.body, complete: b.complete });
+    else if (b.kind === "spoken") spoken.push(b.body);
     else voices.push(b.body);
   }
-  return { steps, commentary: voices.join("\n\n") };
+  return { steps, commentary: voices.join("\n\n"), spoken: spoken.join("\n\n") };
 }
 
 export function splitTafel(raw: string): TafelSplit {

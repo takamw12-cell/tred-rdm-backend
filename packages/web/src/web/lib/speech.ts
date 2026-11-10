@@ -53,6 +53,58 @@ export function answerToSpeech(raw: string): string {
     .trim();
 }
 
+// ── La voix du professeur ([[PROFESSEUR]], NIVEAU 7) ─────────────────────
+//
+// Décision fondateur (2026-11-11) : le professeur ne lit JAMAIS le tableau.
+// Il écrit la formule en silence, se retourne, et explique avec ses mots.
+// La voix (ElevenLabs ou navigateur) ne reçoit donc que :
+//   1. le contenu des blocs [[PROFESSEUR]] ;
+//   2. à défaut (ancien format, app mobile), le texte HORS des blocs
+//      [[TAFEL]] / [[REASONING]] / [[OFFICIAL]]… — jamais leur contenu.
+// Puis on retire tout ce qui n'est pas une phrase : formules, équations
+// écrites en clair (« I = U/R = 3 A »), symboles, code.
+
+const SPOKEN_BLOCK_RE =
+  /\[\[\s*(?:PROFESSEUR|PROFESSOR|PROFESOR|PROFESSORE)\b[^\]]*\]\]([\s\S]*?)(?:\[\[\s*\/\s*(?:PROFESSEUR|PROFESSOR|PROFESOR|PROFESSORE)\s*\]\]|$)/gi;
+// Un bloc d'écrit, contenu compris (le contenu est pour les yeux, pas pour l'oreille).
+const WRITTEN_BLOCK_RE =
+  /\[\[\s*(TAFEL|REASONING|OFFICIAL|AEROSTUDY|QUELLE)\b[^\]]*\]\][\s\S]*?(?:\[\[\s*\/\s*\1\s*\]\]|$)/gi;
+// « I = U/R = 3 A », « R_ges = 5,33 Ω », « x² + 2x » : une équation écrite en clair.
+const EQUATION_RE = /[^\s.,;:!?()]*\s*[=≈≤≥<>]\s*[^\s,;!?]+(?:\s*[=≈+\-−·×*/^]\s*[^\s,;!?]+)*/g;
+
+/** Ce que le professeur doit DIRE d'une réponse (voir plus haut). */
+export function professorSpeech(raw: string): string {
+  const said = [...raw.matchAll(SPOKEN_BLOCK_RE)].map((m) => m[1]).join("\n\n");
+  const source = said.trim() ? said : raw.replace(WRITTEN_BLOCK_RE, "\n\n");
+  return cleanForVoice(source);
+}
+
+/**
+ * Nettoyage final avant la synthèse : balises, formules ($…$, $$…$$, \(…\)),
+ * équations en clair, code, symboles. Ne garde que des phrases.
+ */
+export function cleanForVoice(text: string): string {
+  return answerToSpeech(
+    text
+      .replace(/```[\s\S]*?(?:```|$)/g, " ")
+      .replace(/`[^`\n]*`/g, " ")
+      .replace(/\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]/g, " ")
+      // Une formule en ligne disparaît ; un symbole seul ($R$, $I_1$) reste lisible.
+      .replace(/\$([^$\n]+)\$|\\\(([\s\S]*?)\\\)/g, (_m, a: string, b: string) => {
+        const tex = (a ?? b ?? "").trim();
+        return /[=+\-*/^<>]|\\(?:frac|sqrt|sum|int|cdot|times)/.test(tex) || tex.length > 6 ? " " : tex;
+      })
+      .replace(EQUATION_RE, " "),
+  )
+    .replace(/[\\^_{}#=≈≤≥<>|~*]/g, " ")
+    // Ponctuation orpheline laissée par une formule retirée : « , , » → « , ».
+    .replace(/\s+([,.])/g, "$1")
+    .replace(/([,;:])(?:\s*[,;:])+/g, "$1")
+    .replace(/(^|[.!?]\s*)[,;:]\s*/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 /** Découpe en phrases de ≤ ~220 caractères : Chrome coupe les longues lectures. */
 export function speechChunks(text: string): string[] {
   const sentences = text.match(/[^.!?。！？؟।]+[.!?。！？؟।]*\s*/g) ?? [text];

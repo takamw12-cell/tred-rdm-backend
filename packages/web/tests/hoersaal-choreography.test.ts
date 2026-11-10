@@ -35,9 +35,16 @@ describe("Chorégraphie du professeur : Schreiben → Drehen → Erklären", () 
     expect(nextPose("erklaeren", { type: "streamStart" })).toBe("schreiben");
   });
 
-  test("ce qu'il lit : son commentaire, sinon les étapes du tableau", () => {
-    expect(spokenAnswer({ steps: [{ label: "Physik", body: "$F = m a$", complete: true }], commentary: "Schau auf die **Tafel**." }, "")).toBe("Schau auf die Tafel.");
-    expect(spokenAnswer({ steps: [{ label: "Ergebnis", body: "Die Kraft ist $F = 20$ N.", complete: true }], commentary: "" }, "")).toBe("Ergebnis. Die Kraft ist F = 20 N.");
+  test("ce qu'il dit : ses paroles [[PROFESSEUR]] — JAMAIS les étapes du tableau (2026-11-11)", () => {
+    const steps = [{ label: "Ergebnis", body: "Die Kraft ist $F = 20$ N.", complete: true }];
+    expect(
+      spokenAnswer({ steps, commentary: "", spoken: "Stell dir vor, du schiebst einen **Einkaufswagen**. Spürst du es?" }, ""),
+    ).toBe("Stell dir vor, du schiebst einen Einkaufswagen. Spürst du es?");
+    // Ancien format : le texte hors feuilles.
+    expect(spokenAnswer({ steps, commentary: "Schau auf die **Tafel**." }, "")).toBe("Schau auf die Tafel.");
+    // Rien à dire : il se retourne en silence, il ne lit pas le tableau.
+    expect(spokenAnswer({ steps, commentary: "" }, "")).toBe("");
+    expect(spokenAnswer({ steps, commentary: "", spoken: "" }, "")).toBe("");
     expect(spokenAnswer(undefined, "Hallo **Lena**!")).toBe("Hallo Lena!");
   });
 });

@@ -425,6 +425,27 @@ Les fichiers sont dans `packages/web/src/api/lib/domains/` :
 2. Ajouter son identifiant à `SpecializationId` dans `types.ts` et au registre dans `index.ts`.
 3. Lancer `bun test`. Les tests vérifient que chaque identifiant a son fichier et que chaque outil cité existe vraiment.
 
+## Schémas des PDF, sous-questions et voix du prof (2026-11-11)
+
+**Le bug :** sur « Uebungsaufgaben Elektrotechnik V3 », Aufgabe 5, le tuteur a résolu e) et f) avec le circuit de a)–d). La cause : les valeurs de e) et f) (R₁, R₂, I₁, I₂) sont **dans les schémas**, et la couche texte du PDF n'en contient aucune. Le tuteur devinait.
+
+**Ce qui est en place :**
+- **À l'import** (`src/api/lib/extract.ts`), chaque page qui porte un schéma (image ou dessin vectoriel, logo répété exclu) est décrite par la vision Claude. La description est rattachée à sa sous-question et donne une netlist (quel composant entre quels nœuds). Elle est ajoutée au texte sous la forme `[Abbildung — zu Aufgabe 5 f) — …]`. Coût : environ 0,01 $ par page à schéma, 20 pages au maximum par document.
+- **Avant chaque réponse** (`src/api/lib/task-context.ts`), une ligne `⟪NEUER KONTEXT ab Aufgabe 5 e): … (R1 = 20 Ω, …)⟫` est insérée devant chaque sous-question qui commence par « Gegeben ist folgende Schaltung », « Nun gilt », etc.
+- **Prompt NIVEAU 4 :** changement de contexte obligatoire. Avant de calculer, le tuteur fait une Selbstprüfung : il résume les données lues, et l'étudiant peut le corriger. Il ne redessine jamais un schéma du document (il montre l'original avec « Im Skript anzeigen »), et il pose la question s'il hésite entre deux schémas.
+- **Test réel du 11/11 :** e) I₁ = I₂ = 100 mA, I = 200 mA ; f) I = 100 mA, U₀ = 10 V. C'est identique au corrigé du PDF, sans aucun schéma inventé.
+- ⚠️ **Les documents déjà importés n'ont pas les descriptions de schémas.** Pour en profiter, il faut les ré-importer (supprimer puis recharger le PDF).
+
+**Outil de contrôle (PyMuPDF) :** il extrait tous les schémas d'un PDF en PNG, avec page, position et sous-question.
+```
+uv run --with pymupdf python packages/web/scripts/extract-pdf-images.py COURS.pdf --out figures/
+```
+Sur le PDF d'ET, il trouve 14 schémas, dont les 3 de l'Aufgabe 5 (circuit de base, e et f).
+
+**Mathpix `v3/pdf` : pas branché, volontairement.** Il convertit un PDF en Markdown + LaTeX, mais ses schémas ressortent comme des **images recadrées** hébergées chez Mathpix, pas en SVG. Il ne « vectorise » pas un circuit. Pour notre problème (connaître les valeurs du schéma), la vision fait mieux. L'endpoint `v3/text` reste utilisé pour l'OCR des photos.
+
+**Voix du prof — `[[PROFESSEUR]]` (NIVEAU 7) :** le tableau reçoit les formules en silence. Le prof ne dit que le bloc `[[PROFESSEUR]]` : l'intuition, une analogie, une question, sans formule. `lib/speech.ts → professorSpeech()` n'envoie à ElevenLabs que ce bloc, nettoyé de toute formule. Sans ce bloc, il dit le texte hors tableau ; à défaut, il se tait. Il ne lit **jamais** le tableau.
+
 ## Vidéos promotionnelles — Remotion (`packages/video`)
 
 Les vidéos TikTok / Reels de TRED sont du **code React** : elles réutilisent les vrais composants de l'app (la Tafel, le professeur, le logo, le solveur RDM). Choix fait le 2026-11-10 après comparaison de Remotion, Revideo et HyperFrames (voir `CLAUDE.md`, Règle de Veille Technologique).

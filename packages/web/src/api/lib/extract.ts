@@ -1,4 +1,4 @@
-import { extractText, getDocumentProxy, renderPageAsImage } from "unpdf";
+import { extractText, getDocumentProxy, getResolvedPDFJS, renderPageAsImage } from "unpdf";
 import { mathpixConfigured, mathpixOcr } from "./mathpix";
 import { generateText } from "ai";
 import { unzipSync, strFromU8 } from "fflate";
@@ -193,6 +193,9 @@ export async function extractPdf(
   bytes: Uint8Array,
   /** Remplaçable dans les tests ; par défaut rendu PNG → Mathpix → vision. */
   ocrPage: (index: number) => Promise<string | null> = (i) => ocrPdfPage(bytes, i + 1),
+  /** Remplaçable dans les tests ; par défaut rendu PNG → vision (lignes « [Abbildung …] »). */
+  describeFigures: (index: number, aufgabeBefore: string | null) => Promise<string | null> = (i, a) =>
+    describeFiguresOf(bytes, i, a),
 ): Promise<ExtractedDoc> {
   // unpdf/pdf.js hängt den gelesenen ArrayBuffer ab, also bekommt es eine Kopie
   // und `bytes` bleibt für die Transkription unten unversehrt.
@@ -204,11 +207,175 @@ export async function extractPdf(
   if (unreadablePages.length) {
     console.warn(`[extract] ${unreadablePages.length} Seite(n) unlesbar, auch nach OCR (Seiten ${unreadablePages.slice(0, 10).join(", ")})`);
   }
-  return { text: joined, pageCount: totalPages, ocr };
+
+  // Les schémas : la couche texte ne les contient pas (« Gegeben ist folgende
+  // Schaltung » suivi de… rien). Les pages qui en portent sont décrites par la
+  // vision, et la description est ajoutée au texte de la page.
+  let withFigures = joined;
+  try {
+    const stats = await pageFigureStats(pdf);
+    const targets = figurePages(stats).filter((i) => !unreadablePages.includes(i + 1));
+    withFigures = await addFigureDescriptions(joined, targets, (i, task) => describeFigures(i, task));
+  } catch (err) {
+    // Jamais bloquant : le document reste utilisable sans les descriptions.
+    console.warn("[extract] Abbildungen nicht beschrieben:", err instanceof Error ? err.message : err);
+  }
+  return { text: withFigures, pageCount: totalPages, ocr };
+}
+
+// ── Abbildungen (schémas, croquis, diagrammes) ─────────────────────────────
+
+/** Au plus autant de pages décrites par la vision, par document (coût). */
+export const MAX_FIGURE_PAGES = 20;
+/** Une image plus petite (icône, puce, logo) n'est pas une figure. */
+const MIN_FIGURE_PX = 80;
+
+export interface PageFigureStats {
+  /** Images d'au moins MIN_FIGURE_PX × MIN_FIGURE_PX. */
+  images: number;
+  /** Tracés vectoriels (constructPath). */
+  paths: number;
+}
+
+/** Compte, page par page, les images et les tracés (pdf.js, liste d'opérateurs). */
+export async function pageFigureStats(pdf: Awaited<ReturnType<typeof getDocumentProxy>>): Promise<PageFigureStats[]> {
+  const { OPS } = await getResolvedPDFJS();
+  const imageOps = new Set<number>([OPS.paintImageXObject, OPS.paintInlineImageXObject, OPS.paintImageXObjectRepeat]);
+  const out: PageFigureStats[] = [];
+  for (let n = 1; n <= pdf.numPages; n++) {
+    const page = await pdf.getPage(n);
+    const { fnArray, argsArray } = await page.getOperatorList();
+    let images = 0;
+    let paths = 0;
+    fnArray.forEach((fn, k) => {
+      if (fn === OPS.constructPath) paths++;
+      else if (imageOps.has(fn)) {
+        const args = argsArray[k] as unknown[] | undefined;
+        const w = Number(args?.[1] ?? MIN_FIGURE_PX);
+        const h = Number(args?.[2] ?? MIN_FIGURE_PX);
+        if (w >= MIN_FIGURE_PX && h >= MIN_FIGURE_PX) images++;
+      }
+    });
+    out.push({ images, paths });
+  }
+  return out;
+}
+
+/**
+ * Les pages (0-based) qui portent une figure. Ce qui se répète sur toutes les
+ * pages (logo, en-tête, cadre) forme la ligne de base et ne compte pas :
+ *   · une image de plus que la page qui en a le moins ;
+ *   · ou deux fois plus de tracés que la page médiane (schéma vectoriel).
+ */
+export function figurePages(stats: PageFigureStats[], max = MAX_FIGURE_PAGES): number[] {
+  if (stats.length === 0) return [];
+  const baseImages = stats.length >= 3 ? Math.min(...stats.map((s) => s.images)) : 0;
+  const sorted = stats.map((s) => s.paths).sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)];
+  const vectorThreshold = stats.length >= 3 ? Math.max(2 * median, 60) : 60;
+  return stats
+    .map((s, i) => ({ i, hit: s.images > baseImages || s.paths >= vectorThreshold }))
+    .filter((x) => x.hit)
+    .map((x) => x.i)
+    .slice(0, max);
+}
+
+/** La dernière « Aufgabe N » avant ce point : une page peut commencer au milieu d'une Aufgabe. */
+export function lastTaskBefore(text: string): string | null {
+  const all = [...text.matchAll(/^\s*(?:Aufgabe|Übung|Uebung|Exercise|Exercice)\s+(\d+(?:\.\d+)*)\b/gim)];
+  return all.length ? all[all.length - 1][1] : null;
+}
+
+/**
+ * Ajoute à la fin de chaque page visée les descriptions de ses figures.
+ * `describe(i, aufgabe)` rend les lignes « [Abbildung …] » de la page i
+ * (0-based), ou null. Le texte garde ses marqueurs [[SEITE n]].
+ */
+export async function addFigureDescriptions(
+  text: string,
+  pageIndexes: number[],
+  describe: (pageIndex: number, aufgabeBefore: string | null) => Promise<string | null>,
+): Promise<string> {
+  if (pageIndexes.length === 0) return text;
+  const parts = text.split(/(?=\[\[SEITE \d+\]\])/);
+  const byPage = new Map<number, number>();
+  parts.forEach((p, k) => {
+    const m = /^\[\[SEITE (\d+)\]\]/.exec(p);
+    if (m) byPage.set(Number(m[1]) - 1, k);
+  });
+  const jobs = pageIndexes
+    .map((i) => ({ i, k: byPage.get(i) }))
+    .filter((j): j is { i: number; k: number } => j.k !== undefined);
+  // Quatre pages à la fois : l'import d'un poly de 20 schémas reste sous la minute.
+  for (let start = 0; start < jobs.length; start += 4) {
+    await Promise.all(
+      jobs.slice(start, start + 4).map(async ({ i, k }) => {
+        const before = lastTaskBefore(parts.slice(0, k).join("\n"));
+        const lines = (await describe(i, before).catch(() => null))
+          ?.split("\n")
+          .map((l) => l.trim())
+          .filter((l) => /^\[Abbildung/i.test(l));
+        if (lines?.length) parts[k] = `${parts[k].trimEnd()}\n\n${lines.join("\n")}\n\n`;
+      }),
+    );
+  }
+  return parts.join("").trim();
+}
+
+const FIGURE_PROMPT = (aufgabe: string | null) =>
+  "Auf dieser Seite eines Übungsblatts oder Skripts stehen Abbildungen " +
+  "(Schaltpläne, Kräfteskizzen, Diagramme, Tabellen als Bild). Beschreibe JEDE " +
+  "Abbildung einzeln, exakt und vollständig, in der Sprache des Dokuments. " +
+  "Genau EINE Zeile pro Abbildung, in diesem Format:\n" +
+  "[Abbildung — zu Aufgabe <Nr> <Buchstabe>) — <was es ist>: <alle Bauteile mit " +
+  "Bezeichnung und Wert mit Einheit, z. B. R1 = 100 Ω>; Netzliste: <für JEDES Bauteil " +
+  "die zwei Knoten, zwischen denen es liegt, z. B. U0: K1–K0, S1: K1–K2, L2: K1–K2, " +
+  "L1: K2–K0>; Topologie: <daraus abgeleitet, was in Reihe und was parallel liegt, " +
+  "Schalterstellung>; <Pfeile und Zählrichtungen mit Bezeichnung und gegebenem Wert, " +
+  "z. B. I2 = 25 mA>]\n" +
+  "Für Schaltpläne: Verfolge jede Leitung von Ende zu Ende, nummeriere die Knoten " +
+  "(K0 = unterer Bezugsknoten) und leite Reihe/parallel NUR aus der Netzliste ab: " +
+  "Zwei Bauteile zwischen denselben zwei Knoten sind parallel. " +
+  "Die Teilaufgabe ist die, deren Text direkt ÜBER der Abbildung steht. Steht die " +
+  "Abbildung vor den Teilaufgaben, schreibe „zu Aufgabe <Nr> (Grundschaltung)“. " +
+  (aufgabe
+    ? `Beginnt die Seite mitten in einer Aufgabe, ist es Aufgabe ${aufgabe}. `
+    : "") +
+  "Erfinde nichts: Unlesbares heißt „unleserlich“. Keine Abbildung auf der Seite: " +
+  "gib nichts aus. Gib NUR diese Zeilen aus.";
+
+/** Rend la page et la fait décrire par la vision. null si quoi que ce soit échoue. */
+async function describeFiguresOf(bytes: Uint8Array, pageIndex: number, aufgabe: string | null): Promise<string | null> {
+  const png = await renderPdfPage(bytes, pageIndex + 1);
+  if (!png) return null;
+  try {
+    const { text } = await generateText({
+      model: gateway(PRIMARY_MODEL),
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: FIGURE_PROMPT(aufgabe) },
+            { type: "file", data: png, mediaType: "image/png" },
+          ],
+        },
+      ],
+    });
+    return text.trim();
+  } catch (err) {
+    console.warn(`[extract] Abbildungen Seite ${pageIndex + 1}:`, err instanceof Error ? err.message : err);
+    return null;
+  }
 }
 
 /** Rend la page n (1-based) en PNG, puis Mathpix → vision. null si tout échoue. */
 async function ocrPdfPage(bytes: Uint8Array, pageNumber: number): Promise<string | null> {
+  const png = await renderPdfPage(bytes, pageNumber);
+  return png ? ocrImageText(png, "image/png") : null;
+}
+
+/** La page n (1-based) en PNG (échelle 2), ou null. */
+async function renderPdfPage(bytes: Uint8Array, pageNumber: number): Promise<Uint8Array | null> {
   // Specifier bewusst nicht literal, damit der Release-Bundler @napi-rs/canvas
   // als externen Laufzeit-Import behandelt und das native .node-Addon nicht in
   // eine zweite Ausgabedatei splittet — das bricht `bun build --outfile`.
@@ -225,7 +392,7 @@ async function ocrPdfPage(bytes: Uint8Array, pageNumber: number): Promise<string
     console.warn(`[extract] Seite ${pageNumber} nicht renderbar:`, err instanceof Error ? err.message : err);
     return null;
   }
-  return ocrImageText(png, "image/png");
+  return png;
 }
 
 /**

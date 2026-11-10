@@ -1,4 +1,4 @@
-import { answerToSpeech } from "@/lib/speech";
+import { cleanForVoice, professorSpeech } from "@/lib/speech";
 import type { TafelSplit } from "@/lib/tafel";
 
 /**
@@ -43,18 +43,15 @@ export function nextPose(pose: ProfessorPose, event: ChoreographyEvent): Profess
 }
 
 /**
- * Ce que le professeur DIT : sa parole (le commentaire hors Tafel). S'il n'a
- * rien écrit hors du tableau, il lit les étapes du tableau, dans l'ordre.
+ * Ce que le professeur DIT : ses paroles ([[PROFESSEUR]]). À défaut (ancien
+ * format), le texte hors des feuilles. JAMAIS les feuilles du tableau : depuis
+ * le 2026-11-11 (décision fondateur), un prof ne récite pas ce qu'il vient
+ * d'écrire. Sans paroles, il se retourne en silence.
  */
-/** Titres de feuille qui n'apportent rien à l'oral. */
-const GENERIC_LABEL = /^(?:rückmeldung|kommentar|feedback|erklärung|antwort|schritt \d+|commentaire|explication|réponse|comment|explanation|answer)$/i;
-
-export function spokenAnswer(split: Pick<TafelSplit, "steps" | "commentary"> | undefined, fullText: string): string {
-  if (!split) return answerToSpeech(fullText);
-  const voice = answerToSpeech(split.commentary);
-  if (voice) return voice;
-  // Les titres génériques (« Rückmeldung », « Erklärung ») ne se lisent pas.
-  return answerToSpeech(
-    split.steps.map((s) => (GENERIC_LABEL.test(s.label) ? s.body : `${s.label}. ${s.body}`)).join("\n\n"),
-  );
+export function spokenAnswer(
+  split: Pick<TafelSplit, "steps" | "commentary"> & Partial<Pick<TafelSplit, "spoken">> | undefined,
+  fullText: string,
+): string {
+  if (!split) return professorSpeech(fullText);
+  return cleanForVoice(split.spoken?.trim() ? split.spoken : split.commentary);
 }

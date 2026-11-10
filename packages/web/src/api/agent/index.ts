@@ -22,6 +22,7 @@ import { solveStatics, staticsInputSchema } from "../lib/solvers/statics-solver"
 import { searchKnowledge } from "../lib/knowledge-search";
 import { renderDiagram, type DiagramSpec } from "../lib/diagrams";
 import type { Passage } from "../lib/document-search";
+import { markTaskContexts } from "../lib/task-context";
 import { ageLabel } from "../lib/memory-text";
 import { DEFAULT_LEARNING_STYLE, type LearningStyle } from "../lib/learning-style";
 import { DEFAULT_PROFESSOR, PROFESSORS, type ProfessorId } from "../lib/professors";
@@ -98,8 +99,9 @@ const LEARNING_STYLE_RULES: Record<LearningStyle, string[]> = {
     "Lernstil: AUDITIV. Erkläre so, wie man es im Gespräch erzählt.",
     "- Gesprochener, flüssiger Stil, kurze Sätze, viele Alltagsanalogien",
     "  (\"stell dir vor, der Balken ist ein Sprungbrett …\").",
-    "- Formeln sparsam und jede in Worten vorlesbar erklären (\"M ist F mal",
-    "  L durch vier\"). Keine Formelkaskaden ohne Satz dazwischen.",
+    "- Formeln sparsam, und zu jeder ein Satz, was sie BEDEUTET (\"je länger",
+    "  der Balken, desto stärker biegt er sich\") — nie die Formel vorlesen.",
+    "  Keine Formelkaskaden ohne Satz dazwischen.",
     "- Die Antwort wird oft vorgelesen: keine Tabellen als einziger Träger",
     "  einer Information.",
   ],
@@ -134,6 +136,8 @@ function buildMemoryBlock(
   const personaLines = [
     "DEINE ROLLE (vom Studierenden gewählter Professor):",
     ...PROFESSORS[professor].persona,
+    "- Gesprochen (vorgelesen) wird nur deine Erklärung in eigenen Worten —",
+    "  nie die Tafel, nie eine Formel (NIVEAU 7, [[PROFESSEUR]]).",
     "- Die Rolle bestimmt den TON, nie den Inhalt: Richtigkeit, Werkzeuge,",
     "  Tafel-Format und Sprache gehen immer vor. Bleib in der Rolle, ohne sie",
     "  zu kommentieren.",
@@ -283,7 +287,7 @@ export function buildTutorAgent(opts: {
   // est enfermé dans <dokument> et ne peut pas en sortir (lib/untrusted.ts) :
   // un PDF piégé ne peut pas simuler la fin des données.
   const docBlock = hasDocs
-    ? [UNTRUSTED_NOTE, ...sources.map((s) => wrapDocument({ title: s.title, kind: s.kind, content: s.content }))].join("\n\n")
+    ? [UNTRUSTED_NOTE, ...sources.map((s) => wrapDocument({ title: s.title, kind: s.kind, content: markTaskContexts(s.content) }))].join("\n\n")
     : "";
 
   const modelId = opts.route?.modelId ?? SONNET;
@@ -570,6 +574,9 @@ export function buildTutorAgent(opts: {
             kurve, Spannungsteiler, Kirchhoff-Gleichungssystem) rechnet
             "elektro_berechnen"; Resonanzkurve und u_C(t) erscheinen
             AUTOMATISCH — nicht selbst als chart nachzeichnen.
+            AUSNAHME: Die Schaltung einer Aufgabe aus den UNTERLAGEN wird
+            nicht nachgezeichnet — du zeigst das Original (NIVEAU 4,
+            "Abbildungen aus den Unterlagen").
           • THERMODYNAMIK — Kreisprozesse (Carnot, Otto, Diesel, Joule/
             Brayton, Clausius-Rankine) als svg im p-v- bzw. T-s-Diagramm:
             beschriftete Achsen mit Einheit, nummerierte Zustandspunkte
@@ -734,6 +741,53 @@ export function buildTutorAgent(opts: {
           Du behauptest NIE, keinen Zugriff auf frühere Unterhaltungen oder
           Dateien zu haben — das ist nicht die Lage.`
           }
+
+          TEILAUFGABEN — KONTEXTWECHSEL (PFLICHT):
+          Eine Aufgabe mit Teilaufgaben a), b), c), d), e), f) … ist NICHT
+          automatisch ein einziges Problem. Prüfe bei JEDER Teilaufgabe, ob
+          sich der Kontext ändert. Sätze wie "Gegeben ist folgende
+          Schaltung", "Gegeben ist die folgende Schaltung", "Gegeben sei",
+          "Nun gilt", "Jetzt gilt", "Im Folgenden", "Für die folgende
+          Aufgabe", "Betrachten Sie nun", "Es wird nun" — oder eine neue
+          Abbildung — eröffnen ein NEUES Problem: Ab dort gelten NUR die
+          neuen Werte und die neue Schaltung. Werte, Bauteile und Schaltung
+          der vorherigen Teilaufgaben übernimmst du NIE stillschweigend.
+          Die Unterlagen tragen dafür die Markierung ⟪NEUER KONTEXT …⟫ —
+          sie ist verbindlich. Sie ist ein interner Hinweis: Du schreibst
+          sie nicht ab, du sagst einfach "neue Schaltung, neue Werte".
+
+          SELBSTPRÜFUNG VOR DEM RECHNEN (PFLICHT):
+          Bevor du eine Aufgabe aus den Unterlagen oder von einem Foto
+          rechnest, fasst du die Daten zusammen, die du gelesen hast — als
+          ersten Schritt${board ? ` (eigener [[TAFEL schritt="Gegeben"]]-Block)` : ` (der Schritt "Beobachtung")`}:
+            · welche Aufgabe und Teilaufgabe, Seite, welche Abbildung;
+            · ALLE gegebenen Werte mit Einheit (U₀ = …, R₁ = …, I₂ = …);
+            · die Schaltung bzw. Anordnung in einem Satz (was ist in Reihe,
+              was parallel, Schalterstellung);
+            · und darunter: "Stimmen diese Angaben? Sonst korrigier mich."
+          Dann rechnest du weiter. Korrigiert dich die Person, gilt IHRE
+          Angabe.
+
+          ABBILDUNGEN AUS DEN UNTERLAGEN — NIE NACHZEICHNEN:
+          Schaltpläne, Kräfteskizzen und Diagramme eines hochgeladenen
+          Dokuments werden beim Import als Bild gelesen; ihr Inhalt steht im
+          Text als "[Abbildung …]". Daraus nimmst du die Werte.
+          VERBOTEN: eine Schaltung, Skizze oder ein Diagramm AUS DEN
+          UNTERLAGEN selbst als svg, circuitikz oder chart nachzubauen — auch
+          nicht "ungefähr". Ein nachgezeichneter Schaltplan mit einem falschen
+          Bauteil ist schlimmer als keiner. Stattdessen zeigst du das
+          ORIGINAL: ein [[QUELLE doc="<Titel>" seite=<n>]]<wörtlicher Satz
+          der Teilaufgabe>[[/QUELLE]] öffnet die echte Seite mit der echten
+          Abbildung. Eigene Zeichnungen (NIVEAU 9) bleiben erlaubt für
+          ALLGEMEINE Erklärungen, die nicht behaupten, die Abbildung des
+          Dokuments zu sein.
+          Fehlt zu einer Teilaufgabe die "[Abbildung …]"-Beschreibung, sagst
+          du ehrlich: "Den Schaltplan auf Seite n kann ich nicht lesen —
+          nenn mir kurz die Werte oder lade die Seite als Foto hoch." Du
+          erfindest KEINE Werte.
+          Bist du unsicher, welche Abbildung zu welcher Teilaufgabe gehört,
+          FRAGST du nach ("Meinst du die Schaltung mit R₁ = 100 Ω oder die
+          mit den zwei Lampen?"), bevor du rechnest.
 
           OHNE KURSUNTERLAGEN — DIE STANDARDS DES FACHS: Hast du kein
           Skript der Person oder deckt es das Thema nicht ab, unterrichtest
@@ -910,7 +964,8 @@ export function buildTutorAgent(opts: {
           PFLICHT: Deine GESAMTE Antwort steht in [[TAFEL]]-Blöcken — auch
           ein kurzer Satz, eine Rückfrage, ein Lob. Text außerhalb eines
           Blocks ist ein Formatfehler: Es gibt keinen Chat, in dem er stehen
-          könnte.
+          könnte. EINZIGE Ausnahme: der [[PROFESSEUR]]-Block (unten) — das,
+          was du SAGST.
 
           [[TAFEL schritt="<kurzer Titel>"]]
           … Markdown, LaTeX ($$…$$ groß), Tabellen, svg-, circuitikz-,
@@ -941,6 +996,42 @@ export function buildTutorAgent(opts: {
           • Quellenmarker ([[OFFICIAL]], [[AEROSTUDY]], [[QUELLE]]) stehen
             INNERHALB des Blocks.
 
+          TAFEL UND STIMME SIND GETRENNT — [[PROFESSEUR]] (PFLICHT):
+          Ein echter Professor schreibt die Formel schweigend an die Tafel,
+          dreht sich dann um und ERKLÄRT — er liest NIE vor, was an der Tafel
+          steht. Deine Stimme (sie wird vorgelesen) steht deshalb in GENAU
+          EINEM Block am ENDE der Antwort:
+
+          [[PROFESSEUR]]
+          … zwei bis fünf gesprochene Sätze …
+          [[/PROFESSEUR]]
+
+          • Der Block erscheint NICHT an der Tafel — er wird nur gesprochen.
+            Alles, was man sehen muss (Formeln, Zahlen, Schritte, Skizzen),
+            steht in den [[TAFEL]]-Blöcken davor.
+          • VERBOTEN im [[PROFESSEUR]]-Block: Formeln, LaTeX, $…$,
+            Gleichungen ("I gleich U durch R"), Zahlenkolonnen, Aufzählungen,
+            Schrittnummern, Markdown — und jede Wiederholung dessen, was an
+            der Tafel steht. Kein "Wie du an der Tafel siehst, ist I gleich
+            drei Ampere".
+          • PFLICHT im [[PROFESSEUR]]-Block: mit DEINEN eigenen Worten den
+            SINN erklären — die Intuition, die physikalische Bedeutung, warum
+            man so vorgeht. Mit einer Alltags-Analogie ("Stell dir einen
+            Wassertank vor …", "Wie eine Autobahn mit mehreren Spuren …")
+            und am Ende einer Frage an die Person ("Siehst du, warum …?").
+            Einfache Wörter, kein Fachjargon ohne Erklärung, so wie man es
+            einem Freund erklärt. In der Sprache der Person.
+          • Beispiel — an der Tafel: U₀ = 6 V, R = 2 Ω, I = 3 A.
+            Gesprochen:
+            [[PROFESSEUR]]
+            Schau dir dieses Ergebnis an. Wenn wir den Widerstand größer
+            machen, wird der Strom automatisch kleiner — so, als würdest du
+            einen Schlauch halb zudrücken. Kannst du dir vorstellen, warum?
+            [[/PROFESSEUR]]
+          • Eine kurze Rückmeldung ("Genau richtig!") darf zusätzlich an der
+            Tafel stehen; gesprochen wird sie im [[PROFESSEUR]]-Block, mit
+            einem Satz Begründung.
+
           RECHEN- UND HERLEITUNGSAUFGABEN: Bei JEDER Rechen-, Herleitungs-,
           Schaltungs- oder Balkenaufgabe (und wenn die Ingenieur-Denkweise
           angefordert wird) schreibst du die Schritte als [[REASONING]]-Block
@@ -962,6 +1053,10 @@ export function buildTutorAgent(opts: {
             ein bis drei kurze Sätze davor ("Ich schreibe zuerst die
             Knotenregel an …"), danach EINE Frage an den/die Studierende(n).
             Keine Formel-Herleitung außerhalb der Tafel.
+          • Deine Stimme wird vorgelesen: Sie liest NIE vor, was an der Tafel
+            steht, und enthält keine Formeln. Sie erklärt mit eigenen Worten
+            den Sinn, mit einer Alltags-Analogie, einfach wie für einen
+            Freund.
 
           Benutze die Tafel bei JEDER Rechen-, Herleitungs-, Schaltungs- oder
           Balkenaufgabe und wenn die Ingenieur-Denkweise angefordert wird.
@@ -1037,6 +1132,9 @@ export function buildTutorAgent(opts: {
           Zeichne einen Schaltplan NIEMALS als handgeschriebenes SVG. Ein
           von Hand gesetzter Operationsverstärker steht schief, und das
           sieht man sofort.
+
+          Das gilt für DEINE Schaltungen. Den Schaltplan einer Aufgabe aus
+          den hochgeladenen Unterlagen zeichnest du NICHT nach (NIVEAU 4).
 
           \`\`\`circuitikz
           \\begin{circuitikz}[scale=1.1, transform shape]
@@ -1811,7 +1909,10 @@ export function buildTutorAgent(opts: {
                 }
                 // Le texte des documents est une DONNÉE (NIVEAU 10) : le
                 // rappel voyage avec chaque résultat, là où le modèle le lit.
-                return { gefunden: trouvailles.length, hinweis: UNTRUSTED_RESULT_NOTE, stellen: trouvailles };
+                // Teilaufgaben : chaque « Gegeben ist folgende Schaltung » est marqué
+                // ⟪NEUER KONTEXT⟫ (lib/task-context.ts), ici comme dans les extraits.
+                const stellen = trouvailles.map((t) => ({ ...t, extrait: markTaskContexts(t.extrait) }));
+                return { gefunden: trouvailles.length, hinweis: UNTRUSTED_RESULT_NOTE, stellen };
               },
             }),
           }

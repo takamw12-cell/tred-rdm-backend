@@ -14,7 +14,7 @@ import { MarkdownContent } from "@/components/markdown-content";
 import { MathText } from "@/components/math-text";
 import { useT } from "@/i18n";
 import { speak, stopSpeaking, type VoiceEngine } from "@/lib/voice";
-import { answerToSpeech, PROFESSOR_STYLE } from "@/lib/speech";
+import { PROFESSOR_STYLE, professorSpeech } from "@/lib/speech";
 import { useProfessor } from "@/lib/professors";
 import { cn } from "@/lib/utils";
 
@@ -140,7 +140,8 @@ export function ListenButton({ text, locale }: { text: string; locale: string })
       setSpeaking(false);
       return;
     }
-    const spoken = answerToSpeech(text);
+    // Les paroles du prof ([[PROFESSEUR]]), jamais la lecture du tableau.
+    const spoken = professorSpeech(text);
     if (!spoken) return;
     window.dispatchEvent(new CustomEvent(TTS_EVENT, { detail: id }));
     setSpeaking(true);

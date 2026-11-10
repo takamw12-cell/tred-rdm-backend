@@ -84,6 +84,8 @@ packages/web/scripts/*
 # Palette TRED : régénère styles/brand/tokens.css, theme.css et public/brand/palette-preview.html.
 !packages/web/scripts/brand-palette.mjs
 !packages/web/scripts/brand/
+# Extraction des schémas d'un PDF (PyMuPDF) — outil de contrôle, voir GUIDE_FOUNDER.md
+!packages/web/scripts/extract-pdf-images.py
 _a-supprimer/
 
 # Sauvegardes des scripts de correctif

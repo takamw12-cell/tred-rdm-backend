@@ -82,7 +82,8 @@ export function TafelBoard({
   const body = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
 
-  const blocks = page?.blocks ?? [];
+  // [[PROFESSEUR]] se dit, il ne s'écrit pas (lib/tafel.ts) : jamais au tableau.
+  const blocks = (page?.blocks ?? []).filter((b) => b.kind !== "spoken");
   const steps = blocks.filter((b) => b.kind === "step");
   // Seules les étapes de calcul (@@STEP) sont numérotées et cochées : une
   // « Rückmeldung » ou une « Runde 2 » n'est pas l'étape 1 d'une démarche.
