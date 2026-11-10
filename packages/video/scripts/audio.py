@@ -274,8 +274,24 @@ def write(name: str, x: np.ndarray) -> None:
     print(f"{name}: {x.shape[1] / SR:.1f} s")
 
 
+SERIES = {
+    # Série « université universelle » (45 s) : trois styles, deux tonalités chacun.
+    "en1": (100, [[55, 59, 62, 66], [52, 59, 64, 67], [48, 55, 60, 64], [50, 57, 62, 66]], "warm"),   # sol majeur
+    "de1": (92, [[50, 57, 62, 66], [47, 54, 59, 62], [43, 50, 55, 59], [45, 52, 57, 61]], "warm"),    # ré majeur
+    "en2": (120, [[52, 55, 59, 64], [48, 55, 60, 64], [43, 50, 55, 59], [50, 54, 57, 62]], "drive"),  # mi mineur
+    "de2": (112, [[45, 52, 57, 60], [41, 53, 57, 60], [43, 55, 59, 62], [40, 52, 55, 59]], "drive"),  # la mineur
+    "en3": (88, [[48, 55, 60, 63], [44, 51, 56, 60], [46, 53, 58, 62], [43, 50, 55, 59]], "cine"),    # do mineur
+    "de3": (94, [[53, 57, 60, 65], [50, 57, 62, 65], [46, 53, 58, 62], [48, 55, 60, 64]], "cine"),    # fa majeur
+}
+
 if __name__ == "__main__":
+    import sys
+
     OUT.mkdir(parents=True, exist_ok=True)
+    if len(sys.argv) > 1 and sys.argv[1] == "series":
+        for key, (bpm, chords, style) in SERIES.items():
+            write(f"music-{key}.wav", song(bpm, 45.5, chords, style))
+        raise SystemExit
     F, A, D, Bb, C, G = 53, 57, 50, 46, 48, 55
     write("music-fr.wav", song(96, 30.5, [[F, 57, 60, 64], [A - 12, 60, 64, 67], [D, 57, 60, 65], [Bb, 57, 62, 65]], "warm"))
     write("music-de.wav", song(116, 30.5, [[D, 53, 57, 62], [Bb, 53, 58, 62], [F, 57, 60, 65], [C, 55, 60, 64]], "drive"))

@@ -11,7 +11,9 @@
     "voiceover": "node scripts/voiceover.mjs",
     "audio": "uvx --with numpy python -I scripts/audio.py",
     "circuit": "uvx --with schemdraw python -I scripts/circuit.py",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "render:series": "for c in EN-1-Beyond-Engineering EN-2-Universal-Tutor EN-3-Future-of-Learning DE-1-Jura-Medizin DE-2-Wirtschaft-Technik DE-3-Alle-Faecher; do remotion render src/index.ts $c out/$c.mp4 --scale=2 --codec=h264 --crf=18; done",
+    "audio:series": "uvx --with numpy python -I scripts/audio.py series"
   },
   "devDependencies": {
     "@remotion/captions": "4.0.539",

@@ -3,6 +3,9 @@ import { HoersaalPromo, PROMO_FRAMES } from "./HoersaalPromo";
 import { DE_FRAMES, DeElektroInformatik } from "./videos/DeElektroInformatik";
 import { EN_FRAMES, EnMechanikAerospace } from "./videos/EnMechanikAerospace";
 import { FR_FRAMES, FrMedizinRecht } from "./videos/FrMedizinRecht";
+import { EnBeyondEngineering, EnFutureOfLearning, EnUniversalTutor } from "./series/english";
+import { DeAlleFaecher, DeJuraMedizin, DeWirtschaftTechnik } from "./series/german";
+import { SERIES_FRAMES } from "./series/engine";
 import "./style.css";
 
 /**
@@ -20,6 +23,14 @@ export function Root() {
         <Composition id="FR-Medizin-Recht" component={FrMedizinRecht} durationInFrames={FR_FRAMES} {...PHONE} />
         <Composition id="DE-Elektro-Informatik" component={DeElektroInformatik} durationInFrames={DE_FRAMES} {...PHONE} />
         <Composition id="EN-Mechanik-Aerospace" component={EnMechanikAerospace} durationInFrames={EN_FRAMES} {...PHONE} />
+      </Folder>
+      <Folder name="Universelle-Universitaet">
+        <Composition id="EN-1-Beyond-Engineering" component={EnBeyondEngineering} durationInFrames={SERIES_FRAMES} {...PHONE} />
+        <Composition id="EN-2-Universal-Tutor" component={EnUniversalTutor} durationInFrames={SERIES_FRAMES} {...PHONE} />
+        <Composition id="EN-3-Future-of-Learning" component={EnFutureOfLearning} durationInFrames={SERIES_FRAMES} {...PHONE} />
+        <Composition id="DE-1-Jura-Medizin" component={DeJuraMedizin} durationInFrames={SERIES_FRAMES} {...PHONE} />
+        <Composition id="DE-2-Wirtschaft-Technik" component={DeWirtschaftTechnik} durationInFrames={SERIES_FRAMES} {...PHONE} />
+        <Composition id="DE-3-Alle-Faecher" component={DeAlleFaecher} durationInFrames={SERIES_FRAMES} {...PHONE} />
       </Folder>
     </>
   );

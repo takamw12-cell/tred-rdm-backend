@@ -38,7 +38,7 @@ const norm = (w: string) =>
  * `breakAfter` : mots (avec leur ponctuation, ex. « documents, ») après lesquels
  * on coupe AUSSI, pour faire respirer une longue phrase.
  */
-export function planVoice(vo: VoFile, starts: number[], breakAfter: string[] = []): VoicePlan {
+export function splitPhrases(vo: VoFile, breakAfter: string[] = []): VoWord[][] {
   const groups: VoWord[][] = [];
   let cur: VoWord[] = [];
   for (const w of vo.words) {
@@ -46,6 +46,11 @@ export function planVoice(vo: VoFile, starts: number[], breakAfter: string[] = [
     if (/[.!?]$/.test(w.text) || breakAfter.includes(w.text)) groups.push(cur), (cur = []);
   }
   if (cur.length) groups.push(cur);
+  return groups;
+}
+
+export function planVoice(vo: VoFile, starts: number[], breakAfter: string[] = []): VoicePlan {
+  const groups = splitPhrases(vo, breakAfter);
   if (groups.length !== starts.length) {
     throw new Error(`${vo.id} : ${groups.length} phrases, mais ${starts.length} instants de départ`);
   }

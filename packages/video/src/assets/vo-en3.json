@@ -1,0 +1,165 @@
+{
+ "id": "en3",
+ "words": [
+  {
+   "text": "Welcome",
+   "startMs": 0,
+   "endMs": 499
+  },
+  {
+   "text": "to",
+   "startMs": 546,
+   "endMs": 639
+  },
+  {
+   "text": "the",
+   "startMs": 720,
+   "endMs": 789
+  },
+  {
+   "text": "future",
+   "startMs": 871,
+   "endMs": 1289
+  },
+  {
+   "text": "of",
+   "startMs": 1347,
+   "endMs": 1440
+  },
+  {
+   "text": "learning.",
+   "startMs": 1533,
+   "endMs": 2078
+  },
+  {
+   "text": "TRED",
+   "startMs": 2415,
+   "endMs": 2821
+  },
+  {
+   "text": "adapts",
+   "startMs": 2879,
+   "endMs": 3286
+  },
+  {
+   "text": "to",
+   "startMs": 3320,
+   "endMs": 3367
+  },
+  {
+   "text": "your",
+   "startMs": 3425,
+   "endMs": 3553
+  },
+  {
+   "text": "learning",
+   "startMs": 3599,
+   "endMs": 3866
+  },
+  {
+   "text": "style,",
+   "startMs": 3924,
+   "endMs": 4516
+  },
+  {
+   "text": "whether",
+   "startMs": 4702,
+   "endMs": 4992
+  },
+  {
+   "text": "you",
+   "startMs": 5074,
+   "endMs": 5155
+  },
+  {
+   "text": "are",
+   "startMs": 5224,
+   "endMs": 5352
+  },
+  {
+   "text": "visual,",
+   "startMs": 5410,
+   "endMs": 5979
+  },
+  {
+   "text": "auditory,",
+   "startMs": 6026,
+   "endMs": 6896
+  },
+  {
+   "text": "or",
+   "startMs": 6954,
+   "endMs": 7129
+  },
+  {
+   "text": "interactive.",
+   "startMs": 7210,
+   "endMs": 8011
+  },
+  {
+   "text": "Experience",
+   "startMs": 8475,
+   "endMs": 9091
+  },
+  {
+   "text": "education",
+   "startMs": 9125,
+   "endMs": 9659
+  },
+  {
+   "text": "that",
+   "startMs": 9706,
+   "endMs": 9834
+  },
+  {
+   "text": "feels",
+   "startMs": 9892,
+   "endMs": 10136
+  },
+  {
+   "text": "alive,",
+   "startMs": 10194,
+   "endMs": 10809
+  },
+  {
+   "text": "powered",
+   "startMs": 11215,
+   "endMs": 11587
+  },
+  {
+   "text": "by",
+   "startMs": 11622,
+   "endMs": 11714
+  },
+  {
+   "text": "deterministic",
+   "startMs": 11773,
+   "endMs": 12516
+  },
+  {
+   "text": "AI.",
+   "startMs": 12608,
+   "endMs": 13259
+  },
+  {
+   "text": "TRED:",
+   "startMs": 13897,
+   "endMs": 14466
+  },
+  {
+   "text": "Your",
+   "startMs": 14501,
+   "endMs": 14687
+  },
+  {
+   "text": "personal",
+   "startMs": 14768,
+   "endMs": 15221
+  },
+  {
+   "text": "university.",
+   "startMs": 15302,
+   "endMs": 16300
+  }
+ ]
+}
