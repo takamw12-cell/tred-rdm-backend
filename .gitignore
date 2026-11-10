@@ -72,6 +72,8 @@ scripts/
 !packages/mobile/scripts/
 packages/mobile/scripts/*
 !packages/mobile/scripts/generate-ios-certs.py
+# Vidéos promo : générer la voix off, la musique et le circuit (packages/video).
+!packages/video/scripts/
 # Pré-rendu SEO : fait partie du build de production (Dockerfile).
 !packages/web/scripts/
 packages/web/scripts/*

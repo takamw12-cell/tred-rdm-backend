@@ -437,6 +437,12 @@ Les vidéos TikTok / Reels de TRED sont du **code React** : elles réutilisent l
   npm run studio                   # aperçu interactif dans le navigateur
   npm run render                   # → out/tred-hoersaal-15s.mp4 (1080×1920, 15 s)
   ```
+- **Les 3 vidéos « filières » (30 s, voix off, sous-titres, musique)** — `FR-Medizin-Recht`, `DE-Elektro-Informatik`, `EN-Mechanik-Aerospace` :
+  - **Voix off : ElevenLabs** (clé `ELEVENLABS_API_KEY` du `.env`, modèle `eleven_multilingual_v2`, les voix par défaut déjà utilisées par les profs). Les textes sont dans `src/voiceovers.mjs`. `npm run voiceover` ne génère que ce qui manque (`-- fr --force` pour refaire une langue). Coût : ~300 caractères par vidéo, facturés sur ton compte ElevenLabs. Les MP3 générés sont versionnés : refaire le rendu ne coûte rien.
+  - **Sous-titres** : horodatage mot par mot renvoyé par ElevenLabs, mis en page par `@remotion/captions` (style TikTok, mot prononcé en jaune).
+  - **Musique et effets (clic, succès, souffle)** : synthétisés par code (`npm run audio`, `scripts/audio.py`) — aucun échantillon, aucune licence tierce.
+  - **Circuit (vidéo DE)** : schemdraw (`npm run circuit`), symboles DIN/EN. La prod rend les circuits avec CircuiTikz, mais il faut TeX et une session ; schemdraw donne un schéma normalisé équivalent hors ligne.
+  - Rendu : `npm run render:fr` / `render:de` / `render:en` → `out/` (1080 × 1920, 30 s).
 - **Licence (vérifiée le 2026-11-10).** Gratuite pour une personne seule et pour les entreprises de **3 personnes au plus**, y compris en usage commercial. **Dès la 4ᵉ personne dans l'entreprise, une « Company License » est obligatoire.** Les prix publiés par des sites tiers se contredisent (de 25 $ à 100 $ par mois et plus) : vérifier le tarif officiel sur https://www.remotion.pro/license le jour de la 4ᵉ embauche. Aucun compte ni aucune clé ne sont nécessaires aujourd'hui.
 
 ## Sécurité — protocole du 2026-11-09
