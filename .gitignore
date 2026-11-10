@@ -86,3 +86,7 @@ _a-supprimer/
 
 # Sauvegardes des scripts de correctif
 *.bak
+
+# Outils de travail de Claude Code (skills tiers) : pas du code TRED.
+.claude/skills/
+skills-lock.json
