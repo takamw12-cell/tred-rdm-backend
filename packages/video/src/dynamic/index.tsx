@@ -2,6 +2,8 @@ import { Composition, staticFile, type CalculateMetadataFunction } from "remotio
 import { getAudioDurationInSeconds } from "@remotion/media-utils";
 import { DynamicExplanation, EXPLAINER_FPS, EXPLAINER_SIZE, explainerFrames, type ExplainerProps } from "@/video/dynamic-explanation";
 import { PROFESSORS } from "../../../web/src/api/lib/professors";
+import { toPayload } from "../../../web/src/api/lib/beam-tool";
+import { REAL_IMAGES } from "../../../web/src/api/lib/video-visuals";
 import { withStaticImage } from "../promo/kit";
 import vo from "../assets/vo-c3-de.json";
 import voice from "../assets/vo-c3-de.mp3";
@@ -31,43 +33,31 @@ const bg = (name: string) => staticFile(`backgrounds/${name}`);
  * d'essai. En production, tout vient de GET /api/video/:id. `durationMs: 0`
  * fait exprès de laisser la composition mesurer l'audio.
  */
+/** Une poutre calculée par le vrai solveur, comme le serveur en fournit une. */
+const BEAM = toPayload({ laenge: 4, lager: [{ x: 0, art: "festlager", name: "A" }, { x: 4, art: "loslager", name: "B" }], streckenlasten: [{ von: 0, bis: 4, q: 2 }], einheiten: { laenge: "m", kraft: "kN" } });
+
+const REAL = Object.fromEntries(Object.entries(REAL_IMAGES).map(([key, url]) => [key, staticFile(url.replace(/^\//, ""))])) as ExplainerProps["realImages"];
+
 const SAMPLE: ExplainerProps = {
   audioUrl: voice,
   durationMs: 0,
-  title: "Balken auf zwei Lagern",
+  title: "Biegung eines Balkens",
   words: vo.words,
-  sceneStartsMs: [0, 9400, 19800],
+  sceneStartsMs: [0, 5200, 10400, 15600, 20800, 24600],
   backgroundImages: [bg("mechanical/mechanical-u02.webp"), bg("aerospace/aerospace-u04.webp"), bg("general/bg-01.webp")],
   professor: withStaticImage(PROFESSORS.sensei),
-  labels: { eyebrow: "Digitaler Hörsaal · Erklärvideo", status: "TRED erklärt …", source: "Quelle", solver: ["Berechnet", "mit dem Löser"] },
+  labels: { eyebrow: "Digitaler Hörsaal · Erklärvideo", status: "TRED erklärt …", source: "Quelle", solver: ["Berechnet", "mit dem Löser"], example: "Beispiel aus dem Alltag", sketch: "Prinzipskizze", market: ["Angebot", "Nachfrage", "Preis", "Menge"] },
+  beam: BEAM,
+  backdrop: "bridge",
+  realImages: REAL,
+  decimalComma: true,
   scenes: [
-    {
-      heading: "Worum es geht",
-      bullets: ["Gleichstreckenlast q über die Länge l", "Zwei Lager tragen die Last"],
-      formula: "",
-      quote: "tragen beide Lager die Last zu gleichen Teilen",
-      voiceover: "",
-      sourceTitle: "TM2_Skript.pdf",
-      sourceKind: "document",
-    },
-    {
-      heading: "Die Lagerkräfte",
-      bullets: ["Beide Lager teilen sich die Last"],
-      formula: String.raw`A = B = \frac{q\,l}{2}`,
-      quote: "A = B = q·l/2",
-      voiceover: "",
-      sourceTitle: "TM2_Skript.pdf",
-      sourceKind: "document",
-    },
-    {
-      heading: "Das Ergebnis",
-      bullets: ["q = 2 kN/m, l = 4 m"],
-      formula: String.raw`A = B = 4\,\mathrm{kN}`,
-      quote: "",
-      voiceover: "",
-      sourceTitle: "Solver · balkenstatik",
-      sourceKind: "solver",
-    },
+    { heading: "Der Balken", bullets: ["Zwei Lager, eine Spannweite"], formula: "", quote: "", voiceover: "", sourceTitle: "TM2_Skript.pdf", sourceKind: "document", visual: "beam", image: null },
+    { heading: "Die Last drückt nach unten", bullets: ["Der Balken biegt sich durch"], formula: "", quote: "", voiceover: "", sourceTitle: "TM2_Skript.pdf", sourceKind: "document", visual: "loads", image: null },
+    { heading: "Wie eine Brücke", bullets: ["Sie trägt das Gewicht der Autos"], formula: "", quote: "", voiceover: "", sourceTitle: "", sourceKind: "analogy", visual: "real_image", image: "bridge" },
+    { heading: "Querkraft und Moment", bullets: [], formula: "", quote: "", voiceover: "", sourceTitle: "Solver · balkenstatik", sourceKind: "solver", visual: "solver_plot", image: null },
+    { heading: "Das größte Moment", bullets: ["In der Feldmitte"], formula: String.raw`M_{max} = \frac{q\,l^2}{8}`, quote: "", voiceover: "", sourceTitle: "TM2_Skript.pdf", sourceKind: "document", visual: "formula", image: null },
+    { heading: "Merksatz", bullets: ["Die Last biegt den Balken", "Das Moment ist in der Mitte am größten"], formula: "", quote: "", voiceover: "", sourceTitle: "TM2_Skript.pdf", sourceKind: "document", visual: "text", image: null },
   ],
 };
 

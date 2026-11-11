@@ -53,6 +53,12 @@ export const hi: PartialMessages = {
     play: "चलाएँ",
     remove: "डैशबोर्ड से हटाएँ",
     close: "बंद करें",
+    example: "रोज़मर्रा का उदाहरण",
+    sketch: "सिद्धांत रेखाचित्र",
+    supply: "आपूर्ति",
+    demand: "माँग",
+    price: "कीमत",
+    quantity: "मात्रा",
   },
   common: {
     email: "ईमेल",

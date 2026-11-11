@@ -1,4 +1,5 @@
 import type { ExplainerScene, ExplainerWord } from "@/video/dynamic-explanation";
+import type { BeamDiagramPayload } from "../../api/lib/beam-tool";
 
 /**
  * « Als Video erklären » côté navigateur : lancer la génération, suivre son
@@ -17,6 +18,10 @@ export interface ExplainerVideo {
   words: ExplainerWord[];
   sceneStartsMs: number[];
   professor: string | null;
+  /** La poutre calculée par le solveur, quand la vidéo en montre une. */
+  beam?: BeamDiagramPayload | null;
+  /** Mot-clé de l'image de contexte (tribunal, bloc opératoire, pont…). */
+  backdrop?: string | null;
 }
 
 export interface ExplainerRequest {

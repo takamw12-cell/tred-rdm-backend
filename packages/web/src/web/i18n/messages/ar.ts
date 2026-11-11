@@ -53,6 +53,12 @@ export const ar: PartialMessages = {
     play: "تشغيل",
     remove: "إزالة من اللوحة",
     close: "إغلاق",
+    example: "مثال من الحياة اليومية",
+    sketch: "رسم توضيحي للمبدأ",
+    supply: "العرض",
+    demand: "الطلب",
+    price: "السعر",
+    quantity: "الكمية",
   },
   common: {
     email: "البريد الإلكتروني",

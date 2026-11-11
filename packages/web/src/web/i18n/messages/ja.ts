@@ -53,6 +53,12 @@ export const ja: PartialMessages = {
     play: "再生",
     remove: "ダッシュボードから削除",
     close: "閉じる",
+    example: "身近な例",
+    sketch: "原理スケッチ",
+    supply: "供給",
+    demand: "需要",
+    price: "価格",
+    quantity: "数量",
   },
   common: {
     email: "メールアドレス",

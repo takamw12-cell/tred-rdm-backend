@@ -53,6 +53,12 @@ export const pt: PartialMessages = {
     play: "Reproduzir",
     remove: "Remover do painel",
     close: "Fechar",
+    example: "Exemplo do dia a dia",
+    sketch: "Esboço de princípio",
+    supply: "Oferta",
+    demand: "Procura",
+    price: "Preço",
+    quantity: "Quantidade",
   },
   common: {
     email: "E-mail",

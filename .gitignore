@@ -87,6 +87,8 @@ packages/web/scripts/*
 # Extraction des schémas d'un PDF (PyMuPDF) — outil de contrôle, voir GUIDE_FOUNDER.md
 !packages/web/scripts/extract-pdf-images.py
 !packages/web/scripts/generate-universal-backgrounds.mjs
+# Essai réel de « Als Video erklären » sans compte (voir GUIDE_FOUNDER.md).
+!packages/web/scripts/explainer-trial.ts
 _a-supprimer/
 
 # Sauvegardes des scripts de correctif

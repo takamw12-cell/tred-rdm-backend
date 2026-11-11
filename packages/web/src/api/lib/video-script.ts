@@ -1,6 +1,8 @@
 import { z } from "zod";
 import type { Language } from "./languages";
+import { runBalkenstatik, type BalkenstatikInput, type BeamDiagramPayload } from "./beam-tool";
 import { collectNumbers, type SolverRun } from "./solver-results";
+import { CHARTS, MAX_FLOW_STEPS, MAX_KEYWORDS, REAL_IMAGE_KEYS, VISUALS, resolveVisual, type ChartKey, type RealImageKey, type Visual } from "./video-visuals";
 
 /**
  * « Als Video erklären » — le script de la vidéo explicative, et son contrôle.
@@ -34,6 +36,8 @@ export const MAX_VOICE_WORDS = 450;
 /** En dessous, la voix restante après contrôle ne fait plus une explication. */
 export const MIN_VALID_WORDS = 40;
 export const MIN_SCENES = 2;
+/** Les exemples du quotidien éclairent l'explication, ils ne la remplacent pas. */
+export const MAX_ANALOGIES = 2;
 export const MAX_SCENES = 14;
 const MIN_QUOTE_CHARS = 12;
 
@@ -60,6 +64,18 @@ export function solverSource(run: SolverRun): VideoSource {
 }
 
 export const videoSceneSchema = z.object({
+  kind: z
+    .enum(["explanation", "analogy"])
+    .describe("explanation : la scène explique le cours et cite sa source. analogy : un exemple de la vie courante, sans chiffre ni formule (deux au plus)."),
+  visual: z
+    .enum(VISUALS)
+    .describe(
+      "Ce que la scène MONTRE. highlight : la phrase du cours avec ses mots-clés surlignés. flowchart : un enchaînement d'étapes. formula : la formule en grand, ligne par ligne. beam : la poutre se dessine. loads : les charges arrivent sur la poutre et elle fléchit. solver_plot : le schéma exact du solveur. chart : une courbe de principe. real_image : une image d'illustration. text : une feuille avec les points.",
+    ),
+  steps: z.array(z.string()).describe(`Seulement pour visual = flowchart : 2 à ${MAX_FLOW_STEPS} étapes dans l'ordre, 1 à 4 mots chacune. Tableau vide sinon.`),
+  keywords: z.array(z.string()).describe(`Seulement pour visual = highlight : 1 à ${MAX_KEYWORDS} mots-clés copiés tels quels de "quote". Tableau vide sinon.`),
+  chart: z.string().describe(`Seulement pour visual = chart : ${CHARTS.join(", ")}. Chaîne vide sinon.`),
+  image: z.string().describe(`Seulement pour visual = real_image : un mot-clé parmi ${REAL_IMAGE_KEYS.join(", ")}. Chaîne vide sinon.`),
   heading: z.string().describe("Titre court de la scène, 2 à 6 mots."),
   bullets: z.array(z.string()).describe("0 à 3 points très courts affichés à l'écran."),
   formula: z.string().describe("UNE formule en LaTeX pur, copiée de l'extrait cité. Chaîne vide s'il n'y en a pas."),
@@ -68,8 +84,22 @@ export const videoSceneSchema = z.object({
   voiceover: z.string().describe("Ce que dit la voix pendant la scène. Langue parlée, sans LaTeX ni symboles."),
 });
 
+const beamSchema = z.object({
+  laenge: z.number().describe("Longueur de la poutre"),
+  lager: z.array(z.object({ x: z.number(), art: z.enum(["loslager", "festlager", "einspannung"]), name: z.string() })).describe("Appuis, x depuis l'extrémité gauche"),
+  einzellasten: z.array(z.object({ x: z.number(), F: z.number() })).describe("Forces ponctuelles, positives vers le bas"),
+  streckenlasten: z.array(z.object({ von: z.number(), bis: z.number(), q: z.number() })).describe("Charges réparties constantes, positives vers le bas"),
+  einheiten: z.object({ laenge: z.enum(["m", "cm", "mm"]), kraft: z.enum(["N", "kN", "MN"]) }),
+});
+
 export const videoScriptSchema = z.object({
   title: z.string().describe("Titre court de la vidéo."),
+  backdrop: z.string().describe(`L'image de contexte de TOUTE la vidéo, selon la matière : un mot-clé parmi ${REAL_IMAGE_KEYS.join(", ")}.`),
+  beam: beamSchema
+    .nullable()
+    .describe(
+      "Seulement si la question porte sur une poutre ET qu'un extrait de cours donne un exemple chiffré complet (longueur, appuis, charges) : recopie ses données ici, sans rien calculer. Le solveur de TRED fera le calcul et le schéma. null dans tous les autres cas.",
+    ),
   scenes: z.array(videoSceneSchema),
 });
 
@@ -77,13 +107,24 @@ export type VideoScene = z.infer<typeof videoSceneSchema>;
 export type VideoScript = z.infer<typeof videoScriptSchema>;
 
 /** Une scène validée : la source est résolue (titre du document). */
-export interface ValidatedScene extends VideoScene {
+export interface ValidatedScene extends Omit<VideoScene, "visual" | "image" | "chart"> {
   sourceTitle: string;
-  /** « document » : prouvée par une citation ; « solver » : par un calcul. */
-  sourceKind: "document" | "solver";
+  /** « document » : prouvée par une citation ; « solver » : par un calcul ; « analogy » : exemple du quotidien, sans chiffre. */
+  sourceKind: "document" | "solver" | "analogy";
+  /** Ce que la scène montre, garde-fous appliqués (video-visuals.ts). */
+  visual: Visual;
+  image: RealImageKey | null;
+  chart: ChartKey | null;
 }
 
-export type DropReason = "unknown_source" | "quote_too_short" | "quote_not_in_source" | "number_not_in_sources" | "empty_voiceover";
+export type DropReason =
+  | "unknown_source"
+  | "quote_too_short"
+  | "quote_not_in_source"
+  | "number_not_in_sources"
+  | "empty_voiceover"
+  | "number_in_analogy"
+  | "too_many_analogies";
 
 export type ValidationResult =
   | { ok: true; title: string; scenes: ValidatedScene[]; words: number; dropped: { index: number; reason: DropReason; detail?: string }[] }
@@ -217,7 +258,7 @@ export function quoteSupport(quote: string, source: ReturnType<typeof indexSourc
  * Garde les scènes prouvées par les extraits, supprime les autres.
  * `question` : les nombres de l'énoncé de l'étudiant sont permis (il les a donnés).
  */
-export function validateVideoScript(script: VideoScript, sources: VideoSource[], question = ""): ValidationResult {
+export function validateVideoScript(script: Pick<VideoScript, "title" | "scenes">, sources: VideoSource[], question = "", has: { beam: boolean } = { beam: false }): ValidationResult {
   const indexed = sources.map((s) => (s.solver ? null : indexSource(s.content)));
   // Les nombres permis : ceux du cours, ceux de la question, et ceux que les
   // solveurs ont calculés (avec leurs arrondis et conversions d'unité).
@@ -226,13 +267,32 @@ export function validateVideoScript(script: VideoScript, sources: VideoSource[],
   const dropped: { index: number; reason: DropReason; detail?: string }[] = [];
   const scenes: ValidatedScene[] = [];
 
+  let analogies = 0;
   script.scenes.slice(0, MAX_SCENES).forEach((scene, index) => {
-    const src = sources[scene.sourceIndex - 1];
-    if (!src) return void dropped.push({ index, reason: "unknown_source" });
     if (!scene.voiceover.trim()) return void dropped.push({ index, reason: "empty_voiceover" });
+    const shown = resolveVisual(scene, has);
+
+    // Un exemple du quotidien ne cite rien — donc il n'affirme rien de chiffré :
+    // aucun nombre, aucune formule. Il éclaire, il ne remplace pas le cours.
+    if (scene.kind === "analogy") {
+      if (analogies >= MAX_ANALOGIES) return void dropped.push({ index, reason: "too_many_analogies" });
+      const figure = extractNumbers([scene.heading, ...scene.bullets, ...(scene.steps ?? []), scene.voiceover].join(" ")).find((n) => !isStructural(n));
+      if (figure !== undefined) return void dropped.push({ index, reason: "number_in_analogy", detail: figure });
+      analogies++;
+      // Un exemple n'a ni citation à surligner, ni formule, ni calcul.
+      const visual = shown.visual === "formula" || shown.visual === "solver_plot" || shown.visual === "highlight" ? "text" : shown.visual;
+      return void scenes.push({ ...scene, formula: "", quote: "", bullets: scene.bullets.slice(0, 3), sourceTitle: "", sourceKind: "analogy", ...shown, visual });
+    }
+
+    // Le schéma du solveur se prouve par le calcul lui-même : la scène n'a pas à
+    // citer le cours, même si le modèle ne connaissait pas le numéro de cette source.
+    const viaSolver = shown.visual === "solver_plot" && has.beam;
+    const src = sources[scene.sourceIndex - 1] ?? (viaSolver ? sources.find((x) => x.solver) : undefined);
+    if (!src) return void dropped.push({ index, reason: "unknown_source" });
+    const computed = Boolean(src.solver) || viaSolver;
 
     // Un extrait de cours se prouve par une citation ; un calcul de solveur, par ses nombres.
-    if (!src.solver) {
+    if (!computed) {
       if (normalizeText(scene.quote).length < MIN_QUOTE_CHARS || quoteTokens(scene.quote).length < MIN_QUOTE_WORDS) {
         return void dropped.push({ index, reason: "quote_too_short" });
       }
@@ -241,18 +301,75 @@ export function validateVideoScript(script: VideoScript, sources: VideoSource[],
       if (support < QUOTE_SUPPORT_MIN) return void dropped.push({ index, reason: "quote_not_in_source", detail: support.toFixed(2) });
     }
 
-    const said = [scene.heading, ...scene.bullets, scene.formula, scene.voiceover].join(" ");
+    const said = [scene.heading, ...scene.bullets, ...(scene.steps ?? []), scene.formula, scene.voiceover].join(" ");
     const invented = extractNumbers(said).find((n) => !isStructural(n) && !allowed.has(n));
     if (invented !== undefined) return void dropped.push({ index, reason: "number_not_in_sources", detail: invented });
 
-    scenes.push({ ...scene, quote: src.solver ? "" : scene.quote, bullets: scene.bullets.slice(0, 3), sourceTitle: src.title, sourceKind: src.solver ? "solver" : "document" });
+    scenes.push({
+      ...scene,
+      quote: computed ? "" : scene.quote,
+      bullets: scene.bullets.slice(0, 3),
+      sourceTitle: computed ? (sources.find((x) => x.solver)?.title ?? src.title) : src.title,
+      sourceKind: computed ? "solver" : "document",
+      ...shown,
+      // Un calcul de solveur n'a pas de phrase à surligner.
+      visual: computed && shown.visual === "highlight" ? "text" : shown.visual,
+    });
   });
 
   const words = countWords(scriptVoiceText(scenes));
-  if (scenes.length < MIN_SCENES) return { ok: false, error: "no_valid_scene", words, dropped };
+  // Les exemples du quotidien ne comptent pas : il faut de vraies scènes de cours.
+  if (scenes.filter((sc) => sc.sourceKind !== "analogy").length < MIN_SCENES) return { ok: false, error: "no_valid_scene", words, dropped };
   if (words < MIN_VALID_WORDS) return { ok: false, error: "too_short", words, dropped };
   if (words > MAX_VOICE_WORDS) return { ok: false, error: "too_long", words, dropped };
   return { ok: true, title: script.title.trim(), scenes, words, dropped };
+}
+
+/* ── La poutre de la vidéo ─────────────────────────────────────────────── */
+
+const canonical = (v: number) => extractNumbers(String(Math.abs(v)))[0] ?? "";
+
+/** Toutes les valeurs numériques d'une description de poutre. */
+function beamNumbers(beam: BalkenstatikInput): number[] {
+  return [
+    beam.laenge,
+    ...beam.lager.map((l) => l.x),
+    ...(beam.einzellasten ?? []).flatMap((p) => [p.x, p.F]),
+    ...(beam.streckenlasten ?? []).flatMap((d) => [d.von, d.bis, d.q]),
+  ];
+}
+
+/**
+ * La poutre que la vidéo dessinera — toujours CALCULÉE par le solveur de TRED,
+ * jamais dessinée d'après le modèle :
+ *
+ *   1. un calcul de poutre déjà fait dans le chat (le plus récent) ;
+ *   2. sinon, l'exemple chiffré que le modèle a recopié d'un extrait de cours,
+ *      si CHACUNE de ses valeurs figure bien dans les extraits ou la question.
+ *      Le solveur le calcule alors ; son résultat devient une source de plus.
+ *
+ * Sans l'un ni l'autre : `payload` nul. La vidéo montre alors un croquis de
+ * principe sans aucune valeur, et aucun diagramme.
+ */
+export function resolveBeam(
+  script: Pick<VideoScript, "beam">,
+  sources: VideoSource[],
+  question = "",
+): { payload: BeamDiagramPayload | null; run: SolverRun | null; rejected?: "numbers_not_in_sources" | "solver_refused" } {
+  for (const s of sources) {
+    const diagram = s.solver?.solver === "balkenstatik" ? (s.solver.output as { ok?: boolean; diagramm?: BeamDiagramPayload } | null) : null;
+    if (diagram?.ok !== false && diagram?.diagramm?.v === 1) return { payload: diagram.diagramm, run: null };
+  }
+  if (!script.beam) return { payload: null, run: null };
+
+  const allowed = new Set<string>([...sources.filter((s) => !s.solver).flatMap((s) => extractNumbers(s.content)), ...extractNumbers(question)]);
+  // Zéro est une position (l'extrémité gauche), pas une donnée du cours.
+  const unknown = beamNumbers(script.beam).some((v) => v !== 0 && !allowed.has(canonical(v)));
+  if (unknown) return { payload: null, run: null, rejected: "numbers_not_in_sources" };
+
+  const result = runBalkenstatik(script.beam);
+  if (!result.ok) return { payload: null, run: null, rejected: "solver_refused" };
+  return { payload: result.diagramm, run: { solver: "balkenstatik", input: script.beam, output: result } };
 }
 
 /* ── Prompt ────────────────────────────────────────────────────────────── */
@@ -277,13 +394,40 @@ CHAQUE SCÈNE
 - "voiceover" : ce que dit la voix, en langue parlée, naturelle et fluide. Pas de LaTeX, pas de symboles : écris « sigma égale M sur W » dans la langue de l'étudiant.
 - "formula" : au plus UNE formule, en LaTeX pur sans dollars, copiée de l'extrait. Chaîne vide sinon.
 - "bullets" : 0 à 3 points de 8 mots au plus.
-- Aucun schéma, aucun dessin : tu n'en décris pas.
+
+CE QUE LA VIDÉO MONTRE — une démonstration, pas des diapositives
+Tu ne dessines rien toi-même : pour chaque scène tu CHOISIS "visual" dans la bibliothèque, et TRED dessine avec ses vrais outils. Varie les visuels : une suite de scènes "text" fait une mauvaise vidéo.
+- "highlight" : la phrase du cours ("quote") s'affiche en grand, et ses "keywords" se surlignent en jaune. Pour un texte de loi, une définition, une thèse.
+- "flowchart" : un enchaînement d'étapes ("steps", 2 à ${MAX_FLOW_STEPS}, CINQ MOTS AU PLUS chacune : un nom, pas une phrase) qui se construit. Pour des conditions à vérifier dans l'ordre, un processus, un cycle, un raisonnement.
+- "formula" : la formule en grand, qui s'écrit. Plusieurs lignes séparées par \\\\ s'écrivent l'une après l'autre.
+- "beam" : la poutre se dessine (appuis, portée). "loads" : les charges arrivent flèche après flèche et la poutre fléchit.
+- "solver_plot" : le schéma exact du solveur (système, effort tranchant Q(x), moment M(x)). Seulement si un calcul de poutre existe (source « solver » ou champ "beam").
+- "chart" : une courbe de principe sans valeurs, avec "chart" parmi : ${CHARTS.join(", ")} (offre et demande).
+- "real_image" : une image d'illustration, avec "image" parmi : ${REAL_IMAGE_KEYS.join(", ")}. Pour relier la théorie à ce que l'étudiant connaît.
+- "text" : une feuille avec les points. Pour la phrase à retenir.
+"bullets" reste très court (2 points au plus quand il y a un visuel) : c'est la voix qui explique, l'écran montre.
+
+LE CONTEXTE ("backdrop")
+Une image de la matière reste en fond, très sombre, derrière les diagrammes et les textes : "courthouse" ou "gavel" pour le droit, "operating_room" ou "heart" pour la médecine, "bridge" pour le génie civil et la mécanique, "stock_market" pour l'économie, et ainsi de suite.
+
+SELON LA MATIÈRE
+- Droit, philosophie, sciences humaines : surtout "highlight" (le texte et ses mots-clés) et "flowchart" (les conditions, le raisonnement), avec une "real_image".
+- Médecine, biologie, psychologie : surtout "flowchart" (les phases, le mécanisme) et "real_image" (l'organe, le lieu).
+- Ingénierie, physique, mathématiques : surtout "formula", "beam", "loads", "solver_plot".
+- Économie, gestion : surtout "chart", "formula" et "flowchart".
+Tu ne décris jamais un schéma d'anatomie ni un dessin que TRED ne sait pas tracer : choisis dans la bibliothèque.
+
+EXEMPLES DU QUOTIDIEN ("kind": "analogy", ${MAX_ANALOGIES} au plus)
+Une comparaison avec la vie courante aide à comprendre (« comme un pont qui porte les voitures »). Dans une scène "analogy" : aucune citation, mais AUCUN chiffre et AUCUNE formule, et rien qui prétende venir du cours. Toutes les autres scènes sont "explanation" et citent leur source.
+
+LA POUTRE ("beam")
+Si la question porte sur une poutre et qu'un extrait donne un exemple chiffré complet, recopie ses données dans "beam" : uniquement des valeurs qui figurent dans l'extrait, sans rien calculer. Le solveur de TRED fait le calcul. Sinon "beam" vaut null, et tu n'annonces aucun résultat chiffré.
 
 DURÉE
 Elle dépend de la difficulté : de ${MIN_VOICE_WORDS} mots de voix (30 secondes) pour un point simple à ${MAX_VOICE_WORDS} mots (3 minutes) pour un raisonnement long. N'allonge pas pour allonger. Entre ${MIN_SCENES} et ${MAX_SCENES} scènes.
 
 PÉDAGOGIE
-Pars de ce que l'étudiant n'a pas compris, avance pas à pas, donne une image concrète seulement si l'extrait en contient une, et termine par la phrase à retenir.
+Pars de ce que l'étudiant n'a pas compris, montre avant d'expliquer, avance pas à pas, relie la théorie à un exemple réel, et termine par la phrase à retenir.
 
 ${language.bottom}`;
 

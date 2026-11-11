@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Player } from "@remotion/player";
 import { DEFAULT_PROFESSOR, PROFESSORS, isProfessorId } from "../../api/lib/professors";
+import { REAL_IMAGES, isRealImageKey } from "../../api/lib/video-visuals";
 import { useT } from "@/i18n";
 import { useUserStore } from "@/stores/user";
 import { backgroundsFor, categoryForProgram, portraitOf, shuffled } from "@/lib/background-sets";
@@ -16,7 +17,7 @@ import { DynamicExplanation, EXPLAINER_FPS, EXPLAINER_SIZE, explainerFrames, typ
  * celle de la voix (`durationMs`).
  */
 export default function ExplainerPlayer({ video, orientation, autoPlay = true }: { video: ExplainerVideo; orientation: ExplainerOrientation; autoPlay?: boolean }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const program = useUserStore((s) => s.profile.degree);
   const size = EXPLAINER_SIZE[orientation];
 
@@ -41,9 +42,17 @@ export default function ExplainerPlayer({ video, orientation, autoPlay = true }:
         status: t("explainer.status"),
         source: t("explainer.source"),
         solver: [t("explainer.solver1"), t("explainer.solver2")],
+        example: t("explainer.example"),
+        sketch: t("explainer.sketch"),
+        market: [t("explainer.supply"), t("explainer.demand"), t("explainer.price"), t("explainer.quantity")],
       },
+      beam: video.beam ?? null,
+      realImages: REAL_IMAGES,
+      backdrop: isRealImageKey(video.backdrop) ? video.backdrop : null,
+      // L'anglais, le chinois, le japonais, l'hindi et le bengali écrivent 4.5 ; les autres 4,5.
+      decimalComma: !["en", "zh", "ja", "hi", "bn"].includes(locale),
     }),
-    [video, backgroundImages, t],
+    [video, backgroundImages, t, locale],
   );
 
   return (

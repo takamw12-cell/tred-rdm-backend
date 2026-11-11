@@ -53,6 +53,12 @@ export const ru: PartialMessages = {
     play: "Воспроизвести",
     remove: "Убрать из панели",
     close: "Закрыть",
+    example: "Пример из жизни",
+    sketch: "Принципиальная схема",
+    supply: "Предложение",
+    demand: "Спрос",
+    price: "Цена",
+    quantity: "Количество",
   },
   common: {
     email: "Эл. почта",

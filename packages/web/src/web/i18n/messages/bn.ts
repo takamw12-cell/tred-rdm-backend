@@ -53,6 +53,12 @@ export const bn: PartialMessages = {
     play: "চালান",
     remove: "ড্যাশবোর্ড থেকে সরান",
     close: "বন্ধ করুন",
+    example: "দৈনন্দিন উদাহরণ",
+    sketch: "নীতিগত নকশা",
+    supply: "যোগান",
+    demand: "চাহিদা",
+    price: "দাম",
+    quantity: "পরিমাণ",
   },
   common: {
     email: "ইমেল",

@@ -131,6 +131,12 @@ export const es: Messages = {
     play: "Reproducir",
     remove: "Quitar del panel",
     close: "Cerrar",
+    example: "Ejemplo cotidiano",
+    sketch: "Esquema de principio",
+    supply: "Oferta",
+    demand: "Demanda",
+    price: "Precio",
+    quantity: "Cantidad",
   },
   landing: {
     beta: "Beta · acceso gratuito",

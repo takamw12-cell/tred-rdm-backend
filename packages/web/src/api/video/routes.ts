@@ -8,6 +8,7 @@ import { elevenLabsConfigured, resolvePremiumVoice } from "../avatar/elevenlabs"
 import { db } from "../database";
 import { document, generatedVideo, solverResult } from "../database/schema";
 import { PRIMARY_MODEL } from "../lib/ai-models";
+import type { BeamDiagramPayload } from "../lib/beam-tool";
 import { LANGUAGES } from "../lib/languages";
 import { MEDIA_BUCKET, mediaClient, mediaStorageConfigured } from "../lib/media-storage";
 import { addOutputTokens, consume, quotaError, tokenCapError, withinTokenCap } from "../lib/plan";
@@ -17,6 +18,7 @@ import { MAX_SOLVER_RUNS, SOLVER_WINDOW_MS, serializeSolverRun, type SolverRun }
 import {
   alignmentToWords,
   buildVideoPrompt,
+  resolveBeam,
   sceneStartsMs,
   scriptVoiceText,
   solverSource,
@@ -29,6 +31,7 @@ import {
   type VideoSource,
   type VoiceWord,
 } from "../lib/video-script";
+import { isRealImageKey } from "../lib/video-visuals";
 import { visibleDocuments } from "../lib/visible-documents";
 import { myCourseIds } from "../routes/courses";
 import { reserveChars } from "../tts/budget";
@@ -67,7 +70,7 @@ const MAX_CONTEXT_CHARS = 24_000;
 const STALE_MS = 5 * 60_000;
 const ID_RE = /^gv_[a-f0-9]{20}$/;
 
-type StoredScript = { scenes: ValidatedScene[]; words: VoiceWord[]; sceneStartsMs: number[]; professor?: string };
+type StoredScript = { scenes: ValidatedScene[]; words: VoiceWord[]; sceneStartsMs: number[]; professor?: string; beam?: BeamDiagramPayload | null; backdrop?: string | null };
 
 /** Code d'erreur stable, lu par le navigateur pour choisir son message. */
 type VideoError = "not_grounded" | "script_failed" | "daily_limit" | "voice_failed" | "storage_failed" | "timeout";
@@ -159,6 +162,8 @@ async function runPipeline(job: { id: string; userId: string; req: VideoRequest;
   await setStatus(id, { status: "script" });
   let scenes: ValidatedScene[];
   let title: string;
+  let beam: BeamDiagramPayload | null = null;
+  let backdrop: string | null = null;
   try {
     const { system, prompt } = buildVideoPrompt({ language, sources, question: req.question, answer: req.answer });
     const { object, usage } = await generateObject({
@@ -169,7 +174,15 @@ async function runPipeline(job: { id: string; userId: string; req: VideoRequest;
       abortSignal: AbortSignal.timeout(90_000),
     });
     void addOutputTokens(userId, usage?.outputTokens ?? 0);
-    const checked = validateVideoScript(object, sources, req.question);
+    // La poutre de la vidéo : un calcul du chat, ou l'exemple chiffré du cours
+    // passé au solveur. Jamais un schéma dessiné d'après le modèle.
+    const resolved = resolveBeam(object, sources, req.question);
+    beam = resolved.payload;
+    // L'image de contexte : un mot-clé de la bibliothèque, ou rien.
+    backdrop = isRealImageKey(object.backdrop) ? object.backdrop : null;
+    if (resolved.rejected) console.warn(`[video] ${id} : poutre du script écartée (${resolved.rejected})`);
+    const allSources = resolved.run ? [...sources, solverSource(resolved.run)] : sources;
+    const checked = validateVideoScript(object, allSources, req.question, { beam: beam !== null });
     if (checked.dropped.length > 0) {
       console.warn(`[video] ${id} : ${checked.dropped.length} scène(s) supprimée(s)`, checked.dropped.map((d) => (d.detail ? `${d.reason}(${d.detail})` : d.reason)).join(", "));
     }
@@ -206,8 +219,9 @@ async function runPipeline(job: { id: string; userId: string; req: VideoRequest;
     console.error(`[video] ${id} : stockage`, (err as Error).message?.slice(0, 300));
     return void (await fail(id, "storage_failed"));
   }
-  const stored: StoredScript = { scenes, words, sceneStartsMs: sceneStartsMs(scenes, words), professor };
+  const stored: StoredScript = { scenes, words, sceneStartsMs: sceneStartsMs(scenes, words), professor, beam, backdrop };
   await setStatus(id, { status: "done", script: JSON.stringify(stored), audioKey, durationMs: videoDurationMs(words) });
+  console.log(`[video] ${id} : visuels ${scenes.map((sc) => sc.visual).join(",")}${beam ? " · poutre calculée" : ""}`);
   console.log(`[video] ${id} : prête, ${scenes.length} scènes, ${Math.round(videoDurationMs(words) / 1000)} s, ${text.length} caractères, langue ${req.language}`);
 }
 
@@ -323,6 +337,8 @@ export function registerVideoRoutes(app: Hono) {
       words: script.words ?? [],
       sceneStartsMs: script.sceneStartsMs ?? [],
       professor: script.professor ?? null,
+      beam: script.beam ?? null,
+      backdrop: script.backdrop ?? null,
     });
   });
 

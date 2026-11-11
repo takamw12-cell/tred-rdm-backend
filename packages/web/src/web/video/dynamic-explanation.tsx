@@ -1,9 +1,13 @@
 import { useMemo } from "react";
 import katex from "katex";
-import { AbsoluteFill, Audio, Img, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Audio, Img, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { BoardStatus, GlassBoard, PaperNote, SolverStamp } from "@/components/hoersaal";
 import { HoersaalStage } from "@/components/hoersaal-stage";
 import { HologramProfessor } from "@/components/hologram-professor";
+import { parseBeamPayload, renderBeamSvg } from "@/lib/beam-svg";
+import { payloadToProblem, type BeamDiagramPayload } from "../../api/lib/beam-tool";
+import { solveMechanicsSafe } from "../../api/lib/mechanics-solver";
+import { BEAM_VISUALS, type ChartKey, type RealImageKey, type Visual } from "../../api/lib/video-visuals";
 import type { Professor } from "../../api/lib/professors";
 
 /**
@@ -23,10 +27,20 @@ import type { Professor } from "../../api/lib/professors";
  * ses points apparaissent quand la voix avance, la formule s'écrit, et les
  * sous-titres suivent les mots horodatés.
  *
+ * ── Une démonstration, pas des diapositives ───────────────────────────────
+ * Chaque scène porte une directive visuelle (`visual`, liste fermée dans
+ * api/lib/video-visuals.ts) : la poutre qui se dessine, les charges qui
+ * arrivent flèche après flèche, le vrai schéma du solveur, une image du monde
+ * réel, la formule en grand. Le visuel occupe le tableau ; l'explication est
+ * dite par la voix et suivie par les sous-titres, en bas.
+ *
  * ── Rien n'est inventé à l'écran ──────────────────────────────────────────
- * La composition n'affiche que ce que le serveur a validé : le texte des
- * scènes, la formule (KaTeX), et la source de chacune — le document cité, ou
- * le tampon du solveur.
+ * Le modèle choisit un visuel, il ne dessine pas. La poutre vient d'un calcul
+ * du solveur (`beam`) : positions, charges et valeurs sont les siennes, et le
+ * schéma Q(x) / M(x) est recalculé ici par le même solveur. Sans calcul, la
+ * poutre est un croquis de principe sans aucune valeur, et aucun diagramme
+ * n'est tracé. Les formules passent par KaTeX ; chaque scène affiche sa
+ * source — le document cité, le tampon du solveur, ou « exemple ».
  */
 
 export const EXPLAINER_FPS = 30;
@@ -48,7 +62,16 @@ export interface ExplainerScene {
   quote: string;
   voiceover: string;
   sourceTitle: string;
-  sourceKind: "document" | "solver";
+  sourceKind: "document" | "solver" | "analogy";
+  /** Ce que la scène montre. Absent (anciennes vidéos) : la feuille de texte. */
+  visual?: Visual;
+  image?: RealImageKey | null;
+  /** Diagramme de flux : les étapes, dans l'ordre. */
+  steps?: string[];
+  /** Texte surligné : les mots-clés de la citation. */
+  keywords?: string[];
+  /** Courbe de principe. */
+  chart?: ChartKey | null;
 }
 
 export interface ExplainerWord {
@@ -66,6 +89,12 @@ export interface ExplainerLabels {
   source: string;
   /** Tampon du solveur : [« Berechnet », « mit dem Löser »]. */
   solver: [string, string];
+  /** « Beispiel aus dem Alltag » — sur une scène d'exemple. */
+  example: string;
+  /** « Prinzipskizze » — sous une poutre sans valeurs. */
+  sketch: string;
+  /** Courbe d'offre et de demande : [offre, demande, prix, quantité]. */
+  market: [string, string, string, string];
 }
 
 // `type` et non `interface` : Remotion exige des props assignables à Record<string, unknown>.
@@ -82,6 +111,14 @@ export type ExplainerProps = {
   backgroundImages: string[];
   professor: Professor;
   labels: ExplainerLabels;
+  /** La poutre calculée par le solveur (ou null : croquis de principe, aucun diagramme). */
+  beam?: BeamDiagramPayload | null;
+  /** Mot-clé → URL des images du monde réel (fournies par l'hôte : app ou paquet vidéo). */
+  realImages?: Partial<Record<RealImageKey, string>>;
+  /** Virgule décimale (allemand, français…) ou point (anglais). */
+  decimalComma?: boolean;
+  /** L'image de contexte de la vidéo (tribunal, bloc opératoire, pont…), très sombre, derrière les visuels. */
+  backdrop?: RealImageKey | null;
 };
 
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
@@ -113,26 +150,473 @@ function Backgrounds({ images }: { images: string[] }) {
   );
 }
 
-/** Une formule KaTeX qui « s'écrit » de gauche à droite. Une formule illisible n'est pas affichée. */
-function Formula({ tex, reveal }: { tex: string; reveal: number }) {
-  const html = useMemo(() => {
+/** Rebond d'apparition (pop-in), piloté par `spring` de Remotion. */
+const pop = (frame: number, at: number, damping = 13) => (frame < at ? 0 : spring({ frame: frame - at, fps: EXPLAINER_FPS, config: { damping, stiffness: 150, mass: 0.7 } }));
+
+/**
+ * Une formule KaTeX qui s'écrit CARACTÈRE PAR CARACTÈRE, comme à la machine.
+ * Le rendu reste celui de KaTeX : on ne fait qu'allumer ses glyphes un à un,
+ * dans l'ordre du texte. Les traits (barre de fraction, racine) apparaissent
+ * quand l'écriture les atteint. Une formule illisible n'est pas affichée.
+ */
+function Formula({ tex, reveal, color }: { tex: string; reveal: number; color?: string }) {
+  const parsed = useMemo(() => {
     try {
-      return katex.renderToString(tex, { displayMode: true, throwOnError: true });
+      const html = katex.renderToString(tex, { displayMode: true, throwOnError: true, output: "html" });
+      // Le HTML, découpé en balises et en textes : seuls les textes sont des glyphes à taper.
+      const pieces = html.split(/(>[^<>]+<)/);
+      const glyphs = pieces.map((piece) => (/^>[^<>]+<$/.test(piece) ? (piece.slice(1, -1).match(/&[^;]+;|[\s\S]/gu) ?? []) : null));
+      return { pieces, glyphs, total: glyphs.reduce((n, g) => n + (g?.length ?? 0), 0) };
     } catch {
       return null;
     }
   }, [tex]);
-  if (!html) return null;
+  if (!parsed) return null;
+  const shown = Math.round(Math.max(0, Math.min(1, reveal)) * parsed.total);
+  let i = 0;
+  const html = parsed.pieces
+    .map((piece, k) => {
+      const glyphs = parsed.glyphs[k];
+      if (!glyphs) return piece;
+      return `>${glyphs.map((g) => `<span style="opacity:${i++ < shown ? 1 : 0}">${g}</span>`).join("")}<`;
+    })
+    .join("");
   return (
     <div
-      className="[&_.katex-display]:my-1.5"
-      style={{ clipPath: `inset(-10% ${(1 - reveal) * 100}% -10% 0)`, fontSize: "1.15em" }}
+      className="tred-tex [&_.katex-display]:my-1.5"
+      style={{ fontSize: "1.15em", color, ["--tex-rule" as string]: String(interpolate(reveal, [0.25, 0.6], [0, 1], clamp)) }}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
 }
 
-/** Une scène : la feuille posée sur le tableau, qui se remplit au rythme de la voix. */
+/**
+ * À quelle image (dans la scène) la voix prononce chaque libellé : on cherche
+ * son premier mot significatif dans les mots horodatés de la scène. Un libellé
+ * que la voix ne dit pas tel quel (autre langue) prend sa place à intervalles
+ * réguliers. Toujours croissant : les étapes arrivent dans l'ordre.
+ */
+function cueFrames(labels: string[], words: ExplainerWord[], from: number, to: number): number[] {
+  const dur = to - from;
+  const norm = (t: string) => t.toLowerCase().normalize("NFD").replace(/[^\p{L}\p{N}]/gu, "");
+  const inScene = words.map((w) => ({ t: norm(w.text), f: Math.round((w.startMs / 1000) * EXPLAINER_FPS) })).filter((w) => w.f >= from && w.f < to);
+  const even = (i: number) => 10 + (i * dur * 0.72) / Math.max(1, labels.length);
+  const cues: number[] = [];
+  let cursor = 0;
+  labels.forEach((label, i) => {
+    const tokens = label.split(/[^\p{L}\p{N}]+/u).map(norm).filter((t) => t.length >= 4);
+    let at = Number.NaN;
+    for (let k = cursor; k < inScene.length && Number.isNaN(at); k++) {
+      if (tokens.some((t) => inScene[k]!.t.startsWith(t.slice(0, 6)))) {
+        at = inScene[k]!.f - from - 5;
+        cursor = k + 1;
+      }
+    }
+    const min = i === 0 ? 6 : cues[i - 1]! + 14;
+    const wanted = Number.isNaN(at) ? even(i) : at;
+    cues.push(Math.round(Math.max(min, Math.min(wanted, dur - 26 - (labels.length - 1 - i) * 14))));
+  });
+  return cues;
+}
+
+/* ── La poutre : dessinée d'après le calcul du solveur ─────────────────── */
+
+const BLUE = "#2563EB";
+const BODY = "#1E293B";
+const GREY = "#64748B";
+
+const fmt = (v: number, comma: boolean) => {
+  const t = String(Number(v.toPrecision(4)));
+  return comma ? t.replace(".", ",") : t;
+};
+const FORCE = { N: 1, kN: 1e3, MN: 1e6 } as const;
+const LENGTH = { m: 1, cm: 0.01, mm: 0.001 } as const;
+
+/**
+ * La poutre, ses appuis et ses charges. `draw` (0→1) trace la poutre et pose
+ * les appuis ; `loads` (0→1) fait arriver les flèches une à une et fléchir la
+ * poutre. Avec `payload`, positions et valeurs sont celles du solveur ; sans
+ * lui, un croquis de principe (q, l) sans aucun nombre.
+ */
+function BeamStage({ payload, draw, loads, comma, sketchLabel }: { payload: BeamDiagramPayload | null; draw: number; loads: number; comma: boolean; sketchLabel: string }) {
+  const X0 = 56;
+  const X1 = 424;
+  const Y = 132;
+  const p = payload?.problem;
+  const L = p?.length ?? 1;
+  const sx = (x: number) => X0 + (x / L) * (X1 - X0);
+  const uF = payload ? FORCE[payload.units.force] : 1;
+  const uL = payload ? LENGTH[payload.units.length] : 1;
+
+  const supports = p ? p.supports : [{ x: 0, kind: "festlager", name: "A" }, { x: 1, kind: "loslager", name: "B" }];
+  const distributed = p ? p.distributedLoads : [{ from: 0, to: 1, q: 1 }];
+  const points = p ? p.pointLoads : [];
+
+  // La flèche de la poutre : une courbe de principe, pas une valeur calculée.
+  const sag = 13 * ease(Math.max(0, (loads - 0.45) / 0.55));
+  const beamPath = `M ${X0} ${Y} Q ${(X0 + X1) / 2} ${Y + sag * 2} ${X1} ${Y}`;
+  const yAt = (x: number) => {
+    const u = (sx(x) - X0) / (X1 - X0);
+    return Y + sag * 4 * u * (1 - u);
+  };
+  const length = X1 - X0;
+
+  // Toutes les flèches, de gauche à droite : elles tombent l'une après l'autre.
+  const arrows: { x: number; top: number; strong: boolean }[] = [];
+  for (const d of distributed) {
+    const n = Math.max(3, Math.round(((sx(d.to) - sx(d.from)) / length) * 11));
+    for (let i = 0; i <= n; i++) arrows.push({ x: d.from + ((d.to - d.from) * i) / n, top: 62, strong: false });
+  }
+  for (const f of points) arrows.push({ x: f.x, top: 36, strong: true });
+  arrows.sort((u, v) => u.x - v.x);
+
+  const supportsIn = ease(Math.max(0, (draw - 0.55) / 0.45));
+  return (
+    <svg viewBox="0 0 480 236" style={{ width: "100%", height: "100%", overflow: "visible" }} fontFamily="Inter, ui-sans-serif, system-ui, sans-serif">
+      {/* Charges réparties : le trait du haut, puis les flèches. */}
+      {distributed.map((d, i) => (
+        <g key={`d${i}`} opacity={Math.min(1, loads * 3)}>
+          <line x1={sx(d.from)} y1={62} x2={sx(d.from) + (sx(d.to) - sx(d.from)) * Math.min(1, loads * 2.2)} y2={62} stroke={BLUE} strokeWidth={2.5} strokeLinecap="round" />
+          <text x={(sx(d.from) + sx(d.to)) / 2} y={48} textAnchor="middle" fontSize={15} fontWeight={700} fill={BLUE} opacity={ease(Math.max(0, (loads - 0.5) * 2))}>
+            {payload ? `q = ${fmt((d.q * uL) / uF, comma)} ${payload.units.force}/${payload.units.length}` : "q"}
+          </text>
+        </g>
+      ))}
+      {arrows.map((a, i) => {
+        const k = ease(Math.max(0, Math.min(1, loads * (arrows.length + 4) * 0.6 - i * 0.55)));
+        const tip = yAt(a.x) - 5;
+        const x = sx(a.x);
+        return (
+          <g key={`a${i}`} opacity={k} transform={`translate(0 ${(1 - k) * -26})`}>
+            <line x1={x} y1={a.top} x2={x} y2={tip - 7} stroke={BLUE} strokeWidth={a.strong ? 3.5 : 2} strokeLinecap="round" />
+            <path d={`M ${x - 5} ${tip - 9} L ${x} ${tip} L ${x + 5} ${tip - 9} Z`} fill={BLUE} />
+          </g>
+        );
+      })}
+      {points.map((f, i) => (
+        <text key={`f${i}`} x={sx(f.x) + 9} y={34} fontSize={15} fontWeight={700} fill={BLUE} opacity={ease(Math.max(0, (loads - 0.5) * 2))}>
+          F = {fmt(f.F / uF, comma)} {payload?.units.force}
+        </text>
+      ))}
+
+      {/* La poutre : un trait qui se dessine de gauche à droite. */}
+      <path d={beamPath} fill="none" stroke={BODY} strokeWidth={7} strokeLinecap="round" strokeDasharray={length + 20} strokeDashoffset={(1 - ease(Math.min(1, draw / 0.6))) * (length + 20)} />
+
+      {/* Les appuis, à leur vraie position. */}
+      {supports.map((sp, i) => {
+        const x = sx(sp.x);
+        return (
+          <g key={`s${i}`} opacity={supportsIn} transform={`translate(0 ${(1 - supportsIn) * 12})`}>
+            {sp.kind === "einspannung" ? (
+              <>
+                <line x1={x} y1={Y - 26} x2={x} y2={Y + 26} stroke={BODY} strokeWidth={4} />
+                {[-20, -8, 4, 16].map((dy) => (
+                  <line key={dy} x1={x} y1={Y + dy} x2={x + (sp.x <= L / 2 ? -10 : 10)} y2={Y + dy + 9} stroke={BODY} strokeWidth={1.6} />
+                ))}
+              </>
+            ) : (
+              <>
+                <path d={`M ${x} ${Y + 4} L ${x - 13} ${Y + 26} L ${x + 13} ${Y + 26} Z`} fill="#FFFFFF" stroke={BODY} strokeWidth={2.4} strokeLinejoin="round" />
+                {sp.kind === "loslager" ? (
+                  <>
+                    <circle cx={x - 7} cy={Y + 30.5} r={3.4} fill="#FFFFFF" stroke={BODY} strokeWidth={1.8} />
+                    <circle cx={x + 7} cy={Y + 30.5} r={3.4} fill="#FFFFFF" stroke={BODY} strokeWidth={1.8} />
+                    <line x1={x - 18} y1={Y + 36} x2={x + 18} y2={Y + 36} stroke={BODY} strokeWidth={2} />
+                  </>
+                ) : (
+                  <line x1={x - 18} y1={Y + 27} x2={x + 18} y2={Y + 27} stroke={BODY} strokeWidth={2} />
+                )}
+              </>
+            )}
+            <text x={x} y={Y + 58} textAnchor="middle" fontSize={16} fontWeight={700} fill={BODY}>
+              {sp.name}
+            </text>
+          </g>
+        );
+      })}
+
+      {/* La portée. */}
+      <g opacity={supportsIn}>
+        <line x1={X0} y1={Y + 78} x2={X1} y2={Y + 78} stroke={GREY} strokeWidth={1.4} />
+        {[X0, X1].map((x) => (
+          <line key={x} x1={x} y1={Y + 71} x2={x} y2={Y + 85} stroke={GREY} strokeWidth={1.4} />
+        ))}
+        <text x={(X0 + X1) / 2} y={Y + 96} textAnchor="middle" fontSize={15} fontWeight={600} fill={GREY}>
+          {payload ? `l = ${fmt(L / uL, comma)} ${payload.units.length}` : "l"}
+        </text>
+      </g>
+      {!payload && (
+        <text x={X1} y={18} textAnchor="end" fontSize={11} fill={GREY} letterSpacing={1.2} opacity={supportsIn}>
+          {sketchLabel.toUpperCase()}
+        </text>
+      )}
+    </svg>
+  );
+}
+
+/** Le vrai schéma du solveur (système, Q(x), M(x)), recalculé ici et révélé de haut en bas. */
+function SolverPlot({ payload, reveal }: { payload: BeamDiagramPayload; reveal: number }) {
+  const svg = useMemo(() => {
+    const parsed = parseBeamPayload(JSON.stringify(payload));
+    if (!parsed) return null;
+    const r = solveMechanicsSafe(payloadToProblem(parsed.problem));
+    return r.ok ? renderBeamSvg(parsed, r) : null;
+  }, [payload]);
+  if (!svg) return null;
+  return (
+    <div
+      className="h-full w-full [&_svg]:mx-auto [&_svg]:block [&_svg]:h-full [&_svg]:max-w-full"
+      style={{ clipPath: `inset(0 0 ${(1 - reveal) * 100}% 0)` }}
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
+  );
+}
+
+/* ── La bibliothèque universelle : flux, surlignage, courbe ───────────── */
+
+/**
+ * Un enchaînement d'étapes qui se construit AVEC la voix :
+ *  - chaque case surgit (pop-in avec rebond) au moment où la voix la nomme ;
+ *  - la flèche se trace vers la suivante (stroke-dashoffset) ;
+ *  - la case dont la voix parle s'illumine d'un halo jaune qui respire, puis
+ *    s'éteint quand on passe à la suivante.
+ * Vertical sur téléphone, horizontal sur ordinateur.
+ */
+function Flowchart({ steps, local, cues, landscape }: { steps: string[]; local: number; cues: number[]; landscape: boolean }) {
+  const n = steps.length;
+  const horizontal = landscape;
+  // Des étapes longues s'écrivent plus petit : la case ne déborde jamais.
+  const longest = Math.max(...steps.map((x) => x.length));
+  const ARROW = 22;
+  return (
+    <div className="flex h-full w-full items-center justify-center" style={{ flexDirection: horizontal ? "row" : "column", gap: 0 }}>
+      {steps.map((step, i) => {
+        const at = cues[i]!;
+        const next = cues[i + 1];
+        const k = pop(local, at);
+        // Allumée à son tour, éteinte en douceur quand la suivante arrive.
+        const lit = Math.min(1, k) * (next === undefined ? 1 : 1 - progress(local, next - 2, next + 12));
+        const breath = 0.5 + 0.5 * Math.sin((local - at) / 5);
+        const arrow = next === undefined ? 0 : progress(local, at + 9, Math.max(at + 20, next - 2));
+        return (
+          <div key={i} className="flex items-center" style={{ flexDirection: horizontal ? "row" : "column", flex: horizontal ? "1 1 0" : undefined, minWidth: 0 }}>
+            <div
+              style={{
+                position: "relative",
+                opacity: Math.min(1, k * 1.4),
+                transform: `${horizontal ? `translateY(${(1 - Math.min(1, k)) * 18}px)` : `translateX(${(1 - Math.min(1, k)) * -26}px)`} scale(${0.82 + 0.18 * k + 0.035 * lit})`,
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: horizontal ? "10px 12px" : n > 4 ? "6px 14px" : "9px 16px",
+                minWidth: horizontal ? 0 : 250,
+                maxWidth: horizontal ? "100%" : 400,
+                borderRadius: 14,
+                background: "#FFFFFF",
+                border: "2px solid rgb(27 42 74 / 0.16)",
+                boxShadow: `0 8px 18px -14px rgb(27 42 74 / 0.5), 0 0 ${(14 + 16 * breath) * lit}px ${(2 + 4 * breath) * lit}px rgb(234 179 8 / ${0.75 * lit})`,
+                color: "#1B2A4A",
+              }}
+            >
+              {/* Le fond jaune de la case active, par-dessus le blanc : il s'allume et s'éteint. */}
+              <span style={{ position: "absolute", inset: -2, borderRadius: 14, background: "#FEF3C7", border: "2px solid #EAB308", opacity: lit }} />
+              <span style={{ position: "relative", display: "grid", placeItems: "center", flexShrink: 0, width: 26, height: 26, borderRadius: 13, background: lit > 0.5 ? "#EAB308" : "#1B2A4A", color: lit > 0.5 ? "#0F172A" : "#FFFFFF", fontSize: 13, fontWeight: 800 }}>{i + 1}</span>
+              <span style={{ position: "relative", fontSize: horizontal ? (longest > 26 ? 12.5 : 15) : longest > 34 ? 14.5 : 18, fontWeight: 700, lineHeight: 1.15 }}>{step}</span>
+            </div>
+            {i < n - 1 && (
+              <svg width={horizontal ? 26 : 20} height={horizontal ? 20 : n > 4 ? 15 : 22} viewBox="0 0 26 22" style={{ flexShrink: 0, transform: horizontal ? undefined : "rotate(90deg)" }}>
+                <line x1={2} y1={11} x2={2 + ARROW - 6} y2={11} stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeDasharray={ARROW} strokeDashoffset={ARROW * (1 - arrow)} />
+                <path d="M16 5 L24 11 L16 17 Z" fill="currentColor" opacity={progress(arrow, 0.75, 1)} transform={`translate(${(1 - progress(arrow, 0.6, 1)) * -6} 0)`} />
+              </svg>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** La phrase du cours, en grand ; ses mots-clés se surlignent en jaune l'un après l'autre, d'un coup de feutre. */
+function HighlightText({ text, keywords, local, dur, dark }: { text: string; keywords: string[]; local: number; dur: number; dark: boolean }) {
+  const parts = useMemo(() => {
+    if (keywords.length === 0) return [{ text, key: -1 }];
+    const escaped = keywords.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).sort((a, b) => b.length - a.length);
+    const re = new RegExp(`(${escaped.join("|")})`, "gi");
+    return text.split(re).filter(Boolean).map((chunk) => ({ text: chunk, key: keywords.findIndex((k) => k.toLowerCase() === chunk.toLowerCase()) }));
+  }, [text, keywords]);
+  const slot = (dur * 0.6) / Math.max(1, keywords.length);
+  const size = text.length > 220 ? 17 : text.length > 130 ? 20 : 24;
+  // Le texte arrive mot par mot, puis les mots-clés s'allument.
+  const typed = interpolate(local, [3, Math.min(dur * 0.3, 50)], [0, text.length], clamp);
+  let seen = 0;
+  return (
+    <div className="grid h-full w-full place-items-center">
+      <p className="font-display" style={{ margin: 0, fontSize: size, lineHeight: 1.5, fontWeight: 500, color: dark ? "#F8FAFC" : "#1B2A4A", textAlign: "left" }}>
+        <span style={{ color: "#EAB308", fontSize: "1.6em", lineHeight: 0, verticalAlign: "-0.25em", marginRight: 4 }}>“</span>
+        {parts.map((part, i) => {
+          const start = seen;
+          seen += part.text.length;
+          const visible = Math.max(0, Math.min(part.text.length, Math.round(typed - start)));
+          const shown = part.text.slice(0, visible);
+          const hidden = part.text.slice(visible);
+          if (part.key < 0) {
+            return (
+              <span key={i}>
+                {shown}
+                <span style={{ opacity: 0 }}>{hidden}</span>
+              </span>
+            );
+          }
+          const at = Math.max(Math.min(dur * 0.3, 50), 16) + part.key * slot;
+          const k = progress(local, at, at + 12);
+          const hit = pop(local, at, 9);
+          return (
+            <span
+              key={i}
+              style={{
+                display: "inline",
+                fontWeight: 700,
+                color: dark && k > 0.5 ? "#0F172A" : undefined,
+                backgroundImage: dark ? "linear-gradient(#FACC15, #FACC15)" : "linear-gradient(transparent 52%, rgb(234 179 8 / 0.65) 52%)",
+                backgroundRepeat: "no-repeat",
+                backgroundSize: `${k * 100}% 100%`,
+                borderRadius: dark ? 4 : 0,
+                padding: "0 3px",
+                boxShadow: `0 0 ${18 * Math.max(0, 1.25 - hit) * k}px rgb(234 179 8 / ${0.9 * Math.max(0, 1.25 - hit) * k})`,
+              }}
+            >
+              {shown}
+              <span style={{ opacity: 0 }}>{hidden}</span>
+            </span>
+          );
+        })}
+      </p>
+    </div>
+  );
+}
+
+/** Offre et demande : la figure de manuel, sans aucune valeur. Les axes, puis les deux droites, puis l'équilibre. */
+function MarketChart({ local, labels, dark }: { local: number; labels: [string, string, string, string]; dark: boolean }) {
+  const BODY = dark ? "#E2E8F0" : "#1E293B";
+  const GREY = dark ? "#94A3B8" : "#64748B";
+  const BLUE = dark ? "#60A5FA" : "#2563EB";
+  const [supply, demand, price, quantity] = labels;
+  const axes = progress(local, 4, 26);
+  const d = progress(local, 26, 60);
+  const sp = progress(local, 54, 88);
+  const eq = progress(local, 90, 104);
+  const line = (x1: number, y1: number, x2: number, y2: number, k: number, color: string) => (
+    <line x1={x1} y1={y1} x2={x1 + (x2 - x1) * k} y2={y1 + (y2 - y1) * k} stroke={color} strokeWidth={4} strokeLinecap="round" />
+  );
+  return (
+    <svg viewBox="0 0 480 300" style={{ width: "100%", height: "100%" }} fontFamily="Inter, ui-sans-serif, system-ui, sans-serif">
+      <line x1={70} y1={250} x2={70} y2={250 - 215 * axes} stroke={BODY} strokeWidth={2.5} strokeLinecap="round" />
+      <line x1={70} y1={250} x2={70 + 360 * axes} y2={250} stroke={BODY} strokeWidth={2.5} strokeLinecap="round" />
+      <text x={56} y={36} textAnchor="end" fontSize={15} fontWeight={700} fill={BODY} opacity={axes}>{price}</text>
+      <text x={430} y={276} textAnchor="end" fontSize={15} fontWeight={700} fill={BODY} opacity={axes}>{quantity}</text>
+      {line(100, 60, 400, 225, d, "#DC2626")}
+      {line(100, 225, 400, 60, sp, BLUE)}
+      <text x={404} y={232} fontSize={15} fontWeight={700} fill="#DC2626" opacity={d}>{demand}</text>
+      <text x={404} y={58} fontSize={15} fontWeight={700} fill={BLUE} opacity={sp}>{supply}</text>
+      <g opacity={eq}>
+        <line x1={70} y1={142.5} x2={250} y2={142.5} stroke={GREY} strokeWidth={1.5} strokeDasharray="5 5" />
+        <line x1={250} y1={142.5} x2={250} y2={250} stroke={GREY} strokeWidth={1.5} strokeDasharray="5 5" />
+        <circle cx={250} cy={142.5} r={5 + 5 * eq} fill="#EAB308" stroke={BODY} strokeWidth={2} />
+      </g>
+    </svg>
+  );
+}
+
+/** Une image du monde réel, avec un lent travelling. */
+function RealImage({ src, local }: { src: string; local: number }) {
+  return (
+    <div style={{ position: "absolute", inset: 0, overflow: "hidden", borderRadius: 18, background: "#070B14", boxShadow: "0 22px 44px -22px rgb(0 0 0 / 0.7)" }}>
+      <Img src={src} style={{ width: "100%", height: "100%", objectFit: "cover", transform: `scale(${1.06 + local * 0.0009})` }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, transparent 55%, rgb(7 11 20 / 0.55))" }} />
+    </div>
+  );
+}
+
+type SceneTiming = { from: number; to: number };
+type VisualProps = Pick<ExplainerProps, "beam" | "realImages" | "decimalComma" | "labels" | "backdrop" | "words">;
+
+/** Les visuels « de texte » se posent sur l'image de contexte, très sombre ; les schémas restent sur fond clair. */
+const DARK_VISUALS: readonly Visual[] = ["flowchart", "highlight", "formula", "chart"];
+const backdropUrl = (props: VisualProps) => (props.backdrop ? props.realImages?.[props.backdrop] : undefined);
+const isDarkStage = (scene: ExplainerScene, props: VisualProps) => DARK_VISUALS.includes(scene.visual ?? "text") && !!backdropUrl(props);
+
+/** Le visuel d'une scène, à l'image `frame`. `end` : son état final (pour le fondu de sortie). */
+function SceneVisual({
+  scenes,
+  index,
+  timings,
+  frame,
+  landscape,
+  props,
+}: {
+  scenes: ExplainerScene[];
+  index: number;
+  timings: SceneTiming[];
+  frame: number;
+  landscape: boolean;
+  props: VisualProps;
+}) {
+  const scene = scenes[index]!;
+  const { from, to } = timings[index]!;
+  const local = frame - from;
+  const visual = scene.visual ?? "text";
+  const dark = isDarkStage(scene, props);
+  const beam = props.beam ?? null;
+
+  if (BEAM_VISUALS.includes(visual)) {
+    // La même poutre reste à l'écran d'une scène à l'autre : on repart du début de la série.
+    let first = index;
+    while (first > 0 && BEAM_VISUALS.includes(scenes[first - 1]!.visual ?? "text")) first--;
+    let loadsAt: number | null = null;
+    for (let j = first; j <= index; j++) if (scenes[j]!.visual === "loads" && loadsAt === null) loadsAt = timings[j]!.from;
+    const start = timings[first]!.from;
+    return (
+      <BeamStage
+        payload={beam}
+        draw={interpolate(frame, [start + 4, start + 44], [0, 1], clamp)}
+        loads={loadsAt === null ? 0 : interpolate(frame, [loadsAt + 6, loadsAt + 70], [0, 1], clamp)}
+        comma={props.decimalComma ?? true}
+        sketchLabel={props.labels.sketch}
+      />
+    );
+  }
+  if (visual === "solver_plot" && beam) return <SolverPlot payload={beam} reveal={progress(local, 6, Math.min(to - from - 10, 110))} />;
+  if (visual === "real_image" && scene.image && props.realImages?.[scene.image]) return <RealImage src={props.realImages[scene.image]!} local={local} />;
+  if (visual === "formula" && scene.formula) {
+    // Plusieurs lignes (séparées par \\\\) s'écrivent l'une après l'autre.
+    const lines = scene.formula.split(/\\\\(?![a-zA-Z])/).map((l) => l.trim()).filter(Boolean);
+    const slot = Math.min(46, ((to - from) * 0.7) / lines.length);
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center" style={{ fontSize: lines.length > 2 ? "1.2em" : "1.5em" }}>
+        {lines.map((tex, i) => (
+          // Linéaire : chaque caractère prend le même temps, comme une frappe régulière.
+          <Formula key={i} tex={tex} color={dark ? "#F8FAFC" : "#1B2A4A"} reveal={interpolate(local, [8 + i * slot, 8 + i * slot + Math.min(44, slot * 0.9)], [0, 1], clamp)} />
+        ))}
+      </div>
+    );
+  }
+  if (visual === "flowchart" && scene.steps?.length) {
+    return (
+      <div className="h-full w-full" style={{ color: dark ? "#FACC15" : "#1B2A4A" }}>
+        <Flowchart steps={scene.steps} local={local} cues={cueFrames(scene.steps, props.words, from, to)} landscape={landscape} />
+      </div>
+    );
+  }
+  if (visual === "highlight" && scene.quote) return <HighlightText text={scene.quote} keywords={scene.keywords ?? []} local={local} dur={to - from} dark={dark} />;
+  if (visual === "chart" && scene.chart === "supply_demand") return <MarketChart local={local} labels={props.labels.market} dark={dark} />;
+  return null;
+}
+
+/** Deux scènes voisines montrent-elles le même visuel (la même poutre) ? Alors pas de fondu entre elles. */
+const sameVisual = (a: ExplainerScene | undefined, b: ExplainerScene | undefined) =>
+  !!a && !!b && BEAM_VISUALS.includes(a.visual ?? "text") && BEAM_VISUALS.includes(b.visual ?? "text");
+
+/** Une scène de texte : la feuille posée sur le tableau, qui se remplit au rythme de la voix. */
 function SceneNote({ scene, local, dur, labels, index, topGap }: { scene: ExplainerScene; local: number; dur: number; labels: ExplainerLabels; index: number; topGap: number }) {
   const enter = progress(local, 0, 10);
   const exit = 1 - progress(local, dur - 7, dur);
@@ -238,7 +722,107 @@ function Captions({ words, bottom }: { words: ExplainerWord[]; bottom: number })
   );
 }
 
-export function DynamicExplanation({ audioUrl, title, scenes, words, sceneStartsMs, backgroundImages, professor, labels }: ExplainerProps) {
+/**
+ * Une scène de démonstration : le visuel occupe le tableau, le titre et deux
+ * points au plus l'accompagnent. Le visuel précédent s'efface en fondu pendant
+ * que le nouveau apparaît (du schéma à l'exemple réel, par exemple).
+ */
+function DemoScene({
+  scenes,
+  index,
+  timings,
+  frame,
+  landscape,
+  props,
+}: {
+  scenes: ExplainerScene[];
+  index: number;
+  timings: SceneTiming[];
+  frame: number;
+  landscape: boolean;
+  props: VisualProps;
+}) {
+  const scene = scenes[index]!;
+  const { from, to } = timings[index]!;
+  const local = frame - from;
+  const prev = scenes[index - 1];
+  const continued = sameVisual(prev, scene);
+  const fade = continued ? 1 : progress(local, 0, 14);
+  const prevIsDemo = !!prev && (prev.visual ?? "text") !== "text";
+  const textIn = progress(local, 2, 12) * (1 - progress(local, to - from - 6, to - from));
+  const isSolver = scene.visual === "solver_plot";
+  const isPhoto = scene.visual === "real_image";
+  // Un diagramme de flux de plus de trois étapes a besoin de hauteur sur téléphone.
+  const isTall = scene.visual === "flowchart" && (scene.steps?.length ?? 0) > 3;
+  // La citation surlignée EST le contenu : on n'en répète pas les points dessous.
+  const quiet = scene.visual === "highlight" || scene.visual === "flowchart";
+  const bullets = quiet ? [] : scene.bullets.slice(0, 2);
+  const dark = isDarkStage(scene, props);
+  const context = backdropUrl(props);
+  const slot = ((to - from) * 0.55) / Math.max(1, bullets.length);
+  return (
+    <div className="flex w-full flex-col gap-3" style={{ paddingTop: landscape ? 0 : 30 }}>
+      <div className="flex items-center gap-3" style={{ opacity: textIn, paddingRight: landscape ? 0 : 96 }}>
+        <h2 className="font-hand font-bold" style={{ color: "#1B2A4A", fontSize: 34, lineHeight: 1, margin: 0 }}>
+          {scene.heading}
+        </h2>
+        {scene.sourceKind === "analogy" && (
+          <span className="shrink-0 rounded-full bg-[#EAB308] px-2.5 py-1 font-mono text-[10px] font-bold tracking-[0.1em] text-[#0F172A] uppercase">{props.labels.example}</span>
+        )}
+      </div>
+
+      {/* La scène du visuel : sa taille est fixe, le rendu est le même partout. */}
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          height: landscape ? 232 : isSolver ? 520 : isTall ? 430 : 330,
+          borderRadius: 18,
+          overflow: "hidden",
+          background: isPhoto || dark ? "#070B14" : "rgb(255 255 255 / 0.78)",
+          boxShadow: isPhoto ? "none" : "inset 0 0 0 1px rgb(27 42 74 / 0.08), 0 18px 36px -24px rgb(27 42 74 / 0.45)",
+          padding: isPhoto ? 0 : 12,
+        }}
+      >
+        {/* Le contexte : l'image de la filière (tribunal, bloc opératoire, pont…), très sombre, qui dérive lentement. */}
+        {dark && context && (
+          <>
+            <Img src={context} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: fade, transform: `scale(${1.08 + local * 0.0006}) translateX(${-local * 0.03}px)` }} />
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgb(7 11 20 / 0.86), rgb(7 11 20 / 0.74) 50%, rgb(7 11 20 / 0.9))" }} />
+          </>
+        )}
+        {!continued && prevIsDemo && fade < 1 && (
+          <div style={{ position: "absolute", inset: isPhoto ? 0 : 12, opacity: 1 - fade }}>
+            <SceneVisual scenes={scenes} index={index - 1} timings={timings} frame={timings[index - 1]!.to} landscape={landscape} props={props} />
+          </div>
+        )}
+        <div style={{ position: "absolute", inset: isPhoto ? 0 : 12, opacity: fade }}>
+          <SceneVisual scenes={scenes} index={index} timings={timings} frame={frame} landscape={landscape} props={props} />
+        </div>
+        {isSolver && (
+          <span style={{ position: "absolute", right: 14, top: 12, display: "inline-flex", opacity: progress(local, 30, 40), transform: `scale(${2 - progress(local, 30, 42)})`, ["--board-stamp" as string]: "#1D4ED8" }}>
+            <SolverStamp label={props.labels.solver[0]} sublabel={props.labels.solver[1]} />
+          </span>
+        )}
+      </div>
+
+      <div style={{ opacity: textIn }}>
+        {bullets.map((b, k) => (
+          <p key={k} className="font-hand" style={{ margin: "2px 0", fontSize: 23, lineHeight: 1.3, color: "#1B2A4A", clipPath: `inset(-20% ${(1 - progress(local, 14 + k * slot, 28 + k * slot)) * 100}% -20% 0)` }}>
+            {b}
+          </p>
+        ))}
+        {scene.sourceKind === "document" && scene.sourceTitle && (
+          <p className="mt-1 truncate font-mono text-[11px] tracking-[0.08em] text-[color:var(--board-muted)] uppercase">
+            {props.labels.source}: {scene.sourceTitle}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function DynamicExplanation({ audioUrl, title, scenes, words, sceneStartsMs, backgroundImages, professor, labels, beam = null, realImages, decimalComma = true, backdrop = null }: ExplainerProps) {
   const frame = useCurrentFrame();
   const { durationInFrames, width, height } = useVideoConfig();
   const landscape = width > height;
@@ -248,12 +832,17 @@ export function DynamicExplanation({ audioUrl, title, scenes, words, sceneStarts
   starts.forEach((s, i) => {
     if (frame >= s) current = i;
   });
+  const timings: SceneTiming[] = useMemo(
+    () => scenes.map((_, i) => ({ from: i === 0 ? 0 : starts[i]!, to: i < scenes.length - 1 ? starts[i + 1]! : durationInFrames })),
+    [scenes, starts, durationInFrames],
+  );
   const scene = scenes[current];
-  const from = current === 0 ? 0 : starts[current]!;
-  const to = current < scenes.length - 1 ? starts[current + 1]! : durationInFrames;
+  const { from, to } = timings[current] ?? { from: 0, to: durationInFrames };
 
   return (
     <AbsoluteFill style={{ background: "#070B14", fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>
+      {/* Les traits d'une formule (barre de fraction, racine) apparaissent quand l'écriture les atteint. */}
+      <style>{".tred-tex .frac-line, .tred-tex svg, .tred-tex .overline-line, .tred-tex .underline-line { opacity: var(--tex-rule, 1); }"}</style>
       <Backgrounds images={backgroundImages} />
       <AbsoluteFill>
         <HoersaalStage
@@ -271,7 +860,12 @@ export function DynamicExplanation({ audioUrl, title, scenes, words, sceneStarts
                     />
                   ))}
                 </div>
-                {scene && <SceneNote key={current} scene={scene} local={frame - from} dur={to - from} labels={labels} index={current} topGap={landscape ? 0 : 34} />}
+                {scene && (scene.visual ?? "text") === "text" && (
+                  <SceneNote key={current} scene={scene} local={frame - from} dur={to - from} labels={labels} index={current} topGap={landscape ? 0 : 34} />
+                )}
+                {scene && (scene.visual ?? "text") !== "text" && (
+                  <DemoScene scenes={scenes} index={current} timings={timings} frame={frame} landscape={landscape} props={{ beam, realImages, decimalComma, labels, backdrop, words }} />
+                )}
               </div>
             </GlassBoard>
           }

@@ -53,6 +53,12 @@ export const zh: PartialMessages = {
     play: "播放",
     remove: "从仪表盘移除",
     close: "关闭",
+    example: "生活中的例子",
+    sketch: "原理示意图",
+    supply: "供给",
+    demand: "需求",
+    price: "价格",
+    quantity: "数量",
   },
   common: {
     email: "电子邮箱",

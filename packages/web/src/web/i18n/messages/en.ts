@@ -119,6 +119,12 @@ export const en: Messages = {
     play: "Play",
     remove: "Remove from dashboard",
     close: "Close",
+    example: "Everyday example",
+    sketch: "Schematic sketch",
+    supply: "Supply",
+    demand: "Demand",
+    price: "Price",
+    quantity: "Quantity",
   },
   landing: {
     beta: "Beta · free access",

@@ -118,6 +118,12 @@ export const de = {
     play: "Abspielen",
     remove: "Aus dem Dashboard entfernen",
     close: "Schließen",
+    example: "Beispiel aus dem Alltag",
+    sketch: "Prinzipskizze",
+    supply: "Angebot",
+    demand: "Nachfrage",
+    price: "Preis",
+    quantity: "Menge",
   },
   landing: {
     beta: "Beta · kostenloser Zugang",

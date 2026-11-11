@@ -119,6 +119,12 @@ export const fr: Messages = {
     play: "Lire",
     remove: "Retirer du tableau de bord",
     close: "Fermer",
+    example: "Exemple du quotidien",
+    sketch: "Croquis de principe",
+    supply: "Offre",
+    demand: "Demande",
+    price: "Prix",
+    quantity: "Quantité",
   },
   landing: {
     beta: "Bêta · accès gratuit",
