@@ -9,6 +9,7 @@ import { SERIES_FRAMES } from "./series/engine";
 import { CAMPAIGN_FRAMES } from "./campaign/engine";
 import { CAMPAIGN_IDS } from "./campaign/videos";
 import { DEMO_IDS } from "./campaign/demo";
+import { DynamicExplanationCompositions } from "./dynamic";
 import "./style.css";
 
 /**
@@ -40,6 +41,10 @@ export function Root() {
         {CAMPAIGN_IDS.map(([id, component]) => (
           <Composition key={id} id={id} component={component} durationInFrames={CAMPAIGN_FRAMES} {...PHONE} />
         ))}
+      </Folder>
+      {/* « Als Video erklären » : la composition de l'app, durée calculée sur l'audio. */}
+      <Folder name="Als-Video-erklaeren">
+        <DynamicExplanationCompositions />
       </Folder>
       {/* Campagne V3 « démonstration » (2026-11-11) : l'interface, le curseur, 5 concepts × EN/DE, 30 s. */}
       <Folder name="Demo-30s">

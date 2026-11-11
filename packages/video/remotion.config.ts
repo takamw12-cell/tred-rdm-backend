@@ -29,6 +29,10 @@ Config.overrideWebpackConfig((current) => {
       alias: {
         ...(withTailwind.resolve?.alias as Record<string, string> | undefined),
         "@": path.join(WEB, "src/web"),
+        // La composition « Als Video erklären » vit dans packages/web et importe
+        // `remotion` : sans cet alias, Webpack y chargerait une SECONDE copie
+        // (celle de l'app), et ses hooks ne verraient pas la composition.
+        remotion$: path.resolve(process.cwd(), "node_modules/remotion"),
       },
     },
     plugins: [
