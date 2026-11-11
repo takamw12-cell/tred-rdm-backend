@@ -25,6 +25,10 @@ export const bn: PartialMessages = {
     pricing: "সাবস্ক্রিপশন",
     menu: "মেনু",
   },
+  background: {
+    pause: "পটভূমি থামান",
+    play: "পটভূমি চালান",
+  },
   common: {
     email: "ইমেল",
     password: "পাসওয়ার্ড",

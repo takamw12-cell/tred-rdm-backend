@@ -80,7 +80,7 @@ async function handle(request: Request): Promise<Response> {
   const file = Bun.file(filePath);
 
   if (await file.exists()) {
-    return serveFile(request, filePath, file, url.pathname.startsWith("/assets/"));
+    return serveFile(request, filePath, file, isImmutablePath(url.pathname));
   }
 
   const index = Bun.file(indexPath);
@@ -130,6 +130,17 @@ async function serveFile(
     return new Response(gz, { headers });
   }
   return new Response(file, { headers });
+}
+
+/**
+ * Cache navigateur d'un an (`immutable`) : les /assets/ (nom haché par Vite)
+ * et les fonds d'écran /backgrounds/ — un fond n'est JAMAIS réécrit sous le
+ * même nom (packages/web/scripts/generate-universal-backgrounds.mjs) : changer une image =
+ * lui donner un nouveau nom. Sans ce cache, la rotation de 10 s
+ * revaliderait chaque image à chaque passage.
+ */
+function isImmutablePath(pathname: string): boolean {
+  return pathname.startsWith("/assets/") || /^\/backgrounds\/[a-z]+\/[a-z0-9-]+\.webp$/.test(pathname);
 }
 
 function getPrerenderedPath(pathname: string): string | null {

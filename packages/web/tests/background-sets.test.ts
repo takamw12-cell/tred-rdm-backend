@@ -8,9 +8,11 @@ import {
   backgroundsFor,
   categoryForProgram,
   portraitOf,
+  shuffled,
 } from "../src/web/lib/background-sets";
+import UNIVERSAL from "../src/web/data/universal-backgrounds.json";
 import { STUDIENGAENGE, studiengangLabel } from "../src/web/lib/studiengaenge";
-import { VEILS } from "../src/web/components/dynamic-background";
+import { VEILS } from "../src/web/lib/background-veils";
 
 const PUBLIC = join(import.meta.dir, "../public");
 
@@ -48,6 +50,16 @@ describe("fonds selon la filière", () => {
     ["Betriebswirtschaft", "economics"],
     ["BWL", "economics"],
     ["Wirtschaftsingenieurwesen", "industrial"],
+    // Refonte du 2026-11-11 : toutes les filières
+    ["Biologie", "biology"],
+    ["Biochemie", "chemical"],
+    ["Psychologie", "psychology"],
+    ["Philosophie", "philosophy"],
+    ["Geschichtswissenschaft", "history"],
+    ["Histoire", "history"],
+    ["Germanistik", "languages"],
+    ["Übersetzen und Dolmetschen", "languages"],
+    ["Langues étrangères appliquées", "languages"],
     ["Theologie", "general"],
     ["", "general"],
   ] as const)("%s → %s", (program, category) => {
@@ -85,6 +97,47 @@ describe("fonds selon la filière", () => {
       expect(existsSync(join(PUBLIC, src))).toBe(true);
       expect(existsSync(join(PUBLIC, portraitOf(src)))).toBe(true);
     }
+  });
+});
+
+describe("fonds universels (10 par filière, ordre aléatoire)", () => {
+  const sets = UNIVERSAL as Record<string, string[]>;
+
+  test("une filière qui a ses fonds universels tourne UNIQUEMENT sur eux", () => {
+    for (const [cat, list] of Object.entries(sets)) {
+      if (list.length < 3) continue;
+      expect(CATEGORY_IMAGES[cat as keyof typeof CATEGORY_IMAGES]).toEqual(list);
+    }
+  });
+
+  test("chaque fond universel et sa variante portrait existent", () => {
+    for (const src of Object.values(sets).flat()) {
+      expect(src).toMatch(/^\/backgrounds\/[a-z]+\/[a-z]+-u\d\d\.webp$/);
+      expect(existsSync(join(PUBLIC, src))).toBe(true);
+      expect(existsSync(join(PUBLIC, portraitOf(src)))).toBe(true);
+    }
+  });
+
+  test("shuffle : toutes les images, chacune une fois", () => {
+    const list = Array.from({ length: 10 }, (_, i) => `img-${i}`);
+    const out = shuffled(list);
+    expect(out).toHaveLength(10);
+    expect([...out].sort()).toEqual([...list].sort());
+  });
+
+  test("shuffle : la séquence change d'un tour à l'autre", () => {
+    const list = Array.from({ length: 10 }, (_, i) => i);
+    const seqs = new Set(Array.from({ length: 20 }, () => shuffled(list).join(",")));
+    expect(seqs.size).toBeGreaterThan(15);
+  });
+
+  test("shuffle : l'image affichée ne revient jamais en tête du tour suivant", () => {
+    const list = ["a", "b", "c", "d"];
+    for (let k = 0; k < 200; k++) expect(shuffled(list, "a")[0]).not.toBe("a");
+    // Même avec un tirage qui la remettrait en tête.
+    expect(shuffled(list, "a", () => 0.999)[0]).not.toBe("a");
+    expect(shuffled(["a"], "a")).toEqual(["a"]);
+    expect(shuffled([])).toEqual([]);
   });
 });
 

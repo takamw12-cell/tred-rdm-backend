@@ -1,192 +1,219 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Pause, Play } from "lucide-react";
 import { useUserStore } from "@/stores/user";
-import { backgroundsFor, categoryForProgram, portraitOf } from "@/lib/background-sets";
+import { useT } from "@/i18n";
+import { backgroundsFor, categoryForProgram, portraitOf, shuffled } from "@/lib/background-sets";
+import { VEILS } from "@/lib/background-veils";
 
 /**
- * Fond photographique tournant, façon « Windows Spotlight ».
+ * Fond photographique tournant (refonte du 11 nov. 2026).
  *
- * Photos sous licence Unsplash dans /public/backgrounds/<catégorie>/ — voir
- * CREDITS.md. Une nouvelle image toutes les 5 minutes, en fondu.
- *
- * V2 : les images suivent la filière du profil (« Luft- und Raumfahrttechnik »
- * → réacteurs, « Mechatronik » → robots…). Le choix est dans
- * lib/background-sets.ts ; une filière inconnue garde le fond général.
- *
- * Choix :
- * - On commence par la première image de la filière, puis la liste défile
- *   dans l'ordre (images de la filière intercalées avec le fond général).
+ * - 10 images par filière (scripts/generate-universal-backgrounds.mjs ;
+ *   tant qu'une filière n'a pas les siennes : ses photos d'avant, puis le
+ *   fond général — lib/background-sets.ts). Une nouvelle image toutes les
+ *   10 secondes, fondu enchaîné d'1 seconde.
+ * - Ordre ALÉATOIRE (shuffle, nouveau tirage à chaque tour) : jamais deux
+ *   fois la même séquence, jamais deux fois la même image de suite.
+ * - Deux couches FIXES (A et B) superposées : l'image suivante est chargée
+ *   dans la couche cachée, décodée (`new Image()` + `decode()`), puis on
+ *   bascule l'opacité. Pas de démontage, jamais de fondu vers un écran vide,
+ *   et l'onglet masqué ne travaille pas (minuteur suspendu).
+ * - Bouton Pause discret (au-dessus du bouton de retours). Avec
+ *   `prefers-reduced-motion`, le fond est en pause par défaut. Le choix de
+ *   l'utilisateur est retenu sur l'appareil.
  * - Mode test : `?bg=30` → rotation en 30 s + étiquette de diagnostic.
- * - L'image suivante est PRÉCHARGÉE avant le fondu : jamais de fondu vers un
- *   écran vide sur une connexion lente.
- * - Monté UNE fois dans le layout : toute l'app partage le même fond.
- * - Voile en dégradé, selon la page (VEILS) : léger sur le dashboard, plus
- *   couvrant sur les pages de lecture ; les cartes en verre dépoli
- *   (.glass-scope, styles.css) gardent le texte lisible partout.
+ * - Voile en dégradé, selon la page (VEILS), calibré pour le contraste AA
+ *   (tests/background-sets.test.ts).
  * - Rendu dans <body> par un portail : la page parente est animée
  *   (transform), ce qui casserait `position: fixed`.
- * - `prefers-reduced-motion` : la règle globale de styles.css ramène le
- *   fondu à ~0 ms, l'image change donc sans animation.
  */
 
-const DEFAULT_ROTATE_MS = 5 * 60 * 1000;
-const FADE_MS = 1500;
+export const ROTATE_MS = 10_000;
+export const FADE_MS = 1_000;
+const PAUSE_KEY = "aerostudy-bg-paused";
 
-/**
- * Mode test : `?bg=30` dans l'URL → rotation toutes les 30 s et étiquette
- * « filière · image » en bas à droite. Rien ne change pour les autres
- * utilisateurs ; on vérifie ainsi une filière sans attendre 5 minutes.
- */
+/** Mode test : `?bg=30` → rotation toutes les 30 s et étiquette « filière · image ». */
 function readDebugSeconds(): number | null {
   if (typeof window === "undefined") return null;
   const raw = new URLSearchParams(window.location.search).get("bg");
   if (raw === null) return null;
   const n = Number(raw);
-  return Number.isFinite(n) && n > 0 ? Math.min(3600, Math.max(5, n)) : 30;
+  return Number.isFinite(n) && n > 0 ? Math.min(3600, Math.max(3, n)) : 30;
 }
 
-/**
- * `vivid` : dashboard — voile léger, la photo porte l'ambiance.
- * `calm`  : pages de lecture (chat, exercices…) — voile plus couvrant ; les
- *           cartes en verre assurent le contraste du texte.
- */
-export const VEILS = {
-  // Dashboard et Hörsaal : la salle sombre (validée le 5 nov. 2026). Voile
-  // allégé le 2026-11-09 pour que la photo de la filière se voie : dense en
-  // HAUT (80 %), où le titre est posé sur la photo — blanc et blanc à 70 %
-  // restent ≥ 4,5:1 même sur un pixel blanc (tests/background-sets.test.ts) ;
-  // léger au milieu (45 %), où les cartes en verre portent leur propre fond.
-  // Le texte posé hors carte plus bas porte un halo (.on-photo, styles.css).
-  vivid: "from-[#070B14]/80 via-[#0B1222]/45 to-[#070B14]/60",
-  // Pages de lecture : 85 → 60 %. Plancher : sous 60 %, le texte gris des
-  // cartes en verre passerait sous 4,5:1 sur la photo la plus sombre (calcul
-  // dans tests/background-sets.test.ts). Titres hors carte : halo .on-photo.
-  calm: "from-background/85 via-background/65 to-background/60",
-} as const;
+/** Pause retenue sur l'appareil ; sinon `prefers-reduced-motion` décide. */
+function readPaused(): boolean {
+  try {
+    const saved = localStorage.getItem(PAUSE_KEY);
+    if (saved !== null) return saved === "1";
+  } catch {
+    /* navigation privée : on retombe sur la préférence système */
+  }
+  return typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+}
+
+export { VEILS };
+
+/** Téléphone (ou tablette étroite) en portrait : la variante portrait, à l'affichage comme au préchargement. */
+const PORTRAIT_MEDIA = "(orientation: portrait) and (max-width: 1024px)";
+const isPortrait = () => typeof window !== "undefined" && !!window.matchMedia?.(PORTRAIT_MEDIA).matches;
+const urlFor = (src: string) => (src && isPortrait() ? portraitOf(src) : src);
+
+/** Résout quand l'image est téléchargée ET décodée — ou en erreur : jamais bloqué. */
+function preload(url: string): Promise<void> {
+  const img = new Image();
+  img.decoding = "async";
+  img.src = url;
+  return img.decode().catch(() => undefined);
+}
 
 export function DynamicBackground({ variant = "calm" }: { variant?: keyof typeof VEILS }) {
+  const { t } = useT();
   const program = useUserStore((s) => s.profile.degree);
   const category = useMemo(() => categoryForProgram(program), [program]);
   const images = useMemo(() => backgroundsFor(category), [category]);
-  const imagesRef = useRef(images);
-  imagesRef.current = images;
 
   const [debugSeconds] = useState(readDebugSeconds);
-  const rotateMs = debugSeconds !== null ? debugSeconds * 1000 : DEFAULT_ROTATE_MS;
+  const rotateMs = debugSeconds !== null ? debugSeconds * 1000 : ROTATE_MS;
+  const [paused, setPaused] = useState(readPaused);
 
-  // On commence TOUJOURS par la première image de la liste : pour une filière
-  // reconnue, c'est la sienne (la fusée pour la LRT) — l'étudiant voit tout de
-  // suite que le fond lui parle. La suite défile dans l'ordre.
-  const [current, setCurrent] = useState(() => images[0]);
-  /** Image en train d'apparaître par-dessus `current`, ou null. */
-  const [incoming, setIncoming] = useState<string | null>(null);
-  const currentRef = useRef(current);
-  currentRef.current = current;
+  // Première image tirée au hasard, elle aussi.
+  const [initial] = useState(() => shuffled(images)[0] ?? "");
+  /** Les deux couches (URL résolue paysage/portrait) et celle qui est devant. */
+  const [layers, setLayers] = useState<[string, string]>(() => [urlFor(initial), ""]);
+  const [front, setFront] = useState<0 | 1>(0);
+  const [shown, setShown] = useState(initial);
 
-  // La filière change (réglages, onboarding) : fondu IMMÉDIAT vers sa
-  // première image — même si l'image actuelle figure aussi dans la nouvelle
-  // liste — et le minuteur repart de zéro (dépendance `category` plus bas).
-  useEffect(() => {
-    const first = imagesRef.current[0];
-    if (currentRef.current === first) return;
-    const run = { cancelled: false, timer: undefined as ReturnType<typeof setTimeout> | undefined };
-    void preload(first).then(() => {
-      if (run.cancelled) return;
-      setIncoming(first);
-      run.timer = setTimeout(() => {
-        setCurrent(first);
-        setIncoming(null);
+  /** Tour en cours (ordre aléatoire), consommé image par image. */
+  const queue = useRef<string[]>([]);
+  /** Miroir de `front`/`shown` pour les minuteurs (mis à jour au moment du fondu, jamais au rendu). */
+  const state = useRef({ front: 0 as 0 | 1, shown: initial, busy: false });
+
+  /** Fondu vers `src` : chargement dans la couche cachée, puis bascule de l'opacité. */
+  const showImage = useCallback(async (src: string) => {
+    if (state.current.busy || src === state.current.shown) return;
+    state.current.busy = true;
+    const url = urlFor(src);
+    await preload(url);
+    const back = state.current.front === 0 ? 1 : 0;
+    setLayers((l) => (back === 0 ? [url, l[1]] : [l[0], url]));
+    // Une frame pour que la couche cachée reçoive son image AVANT le fondu.
+    requestAnimationFrame(() => {
+      state.current.front = back;
+      state.current.shown = src;
+      setFront(back);
+      setShown(src);
+      setTimeout(() => {
+        state.current.busy = false;
       }, FADE_MS);
     });
-    return () => {
-      run.cancelled = true;
-      if (run.timer) clearTimeout(run.timer);
-    };
-  }, [category]);
+  }, []);
 
+  const nextImage = useCallback(() => {
+    if (queue.current.length === 0) queue.current = shuffled(images, state.current.shown);
+    return queue.current.shift();
+  }, [images]);
+
+  // Nouvelle filière (réglages, onboarding) : nouveau tirage, fondu immédiat.
   useEffect(() => {
-    let fadeTimer: ReturnType<typeof setTimeout> | undefined;
-    let cancelled = false;
+    queue.current = shuffled(images, state.current.shown).filter((s) => s !== state.current.shown);
+    if (!images.includes(state.current.shown)) {
+      const first = queue.current.shift();
+      if (first) void showImage(first);
+    }
+  }, [images, showImage]);
 
-    const interval = setInterval(() => {
-      const list = imagesRef.current;
-      const next = list[(list.indexOf(currentRef.current) + 1) % list.length];
-      // Préchargement : le fondu ne démarre qu'une fois l'image décodée.
-      preload(next).then(() => {
-          if (cancelled) return;
-          setIncoming(next);
-          fadeTimer = setTimeout(() => {
-            setCurrent(next);
-            setIncoming(null);
-          }, FADE_MS);
-        });
-    }, rotateMs);
-
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-      if (fadeTimer) clearTimeout(fadeTimer);
+  // La rotation : arrêtée en pause et quand l'onglet est masqué.
+  useEffect(() => {
+    if (paused || images.length < 2) return;
+    let timer: ReturnType<typeof setInterval> | undefined;
+    const start = () => {
+      clearInterval(timer);
+      timer = setInterval(() => {
+        const next = nextImage();
+        if (next) void showImage(next);
+      }, rotateMs);
     };
-  }, [rotateMs, category]);
+    const onVisibility = () => (document.hidden ? clearInterval(timer) : start());
+    start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [paused, images, rotateMs, nextImage, showImage]);
+
+  // Pendant que l'image actuelle est affichée, on précharge la suivante :
+  // le prochain fondu part sans attendre le réseau.
+  useEffect(() => {
+    if (paused) return;
+    const id = setTimeout(() => {
+      if (queue.current.length === 0) queue.current = shuffled(images, state.current.shown);
+      const upcoming = queue.current[0];
+      if (upcoming) void preload(urlFor(upcoming));
+    }, FADE_MS + 500);
+    return () => clearTimeout(id);
+  }, [shown, paused, images]);
+
+  const togglePause = () => {
+    setPaused((p) => {
+      try {
+        localStorage.setItem(PAUSE_KEY, p ? "0" : "1");
+      } catch {
+        /* rien à retenir : le choix vaut pour cette visite */
+      }
+      return !p;
+    });
+  };
 
   if (typeof document === "undefined") return null;
 
   return createPortal(
-    <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-      <Layer key={current} src={current} visible />
-      {incoming !== null && <Layer key={incoming} src={incoming} visible={false} fadeIn />}
-      {/* Le voile, en dégradé : plus dense en haut, où le titre et la date
-          sont posés directement sur la photo ; léger plus bas, où les cartes
-          en verre dépoli (.glass-scope) assurent elles-mêmes la lisibilité. */}
-      <div className={`absolute inset-0 bg-gradient-to-b transition-colors duration-700 ${VEILS[variant]}`} />
-      {debugSeconds !== null && (
-        <div className="bg-primary text-primary-foreground absolute right-3 bottom-3 rounded-md px-2 py-1 font-mono text-[11px] leading-tight">
-          {category} · {current.split("/").slice(-2).join("/")} · {debugSeconds}s
-          <br />
-          Studiengang: {program || "—"}
-        </div>
+    <>
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#070B14]">
+        {layers.map((url, i) => (
+          <div
+            key={i}
+            data-bg-layer={i}
+            className="absolute inset-0 bg-cover bg-center transition-opacity ease-in-out will-change-[opacity]"
+            style={{
+              backgroundImage: url ? `url("${url}")` : undefined,
+              opacity: front === i ? 1 : 0,
+              transitionDuration: `${FADE_MS}ms`,
+            }}
+          />
+        ))}
+        {/* Le voile : plus dense en haut, où le titre est posé sur la photo ;
+            léger plus bas, où les cartes en verre (.glass-scope) assurent
+            elles-mêmes la lisibilité. */}
+        <div className={`absolute inset-0 bg-gradient-to-b transition-colors duration-700 ${VEILS[variant]}`} />
+        {debugSeconds !== null && (
+          <div className="bg-primary text-primary-foreground absolute bottom-3 left-3 rounded-md px-2 py-1 font-mono text-[11px] leading-tight">
+            {category} · {shown.split("/").slice(-2).join("/")} · {debugSeconds}s · {images.length} img
+            <br />
+            Studiengang: {program || "—"}
+          </div>
+        )}
+      </div>
+      {images.length > 1 && (
+        <button
+          type="button"
+          onClick={togglePause}
+          aria-pressed={paused}
+          aria-label={paused ? t("background.play") : t("background.pause")}
+          title={paused ? t("background.play") : t("background.pause")}
+          className={
+            // Discret : petit, translucide, juste au-dessus du bouton de retours.
+            "fixed right-[1.375rem] bottom-[calc(8.25rem+env(safe-area-inset-bottom))] z-30 grid size-8 place-items-center rounded-full " +
+            "border border-white/15 bg-black/35 text-white/75 backdrop-blur-md transition hover:bg-black/55 hover:text-white " +
+            "focus-visible:ring-[3px] focus-visible:ring-[#EAB308]/50 focus-visible:outline-none lg:right-[1.875rem] lg:bottom-[4.5rem]"
+          }
+        >
+          {paused ? <Play className="size-3.5" aria-hidden /> : <Pause className="size-3.5" aria-hidden />}
+        </button>
       )}
-    </div>,
+    </>,
     document.body,
-  );
-}
-
-/**
- * Téléphone (ou tablette étroite) en portrait : on sert la variante
- * portrait. Même requête pour le <source> et pour le préchargement, sinon on
- * précharge une image que le navigateur n'affichera pas.
- */
-const PORTRAIT_MEDIA = "(orientation: portrait) and (max-width: 1024px)";
-
-function preload(src: string): Promise<void> {
-  const img = new Image();
-  const portrait = typeof window !== "undefined" && window.matchMedia?.(PORTRAIT_MEDIA).matches;
-  img.src = portrait ? portraitOf(src) : src;
-  return img.decode().catch(() => undefined);
-}
-
-function Layer({ src, visible, fadeIn = false }: { src: string; visible: boolean; fadeIn?: boolean }) {
-  // Monté à opacité 0 puis passé à 1 au rendu suivant : c'est ce qui
-  // déclenche la transition CSS.
-  const [shown, setShown] = useState(visible);
-  useEffect(() => {
-    if (!fadeIn) return;
-    const id = requestAnimationFrame(() => setShown(true));
-    return () => cancelAnimationFrame(id);
-  }, [fadeIn]);
-
-  // object-cover : l'image remplit l'écran sans jamais être déformée, quel
-  // que soit le format ; object-center garde le sujet centré au recadrage.
-  return (
-    <picture>
-      <source media={PORTRAIT_MEDIA} srcSet={portraitOf(src)} type="image/webp" />
-      <img
-        src={src}
-        alt=""
-        decoding="async"
-        className="absolute inset-0 size-full object-cover object-center transition-opacity ease-in-out"
-        style={{ opacity: shown ? 1 : 0, transitionDuration: `${FADE_MS}ms` }}
-      />
-    </picture>
   );
 }

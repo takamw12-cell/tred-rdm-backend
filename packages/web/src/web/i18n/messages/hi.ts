@@ -25,6 +25,10 @@ export const hi: PartialMessages = {
     pricing: "सदस्यता",
     menu: "मेन्यू",
   },
+  background: {
+    pause: "पृष्ठभूमि रोकें",
+    play: "पृष्ठभूमि चलाएँ",
+  },
   common: {
     email: "ईमेल",
     password: "पासवर्ड",

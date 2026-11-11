@@ -11,6 +11,7 @@
  * Module pur (aucun React, aucun DOM) : testé dans tests/background-sets.test.ts.
  */
 import MANIFEST from "../data/background-manifest.json";
+import UNIVERSAL from "../data/universal-backgrounds.json";
 
 /**
  * Images réellement présentes (paysage + variante portrait), écrites par
@@ -40,7 +41,13 @@ export type BackgroundCategory =
   // Hors ingénierie (2026-11-09) : TRED couvre toutes les filières.
   | "medicine"
   | "law"
-  | "economics";
+  | "economics"
+  // Refonte du 2026-11-11 : toutes les filières de l'université.
+  | "biology"
+  | "psychology"
+  | "philosophy"
+  | "languages"
+  | "history";
 
 const G = (n: number) => `/backgrounds/general/bg-0${n}.webp`;
 const F = (folder: string, ns: number[]) =>
@@ -74,7 +81,23 @@ const PLANNED: Record<BackgroundCategory, string[]> = {
   medicine: F("medicine", [1, 2, 3, 4, 5]), // ADN, bloc opératoire, blouse, IRM, microscope
   law: F("law", [1, 2, 3, 4, 5]), // bibliothèque, Justitia, palais de justice, marteau, salle de lecture
   economics: F("economics", [1, 2, 3, 4, 5]), // graphiques, quartier d'affaires, salle des marchés
+  // Pas de photo d'avant la refonte : uniquement les fonds universels.
+  biology: [],
+  psychology: [],
+  philosophy: [],
+  languages: [],
+  history: [],
 };
+
+/**
+ * Fonds « universels » (refonte du 2026-11-11) : 10 images par filière,
+ * FLUX 1.1 Pro Ultra, style commun sombre aux reflets dorés, écrits par
+ * packages/web/scripts/generate-universal-backgrounds.mjs. Dès qu'une filière en a au
+ * moins 3, elle tourne UNIQUEMENT sur eux : on ne mélange pas leur
+ * étalonnage doré avec les anciennes photos bleu nuit.
+ */
+const UNIVERSAL_SETS = UNIVERSAL as Partial<Record<BackgroundCategory, string[]>>;
+export const UNIVERSAL_MIN = 3;
 
 /**
  * Images VOISINES empruntées tant qu'une filière n'a pas encore ses trois
@@ -97,10 +120,23 @@ const BORROWED: Partial<Record<BackgroundCategory, string[]>> = {
  * En attendant : le fond général, jamais un fond vide. Les tests vérifient que
  * cette liste se vide dès que les images arrivent.
  */
-export const AWAITING_IMAGES: readonly BackgroundCategory[] = ["medicine", "law", "economics"];
+export const AWAITING_IMAGES: readonly BackgroundCategory[] = [
+  "medicine",
+  "law",
+  "economics",
+  // Refonte du 2026-11-11 : aucune photo d'avant, en attente de
+  // `bun --env-file=.env packages/web/scripts/generate-universal-backgrounds.mjs --all`.
+  "biology",
+  "psychology",
+  "philosophy",
+  "languages",
+  "history",
+];
 
 export const CATEGORY_IMAGES: Record<BackgroundCategory, string[]> = Object.fromEntries(
   (Object.keys(PLANNED) as BackgroundCategory[]).map((c) => {
+    const universal = UNIVERSAL_SETS[c] ?? [];
+    if (universal.length >= UNIVERSAL_MIN) return [c, universal];
     const own = present(PLANNED[c]);
     const list = own.length >= 3 ? own : [...new Set([...own, ...present(BORROWED[c] ?? [])])];
     return [c, list];
@@ -135,6 +171,15 @@ const RULES: [BackgroundCategory, RegExp][] = [
   // Après le génie industriel (« Wirtschaftsingenieurwesen ») et l'informatique
   // (« Wirtschaftsinformatik ») : seules les sciences économiques arrivent ici.
   ["economics", /wirtschaftswiss|betriebswirt|volkswirt|\bbwl\b|\bvwl\b|economics|économie|economía|economia|business|finanz|finance/i],
+  // Après la biomédicale et la chimie (« Biochemie » y reste).
+  ["biology", /biolog|bioscience|biowissenschaft|life science|sciences de la vie/i],
+  ["psychology", /psycholog|psychologie|psicolog/i],
+  ["philosophy", /philosoph|filosof/i],
+  ["history", /geschicht|histor|histoire|storia/i],
+  [
+    "languages",
+    /sprach|linguist|germanist|anglist|romanist|slavist|übersetz|dolmetsch|translat|traduc|philolog|lettres|langues|languages|literatur|literature/i,
+  ],
   ["mathematics", /mathe|math/i],
   ["physics", /physik|physics|physique|física|fisica/i],
 ];
@@ -173,4 +218,20 @@ export function backgroundsFor(category: BackgroundCategory): string[] {
  */
 export function portraitOf(src: string): string {
   return src.replace(/\.webp$/, "-p.webp");
+}
+
+/**
+ * Ordre de rotation ALÉATOIRE (Fisher-Yates) : l'étudiant ne revoit jamais
+ * la même séquence. `avoidFirst` (la photo affichée) ne revient pas en tête
+ * d'un nouveau tour : jamais deux fois la même image de suite.
+ * `random` injectable pour les tests.
+ */
+export function shuffled<T>(list: readonly T[], avoidFirst?: T, random: () => number = Math.random): T[] {
+  const out = [...list];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  if (out.length > 1 && out[0] === avoidFirst) [out[0], out[out.length - 1]] = [out[out.length - 1], out[0]];
+  return out;
 }

@@ -25,6 +25,10 @@ export const ru: PartialMessages = {
     pricing: "Подписка",
     menu: "Меню",
   },
+  background: {
+    pause: "Остановить фон",
+    play: "Запустить фон",
+  },
   common: {
     email: "Эл. почта",
     password: "Пароль",

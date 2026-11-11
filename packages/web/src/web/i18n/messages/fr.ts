@@ -91,6 +91,10 @@ export const fr: Messages = {
     system: "Système",
     theme: "Apparence",
   },
+  background: {
+    pause: "Mettre le fond en pause",
+    play: "Relancer le fond",
+  },
   fontSize: {
     label: "Taille du texte",
     small: "Petit",

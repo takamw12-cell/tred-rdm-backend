@@ -25,6 +25,10 @@ export const ar: PartialMessages = {
     pricing: "الاشتراك",
     menu: "القائمة",
   },
+  background: {
+    pause: "إيقاف الخلفية مؤقتًا",
+    play: "تشغيل الخلفية",
+  },
   common: {
     email: "البريد الإلكتروني",
     password: "كلمة المرور",

@@ -91,6 +91,10 @@ export const en: Messages = {
     system: "System",
     theme: "Appearance",
   },
+  background: {
+    pause: "Pause background",
+    play: "Play background",
+  },
   fontSize: {
     label: "Text size",
     small: "Small",

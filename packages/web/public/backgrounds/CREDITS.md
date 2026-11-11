@@ -60,3 +60,11 @@ Carré 1440×1440 recadré au centre en **1920×1080** (`-0N.webp`, desktop) et
 
 Les photos Unsplash existantes ont aussi reçu une variante portrait `-p.webp`
 (recadrage centré, même image, plus légère pour le mobile).
+
+## Fonds universels (refonte du 11 nov. 2026)
+
+Fichiers `<filière>-uNN.webp` (1920×1080) et `<filière>-uNN-p.webp` (1080×1920),
+générés avec Replicate — **FLUX 1.1 Pro Ultra** (Black Forest Labs), mode `raw`,
+carré 2048×2048 recadré au centre, WebP qualité 85. Style commun : éclairage
+cinématographique, ambiance sombre, reflets dorés et ambrés ; aucune personne,
+aucune marque, aucun texte. Sujets : `packages/web/scripts/generate-universal-backgrounds.mjs`.

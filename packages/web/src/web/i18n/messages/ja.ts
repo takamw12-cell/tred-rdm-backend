@@ -25,6 +25,10 @@ export const ja: PartialMessages = {
     pricing: "サブスクリプション",
     menu: "メニュー",
   },
+  background: {
+    pause: "背景を一時停止",
+    play: "背景を再生",
+  },
   common: {
     email: "メールアドレス",
     password: "パスワード",

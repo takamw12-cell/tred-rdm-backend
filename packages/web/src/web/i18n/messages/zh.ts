@@ -25,6 +25,10 @@ export const zh: PartialMessages = {
     pricing: "订阅",
     menu: "菜单",
   },
+  background: {
+    pause: "暂停背景",
+    play: "播放背景",
+  },
   common: {
     email: "电子邮箱",
     password: "密码",

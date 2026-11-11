@@ -103,6 +103,10 @@ export const es: Messages = {
     system: "Sistema",
     theme: "Apariencia",
   },
+  background: {
+    pause: "Pausar el fondo",
+    play: "Reanudar el fondo",
+  },
   fontSize: {
     label: "Tamaño del texto",
     small: "Pequeño",

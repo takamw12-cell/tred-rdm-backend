@@ -90,6 +90,10 @@ export const de = {
     system: "System",
     theme: "Erscheinungsbild",
   },
+  background: {
+    pause: "Hintergrund anhalten",
+    play: "Hintergrund abspielen",
+  },
   fontSize: {
     label: "Textgröße",
     small: "Klein",

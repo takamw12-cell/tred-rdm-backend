@@ -25,6 +25,10 @@ export const it: PartialMessages = {
     pricing: "Abbonamento",
     menu: "Menu",
   },
+  background: {
+    pause: "Metti in pausa lo sfondo",
+    play: "Riprendi lo sfondo",
+  },
   common: {
     email: "E-mail",
     password: "Password",

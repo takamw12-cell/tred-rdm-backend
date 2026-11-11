@@ -86,6 +86,7 @@ packages/web/scripts/*
 !packages/web/scripts/brand/
 # Extraction des schémas d'un PDF (PyMuPDF) — outil de contrôle, voir GUIDE_FOUNDER.md
 !packages/web/scripts/extract-pdf-images.py
+!packages/web/scripts/generate-universal-backgrounds.mjs
 _a-supprimer/
 
 # Sauvegardes des scripts de correctif

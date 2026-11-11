@@ -485,3 +485,15 @@ Les vidéos TikTok / Reels de TRED sont du **code React** : elles réutilisent l
 
 ## Maintenance mensuelle et mises à jour automatiques
 Tout est dans **`MAINTENANCE.md`** : ce qui tourne tout seul (Dependabot chaque lundi, CI sur chaque modification, scan de sécurité le 1er du mois), les 5 actions du début de mois, et comment changer de modèle d'IA ou de voix sans toucher au code (`PRIMARY_AI_MODEL`, `FAST_AI_MODEL`, `ELEVENLABS_VOICE_*`).
+
+## Fonds d'écran : 10 images par filière, rotation de 10 s (2026-11-11)
+
+- **Modèle :** FLUX 1.1 Pro Ultra sur Replicate (≈ 0,06 $ l'image, vérifié le 2026-11-11), choisi par toi face à FLUX.2 Pro et Imagen 4 Ultra. Style commun : sombre, cinématographique, reflets dorés.
+- **Générer :** recharge le crédit sur https://replicate.com/account/billing (il était à 0 le 11 nov. : réponse 402), puis :
+  - une filière (test, ~0,60 $) : `bun --env-file=.env packages/web/scripts/generate-universal-backgrounds.mjs aerospace`
+  - toutes (23 filières, 230 images, ~14 $) : `bun --env-file=.env packages/web/scripts/generate-universal-backgrounds.mjs --all --budget=15`
+  - Le script reprend où il s'est arrêté, n'écrase jamais une image, écrit les WebP (qualité 85) dans `packages/web/public/backgrounds/<filière>/<filière>-uNN(-p).webp` et met à jour `packages/web/src/web/data/universal-backgrounds.json`. Ensuite : `bun test tests/background-sets.test.ts`, commit, push.
+- **Bascule automatique :** dès qu'une filière a 3 images universelles ou plus, elle ne tourne plus que sur elles. Avant : ses anciennes photos (rien ne casse).
+- **Rotation :** toutes les 10 s, fondu d'1 s, ordre aléatoire re-tiré à chaque tour, image suivante préchargée. Bouton Pause discret au-dessus du bouton de retours ; en pause par défaut si l'appareil demande « moins d'animations ». Test rapide : `?bg=3` dans l'URL.
+- **Cache :** `/backgrounds/*.webp` est servi avec `Cache-Control: public, max-age=31536000, immutable`. Conséquence : **ne jamais remplacer une image sous le même nom**, toujours lui en donner un nouveau.
+- **Nouvelles filières reconnues :** Biologie, Psychologie, Philosophie, Sprachen/Übersetzen, Geschichte (fond général en attendant leurs images).
