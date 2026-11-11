@@ -4,11 +4,11 @@
   {
    "text": "Okay,",
    "startMs": 0,
-   "endMs": 640
+   "endMs": 560
   },
   {
    "text": "let's",
-   "startMs": 720,
+   "startMs": 640,
    "endMs": 880
   },
   {
@@ -17,169 +17,399 @@
    "endMs": 1040
   },
   {
-   "text": "real.",
+   "text": "completely",
    "startMs": 1200,
-   "endMs": 1560
+   "endMs": 1760
   },
   {
-   "text": "You're",
-   "startMs": 1760,
-   "endMs": 1920
+   "text": "real",
+   "startMs": 1840,
+   "endMs": 2000
+  },
+  {
+   "text": "for",
+   "startMs": 2080,
+   "endMs": 2160
+  },
+  {
+   "text": "a",
+   "startMs": 2200,
+   "endMs": 2240
+  },
+  {
+   "text": "second.",
+   "startMs": 2320,
+   "endMs": 2880
+  },
+  {
+   "text": "You",
+   "startMs": 3120,
+   "endMs": 3200
+  },
+  {
+   "text": "are",
+   "startMs": 3280,
+   "endMs": 3360
   },
   {
    "text": "studying",
-   "startMs": 2000,
-   "endMs": 2320
+   "startMs": 3440,
+   "endMs": 3680
   },
   {
    "text": "medicine,",
-   "startMs": 2600,
-   "endMs": 3120
+   "startMs": 3760,
+   "endMs": 4480
   },
   {
    "text": "law,",
-   "startMs": 3280,
-   "endMs": 3600
+   "startMs": 4560,
+   "endMs": 5040
   },
   {
    "text": "or",
-   "startMs": 3680,
-   "endMs": 3760
-  },
-  {
-   "text": "engineering,",
-   "startMs": 3840,
-   "endMs": 4720
-  },
-  {
-   "text": "and",
-   "startMs": 4800,
-   "endMs": 4880
-  },
-  {
-   "text": "you're",
-   "startMs": 4920,
+   "startMs": 5120,
    "endMs": 5200
   },
   {
+   "text": "engineering,",
+   "startMs": 5280,
+   "endMs": 6240
+  },
+  {
+   "text": "and",
+   "startMs": 6320,
+   "endMs": 6400
+  },
+  {
+   "text": "you",
+   "startMs": 6480,
+   "endMs": 6560
+  },
+  {
+   "text": "are",
+   "startMs": 6680,
+   "endMs": 6800
+  },
+  {
+   "text": "literally",
+   "startMs": 6920,
+   "endMs": 7360
+  },
+  {
    "text": "drowning",
-   "startMs": 5240,
-   "endMs": 5760
+   "startMs": 7400,
+   "endMs": 7920
   },
   {
    "text": "in",
-   "startMs": 5840,
-   "endMs": 5920
-  },
-  {
-   "text": "PDFs.",
-   "startMs": 6000,
-   "endMs": 6880
-  },
-  {
-   "text": "Right?",
-   "startMs": 7000,
-   "endMs": 7600
-  },
-  {
-   "text": "Well,",
-   "startMs": 7720,
+   "startMs": 8040,
    "endMs": 8160
   },
   {
-   "text": "TRED",
+   "text": "thousands",
    "startMs": 8240,
-   "endMs": 8960
+   "endMs": 8640
   },
   {
-   "text": "is",
-   "startMs": 9040,
+   "text": "of",
+   "startMs": 8720,
+   "endMs": 8800
+  },
+  {
+   "text": "pages",
+   "startMs": 8880,
    "endMs": 9200
   },
   {
-   "text": "your",
+   "text": "of",
    "startMs": 9280,
-   "endMs": 9520
+   "endMs": 9360
   },
   {
-   "text": "way",
-   "startMs": 9600,
-   "endMs": 9680
+   "text": "PDFs",
+   "startMs": 9440,
+   "endMs": 10000
   },
   {
-   "text": "out.",
-   "startMs": 9760,
-   "endMs": 10320
+   "text": "and",
+   "startMs": 10080,
+   "endMs": 10160
   },
   {
-   "text": "It's",
-   "startMs": 10400,
+   "text": "lecture",
+   "startMs": 10240,
    "endMs": 10480
   },
   {
-   "text": "not",
-   "startMs": 10600,
-   "endMs": 10720
+   "text": "notes.",
+   "startMs": 10560,
+   "endMs": 11200
   },
   {
-   "text": "just",
-   "startMs": 10800,
-   "endMs": 10880
+   "text": "Right?",
+   "startMs": 11320,
+   "endMs": 11920
   },
   {
-   "text": "an",
-   "startMs": 10920,
-   "endMs": 10960
+   "text": "Well,",
+   "startMs": 12000,
+   "endMs": 12480
   },
   {
-   "text": "AI.",
-   "startMs": 11040,
-   "endMs": 11840
+   "text": "I've",
+   "startMs": 12560,
+   "endMs": 12640
   },
   {
-   "text": "It's",
-   "startMs": 11920,
-   "endMs": 12000
+   "text": "got",
+   "startMs": 12720,
+   "endMs": 12800
+  },
+  {
+   "text": "some",
+   "startMs": 12880,
+   "endMs": 12960
+  },
+  {
+   "text": "good",
+   "startMs": 13040,
+   "endMs": 13120
+  },
+  {
+   "text": "news.",
+   "startMs": 13200,
+   "endMs": 14000
+  },
+  {
+   "text": "TRED",
+   "startMs": 14040,
+   "endMs": 14480
+  },
+  {
+   "text": "is",
+   "startMs": 14560,
+   "endMs": 14640
   },
   {
    "text": "your",
-   "startMs": 12080,
-   "endMs": 12240
-  },
-  {
-   "text": "personal",
-   "startMs": 12480,
-   "endMs": 12720
-  },
-  {
-   "text": "university",
-   "startMs": 12800,
-   "endMs": 13440
-  },
-  {
-   "text": "in",
-   "startMs": 13480,
-   "endMs": 13520
-  },
-  {
-   "text": "your",
-   "startMs": 13600,
-   "endMs": 13760
-  },
-  {
-   "text": "pocket.",
-   "startMs": 13800,
-   "endMs": 14560
-  },
-  {
-   "text": "No",
-   "startMs": 14640,
+   "startMs": 14720,
    "endMs": 14880
   },
   {
-   "text": "cap.",
-   "startMs": 15080,
-   "endMs": 15520
+   "text": "way",
+   "startMs": 15000,
+   "endMs": 15120
+  },
+  {
+   "text": "out",
+   "startMs": 15200,
+   "endMs": 15280
+  },
+  {
+   "text": "of",
+   "startMs": 15360,
+   "endMs": 15440
+  },
+  {
+   "text": "this",
+   "startMs": 15520,
+   "endMs": 15600
+  },
+  {
+   "text": "chaos.",
+   "startMs": 15680,
+   "endMs": 16560
+  },
+  {
+   "text": "It's",
+   "startMs": 16640,
+   "endMs": 16800
+  },
+  {
+   "text": "not",
+   "startMs": 16880,
+   "endMs": 16960
+  },
+  {
+   "text": "just",
+   "startMs": 17040,
+   "endMs": 17120
+  },
+  {
+   "text": "another",
+   "startMs": 17320,
+   "endMs": 17520
+  },
+  {
+   "text": "AI",
+   "startMs": 17560,
+   "endMs": 17760
+  },
+  {
+   "text": "chatbot.",
+   "startMs": 17920,
+   "endMs": 18800
+  },
+  {
+   "text": "It's",
+   "startMs": 18840,
+   "endMs": 18960
+  },
+  {
+   "text": "your",
+   "startMs": 19040,
+   "endMs": 19120
+  },
+  {
+   "text": "personal,",
+   "startMs": 19200,
+   "endMs": 19920
+  },
+  {
+   "text": "fully",
+   "startMs": 20000,
+   "endMs": 20240
+  },
+  {
+   "text": "interactive",
+   "startMs": 20520,
+   "endMs": 20800
+  },
+  {
+   "text": "university,",
+   "startMs": 20880,
+   "endMs": 21760
+  },
+  {
+   "text": "right",
+   "startMs": 21880,
+   "endMs": 22000
+  },
+  {
+   "text": "there",
+   "startMs": 22080,
+   "endMs": 22160
+  },
+  {
+   "text": "in",
+   "startMs": 22240,
+   "endMs": 22280
+  },
+  {
+   "text": "your",
+   "startMs": 22320,
+   "endMs": 22400
+  },
+  {
+   "text": "pocket.",
+   "startMs": 22480,
+   "endMs": 23200
+  },
+  {
+   "text": "It",
+   "startMs": 23280,
+   "endMs": 23360
+  },
+  {
+   "text": "reads",
+   "startMs": 23440,
+   "endMs": 23600
+  },
+  {
+   "text": "your",
+   "startMs": 23680,
+   "endMs": 23760
+  },
+  {
+   "text": "own",
+   "startMs": 23880,
+   "endMs": 24000
+  },
+  {
+   "text": "files,",
+   "startMs": 24240,
+   "endMs": 24720
+  },
+  {
+   "text": "draws",
+   "startMs": 24800,
+   "endMs": 25120
+  },
+  {
+   "text": "on",
+   "startMs": 25160,
+   "endMs": 25200
+  },
+  {
+   "text": "a",
+   "startMs": 25280,
+   "endMs": 25440
+  },
+  {
+   "text": "real",
+   "startMs": 25560,
+   "endMs": 25680
+  },
+  {
+   "text": "whiteboard,",
+   "startMs": 25760,
+   "endMs": 26560
+  },
+  {
+   "text": "and",
+   "startMs": 26600,
+   "endMs": 26640
+  },
+  {
+   "text": "explains",
+   "startMs": 26720,
+   "endMs": 27200
+  },
+  {
+   "text": "everything",
+   "startMs": 27280,
+   "endMs": 27760
+  },
+  {
+   "text": "step",
+   "startMs": 27840,
+   "endMs": 28080
+  },
+  {
+   "text": "by",
+   "startMs": 28160,
+   "endMs": 28320
+  },
+  {
+   "text": "step,",
+   "startMs": 28480,
+   "endMs": 28960
+  },
+  {
+   "text": "just",
+   "startMs": 29040,
+   "endMs": 29120
+  },
+  {
+   "text": "like",
+   "startMs": 29160,
+   "endMs": 29200
+  },
+  {
+   "text": "a",
+   "startMs": 29280,
+   "endMs": 29440
+  },
+  {
+   "text": "real",
+   "startMs": 29520,
+   "endMs": 29600
+  },
+  {
+   "text": "professor.",
+   "startMs": 29680,
+   "endMs": 30480
   }
  ]
 }

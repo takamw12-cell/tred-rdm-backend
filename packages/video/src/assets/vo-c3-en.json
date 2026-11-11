@@ -2,159 +2,344 @@
  "id": "c3-en",
  "words": [
   {
-   "text": "Sick",
+   "text": "Are",
    "startMs": 0,
-   "endMs": 320
+   "endMs": 160
+  },
+  {
+   "text": "you",
+   "startMs": 280,
+   "endMs": 400
+  },
+  {
+   "text": "sick",
+   "startMs": 480,
+   "endMs": 640
+  },
+  {
+   "text": "and",
+   "startMs": 720,
+   "endMs": 800
+  },
+  {
+   "text": "tired",
+   "startMs": 840,
+   "endMs": 1120
   },
   {
    "text": "of",
-   "startMs": 400,
-   "endMs": 480
+   "startMs": 1200,
+   "endMs": 1360
   },
   {
    "text": "AI",
-   "startMs": 560,
-   "endMs": 960
+   "startMs": 1440,
+   "endMs": 1680
+  },
+  {
+   "text": "models",
+   "startMs": 1760,
+   "endMs": 2080
   },
   {
    "text": "making",
-   "startMs": 1040,
-   "endMs": 1280
-  },
-  {
-   "text": "up",
-   "startMs": 1360,
-   "endMs": 1520
-  },
-  {
-   "text": "math?",
-   "startMs": 1760,
+   "startMs": 2160,
    "endMs": 2400
   },
   {
-   "text": "Yeah,",
+   "text": "up",
    "startMs": 2480,
-   "endMs": 2960
+   "endMs": 2560
+  },
+  {
+   "text": "math",
+   "startMs": 2680,
+   "endMs": 2800
+  },
+  {
+   "text": "formulas",
+   "startMs": 2880,
+   "endMs": 3280
+  },
+  {
+   "text": "that",
+   "startMs": 3360,
+   "endMs": 3440
+  },
+  {
+   "text": "are",
+   "startMs": 3520,
+   "endMs": 3600
+  },
+  {
+   "text": "completely",
+   "startMs": 3720,
+   "endMs": 4320
+  },
+  {
+   "text": "wrong?",
+   "startMs": 4400,
+   "endMs": 5280
+  },
+  {
+   "text": "Yeah,",
+   "startMs": 5400,
+   "endMs": 5760
   },
   {
    "text": "me",
-   "startMs": 3040,
-   "endMs": 3200
+   "startMs": 5840,
+   "endMs": 6000
   },
   {
    "text": "too.",
-   "startMs": 3360,
-   "endMs": 3800
+   "startMs": 6120,
+   "endMs": 6800
+  },
+  {
+   "text": "That's",
+   "startMs": 6880,
+   "endMs": 7040
+  },
+  {
+   "text": "why",
+   "startMs": 7120,
+   "endMs": 7200
   },
   {
    "text": "TRED",
-   "startMs": 4080,
-   "endMs": 4400
+   "startMs": 7280,
+   "endMs": 7680
   },
   {
    "text": "doesn't",
-   "startMs": 4480,
-   "endMs": 4800
+   "startMs": 7800,
+   "endMs": 8080
   },
   {
    "text": "guess.",
-   "startMs": 5000,
-   "endMs": 5520
-  },
-  {
-   "text": "It",
-   "startMs": 5600,
-   "endMs": 5680
-  },
-  {
-   "text": "uses",
-   "startMs": 5760,
-   "endMs": 6080
-  },
-  {
-   "text": "real",
-   "startMs": 6160,
-   "endMs": 6480
-  },
-  {
-   "text": "solvers.",
-   "startMs": 6560,
-   "endMs": 7600
-  },
-  {
-   "text": "Every",
-   "startMs": 7760,
-   "endMs": 7920
-  },
-  {
-   "text": "formula,",
-   "startMs": 8160,
-   "endMs": 8640
-  },
-  {
-   "text": "every",
-   "startMs": 8760,
+   "startMs": 8320,
    "endMs": 8880
   },
   {
-   "text": "calculation,",
+   "text": "It",
    "startMs": 8960,
-   "endMs": 9760
+   "endMs": 9040
   },
   {
-   "text": "is",
-   "startMs": 9880,
-   "endMs": 10000
+   "text": "uses",
+   "startMs": 9120,
+   "endMs": 9360
   },
   {
-   "text": "100%",
-   "startMs": 10080,
+   "text": "deterministic,",
+   "startMs": 9440,
+   "endMs": 10320
+  },
+  {
+   "text": "real-world",
+   "startMs": 10400,
    "endMs": 10880
   },
   {
-   "text": "checked.",
-   "startMs": 11040,
+   "text": "solvers",
+   "startMs": 10960,
+   "endMs": 11440
+  },
+  {
+   "text": "under",
+   "startMs": 11520,
+   "endMs": 11680
+  },
+  {
+   "text": "the",
+   "startMs": 11760,
    "endMs": 11840
   },
   {
-   "text": "You",
-   "startMs": 11880,
-   "endMs": 11920
-  },
-  {
-   "text": "can",
+   "text": "hood.",
    "startMs": 12000,
-   "endMs": 12160
+   "endMs": 12560
   },
   {
-   "text": "actually",
-   "startMs": 12400,
-   "endMs": 12640
+   "text": "Every",
+   "startMs": 12720,
+   "endMs": 12880
   },
   {
-   "text": "trust",
-   "startMs": 12800,
-   "endMs": 12960
-  },
-  {
-   "text": "it",
-   "startMs": 13040,
-   "endMs": 13120
-  },
-  {
-   "text": "with",
-   "startMs": 13160,
+   "text": "single",
+   "startMs": 12960,
    "endMs": 13200
   },
   {
-   "text": "your",
+   "text": "formula,",
    "startMs": 13280,
-   "endMs": 13360
+   "endMs": 13920
+  },
+  {
+   "text": "every",
+   "startMs": 14000,
+   "endMs": 14240
+  },
+  {
+   "text": "calculation,",
+   "startMs": 14320,
+   "endMs": 15080
+  },
+  {
+   "text": "and",
+   "startMs": 15120,
+   "endMs": 15280
+  },
+  {
+   "text": "every",
+   "startMs": 15360,
+   "endMs": 15680
+  },
+  {
+   "text": "unit",
+   "startMs": 15760,
+   "endMs": 16080
+  },
+  {
+   "text": "is",
+   "startMs": 16120,
+   "endMs": 16160
+  },
+  {
+   "text": "a",
+   "startMs": 16400,
+   "endMs": 16427
+  },
+  {
+   "text": "hundred",
+   "startMs": 16453,
+   "endMs": 16560
+  },
+  {
+   "text": "percent",
+   "startMs": 16720,
+   "endMs": 17120
+  },
+  {
+   "text": "checked",
+   "startMs": 17280,
+   "endMs": 17440
+  },
+  {
+   "text": "and",
+   "startMs": 17520,
+   "endMs": 17600
+  },
+  {
+   "text": "verified",
+   "startMs": 17880,
+   "endMs": 18160
+  },
+  {
+   "text": "by",
+   "startMs": 18280,
+   "endMs": 18400
+  },
+  {
+   "text": "code.",
+   "startMs": 18760,
+   "endMs": 19147
+  },
+  {
+   "text": "You",
+   "startMs": 19173,
+   "endMs": 19200
+  },
+  {
+   "text": "can",
+   "startMs": 19320,
+   "endMs": 19440
+  },
+  {
+   "text": "actually",
+   "startMs": 19680,
+   "endMs": 19920
+  },
+  {
+   "text": "trust",
+   "startMs": 20080,
+   "endMs": 20240
+  },
+  {
+   "text": "it",
+   "startMs": 20320,
+   "endMs": 20400
+  },
+  {
+   "text": "with",
+   "startMs": 20440,
+   "endMs": 20480
+  },
+  {
+   "text": "your",
+   "startMs": 20560,
+   "endMs": 20640
   },
   {
    "text": "grades.",
-   "startMs": 13440,
-   "endMs": 14240
+   "startMs": 20720,
+   "endMs": 21653
+  },
+  {
+   "text": "No",
+   "startMs": 21707,
+   "endMs": 21760
+  },
+  {
+   "text": "hallucinations,",
+   "startMs": 21840,
+   "endMs": 22840
+  },
+  {
+   "text": "no",
+   "startMs": 22880,
+   "endMs": 23040
+  },
+  {
+   "text": "fake",
+   "startMs": 23120,
+   "endMs": 23280
+  },
+  {
+   "text": "results.",
+   "startMs": 23360,
+   "endMs": 24200
+  },
+  {
+   "text": "Just",
+   "startMs": 24240,
+   "endMs": 24480
+  },
+  {
+   "text": "pure,",
+   "startMs": 24680,
+   "endMs": 24920
+  },
+  {
+   "text": "reliable",
+   "startMs": 24960,
+   "endMs": 25600
+  },
+  {
+   "text": "engineering",
+   "startMs": 25920,
+   "endMs": 26240
+  },
+  {
+   "text": "and",
+   "startMs": 26320,
+   "endMs": 26400
+  },
+  {
+   "text": "science.",
+   "startMs": 26480,
+   "endMs": 27280
   }
  ]
 }

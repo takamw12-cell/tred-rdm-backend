@@ -2,139 +2,349 @@
  "id": "c1-de",
  "words": [
   {
-   "text": "Seien",
+   "text": "Okay,",
    "startMs": 0,
-   "endMs": 240
+   "endMs": 720
+  },
+  {
+   "text": "seien",
+   "startMs": 800,
+   "endMs": 1040
   },
   {
    "text": "wir",
-   "startMs": 320,
-   "endMs": 400
+   "startMs": 1080,
+   "endMs": 1200
   },
   {
    "text": "mal",
-   "startMs": 480,
-   "endMs": 560
+   "startMs": 1280,
+   "endMs": 1360
+  },
+  {
+   "text": "komplett",
+   "startMs": 1440,
+   "endMs": 2000
   },
   {
    "text": "ehrlich.",
-   "startMs": 640,
-   "endMs": 1120
+   "startMs": 2080,
+   "endMs": 2680
   },
   {
-   "text": "Ob",
-   "startMs": 1440,
-   "endMs": 1600
+   "text": "Du",
+   "startMs": 2880,
+   "endMs": 2960
   },
   {
-   "text": "Jura,",
-   "startMs": 1680,
-   "endMs": 2160
+   "text": "studierst",
+   "startMs": 3040,
+   "endMs": 3440
   },
   {
-   "text": "Medizin",
-   "startMs": 2240,
-   "endMs": 2880
+   "text": "Medizin,",
+   "startMs": 3520,
+   "endMs": 4320
+  },
+  {
+   "text": "Jura",
+   "startMs": 4400,
+   "endMs": 4800
   },
   {
    "text": "oder",
-   "startMs": 2960,
-   "endMs": 3120
+   "startMs": 4960,
+   "endMs": 5120
   },
   {
-   "text": "Ingenieurwesen...",
-   "startMs": 3200,
-   "endMs": 4400
+   "text": "Ingenieurwesen",
+   "startMs": 5200,
+   "endMs": 6080
   },
   {
-   "text": "du",
-   "startMs": 4440,
-   "endMs": 4480
+   "text": "und",
+   "startMs": 6320,
+   "endMs": 6400
   },
   {
    "text": "ertrinkst",
-   "startMs": 4560,
-   "endMs": 5200
+   "startMs": 6480,
+   "endMs": 7200
+  },
+  {
+   "text": "buchstäblich",
+   "startMs": 7320,
+   "endMs": 7840
   },
   {
    "text": "in",
-   "startMs": 5280,
-   "endMs": 5360
+   "startMs": 7920,
+   "endMs": 8080
   },
   {
-   "text": "Skripten.",
-   "startMs": 5440,
-   "endMs": 6240
+   "text": "tausenden",
+   "startMs": 8200,
+   "endMs": 8720
   },
   {
-   "text": "Oder?",
-   "startMs": 6280,
-   "endMs": 6880
+   "text": "Seiten",
+   "startMs": 8800,
+   "endMs": 9120
   },
   {
-   "text": "TRED",
-   "startMs": 7200,
-   "endMs": 7520
+   "text": "von",
+   "startMs": 9200,
+   "endMs": 9280
   },
   {
-   "text": "ist",
-   "startMs": 7600,
-   "endMs": 7760
+   "text": "PDFs",
+   "startMs": 9360,
+   "endMs": 9920
   },
   {
-   "text": "deine",
-   "startMs": 7800,
-   "endMs": 8000
-  },
-  {
-   "text": "Rettung.",
-   "startMs": 8080,
-   "endMs": 8800
-  },
-  {
-   "text": "Keine",
-   "startMs": 8880,
-   "endMs": 9040
-  },
-  {
-   "text": "Maschine,",
-   "startMs": 9120,
-   "endMs": 9760
-  },
-  {
-   "text": "sondern",
-   "startMs": 9840,
+   "text": "und",
+   "startMs": 10000,
    "endMs": 10080
   },
   {
-   "text": "deine",
+   "text": "Skripten.",
    "startMs": 10160,
-   "endMs": 10400
+   "endMs": 10960
   },
   {
-   "text": "persönliche",
-   "startMs": 10520,
-   "endMs": 11040
+   "text": "Oder?",
+   "startMs": 11000,
+   "endMs": 11640
   },
   {
-   "text": "Uni",
-   "startMs": 11200,
-   "endMs": 11360
+   "text": "Nun,",
+   "startMs": 12000,
+   "endMs": 12480
+  },
+  {
+   "text": "ich",
+   "startMs": 12560,
+   "endMs": 12640
+  },
+  {
+   "text": "habe",
+   "startMs": 12680,
+   "endMs": 12880
+  },
+  {
+   "text": "gute",
+   "startMs": 12920,
+   "endMs": 13120
+  },
+  {
+   "text": "Neuigkeiten.",
+   "startMs": 13200,
+   "endMs": 14240
+  },
+  {
+   "text": "TRED",
+   "startMs": 14280,
+   "endMs": 14640
+  },
+  {
+   "text": "ist",
+   "startMs": 14720,
+   "endMs": 14960
+  },
+  {
+   "text": "dein",
+   "startMs": 15040,
+   "endMs": 15280
+  },
+  {
+   "text": "Ausweg",
+   "startMs": 15360,
+   "endMs": 15760
+  },
+  {
+   "text": "aus",
+   "startMs": 15840,
+   "endMs": 15920
+  },
+  {
+   "text": "diesem",
+   "startMs": 15973,
+   "endMs": 16160
+  },
+  {
+   "text": "Chaos.",
+   "startMs": 16240,
+   "endMs": 17120
+  },
+  {
+   "text": "Es",
+   "startMs": 17160,
+   "endMs": 17200
+  },
+  {
+   "text": "ist",
+   "startMs": 17280,
+   "endMs": 17440
+  },
+  {
+   "text": "kein",
+   "startMs": 17520,
+   "endMs": 17680
+  },
+  {
+   "text": "weiterer",
+   "startMs": 17760,
+   "endMs": 18160
+  },
+  {
+   "text": "KI-Chatbot.",
+   "startMs": 18240,
+   "endMs": 19520
+  },
+  {
+   "text": "Es",
+   "startMs": 19600,
+   "endMs": 19680
+  },
+  {
+   "text": "ist",
+   "startMs": 19760,
+   "endMs": 19840
+  },
+  {
+   "text": "deine",
+   "startMs": 19880,
+   "endMs": 20080
+  },
+  {
+   "text": "persönliche,",
+   "startMs": 20160,
+   "endMs": 20960
+  },
+  {
+   "text": "interaktive",
+   "startMs": 21040,
+   "endMs": 21680
+  },
+  {
+   "text": "Universität",
+   "startMs": 21760,
+   "endMs": 22480
   },
   {
    "text": "für",
-   "startMs": 11440,
-   "endMs": 11520
+   "startMs": 22560,
+   "endMs": 22640
   },
   {
    "text": "die",
-   "startMs": 11600,
-   "endMs": 11680
+   "startMs": 22680,
+   "endMs": 22720
   },
   {
    "text": "Hosentasche.",
-   "startMs": 11760,
-   "endMs": 12720
+   "startMs": 22800,
+   "endMs": 24000
+  },
+  {
+   "text": "Es",
+   "startMs": 24080,
+   "endMs": 24160
+  },
+  {
+   "text": "liest",
+   "startMs": 24240,
+   "endMs": 24400
+  },
+  {
+   "text": "deine",
+   "startMs": 24480,
+   "endMs": 24720
+  },
+  {
+   "text": "eigenen",
+   "startMs": 24760,
+   "endMs": 25120
+  },
+  {
+   "text": "Dateien,",
+   "startMs": 25280,
+   "endMs": 25920
+  },
+  {
+   "text": "zeichnet",
+   "startMs": 26120,
+   "endMs": 26320
+  },
+  {
+   "text": "auf",
+   "startMs": 26400,
+   "endMs": 26480
+  },
+  {
+   "text": "einem",
+   "startMs": 26587,
+   "endMs": 26800
+  },
+  {
+   "text": "echten",
+   "startMs": 26880,
+   "endMs": 27120
+  },
+  {
+   "text": "Whiteboard",
+   "startMs": 27200,
+   "endMs": 27680
+  },
+  {
+   "text": "und",
+   "startMs": 28000,
+   "endMs": 28080
+  },
+  {
+   "text": "erklärt",
+   "startMs": 28160,
+   "endMs": 28560
+  },
+  {
+   "text": "alles",
+   "startMs": 28760,
+   "endMs": 28960
+  },
+  {
+   "text": "Schritt",
+   "startMs": 29040,
+   "endMs": 29280
+  },
+  {
+   "text": "für",
+   "startMs": 29360,
+   "endMs": 29440
+  },
+  {
+   "text": "Schritt",
+   "startMs": 29520,
+   "endMs": 29760
+  },
+  {
+   "text": "wie",
+   "startMs": 29920,
+   "endMs": 30000
+  },
+  {
+   "text": "ein",
+   "startMs": 30160,
+   "endMs": 30320
+  },
+  {
+   "text": "echter",
+   "startMs": 30400,
+   "endMs": 30640
+  },
+  {
+   "text": "Professor.",
+   "startMs": 30720,
+   "endMs": 31520
   }
  ]
 }

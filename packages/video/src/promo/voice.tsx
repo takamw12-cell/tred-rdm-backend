@@ -19,6 +19,8 @@ type Sentence = { words: VoWord[]; srcStartMs: number; srcEndMs: number; atMs: n
 
 export type VoicePlan = {
   sentences: Sentence[];
+  /** Vitesse de lecture de la voix (1 = telle qu'enregistrée). */
+  rate: number;
   /** Instant (image de la vidéo) où un mot est prononcé : synchroniser l'image sur la voix. */
   frameOf: (needle: string, nth?: number) => number;
   /** Image de début de la phrase n. */
@@ -49,7 +51,8 @@ export function splitPhrases(vo: VoFile, breakAfter: string[] = []): VoWord[][] 
   return groups;
 }
 
-export function planVoice(vo: VoFile, starts: number[], breakAfter: string[] = []): VoicePlan {
+/** `rate` > 1 : la voix est lue un peu plus vite (hauteur conservée) pour tenir dans la vidéo. */
+export function planVoice(vo: VoFile, starts: number[], breakAfter: string[] = [], rate = 1): VoicePlan {
   const groups = splitPhrases(vo, breakAfter);
   if (groups.length !== starts.length) {
     throw new Error(`${vo.id} : ${groups.length} phrases, mais ${starts.length} instants de départ`);
@@ -62,13 +65,13 @@ export function planVoice(vo: VoFile, starts: number[], breakAfter: string[] = [
     atMs: starts[i] * 1000,
   }));
 
-  const outMs = (si: number, w: VoWord) => sentences[si].atMs + (w.startMs - sentences[si].srcStartMs);
+  const outMs = (si: number, w: VoWord) => sentences[si].atMs + (w.startMs - sentences[si].srcStartMs) / rate;
 
   const captions: Caption[] = sentences.flatMap((se, si) =>
     se.words.map((w, wi) => ({
       text: (wi === 0 ? "" : " ") + w.text,
       startMs: outMs(si, w),
-      endMs: outMs(si, w) + (w.endMs - w.startMs),
+      endMs: outMs(si, w) + (w.endMs - w.startMs) / rate,
       timestampMs: null,
       confidence: null,
       pageBreakAfter: wi === se.words.length - 1,
@@ -91,6 +94,7 @@ export function planVoice(vo: VoFile, starts: number[], breakAfter: string[] = [
 
   return {
     sentences,
+    rate,
     frameOf,
     sentenceFrame: (n) => Math.round((sentences[n].atMs / 1000) * FPS),
     captions,
@@ -117,7 +121,7 @@ export function Soundtrack({
   duckedVolume?: number;
 }) {
   const ms2f = (ms: number) => (ms / 1000) * FPS;
-  const spans = plan.sentences.map((se) => [ms2f(se.atMs), ms2f(se.atMs + se.srcEndMs - se.srcStartMs)] as const);
+  const spans = plan.sentences.map((se) => [ms2f(se.atMs), ms2f(se.atMs + (se.srcEndMs - se.srcStartMs) / plan.rate)] as const);
 
   return (
     <>
@@ -136,10 +140,10 @@ export function Soundtrack({
         const nextStart = i < plan.sentences.length - 1 ? plan.sentences[i + 1].srcStartMs : Infinity;
         const from = Math.max(Math.ceil(ms2f(prevEnd)), Math.floor(ms2f(se.srcStartMs)) - 3);
         const to = Math.min(Math.floor(ms2f(nextStart)), Math.ceil(ms2f(se.srcEndMs)) + 6);
-        const lead = ms2f(se.srcStartMs) - from;
+        const lead = (ms2f(se.srcStartMs) - from) / plan.rate;
         return (
-          <Sequence key={i} from={Math.round(ms2f(se.atMs) - lead)} durationInFrames={to - from} name={`Voix ${i + 1}`}>
-            <Audio src={voice} trimBefore={from} trimAfter={to} volume={1} />
+          <Sequence key={i} from={Math.round(ms2f(se.atMs) - lead)} durationInFrames={Math.max(1, Math.round((to - from) / plan.rate))} name={`Voix ${i + 1}`}>
+            <Audio src={voice} trimBefore={from} trimAfter={to} volume={1} playbackRate={plan.rate} />
           </Sequence>
         );
       })}

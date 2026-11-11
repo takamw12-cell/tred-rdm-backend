@@ -206,21 +206,32 @@ function SolverWall({ lang, at }: { lang: Lang; at: number[] }) {
   );
 }
 
+type Outro = { tagline: ReactNode; sub?: string; word?: string };
+
 /* ── Textes par concept et par langue ────────────────────────────────── */
 
 const T = {
   en: {
     real: "Let's be real.",
     pocket: <>Your university. {mark("In your pocket.")}</>,
-    noCap: ["No", "cap."],
+    goodNews: ["Good", "news."],
+    readsFiles: <>It reads {mark("your own files")}.</>,
+    files: [
+      { name: "Anatomy_Lecture_07.pdf", meta: "PDF · Medicine" },
+      { name: "Contract_Law_Script.pdf", meta: "PDF · Law" },
+      { name: "TM2_Statics.pdf", meta: "PDF · Technische Mechanik" },
+    ],
+    fields: ["Medicine", "Law", "Engineering"],
+    stuck: ["Complex circuit", "Math problem"],
     profTitle: "A professor who gets you.",
     question: "Why is the support force exactly half the load?",
-    likeClass: <>Just like in class…</>,
-    better: ["but", "way", "better."],
+    likeClass: <>Like a private lecture hall…</>,
+    better: ["but", "you're", "in", "control."],
     guess: "Generic AI · guessing",
     wrong: "M_max = q·l²/4 = 8 kNm ???",
     meToo: ["Yeah.", "Me", "too."],
     trust: <>Trust it with {mark("your grades.")}</>,
+    noFake: ["No", "hallucinations.", "No", "fake", "results."],
     computed: ["Computed.", "Not", "guessed."],
     twoDays: ["Exam", "in", "2", "days?"],
     panic: ["Don't", "panic."],
@@ -240,25 +251,34 @@ const T = {
     saidIt: ["Yeah,", "I", "said", "it."],
     yourField: <>Your field. {mark("Your vibe.")}</>,
     outro: {
-      c1: { tagline: <>The university {mark("in your pocket")}.</>, sub: "Medicine · Law · Engineering · and more" },
+      c1: { tagline: <>The university {mark("in your pocket")}.</>, sub: "Medicine · Law · Engineering · and more" } as Outro,
       c2: { tagline: <>A professor who {mark("gets you")}.</>, sub: "Interactive whiteboard · step by step" },
       c3: { tagline: <>Computed, {mark("not guessed")}.</>, sub: "Real solvers. 100% checked." },
-      c4: { tagline: <>Exam? {mark("You're ready")}.</>, sub: "Custom exam simulations from your old exams" },
-      c5: { tagline: <>Learning that {mark("feels good")}.</>, sub: "Premium design · dark mode · your backgrounds" },
+      c4: { tagline: <>Exam? {mark("You're ready")}.</>, sub: "Custom exam simulations from your old exams", word: "ready" },
+      c5: { tagline: <>The ultimate university {mark("in your pocket")}.</>, sub: "Premium design · dark mode · your backgrounds", word: "university" },
     },
   },
   de: {
     real: "Seien wir mal ehrlich.",
     pocket: <>Deine Uni. {mark("Für die Hosentasche.")}</>,
-    noCap: ["Ehrlich."],
+    goodNews: ["Gute", "Neuigkeiten."],
+    readsFiles: <>Es liest {mark("deine eigenen Dateien")}.</>,
+    files: [
+      { name: "Anatomie_VL_07.pdf", meta: "PDF · Medizin" },
+      { name: "BGB_AT_Skript.pdf", meta: "PDF · Jura" },
+      { name: "TM2_Statik.pdf", meta: "PDF · Technische Mechanik" },
+    ],
+    fields: ["Medizin", "Jura", "Ingenieurwesen"],
+    stuck: ["Komplexe Schaltung", "Mathe-Problem"],
     profTitle: "Ein Professor, der dich versteht.",
     question: "Warum ist die Lagerkraft genau die Hälfte der Last?",
-    likeClass: <>Wie in der Vorlesung…</>,
-    better: ["nur", "besser."],
+    likeClass: <>Wie ein privater Hörsaal…</>,
+    better: ["Du", "hast", "die", "Kontrolle."],
     guess: "Irgendeine KI · geraten",
     wrong: "M_max = q·l²/4 = 8 kNm ???",
-    meToo: ["Ja.", "Ich", "auch", "nicht."],
-    trust: <>Darauf kannst du {mark("dich verlassen.")}</>,
+    meToo: ["Ja.", "Ich", "auch."],
+    trust: <>Vertrau ihm {mark("deine Noten")} an.</>,
+    noFake: ["Keine", "Halluzinationen.", "Keine", "falschen", "Ergebnisse."],
     computed: ["Berechnet.", "Nicht", "geraten."],
     twoDays: ["Klausur", "in", "2", "Tagen?"],
     panic: ["Keine", "Panik."],
@@ -281,11 +301,11 @@ const T = {
       c1: { tagline: <>Deine Uni {mark("für die Hosentasche")}.</>, sub: "Medizin · Jura · Ingenieurwesen · und mehr" },
       c2: { tagline: <>Ein Professor, der {mark("dich versteht")}.</>, sub: "Interaktive Tafel · Schritt für Schritt" },
       c3: { tagline: <>Berechnet, {mark("nicht geraten")}.</>, sub: "Echte Solver. 100 % geprüft." },
-      c4: { tagline: <>Klausur? {mark("Du bist bereit")}.</>, sub: "Simulationen aus deinen Altklausuren" },
-      c5: { tagline: <>Lernen, das sich {mark("gut anfühlt")}.</>, sub: "Premium-Design · Dark Mode · deine Hintergründe" },
+      c4: { tagline: <>Klausur? {mark("Du bist bereit")}.</>, sub: "Simulationen aus deinen Altklausuren", word: "bereit" },
+      c5: { tagline: <>Deine {mark("persönliche Universität")}.</>, sub: "Premium-Design · Dark Mode · deine Hintergründe", word: "Universität" },
     },
   },
-} as const;
+};
 
 const PDFS = [
   "Anatomie_VL_07.pdf", "BGB_AT_Skript.pdf", "TM2_Statik.pdf", "Physiologie_Herz.pdf", "Strafrecht_Fall_3.pdf",
@@ -293,188 +313,134 @@ const PDFS = [
   "Schuldrecht_BT.pdf", "Mathe_2_Integrale.pdf",
 ];
 
-/* ── Finales communes ─────────────────────────────────────────────────── */
-
-const fieldsFinale = (lang: Lang, line: ReactNode): CampScene => ({
-  name: "Finale — every field",
-  enter: "wipe",
-  render: ({ dur }) => {
-    const every = Math.max(9, Math.floor((dur - 40) / FIELDS[lang].length));
-    const end = every * FIELDS[lang].length;
-    return (
-      <AbsoluteFill>
-        <Montage items={FIELDS[lang]} every={every} />
-        <FadeLayer from={end - 6} to={end + 6}>
-          <Shot src={BG("aerospace", 4)} move="out" veil={0.45}>
-            <Caption at={end} top={380}>{line}</Caption>
-          </Shot>
-        </FadeLayer>
-      </AbsoluteFill>
-    );
-  },
-  cues: ({ dur }) => {
-    const every = Math.max(9, Math.floor((dur - 40) / FIELDS[lang].length));
-    return FIELDS[lang].map((_, i) => ({ at: i * every, kind: "click" as const, volume: 0.18 }));
-  },
-});
-
 /* ═══ Concept 1 — « Seien wir ehrlich » (universalité) ════════════════ */
 
-const C1_EN: CampScene[] = [
-  { name: "Let's be real", render: () => <Shot src={BG("philosophy", 3)} move="in"><Caption at={4} top={360}>{T.en.real}</Caption></Shot> },
-  {
-    name: "Medicine, law, engineering — drowning",
-    span: 2,
-    render: ({ f }) => {
-      const drown = f("drowning");
-      return (
-        <AbsoluteFill>
-          <Beats items={[{ src: BG("medicine", 2), label: "Medicine", at: f("medicine") }, { src: BG("law", 1), label: "Law", at: f("law") }, { src: BG("mechanical", 1), label: "Engineering", at: f("engineering") }]} />
-          <FadeLayer from={drown - 4} to={drown + 4}>
-            <PdfAvalanche files={PDFS} at={drown} />
-          </FadeLayer>
-        </AbsoluteFill>
-      );
-    },
-    cues: ({ f }) => [{ at: f("medicine"), kind: "pop" }, { at: f("law"), kind: "pop" }, { at: f("engineering"), kind: "pop" }, ...[0, 6, 12, 18, 24].map((d) => ({ at: f("drowning") + d, kind: "type" as const, volume: 0.3 }))],
-  },
-  {
-    name: "TRED is your way out",
-    enter: "slide",
-    render: ({ f }) => (
-      <Shot src={BG("aerospace", 4)} move="up" veil={0.5}>
-        <Phone greeting={PHONE.en.greeting} cards={PHONE.en.cards} backgrounds={ROTATION} at={f("TRED") - 6} scale={0.95} />
-      </Shot>
-    ),
-    cues: ({ f }) => [{ at: f("TRED"), kind: "success", volume: 0.3 }],
-  },
-  {
-    name: "Not just an AI — a university in your pocket",
-    span: 2,
-    render: ({ f }) => (
-      <AbsoluteFill>
-        <Montage items={FIELDS.en.slice(0, 6)} every={Math.max(10, Math.floor((f("pocket") - 4) / 6))} />
-        <FadeLayer from={f("university") - 6} to={f("university") + 4}>
-          <Shot src={BG("history", 1)} veil={0.5}>
-            <Caption at={f("university")} top={330}>{T.en.pocket}</Caption>
-          </Shot>
-        </FadeLayer>
-      </AbsoluteFill>
-    ),
-  },
-  {
-    name: "No cap",
-    enter: "zoom",
-    render: () => (
-      <Shot src={BG("physics", 1)} move="out" veil={0.5}>
-        <Punch words={T.en.noCap} at={2} size={96} top={360} />
-        <SparkleBurst at={6} />
-      </Shot>
-    ),
-    cues: () => [{ at: 4, kind: "pop", volume: 0.5 }],
-  },
-];
-
-const C1_DE: CampScene[] = [
-  { name: "Seien wir ehrlich", render: () => <Shot src={BG("philosophy", 3)} move="in"><Caption at={4} top={360}>{T.de.real}</Caption></Shot> },
-  {
-    name: "Jura, Medizin, Ingenieurwesen",
-    render: ({ f }) => <Beats items={[{ src: BG("law", 1), label: "Jura", at: f("Jura") }, { src: BG("medicine", 2), label: "Medizin", at: f("Medizin") }, { src: BG("mechanical", 1), label: "Ingenieurwesen", at: f("Ingenieurwesen") }]} />,
-    cues: ({ f }) => [{ at: f("Jura"), kind: "pop" }, { at: f("Medizin"), kind: "pop" }, { at: f("Ingenieurwesen"), kind: "pop" }],
-  },
-  {
-    name: "Du ertrinkst in Skripten",
-    span: 2,
-    enter: "fade",
-    render: ({ f }) => <PdfAvalanche files={PDFS} at={Math.max(0, f("ertrinkst") - 4)} />,
-    cues: ({ f }) => [0, 6, 12, 18, 24].map((d) => ({ at: f("ertrinkst") + d, kind: "type" as const, volume: 0.3 })),
-  },
-  {
-    name: "TRED ist deine Rettung",
-    enter: "slide",
-    render: ({ f }) => (
-      <Shot src={BG("aerospace", 4)} move="up" veil={0.5}>
-        <Phone greeting={PHONE.de.greeting} cards={PHONE.de.cards} backgrounds={ROTATION} at={f("TRED") - 6} scale={0.95} />
-      </Shot>
-    ),
-    cues: ({ f }) => [{ at: f("TRED"), kind: "success", volume: 0.3 }],
-  },
-  {
-    name: "Uni für die Hosentasche",
-    render: ({ f }) => (
-      <AbsoluteFill>
-        <Montage items={FIELDS.de.slice(0, 6)} every={Math.max(10, Math.floor((f("Uni") - 4) / 6))} />
-        <FadeLayer from={f("Uni") - 6} to={f("Uni") + 4}>
-          <Shot src={BG("history", 1)} veil={0.5}>
-            <Caption at={f("Uni")} top={330}>{T.de.pocket}</Caption>
-          </Shot>
-        </FadeLayer>
-      </AbsoluteFill>
-    ),
-  },
-];
-
-/* ═══ Concept 2 — « Le prof qui te comprend » (Hörsaal) ═══════════════ */
-
-const c2 = (lang: Lang, words: { gets: string; boom: string; step: string; like: string; better: string }): CampScene[] => {
+const c1 = (lang: Lang, w: { medicine: string; law: string; engineering: string; drowning: string; university: string; reads: string; draws: string; step: string }): CampScene[] => {
   const t = T[lang];
-  const ask: CampScene[] =
-    lang === "en"
-      ? [
-          {
-            name: "Question — boom — whiteboard",
-            render: ({ f }) => <AskThenBoard lang={lang} question={t.question} boom={f(words.boom)} />,
-            cues: ({ f }) => [...[8, 14, 20, 26, 32].map((d) => ({ at: d, kind: "type" as const, volume: 0.25 })), { at: f(words.boom), kind: "success", volume: 0.45 }],
-          },
-        ]
-      : [
-          {
-            name: "Frage — bam",
-            render: ({ f }) => <AskThenBoard lang={lang} question={t.question} boom={f(words.boom)} />,
-            cues: ({ f }) => [...[8, 14, 20, 26, 32].map((d) => ({ at: d, kind: "type" as const, volume: 0.25 })), { at: f(words.boom), kind: "success", volume: 0.45 }],
-          },
-          {
-            name: "Tafel öffnet sich",
-            enter: "fade",
-            render: ({ voiceAt }) => <BeamBoard lang={lang} at={0} step={(fr) => (fr > voiceAt + 20 ? 1 : 0)} />,
-          },
-        ];
   return [
+    { name: "Let's be real", render: () => <Shot src={BG("philosophy", 3)} move="in"><Caption at={4} top={360}>{t.real}</Caption></Shot> },
     {
-      name: "A professor who gets you",
-      render: ({ f }) => <ProfGrid profs={PROFS} lang={lang} title={t.profTitle} chosen="sensei" chooseAt={f(words.gets)} />,
-      cues: ({ f }) => [{ at: f(words.gets), kind: "click" }],
+      name: "Medicine, law, engineering — drowning in PDFs",
+      span: 2,
+      render: ({ f }) => {
+        const drown = f(w.drowning);
+        return (
+          <AbsoluteFill>
+            <Beats items={[{ src: BG("medicine", 2), label: t.fields[0], at: f(w.medicine) }, { src: BG("law", 1), label: t.fields[1], at: f(w.law) }, { src: BG("mechanical", 1), label: t.fields[2], at: f(w.engineering) }]} />
+            <FadeLayer from={drown - 4} to={drown + 4}>
+              <PdfAvalanche files={PDFS} at={drown} />
+            </FadeLayer>
+          </AbsoluteFill>
+        );
+      },
+      cues: ({ f }) => [{ at: f(w.medicine), kind: "pop" }, { at: f(w.law), kind: "pop" }, { at: f(w.engineering), kind: "pop" }, ...[0, 6, 12, 18, 24].map((d) => ({ at: f(w.drowning) + d, kind: "type" as const, volume: 0.3 }))],
     },
-    ...ask,
     {
-      name: "Step by step",
-      enter: "fade",
-      render: ({ voiceAt }) => <BeamBoard lang={lang} at={-60} step={(fr) => Math.min(4, 1 + Math.floor(Math.max(0, fr - voiceAt) / 9))} />,
-      cues: ({ voiceAt }) => [1, 2, 3].map((i) => ({ at: voiceAt + i * 9, kind: "pop" as const, volume: 0.3 })),
-    },
-    {
-      name: "Like in class — but better",
-      render: ({ f }) => (
-        <Shot src={BG("mathematics", 1)} move="in" veil={0.45}>
-          <Caption at={4} top={250}>{t.likeClass}</Caption>
-          <Punch words={[...t.better]} at={f(words.better)} size={70} top={420} />
+      name: "Good news",
+      render: () => (
+        <Shot src={BG("environmental", 9)} move="out" veil={0.4}>
+          <Punch words={t.goodNews} at={3} size={84} top={360} />
         </Shot>
       ),
-      cues: ({ f }) => [{ at: f(words.better), kind: "pop", volume: 0.5 }],
+      cues: () => [{ at: 5, kind: "pop", volume: 0.4 }],
+    },
+    {
+      name: "TRED is your way out",
+      enter: "slide",
+      render: ({ f }) => (
+        <Shot src={BG("aerospace", 4)} move="up" veil={0.5}>
+          <Phone greeting={PHONE[lang].greeting} cards={PHONE[lang].cards} backgrounds={ROTATION} at={Math.max(0, f("TRED") - 6)} scale={0.95} />
+        </Shot>
+      ),
+      cues: ({ f }) => [{ at: f("TRED"), kind: "success", volume: 0.3 }],
+    },
+    {
+      name: "Not a chatbot — a university in your pocket",
+      span: 2,
+      render: ({ f }) => (
+        <AbsoluteFill>
+          <Montage items={FIELDS[lang].slice(0, 6)} every={Math.max(10, Math.floor((f(w.university) - 4) / 6))} />
+          <FadeLayer from={f(w.university) - 6} to={f(w.university) + 4}>
+            <Shot src={BG("history", 1)} veil={0.5}>
+              <Caption at={f(w.university)} top={330}>{t.pocket}</Caption>
+            </Shot>
+          </FadeLayer>
+        </AbsoluteFill>
+      ),
+    },
+    {
+      name: "Reads your files, draws, explains step by step",
+      enter: "fade",
+      render: ({ f }) => {
+        const draw = f(w.draws);
+        const step = f(w.step);
+        return (
+          <AbsoluteFill>
+            <DocStack title={t.readsFiles} doneLabel={t.uploaded} docs={t.files.map((d, i) => ({ ...d, at: Math.max(4, f(w.reads)) + i * 9 }))} />
+            <FadeLayer from={draw - 6} to={draw + 4}>
+              <BeamBoard lang={lang} at={draw + 4} step={(fr) => (fr < step ? 1 : Math.min(4, 2 + Math.floor((fr - step) / 14)))} />
+            </FadeLayer>
+          </AbsoluteFill>
+        );
+      },
+      cues: ({ f }) => [{ at: f(w.draws), kind: "success", volume: 0.35 }, ...[0, 14, 28].map((d) => ({ at: f(w.step) + d, kind: "pop" as const, volume: 0.3 }))],
     },
   ];
 };
 
-const c2Finale = (lang: Lang): CampScene => ({
-  name: "Finale — the full solution",
-  enter: "wipe",
-  render: () => <BeamBoard lang={lang} at={-60} step={(fr) => (fr > 40 ? 4 : 3)} scrollAt={70} />,
-  cues: () => [{ at: 40, kind: "success", volume: 0.4 }],
-});
+/* ═══ Concept 2 — « Le prof qui te comprend » (Hörsaal) ═══════════════ */
+
+const c2 = (lang: Lang, w: { gets: string; circuit: string; math: string; boom: string; but: string }): CampScene[] => {
+  const t = T[lang];
+  return [
+    {
+      name: "A professor who gets you",
+      render: ({ f }) => <ProfGrid profs={PROFS} lang={lang} title={t.profTitle} chosen="sensei" chooseAt={f(w.gets)} />,
+      cues: ({ f }) => [{ at: f(w.gets), kind: "click" }],
+    },
+    {
+      name: "Stuck on a circuit or a math problem",
+      render: ({ f }) => <Beats items={[{ src: BG("electrical", 2), label: t.stuck[0], at: f(w.circuit) }, { src: BG("mathematics", 8), label: t.stuck[1], at: f(w.math) }]} />,
+      cues: ({ f }) => [{ at: f(w.circuit), kind: "pop" }, { at: f(w.math), kind: "pop" }],
+    },
+    {
+      name: "Question — boom — whiteboard",
+      // En allemand, « bam! » ferme la phrase : la Tafel s'ouvre sur la suivante.
+      span: lang === "de" ? 2 : 1,
+      render: ({ f }) => <AskThenBoard lang={lang} question={t.question} boom={f(w.boom)} />,
+      cues: ({ f }) => [...[8, 14, 20, 26, 32].map((d) => ({ at: d, kind: "type" as const, volume: 0.25 })), { at: f(w.boom), kind: "success", volume: 0.45 }],
+    },
+    {
+      name: "Step by step",
+      enter: "fade",
+      render: ({ voiceAt }) => <BeamBoard lang={lang} at={-60} step={(fr) => Math.min(3, 1 + Math.floor(Math.max(0, fr - voiceAt) / 18))} />,
+      cues: ({ voiceAt }) => [1, 2].map((i) => ({ at: voiceAt + i * 18, kind: "pop" as const, volume: 0.3 })),
+    },
+    {
+      name: "The professor explains the intuition",
+      enter: "fade",
+      render: () => <BeamBoard lang={lang} at={-60} step={(fr) => (fr > 40 ? 4 : 3)} scrollAt={80} />,
+      cues: () => [{ at: 40, kind: "success", volume: 0.4 }],
+    },
+    {
+      name: "A private lecture hall — you're in control",
+      render: ({ f, dur }) => {
+        const at = Math.max(14, Math.min(f(w.but), dur - 45));
+        return (
+          <Shot src={BG("mathematics", 1)} move="in" veil={0.45}>
+            <Caption at={4} top={250}>{t.likeClass}</Caption>
+            <Punch words={t.better} at={at} size={66} top={420} />
+          </Shot>
+        );
+      },
+      cues: ({ f, dur }) => [{ at: Math.max(14, Math.min(f(w.but), dur - 45)), kind: "pop", volume: 0.5 }],
+    },
+  ];
+};
 
 /* ═══ Concept 3 — « Zéro blabla » (fiabilité) ═════════════════════════ */
 
-const c3 = (lang: Lang, words: { solvers: string; formula: string; calculation: string; checked: string }): CampScene[] => {
+const c3 = (lang: Lang, w: { solvers: string; formula: [string, number]; calculation: string; unit: string }): CampScene[] => {
   const t = T[lang];
   const st = BEAM[lang].stamp;
   return [
@@ -486,7 +452,7 @@ const c3 = (lang: Lang, words: { solvers: string; formula: string; calculation: 
       name: "Me too",
       render: () => (
         <Shot src={BG("mathematics", 8)} move="in" veil={0.5}>
-          <Punch words={[...t.meToo]} at={2} size={74} top={360} />
+          <Punch words={t.meToo} at={2} size={74} top={360} />
         </Shot>
       ),
     },
@@ -496,53 +462,67 @@ const c3 = (lang: Lang, words: { solvers: string; formula: string; calculation: 
       render: ({ f }) => (
         <GuessVsSolver
           at={0}
-          solveAt={f(words.solvers)}
+          solveAt={f(w.solvers)}
           guessLabel={t.guess}
           solverLabel={<SolverStamp label={st[0]} sublabel={st[1]} />}
           tex={{ wrong: t.wrong, right: "M_max = q·l²/8 = 4 kNm" }}
         />
       ),
-      cues: ({ f }) => [{ at: f(words.solvers) - 8, kind: "click" }, { at: f(words.solvers) + 8, kind: "success", volume: 0.45 }],
+      cues: ({ f }) => [{ at: f(w.solvers) - 8, kind: "click" }, { at: f(w.solvers) + 8, kind: "success", volume: 0.45 }],
     },
     {
-      name: "Every formula checked",
+      name: "Every formula, calculation and unit checked",
       enter: "fade",
-      render: ({ f }) => <SolverWall lang={lang} at={[f(words.formula), f(words.calculation), f(words.checked)]} />,
-      cues: ({ f }) => [f(words.formula), f(words.calculation), f(words.checked)].map((at) => ({ at, kind: "pop" as const, volume: 0.4 })),
+      render: ({ f }) => <SolverWall lang={lang} at={[f(...w.formula), f(w.calculation), f(w.unit)]} />,
+      cues: ({ f }) => [f(...w.formula), f(w.calculation), f(w.unit)].map((at) => ({ at, kind: "pop" as const, volume: 0.4 })),
     },
     {
-      name: "Trust it",
+      name: "Trust it with your grades",
       render: () => (
         <Shot src={BG("physics", 3)} move="out" veil={0.5}>
           <Caption at={4} top={360}>{t.trust}</Caption>
         </Shot>
       ),
     },
+    {
+      name: "No hallucinations, no fake results",
+      render: () => (
+        <Shot src={BG("physics", 4)} move="in" veil={0.55}>
+          <Punch words={t.noFake} at={3} size={54} top={340} />
+        </Shot>
+      ),
+      cues: () => [{ at: 5, kind: "pop", volume: 0.4 }],
+    },
+    {
+      name: "Pure, reliable engineering and science",
+      enter: "wipe",
+      render: () => (
+        <AbsoluteFill>
+          <Montage items={[BG("electrical", 3), BG("mechanical", 1), BG("economics", 4), BG("physics", 4), BG("chemical", 4)].map((src) => ({ src }))} every={20} />
+          <Punch words={t.computed} at={8} size={66} top={360} />
+        </AbsoluteFill>
+      ),
+      cues: () => [0, 20, 40, 60].map((at) => ({ at, kind: "click" as const, volume: 0.18 })),
+    },
   ];
 };
 
-const c3Finale = (lang: Lang): CampScene => ({
-  name: "Finale — computed, not guessed",
-  enter: "wipe",
-  render: () => (
-    <AbsoluteFill>
-      <Montage items={[BG("electrical", 3), BG("mechanical", 1), BG("economics", 4), BG("physics", 4), BG("chemical", 4)].map((src) => ({ src }))} every={22} />
-      <Punch words={[...T[lang].computed]} at={8} size={66} top={360} />
-    </AbsoluteFill>
-  ),
-  cues: () => [0, 22, 44, 66, 88].map((at) => ({ at, kind: "click" as const, volume: 0.18 })),
-});
-
 /* ═══ Concept 4 — « Deux jours avant l'examen » (Klausur) ═════════════ */
 
-const c4 = (lang: Lang, words: { open: string; upload: string; corrects: string }): CampScene[] => {
+const c4 = (lang: Lang, w: { upload: string; simulation: string; corrects: string; fields: [string, string, string] }): CampScene[] => {
   const t = T[lang];
+  const sim = (at: number, correctAt: number) => (
+    <AbsoluteFill>
+      <Shot src={BG("mathematics", 3)} veil={0.6} />
+      <ExamSim title={t.examTitle} timerFrom={2 * 3600 - 7} questions={t.questions} at={at} correctAt={correctAt} scoreLabel={t.scoreLabel} score={75} />
+    </AbsoluteFill>
+  );
   return [
     {
       name: "Exam in two days",
       render: () => (
         <Shot src={BG("mathematics", 1)} move="in" veil={0.55}>
-          <Punch words={[...t.twoDays]} at={2} size={76} top={330} />
+          <Punch words={t.twoDays} at={2} size={76} top={330} />
         </Shot>
       ),
       cues: () => [{ at: 10, kind: "pop", volume: 0.4 }],
@@ -551,7 +531,7 @@ const c4 = (lang: Lang, words: { open: string; upload: string; corrects: string 
       name: "Don't panic",
       render: () => (
         <Shot src={BG("environmental", 9)} move="out" veil={0.4}>
-          <Punch words={[...t.panic]} at={1} size={80} top={360} />
+          <Punch words={t.panic} at={1} size={80} top={360} />
         </Shot>
       ),
     },
@@ -566,135 +546,134 @@ const c4 = (lang: Lang, words: { open: string; upload: string; corrects: string 
       cues: () => [{ at: 4, kind: "click" }],
     },
     {
-      name: "Old exams → simulation",
+      name: "Old exams → custom simulation",
       render: ({ f }) => {
-        const u = f(words.upload);
-        return <DocStack title={t.oldExams} doneLabel={t.uploaded} docs={t.exams.map((d, i) => ({ ...d, at: u + i * 12 }))} />;
+        const u = Math.max(2, f(w.upload));
+        const s0 = f(w.simulation);
+        return (
+          <AbsoluteFill>
+            <DocStack title={t.oldExams} doneLabel={t.uploaded} docs={t.exams.map((d, i) => ({ ...d, at: u + i * 12 }))} />
+            <FadeLayer from={s0 - 8} to={s0 + 2}>{sim(s0 - 6, 9999)}</FadeLayer>
+          </AbsoluteFill>
+        );
       },
-      cues: ({ f }) => [{ at: f(words.upload) + 26, kind: "success", volume: 0.25 }, { at: f(words.upload) + 50, kind: "success", volume: 0.25 }],
+      cues: ({ f }) => [{ at: f(w.upload) + 26, kind: "success", volume: 0.25 }, { at: f(w.simulation), kind: "success", volume: 0.3 }],
     },
     {
-      name: "Practice — corrected — ready",
-      span: 3,
+      name: "Practice — corrected step by step",
       enter: "fade",
-      render: ({ f }) => (
-        <AbsoluteFill>
-          <Shot src={BG("mathematics", 3)} veil={0.6} />
-          <ExamSim title={t.examTitle} timerFrom={2 * 3600 - 7} questions={[...t.questions]} at={0} correctAt={f(words.corrects)} scoreLabel={t.scoreLabel} score={75} />
-        </AbsoluteFill>
-      ),
-      cues: ({ f }) => [0, 1, 2, 3].map((i) => ({ at: f(words.corrects) + i * 7, kind: "pop" as const, volume: 0.35 })),
+      render: ({ f }) => sim(-60, f(w.corrects)),
+      cues: ({ f }) => [0, 1, 2, 3].map((i) => ({ at: f(w.corrects) + i * 7, kind: "pop" as const, volume: 0.35 })),
+    },
+    {
+      name: "Engineering, medicine, law — whatever",
+      span: 2,
+      render: ({ f }) => <Beats items={[{ src: BG("mechanical", 1), label: t.fields[2], at: f(w.fields[0]) }, { src: BG("medicine", 2), label: t.fields[0], at: f(w.fields[1]) }, { src: BG("law", 1), label: t.fields[1], at: f(w.fields[2]) }]} />,
+      cues: ({ f }) => w.fields.map((x) => ({ at: f(x), kind: "pop" as const })),
     },
   ];
 };
 
-const c4Finale = (lang: Lang): CampScene => ({
-  name: "Finale — ready",
-  enter: "wipe",
-  render: () => (
-    <Shot src={BG("aerospace", 1)} move="out" veil={0.45}>
-      <Punch words={[...T[lang].ready]} at={6} size={92} top={340} />
-      <SparkleBurst at={10} />
-    </Shot>
-  ),
-  cues: () => [{ at: 8, kind: "success", volume: 0.4 }],
-});
-
 /* ═══ Concept 5 — « Le vibe » (expérience premium) ════════════════════ */
 
-const c5 = (lang: Lang, words: { looks: string; flawless: string; fun: string }): CampScene[] => {
+const c5 = (lang: Lang, w: { looks: string; fun: string }): CampScene[] => {
   const t = T[lang];
   return [
     {
       name: "Not a punishment",
-      render: () => (
+      span: 2,
+      render: ({ dur }) => (
         <AbsoluteFill style={{ filter: "grayscale(1) contrast(0.9) brightness(0.8)" }}>
           <Shot src={BG("history", 6)} move="in" veil={0.5}>
-            <Caption at={4} top={360}>{t.punishment}</Caption>
+            <Caption at={Math.max(6, Math.floor(dur / 3))} top={360}>{t.punishment}</Caption>
           </Shot>
         </AbsoluteFill>
       ),
     },
     {
-      name: "Looks incredible, works flawlessly",
+      name: "Looks incredible — dark mode, animations, backgrounds",
+      span: 2,
       enter: "wipe",
       render: ({ f }) => (
         <Shot src={BG("aerospace", 1)} move="up" veil={0.55}>
-          <Phone greeting={PHONE[lang].greeting} cards={PHONE[lang].cards} backgrounds={ROTATION} every={Math.max(14, Math.floor((f(words.flawless) - f(words.looks)) / 2))} at={f(words.looks) - 8} scale={1} />
+          <Phone greeting={PHONE[lang].greeting} cards={PHONE[lang].cards} backgrounds={ROTATION} every={24} at={Math.max(0, f(w.looks) - 8)} scale={1} />
         </Shot>
       ),
-      cues: ({ f }) => [{ at: f(words.looks), kind: "success", volume: 0.3 }, { at: f(words.flawless), kind: "click" }],
+      cues: ({ f }) => [{ at: f(w.looks), kind: "success", volume: 0.3 }],
     },
     {
-      name: "Kinda fun",
+      name: "Kind of fun",
       enter: "zoom",
       render: ({ f }) => (
         <Shot src={BG("biology", 8)} move="out" veil={0.45}>
-          <Punch words={[...t.fun]} at={Math.max(0, f(words.fun) - 6)} size={86} top={360} />
-          <SparkleBurst at={f(words.fun)} />
+          <Punch words={t.fun} at={Math.max(0, f(w.fun) - 6)} size={86} top={360} />
+          <SparkleBurst at={f(w.fun)} />
         </Shot>
       ),
-      cues: ({ f }) => [{ at: f(words.fun), kind: "pop", volume: 0.5 }],
+      cues: ({ f }) => [{ at: f(w.fun), kind: "pop", volume: 0.5 }],
     },
     {
       name: "I said it",
       render: () => (
         <Shot src={BG("economics", 7)} move="in" veil={0.5}>
-          <Punch words={[...t.saidIt]} at={2} size={70} top={360} />
+          <Punch words={t.saidIt} at={2} size={70} top={360} />
         </Shot>
       ),
+    },
+    {
+      name: "Your field, your background",
+      enter: "wipe",
+      render: ({ dur }) => {
+        const every = Math.max(9, Math.floor(dur / 8));
+        return (
+          <AbsoluteFill>
+            <Montage items={FIELDS[lang].slice(0, 8)} every={every} />
+            <Caption at={every * 2} top={400}>{t.yourField}</Caption>
+          </AbsoluteFill>
+        );
+      },
+      cues: ({ dur }) => Array.from({ length: 8 }, (_, i) => ({ at: i * Math.max(9, Math.floor(dur / 8)), kind: "click" as const, volume: 0.16 })),
     },
   ];
 };
 
-const c5Finale = (lang: Lang): CampScene => ({
-  name: "Finale — your field, your background",
-  enter: "wipe",
-  render: () => (
-    <AbsoluteFill>
-      <Montage items={FIELDS[lang].slice(0, 8)} every={12} />
-      <FadeLayer from={92} to={104}>
-        <Shot src={BG("aerospace", 4)} veil={0.5}>
-          <Phone greeting={PHONE[lang].greeting} cards={PHONE[lang].cards} backgrounds={FIELDS[lang].map((x) => x.src)} every={18} at={96} scale={0.92} />
-          <Caption at={110} top={60}>{T[lang].yourField}</Caption>
-        </Shot>
-      </FadeLayer>
-    </AbsoluteFill>
-  ),
-  cues: () => Array.from({ length: 8 }, (_, i) => ({ at: i * 12, kind: "click" as const, volume: 0.16 })),
-});
-
 /* ═══ Les 10 compositions ═══════════════════════════════════════════════ */
 
-export const C1En = () => <CampaignVideo vo={vo1en} voice={voice1en} music={music1en} scenes={C1_EN} finale={fieldsFinale("en", T.en.pocket)} outro={T.en.outro.c1} />;
-export const C1De = () => <CampaignVideo vo={vo1de} voice={voice1de} music={music1de} scenes={C1_DE} finale={fieldsFinale("de", T.de.pocket)} outro={T.de.outro.c1} />;
+export const C1En = () => (
+  <CampaignVideo vo={vo1en} voice={voice1en} music={music1en} scenes={c1("en", { medicine: "medicine", law: "law", engineering: "engineering", drowning: "drowning", university: "university", reads: "reads", draws: "draws", step: "step" })} outro={T.en.outro.c1} />
+);
+export const C1De = () => (
+  <CampaignVideo vo={vo1de} voice={voice1de} music={music1de} scenes={c1("de", { medicine: "Medizin", law: "Jura", engineering: "Ingenieurwesen", drowning: "ertrinkst", university: "Universität", reads: "liest", draws: "zeichnet", step: "Schritt" })} outro={T.de.outro.c1} />
+);
 
 export const C2En = () => (
-  <CampaignVideo vo={vo2en} voice={voice2en} music={music2en} scenes={c2("en", { gets: "gets", boom: "boom", step: "Step", like: "like", better: "but" })} finale={c2Finale("en")} outro={T.en.outro.c2} />
+  <CampaignVideo vo={vo2en} voice={voice2en} music={music2en} scenes={c2("en", { gets: "gets", circuit: "circuit", math: "math", boom: "boom", but: "but" })} outro={T.en.outro.c2} />
 );
 export const C2De = () => (
-  <CampaignVideo vo={vo2de} voice={voice2de} music={music2de} scenes={c2("de", { gets: "versteht", boom: "bam", step: "Schritt", like: "Wie", better: "nur" })} finale={c2Finale("de")} outro={T.de.outro.c2} />
+  <CampaignVideo vo={vo2de} voice={voice2de} music={music2de} scenes={c2("de", { gets: "versteht", circuit: "Schaltung", math: "Mathe", boom: "bam", but: "nur" })} outro={T.de.outro.c2} />
 );
 
 export const C3En = () => (
-  <CampaignVideo vo={vo3en} voice={voice3en} music={music3en} scenes={c3("en", { solvers: "solvers", formula: "formula", calculation: "calculation", checked: "checked" })} finale={c3Finale("en")} outro={T.en.outro.c3} />
+  <CampaignVideo vo={vo3en} voice={voice3en} music={music3en} scenes={c3("en", { solvers: "solvers", formula: ["formula", 1], calculation: "calculation", unit: "unit" })} outro={T.en.outro.c3} />
 );
 export const C3De = () => (
-  <CampaignVideo vo={vo3de} voice={voice3de} music={music3de} scenes={c3("de", { solvers: "Solver", formula: "Formel", calculation: "Rechnung", checked: "geprüft" })} finale={c3Finale("de")} outro={T.de.outro.c3} />
+  <CampaignVideo vo={vo3de} voice={voice3de} music={music3de} scenes={c3("de", { solvers: "Solver", formula: ["Formel", 0], calculation: "Berechnung", unit: "Einheit" })} outro={T.de.outro.c3} />
 );
 
+// « Boom. You're ready to crush it. » est dit sur l'outro (« Exam? You're ready. »).
 export const C4En = () => (
-  <CampaignVideo vo={vo4en} voice={voice4en} music={music4en} scenes={c4("en", { open: "open", upload: "Throw", corrects: "corrects" })} finale={c4Finale("en")} outro={T.en.outro.c4} />
+  <CampaignVideo vo={vo4en} voice={voice4en} music={music4en} scenes={c4("en", { upload: "Throw", simulation: "simulation", corrects: "corrects", fields: ["engineering", "medicine", "law"] })} outro={T.en.outro.c4} outroSpan={2} />
 );
 export const C4De = () => (
-  <CampaignVideo vo={vo4de} voice={voice4de} music={music4de} scenes={c4("de", { open: "Öffne", upload: "Lade", corrects: "korrigiert" })} finale={c4Finale("de")} outro={T.de.outro.c4} />
+  <CampaignVideo vo={vo4de} voice={voice4de} music={music4de} scenes={c4("de", { upload: "Lade", simulation: "Prüfungssimulation", corrects: "korrigiert", fields: ["Ingenieurwesen", "Medizin", "Jura"] })} outro={T.de.outro.c4} outroSpan={2} />
 );
 
+// « TRED. The ultimate university in your pocket. » est dit sur l'outro.
 export const C5En = () => (
-  <CampaignVideo vo={vo5en} voice={voice5en} music={music5en} scenes={c5("en", { looks: "looks", flawless: "flawlessly", fun: "fun" })} finale={c5Finale("en")} outro={T.en.outro.c5} />
+  <CampaignVideo vo={vo5en} voice={voice5en} music={music5en} scenes={c5("en", { looks: "looks", fun: "fun" })} outro={T.en.outro.c5} outroSpan={2} />
 );
 export const C5De = () => (
-  <CampaignVideo vo={vo5de} voice={voice5de} music={music5de} scenes={c5("de", { looks: "sieht", flawless: "flüssig", fun: "spaßig" })} finale={c5Finale("de")} outro={T.de.outro.c5} />
+  <CampaignVideo vo={vo5de} voice={voice5de} music={music5de} scenes={c5("de", { looks: "sieht", fun: "spaßig" })} outro={T.de.outro.c5} outroSpan={2} />
 );
 
 export const CAMPAIGN_IDS = [

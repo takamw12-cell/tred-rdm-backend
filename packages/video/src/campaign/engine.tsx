@@ -10,18 +10,38 @@ import sfxSuccess from "../assets/sfx-success.wav";
 /**
  * Le moteur de la campagne « parle comme un ami » (30 s, 2026-11-11).
  *
- * Différence avec la série de 45 s : la voix n'est PAS ré-espacée. Elle joue
- * telle qu'ElevenLabs l'a dite, avec ses respirations — c'est ce qui la rend
- * naturelle. Chaque scène s'ouvre sur une phrase (ou plusieurs : `span`), puis
- * une scène finale (montage, résultat…) occupe l'image jusqu'à l'outro.
- *
- * Minutage : voix à 0,7 s → ~11-16 s ; finale jusqu'à 25,5 s ; outro 25,5-30 s.
+ * Les textes font 70-75 mots : la voix couvre TOUTE la vidéo. Les phrases
+ * (`splitPhrases`) sont réparties régulièrement entre VOICE_AT et VOICE_END
+ * (`planVoice`) : s'il reste de la marge, elle devient des respirations entre
+ * les phrases ; si la parole est plus longue que la fenêtre, la voix est lue
+ * un peu plus vite (`rate`, hauteur conservée). Une scène s'ouvre par phrase
+ * (ou plusieurs : `span`). Les `outroSpan` dernières phrases sont dites sur
+ * l'outro ; sinon l'outro tombe à OUTRO_AT, sur la fin de la dernière phrase.
  */
 
 export const CAMPAIGN_FRAMES = s(30);
-const VOICE_AT = 0.7; // s
-const OUTRO_AT = 25.5; // s
+const VOICE_AT = 0.4; // s
+const VOICE_END = 28.9; // s — la voix s'arrête ici, 1 s avant la fin
+const OUTRO_AT = 28.0; // s — outro par défaut (sans phrase dédiée)
+const MIN_GAP = 0.18; // respiration minimale entre deux phrases (s)
+const MAX_GAP = 1.1; // au-delà, la voix « attendrait » (s)
 const LEAD = 0.3; // une scène s'ouvre juste avant sa phrase (s)
+
+/** Répartit les phrases sur la fenêtre : instants de départ (s) et vitesse de lecture. */
+export function spreadVoice(durs: number[]): { starts: number[]; rate: number; end: number } {
+  const window = VOICE_END - VOICE_AT;
+  const sum = durs.reduce((a, b) => a + b, 0);
+  const gaps = Math.max(1, durs.length - 1);
+  const rate = Math.max(1, Math.ceil(((sum + gaps * MIN_GAP) / window) * 1000) / 1000);
+  const gap = Math.min(MAX_GAP, (window - sum / rate) / gaps);
+  const starts: number[] = [];
+  let t = VOICE_AT;
+  for (const d of durs) {
+    starts.push(t);
+    t += d / rate + gap;
+  }
+  return { starts, rate, end: t - gap };
+}
 
 export type CampCtx = {
   /** Durée de la scène (images). */
@@ -47,61 +67,60 @@ export function CampaignVideo({
   voice,
   music,
   scenes,
-  finale,
   outro,
+  outroSpan = 0,
 }: {
   vo: VoFile;
   voice: string;
   music: string;
   scenes: CampScene[];
-  /** Après la dernière phrase, jusqu'à l'outro. */
-  finale: CampScene;
-  outro: { tagline: ReactNode; sub?: string };
+  /** `word` : la signature apparaît quand la voix dit ce mot (phrase dite sur l'outro). */
+  outro: { tagline: ReactNode; sub?: string; word?: string };
+  /** Nombre de phrases finales dites sur l'outro. */
+  outroSpan?: number;
 }) {
   useImagesReady();
 
-  const { plan, cuts, finaleFrom } = useMemo(() => {
+  const { plan, cuts, outroFrom, firsts } = useMemo(() => {
     const groups = splitPhrases(vo);
-    const total = scenes.reduce((n, sc) => n + (sc.span ?? 1), 0);
+    const total = scenes.reduce((n, sc) => n + (sc.span ?? 1), 0) + outroSpan;
     if (total !== groups.length) throw new Error(`${vo.id} : ${groups.length} phrases, mais les scènes en couvrent ${total}`);
-    // La voix telle qu'enregistrée : chaque phrase garde son instant d'origine.
-    const starts = groups.map((g) => VOICE_AT + g[0].startMs / 1000);
-    const p = planVoice(vo, starts);
-    const firsts: number[] = [];
+    const { starts, rate } = spreadVoice(groups.map((g) => (g[g.length - 1].endMs - g[0].startMs) / 1000));
+    const p = planVoice(vo, starts, [], rate);
+    const first: number[] = [];
     let k = 0;
     for (const sc of scenes) {
-      firsts.push(k);
+      first.push(k);
       k += sc.span ?? 1;
     }
-    const cutFrames = firsts.map((gi, i) => (i === 0 ? 0 : s(starts[gi] - LEAD)));
-    const lastEnd = VOICE_AT + groups[groups.length - 1][groups[groups.length - 1].length - 1].endMs / 1000;
-    return { plan: p, cuts: cutFrames, finaleFrom: s(lastEnd + 0.35) };
-  }, [vo, scenes]);
+    return {
+      plan: p,
+      firsts: first,
+      cuts: first.map((gi, i) => (i === 0 ? 0 : s(starts[gi] - LEAD))),
+      outroFrom: outroSpan > 0 ? s(starts[groups.length - outroSpan] - LEAD) : s(OUTRO_AT),
+    };
+  }, [vo, scenes, outroSpan]);
 
-  const outroFrom = s(OUTRO_AT);
-  const bounds = [
-    ...cuts.map((from, i) => ({ from, to: i < cuts.length - 1 ? cuts[i + 1] : finaleFrom })),
-    { from: finaleFrom, to: outroFrom },
-  ];
-  const all = [...scenes, finale];
+  const bounds = cuts.map((from, i) => ({ from, to: i < cuts.length - 1 ? cuts[i + 1] : outroFrom }));
   const ctxs: CampCtx[] = bounds.map(({ from, to }, i) => ({
     dur: to - from,
     f: (w, nth) => plan.frameOf(w, nth) - from,
-    voiceAt: i < scenes.length ? plan.sentenceFrame(scenes.slice(0, i).reduce((n, sc) => n + (sc.span ?? 1), 0)) - from : 0,
+    voiceAt: plan.sentenceFrame(firsts[i]) - from,
   }));
+  const taglineAt = outro.word ? Math.max(6, plan.frameOf(outro.word) - outroFrom - 4) : 10;
 
   const sfx: Cue[] = [
-    ...bounds.slice(1).map(({ from }) => ({ frame: from - 5, src: sfxWhoosh, volume: 0.26 })),
+    ...bounds.slice(1).map(({ from }) => ({ frame: from - 5, src: sfxWhoosh, volume: 0.22 })),
     { frame: outroFrom - 5, src: sfxWhoosh, volume: 0.3 },
-    { frame: outroFrom + 10, src: sfxSuccess, volume: 0.28 },
-    ...all.flatMap((sc, i) =>
+    { frame: outroFrom + taglineAt, src: sfxSuccess, volume: 0.28 },
+    ...scenes.flatMap((sc, i) =>
       (sc.cues?.(ctxs[i]) ?? []).map((c) => ({ frame: bounds[i].from + c.at, src: SFX[c.kind], volume: c.volume ?? 0.4 })),
     ),
   ];
 
   return (
     <AbsoluteFill style={{ background: NIGHT, fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}>
-      {all.map((sc, i) => (
+      {scenes.map((sc, i) => (
         <Sequence key={sc.name} from={bounds[i].from} durationInFrames={bounds[i].to - bounds[i].from} name={sc.name}>
           <SceneFrame dur={bounds[i].to - bounds[i].from} enter={i === 0 ? "fade" : (sc.enter ?? "zoom")} background={sc.background}>
             {sc.render(ctxs[i])}
@@ -110,10 +129,11 @@ export function CampaignVideo({
       ))}
       <Sequence from={outroFrom} name="Outro">
         <SceneFrame dur={CAMPAIGN_FRAMES - outroFrom} enter="wipe" exitFrames={0}>
-          <Outro tagline={outro.tagline} taglineAt={10} sub={outro.sub} />
+          <Outro tagline={outro.tagline} taglineAt={taglineAt} sub={outro.sub} />
         </SceneFrame>
       </Sequence>
-      <Captions plan={plan} hideFrom={finaleFrom} />
+      {/* Les sous-titres suivent la voix jusqu'au bout, outro compris. */}
+      <Captions plan={plan} />
       <Soundtrack plan={plan} voice={voice} music={music} sfx={sfx} musicVolume={0.42} duckedVolume={0.11} />
     </AbsoluteFill>
   );

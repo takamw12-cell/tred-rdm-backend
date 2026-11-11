@@ -2,164 +2,324 @@
  "id": "c3-de",
  "words": [
   {
-   "text": "Keine",
+   "text": "Hast",
    "startMs": 0,
+   "endMs": 240
+  },
+  {
+   "text": "du",
+   "startMs": 280,
    "endMs": 320
   },
   {
-   "text": "Lust",
-   "startMs": 360,
+   "text": "auch",
+   "startMs": 400,
    "endMs": 560
   },
   {
-   "text": "mehr",
+   "text": "die",
    "startMs": 640,
    "endMs": 720
   },
   {
-   "text": "auf",
-   "startMs": 800,
-   "endMs": 960
+   "text": "Nase",
+   "startMs": 760,
+   "endMs": 1040
   },
   {
-   "text": "KI,",
-   "startMs": 1040,
-   "endMs": 1573
+   "text": "voll",
+   "startMs": 1120,
+   "endMs": 1360
+  },
+  {
+   "text": "von",
+   "startMs": 1440,
+   "endMs": 1520
+  },
+  {
+   "text": "KI-Modellen,",
+   "startMs": 1600,
+   "endMs": 2480
   },
   {
    "text": "die",
-   "startMs": 1627,
-   "endMs": 1680
+   "startMs": 2520,
+   "endMs": 2560
   },
   {
    "text": "sich",
-   "startMs": 1720,
-   "endMs": 1920
+   "startMs": 2640,
+   "endMs": 2800
   },
   {
-   "text": "Mathe",
-   "startMs": 2000,
-   "endMs": 2240
+   "text": "Mathe-Formeln",
+   "startMs": 2960,
+   "endMs": 3680
   },
   {
-   "text": "ausdenkt?",
-   "startMs": 2320,
-   "endMs": 3120
+   "text": "ausdenken,",
+   "startMs": 3800,
+   "endMs": 4280
+  },
+  {
+   "text": "die",
+   "startMs": 4320,
+   "endMs": 4400
+  },
+  {
+   "text": "völlig",
+   "startMs": 4560,
+   "endMs": 4880
+  },
+  {
+   "text": "falsch",
+   "startMs": 4960,
+   "endMs": 5280
+  },
+  {
+   "text": "sind?",
+   "startMs": 5320,
+   "endMs": 6000
   },
   {
    "text": "Ja,",
-   "startMs": 3360,
-   "endMs": 3760
-  },
-  {
-   "text": "ich",
-   "startMs": 3840,
-   "endMs": 4000
-  },
-  {
-   "text": "auch",
-   "startMs": 4040,
-   "endMs": 4160
-  },
-  {
-   "text": "nicht.",
-   "startMs": 4240,
-   "endMs": 5040
-  },
-  {
-   "text": "TRED",
-   "startMs": 5080,
-   "endMs": 5360
-  },
-  {
-   "text": "rät",
-   "startMs": 5440,
-   "endMs": 5680
-  },
-  {
-   "text": "nicht.",
-   "startMs": 5760,
-   "endMs": 6320
-  },
-  {
-   "text": "Es",
-   "startMs": 6400,
+   "startMs": 6080,
    "endMs": 6480
   },
   {
-   "text": "nutzt",
+   "text": "ich",
    "startMs": 6560,
-   "endMs": 6880
+   "endMs": 6720
   },
   {
-   "text": "echte",
-   "startMs": 6960,
-   "endMs": 7200
+   "text": "auch.",
+   "startMs": 6800,
+   "endMs": 7440
   },
   {
-   "text": "Solver.",
-   "startMs": 7360,
+   "text": "Deshalb",
+   "startMs": 7520,
+   "endMs": 7840
+  },
+  {
+   "text": "rät",
+   "startMs": 7920,
    "endMs": 8160
   },
   {
-   "text": "Jede",
+   "text": "TRED",
    "startMs": 8240,
-   "endMs": 8400
+   "endMs": 8560
   },
   {
-   "text": "Formel,",
-   "startMs": 8560,
-   "endMs": 9120
+   "text": "nicht.",
+   "startMs": 8640,
+   "endMs": 9360
   },
   {
-   "text": "jede",
-   "startMs": 9200,
-   "endMs": 9440
+   "text": "Es",
+   "startMs": 9440,
+   "endMs": 9520
   },
   {
-   "text": "Rechnung",
-   "startMs": 9520,
-   "endMs": 9920
+   "text": "nutzt",
+   "startMs": 9600,
+   "endMs": 9840
   },
   {
-   "text": "ist",
-   "startMs": 10000,
-   "endMs": 10240
+   "text": "deterministische,",
+   "startMs": 9880,
+   "endMs": 10960
   },
   {
-   "text": "100%",
-   "startMs": 10320,
-   "endMs": 11200
+   "text": "echte",
+   "startMs": 11040,
+   "endMs": 11280
   },
   {
-   "text": "geprüft.",
-   "startMs": 11280,
-   "endMs": 12080
+   "text": "Solver",
+   "startMs": 11440,
+   "endMs": 11760
   },
   {
-   "text": "Darauf",
-   "startMs": 12160,
-   "endMs": 12560
+   "text": "unter",
+   "startMs": 11840,
+   "endMs": 12000
   },
   {
-   "text": "kannst",
-   "startMs": 12613,
-   "endMs": 12800
+   "text": "der",
+   "startMs": 12080,
+   "endMs": 12160
   },
   {
-   "text": "du",
-   "startMs": 12840,
+   "text": "Haube.",
+   "startMs": 12200,
    "endMs": 12880
   },
   {
-   "text": "dich",
+   "text": "Jede",
    "startMs": 12960,
-   "endMs": 13040
+   "endMs": 13200
   },
   {
-   "text": "verlassen.",
-   "startMs": 13120,
-   "endMs": 13920
+   "text": "Formel,",
+   "startMs": 13280,
+   "endMs": 13840
+  },
+  {
+   "text": "jede",
+   "startMs": 13920,
+   "endMs": 14080
+  },
+  {
+   "text": "Berechnung",
+   "startMs": 14160,
+   "endMs": 14720
+  },
+  {
+   "text": "und",
+   "startMs": 14840,
+   "endMs": 14960
+  },
+  {
+   "text": "jede",
+   "startMs": 15040,
+   "endMs": 15280
+  },
+  {
+   "text": "Einheit",
+   "startMs": 15360,
+   "endMs": 15760
+  },
+  {
+   "text": "ist",
+   "startMs": 15880,
+   "endMs": 16000
+  },
+  {
+   "text": "zu",
+   "startMs": 16120,
+   "endMs": 16240
+  },
+  {
+   "text": "hundert",
+   "startMs": 16280,
+   "endMs": 16480
+  },
+  {
+   "text": "Prozent",
+   "startMs": 16640,
+   "endMs": 17040
+  },
+  {
+   "text": "durch",
+   "startMs": 17093,
+   "endMs": 17200
+  },
+  {
+   "text": "Code",
+   "startMs": 17280,
+   "endMs": 17520
+  },
+  {
+   "text": "geprüft",
+   "startMs": 17600,
+   "endMs": 18080
+  },
+  {
+   "text": "und",
+   "startMs": 18160,
+   "endMs": 18240
+  },
+  {
+   "text": "verifiziert.",
+   "startMs": 18320,
+   "endMs": 19360
+  },
+  {
+   "text": "Du",
+   "startMs": 19440,
+   "endMs": 19520
+  },
+  {
+   "text": "kannst",
+   "startMs": 19573,
+   "endMs": 19760
+  },
+  {
+   "text": "ihm",
+   "startMs": 19800,
+   "endMs": 19920
+  },
+  {
+   "text": "deine",
+   "startMs": 19960,
+   "endMs": 20160
+  },
+  {
+   "text": "Noten",
+   "startMs": 20240,
+   "endMs": 20480
+  },
+  {
+   "text": "anvertrauen.",
+   "startMs": 20560,
+   "endMs": 21440
+  },
+  {
+   "text": "Keine",
+   "startMs": 21520,
+   "endMs": 21760
+  },
+  {
+   "text": "Halluzinationen,",
+   "startMs": 21840,
+   "endMs": 22960
+  },
+  {
+   "text": "keine",
+   "startMs": 23040,
+   "endMs": 23360
+  },
+  {
+   "text": "falschen",
+   "startMs": 23400,
+   "endMs": 23680
+  },
+  {
+   "text": "Ergebnisse.",
+   "startMs": 23760,
+   "endMs": 24640
+  },
+  {
+   "text": "Nur",
+   "startMs": 24720,
+   "endMs": 24960
+  },
+  {
+   "text": "pure,",
+   "startMs": 25160,
+   "endMs": 25600
+  },
+  {
+   "text": "zuverlässige",
+   "startMs": 25720,
+   "endMs": 26400
+  },
+  {
+   "text": "Technik",
+   "startMs": 26560,
+   "endMs": 26880
+  },
+  {
+   "text": "und",
+   "startMs": 26960,
+   "endMs": 27040
+  },
+  {
+   "text": "Wissenschaft.",
+   "startMs": 27120,
+   "endMs": 28000
   }
  ]
 }

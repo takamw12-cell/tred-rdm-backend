@@ -2,129 +2,309 @@
  "id": "c5-de",
  "words": [
   {
-   "text": "Lernen",
+   "text": "Seien",
    "startMs": 0,
+   "endMs": 240
+  },
+  {
+   "text": "wir",
+   "startMs": 320,
    "endMs": 400
   },
   {
-   "text": "sollte",
-   "startMs": 440,
-   "endMs": 640
-  },
-  {
-   "text": "sich",
-   "startMs": 680,
-   "endMs": 880
-  },
-  {
-   "text": "nicht",
-   "startMs": 960,
-   "endMs": 1200
-  },
-  {
-   "text": "wie",
-   "startMs": 1240,
-   "endMs": 1280
-  },
-  {
-   "text": "eine",
-   "startMs": 1360,
-   "endMs": 1520
-  },
-  {
-   "text": "Strafe",
-   "startMs": 1600,
-   "endMs": 2080
-  },
-  {
-   "text": "anfühlen.",
-   "startMs": 2200,
-   "endMs": 2880
-  },
-  {
-   "text": "TRED",
-   "startMs": 3120,
-   "endMs": 3360
-  },
-  {
-   "text": "sieht",
-   "startMs": 3400,
-   "endMs": 3520
-  },
-  {
-   "text": "fantastisch",
-   "startMs": 3680,
-   "endMs": 4240
-  },
-  {
-   "text": "aus,",
-   "startMs": 4320,
-   "endMs": 4720
-  },
-  {
-   "text": "läuft",
-   "startMs": 4880,
-   "endMs": 5040
-  },
-  {
-   "text": "flüssig",
-   "startMs": 5120,
-   "endMs": 5520
-  },
-  {
-   "text": "und",
-   "startMs": 5840,
-   "endMs": 5920
-  },
-  {
-   "text": "macht",
-   "startMs": 6000,
-   "endMs": 6160
-  },
-  {
-   "text": "das",
-   "startMs": 6240,
-   "endMs": 6320
+   "text": "ehrlich.",
+   "startMs": 480,
+   "endMs": 1080
   },
   {
    "text": "Lernen",
-   "startMs": 6360,
-   "endMs": 6640
+   "startMs": 1280,
+   "endMs": 1600
   },
   {
-   "text": "tatsächlich...",
-   "startMs": 6680,
-   "endMs": 7760
+   "text": "sollte",
+   "startMs": 1680,
+   "endMs": 1920
   },
   {
-   "text": "irgendwie",
-   "startMs": 7800,
-   "endMs": 8240
+   "text": "sich",
+   "startMs": 1960,
+   "endMs": 2160
   },
   {
-   "text": "spaßig?",
-   "startMs": 8400,
-   "endMs": 9360
+   "text": "nicht",
+   "startMs": 2240,
+   "endMs": 2480
   },
   {
-   "text": "Ja,",
-   "startMs": 9600,
-   "endMs": 10160
+   "text": "wie",
+   "startMs": 2520,
+   "endMs": 2560
   },
   {
-   "text": "ich",
-   "startMs": 10240,
-   "endMs": 10320
+   "text": "eine",
+   "startMs": 2600,
+   "endMs": 2800
   },
   {
-   "text": "hab's",
-   "startMs": 10360,
+   "text": "Strafe",
+   "startMs": 2960,
+   "endMs": 3280
+  },
+  {
+   "text": "anfühlen.",
+   "startMs": 3360,
+   "endMs": 3920
+  },
+  {
+   "text": "TRED",
+   "startMs": 4400,
+   "endMs": 4640
+  },
+  {
+   "text": "sieht",
+   "startMs": 4720,
+   "endMs": 5040
+  },
+  {
+   "text": "absolut",
+   "startMs": 5200,
+   "endMs": 5600
+  },
+  {
+   "text": "fantastisch",
+   "startMs": 5680,
+   "endMs": 6400
+  },
+  {
+   "text": "aus.",
+   "startMs": 6480,
+   "endMs": 6800
+  },
+  {
+   "text": "Mit",
+   "startMs": 7120,
+   "endMs": 7280
+  },
+  {
+   "text": "einem",
+   "startMs": 7333,
+   "endMs": 7440
+  },
+  {
+   "text": "Premium-Dark-Mode,",
+   "startMs": 7520,
+   "endMs": 8800
+  },
+  {
+   "text": "wunderschönen",
+   "startMs": 8840,
+   "endMs": 9440
+  },
+  {
+   "text": "Animationen",
+   "startMs": 9760,
+   "endMs": 10240
+  },
+  {
+   "text": "und",
+   "startMs": 10320,
    "endMs": 10480
   },
   {
-   "text": "gesagt.",
-   "startMs": 10560,
+   "text": "individuellen",
+   "startMs": 10640,
    "endMs": 11280
+  },
+  {
+   "text": "Hintergründen",
+   "startMs": 11320,
+   "endMs": 11880
+  },
+  {
+   "text": "für",
+   "startMs": 11920,
+   "endMs": 12080
+  },
+  {
+   "text": "deinen",
+   "startMs": 12120,
+   "endMs": 12400
+  },
+  {
+   "text": "Studiengang.",
+   "startMs": 12480,
+   "endMs": 13120
+  },
+  {
+   "text": "Es",
+   "startMs": 13520,
+   "endMs": 13680
+  },
+  {
+   "text": "läuft",
+   "startMs": 13800,
+   "endMs": 13920
+  },
+  {
+   "text": "flüssig",
+   "startMs": 14000,
+   "endMs": 14320
+  },
+  {
+   "text": "auf",
+   "startMs": 14400,
+   "endMs": 14560
+  },
+  {
+   "text": "jedem",
+   "startMs": 14640,
+   "endMs": 14880
+  },
+  {
+   "text": "Gerät",
+   "startMs": 14960,
+   "endMs": 15280
+  },
+  {
+   "text": "und",
+   "startMs": 15360,
+   "endMs": 15520
+  },
+  {
+   "text": "macht",
+   "startMs": 15560,
+   "endMs": 15760
+  },
+  {
+   "text": "das",
+   "startMs": 15840,
+   "endMs": 15920
+  },
+  {
+   "text": "Lernen",
+   "startMs": 16000,
+   "endMs": 16320
+  },
+  {
+   "text": "tatsächlich",
+   "startMs": 16360,
+   "endMs": 16960
+  },
+  {
+   "text": "irgendwie",
+   "startMs": 17040,
+   "endMs": 17440
+  },
+  {
+   "text": "spaßig?",
+   "startMs": 17760,
+   "endMs": 18640
+  },
+  {
+   "text": "Ja,",
+   "startMs": 18880,
+   "endMs": 19280
+  },
+  {
+   "text": "ich",
+   "startMs": 19360,
+   "endMs": 19440
+  },
+  {
+   "text": "hab's",
+   "startMs": 19480,
+   "endMs": 19600
+  },
+  {
+   "text": "gesagt.",
+   "startMs": 19720,
+   "endMs": 20320
+  },
+  {
+   "text": "Schließe",
+   "startMs": 20560,
+   "endMs": 20880
+  },
+  {
+   "text": "dich",
+   "startMs": 20920,
+   "endMs": 21120
+  },
+  {
+   "text": "tausenden",
+   "startMs": 21200,
+   "endMs": 21600
+  },
+  {
+   "text": "Studenten",
+   "startMs": 21800,
+   "endMs": 22080
+  },
+  {
+   "text": "an,",
+   "startMs": 22160,
+   "endMs": 22400
+  },
+  {
+   "text": "die",
+   "startMs": 22440,
+   "endMs": 22480
+  },
+  {
+   "text": "ihr",
+   "startMs": 22520,
+   "endMs": 22640
+  },
+  {
+   "text": "Lernen",
+   "startMs": 22720,
+   "endMs": 23040
+  },
+  {
+   "text": "auf",
+   "startMs": 23120,
+   "endMs": 23200
+  },
+  {
+   "text": "das",
+   "startMs": 23280,
+   "endMs": 23360
+  },
+  {
+   "text": "nächste",
+   "startMs": 23520,
+   "endMs": 23760
+  },
+  {
+   "text": "Level",
+   "startMs": 23840,
+   "endMs": 24080
+  },
+  {
+   "text": "heben.",
+   "startMs": 24160,
+   "endMs": 24560
+  },
+  {
+   "text": "TRED.",
+   "startMs": 24720,
+   "endMs": 25520
+  },
+  {
+   "text": "Deine",
+   "startMs": 25560,
+   "endMs": 25840
+  },
+  {
+   "text": "persönliche",
+   "startMs": 25920,
+   "endMs": 26480
+  },
+  {
+   "text": "Universität.",
+   "startMs": 26560,
+   "endMs": 27600
   }
  ]
 }

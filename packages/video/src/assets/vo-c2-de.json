@@ -14,147 +14,367 @@
   {
    "text": "vor,",
    "startMs": 480,
-   "endMs": 960
+   "endMs": 880
   },
   {
    "text": "du",
-   "startMs": 1000,
+   "startMs": 960,
    "endMs": 1040
   },
   {
    "text": "hast",
-   "startMs": 1120,
-   "endMs": 1280
+   "startMs": 1093,
+   "endMs": 1200
   },
   {
    "text": "einen",
-   "startMs": 1320,
-   "endMs": 1520
+   "startMs": 1280,
+   "endMs": 1440
   },
   {
-   "text": "Professor,",
-   "startMs": 1800,
-   "endMs": 2133
+   "text": "Privatdozenten,",
+   "startMs": 1560,
+   "endMs": 2440
   },
   {
    "text": "der",
-   "startMs": 2187,
-   "endMs": 2240
+   "startMs": 2480,
+   "endMs": 2560
   },
   {
    "text": "dich",
-   "startMs": 2320,
-   "endMs": 2480
+   "startMs": 2600,
+   "endMs": 2800
   },
   {
    "text": "wirklich",
-   "startMs": 2560,
-   "endMs": 2960
+   "startMs": 2880,
+   "endMs": 3280
   },
   {
    "text": "versteht.",
-   "startMs": 3040,
-   "endMs": 4000
-  },
-  {
-   "text": "Du",
-   "startMs": 4040,
+   "startMs": 3360,
    "endMs": 4080
   },
   {
-   "text": "stellst",
-   "startMs": 4200,
+   "text": "Du",
+   "startMs": 4320,
    "endMs": 4400
   },
   {
+   "text": "hängst",
+   "startMs": 4453,
+   "endMs": 4640
+  },
+  {
+   "text": "an",
+   "startMs": 4680,
+   "endMs": 4720
+  },
+  {
+   "text": "einer",
+   "startMs": 4800,
+   "endMs": 4960
+  },
+  {
+   "text": "komplexen",
+   "startMs": 5040,
+   "endMs": 5600
+  },
+  {
+   "text": "Schaltung",
+   "startMs": 5680,
+   "endMs": 6160
+  },
+  {
+   "text": "oder",
+   "startMs": 6240,
+   "endMs": 6400
+  },
+  {
+   "text": "einem",
+   "startMs": 6480,
+   "endMs": 6640
+  },
+  {
+   "text": "Mathe-Problem",
+   "startMs": 6720,
+   "endMs": 7360
+  },
+  {
+   "text": "fest.",
+   "startMs": 7520,
+   "endMs": 7760
+  },
+  {
+   "text": "Du",
+   "startMs": 8160,
+   "endMs": 8240
+  },
+  {
+   "text": "machst",
+   "startMs": 8280,
+   "endMs": 8400
+  },
+  {
+   "text": "einfach",
+   "startMs": 8480,
+   "endMs": 8720
+  },
+  {
+   "text": "ein",
+   "startMs": 8800,
+   "endMs": 8880
+  },
+  {
+   "text": "Foto",
+   "startMs": 8960,
+   "endMs": 9360
+  },
+  {
+   "text": "oder",
+   "startMs": 9440,
+   "endMs": 9600
+  },
+  {
+   "text": "stellst",
+   "startMs": 9680,
+   "endMs": 10000
+  },
+  {
    "text": "eine",
-   "startMs": 4440,
-   "endMs": 4560
-  },
-  {
-   "text": "Frage,",
-   "startMs": 4640,
-   "endMs": 5120
-  },
-  {
-   "text": "und",
-   "startMs": 5240,
-   "endMs": 5360
-  },
-  {
-   "text": "bam!",
-   "startMs": 5520,
-   "endMs": 6240
-  },
-  {
-   "text": "Eine",
-   "startMs": 6360,
-   "endMs": 6480
-  },
-  {
-   "text": "interaktive",
-   "startMs": 6560,
-   "endMs": 7200
-  },
-  {
-   "text": "Tafel",
-   "startMs": 7280,
-   "endMs": 7600
-  },
-  {
-   "text": "öffnet",
-   "startMs": 7680,
-   "endMs": 8000
-  },
-  {
-   "text": "sich.",
-   "startMs": 8080,
-   "endMs": 8640
-  },
-  {
-   "text": "Schritt",
-   "startMs": 8720,
-   "endMs": 8960
-  },
-  {
-   "text": "für",
-   "startMs": 9040,
-   "endMs": 9120
-  },
-  {
-   "text": "Schritt.",
-   "startMs": 9280,
-   "endMs": 9920
-  },
-  {
-   "text": "Wie",
-   "startMs": 10000,
-   "endMs": 10080
-  },
-  {
-   "text": "in",
-   "startMs": 10120,
+   "startMs": 10040,
    "endMs": 10160
   },
   {
-   "text": "der",
+   "text": "Frage,",
    "startMs": 10240,
-   "endMs": 10320
+   "endMs": 10800
   },
   {
-   "text": "Vorlesung,",
-   "startMs": 10400,
-   "endMs": 11280
+   "text": "und",
+   "startMs": 10880,
+   "endMs": 11040
+  },
+  {
+   "text": "bam!",
+   "startMs": 11280,
+   "endMs": 11680
+  },
+  {
+   "text": "Eine",
+   "startMs": 12000,
+   "endMs": 12240
+  },
+  {
+   "text": "interaktive",
+   "startMs": 12320,
+   "endMs": 12960
+  },
+  {
+   "text": "Tafel",
+   "startMs": 13120,
+   "endMs": 13440
+  },
+  {
+   "text": "öffnet",
+   "startMs": 13520,
+   "endMs": 13760
+  },
+  {
+   "text": "sich.",
+   "startMs": 13800,
+   "endMs": 14080
+  },
+  {
+   "text": "Du",
+   "startMs": 14480,
+   "endMs": 14560
+  },
+  {
+   "text": "siehst,",
+   "startMs": 14640,
+   "endMs": 14920
+  },
+  {
+   "text": "wie",
+   "startMs": 14960,
+   "endMs": 15040
+  },
+  {
+   "text": "die",
+   "startMs": 15080,
+   "endMs": 15120
+  },
+  {
+   "text": "Lösung",
+   "startMs": 15200,
+   "endMs": 15520
+  },
+  {
+   "text": "Schritt",
+   "startMs": 15680,
+   "endMs": 16000
+  },
+  {
+   "text": "für",
+   "startMs": 16080,
+   "endMs": 16160
+  },
+  {
+   "text": "Schritt",
+   "startMs": 16240,
+   "endMs": 16480
+  },
+  {
+   "text": "aufgebaut",
+   "startMs": 16560,
+   "endMs": 17040
+  },
+  {
+   "text": "wird.",
+   "startMs": 17120,
+   "endMs": 17360
+  },
+  {
+   "text": "Dein",
+   "startMs": 17760,
+   "endMs": 17920
+  },
+  {
+   "text": "virtueller",
+   "startMs": 18040,
+   "endMs": 18400
+  },
+  {
+   "text": "Professor",
+   "startMs": 18480,
+   "endMs": 18960
+  },
+  {
+   "text": "erklärt",
+   "startMs": 19040,
+   "endMs": 19360
+  },
+  {
+   "text": "die",
+   "startMs": 19400,
+   "endMs": 19440
+  },
+  {
+   "text": "Intuition",
+   "startMs": 19520,
+   "endMs": 20240
+  },
+  {
+   "text": "hinter",
+   "startMs": 20320,
+   "endMs": 20480
+  },
+  {
+   "text": "der",
+   "startMs": 20520,
+   "endMs": 20560
+  },
+  {
+   "text": "Formel",
+   "startMs": 20640,
+   "endMs": 20960
+  },
+  {
+   "text": "mit",
+   "startMs": 21040,
+   "endMs": 21280
+  },
+  {
+   "text": "echten",
+   "startMs": 21360,
+   "endMs": 21600
+  },
+  {
+   "text": "Analogien,",
+   "startMs": 21680,
+   "endMs": 22320
+  },
+  {
+   "text": "die",
+   "startMs": 22400,
+   "endMs": 22480
+  },
+  {
+   "text": "Sinn",
+   "startMs": 22560,
+   "endMs": 22720
+  },
+  {
+   "text": "machen.",
+   "startMs": 22800,
+   "endMs": 23320
+  },
+  {
+   "text": "Es",
+   "startMs": 23520,
+   "endMs": 23600
+  },
+  {
+   "text": "ist",
+   "startMs": 23680,
+   "endMs": 23760
+  },
+  {
+   "text": "wie",
+   "startMs": 23840,
+   "endMs": 23920
+  },
+  {
+   "text": "in",
+   "startMs": 24000,
+   "endMs": 24080
+  },
+  {
+   "text": "einem",
+   "startMs": 24133,
+   "endMs": 24240
+  },
+  {
+   "text": "privaten",
+   "startMs": 24320,
+   "endMs": 24800
+  },
+  {
+   "text": "Hörsaal,",
+   "startMs": 24880,
+   "endMs": 25600
   },
   {
    "text": "nur",
-   "startMs": 11360,
-   "endMs": 11520
+   "startMs": 25680,
+   "endMs": 25760
   },
   {
-   "text": "besser.",
-   "startMs": 11600,
-   "endMs": 12240
+   "text": "dass",
+   "startMs": 25800,
+   "endMs": 26000
+  },
+  {
+   "text": "du",
+   "startMs": 26080,
+   "endMs": 26240
+  },
+  {
+   "text": "die",
+   "startMs": 26280,
+   "endMs": 26320
+  },
+  {
+   "text": "Kontrolle",
+   "startMs": 26400,
+   "endMs": 26800
+  },
+  {
+   "text": "hast.",
+   "startMs": 26880,
+   "endMs": 27440
   }
  ]
 }

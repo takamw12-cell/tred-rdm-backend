@@ -2,109 +2,309 @@
  "id": "c5-en",
  "words": [
   {
-   "text": "Learning",
+   "text": "Let's",
    "startMs": 0,
+   "endMs": 240
+  },
+  {
+   "text": "be",
+   "startMs": 320,
    "endMs": 400
   },
   {
-   "text": "shouldn't",
-   "startMs": 560,
-   "endMs": 880
-  },
-  {
-   "text": "feel",
-   "startMs": 960,
+   "text": "honest.",
+   "startMs": 480,
    "endMs": 1120
   },
   {
+   "text": "Learning",
+   "startMs": 1280,
+   "endMs": 1680
+  },
+  {
+   "text": "shouldn't",
+   "startMs": 1760,
+   "endMs": 2080
+  },
+  {
+   "text": "feel",
+   "startMs": 2240,
+   "endMs": 2400
+  },
+  {
    "text": "like",
-   "startMs": 1200,
-   "endMs": 1280
+   "startMs": 2480,
+   "endMs": 2560
   },
   {
    "text": "a",
-   "startMs": 1333,
-   "endMs": 1387
+   "startMs": 2640,
+   "endMs": 2720
   },
   {
    "text": "punishment.",
-   "startMs": 1440,
-   "endMs": 2160
+   "startMs": 2800,
+   "endMs": 3440
   },
   {
    "text": "TRED",
-   "startMs": 2560,
-   "endMs": 2880
+   "startMs": 3920,
+   "endMs": 4240
   },
   {
    "text": "looks",
-   "startMs": 3000,
-   "endMs": 3120
-  },
-  {
-   "text": "incredible,",
-   "startMs": 3200,
-   "endMs": 4160
-  },
-  {
-   "text": "works",
    "startMs": 4320,
-   "endMs": 4480
+   "endMs": 4640
   },
   {
-   "text": "flawlessly,",
-   "startMs": 4560,
-   "endMs": 5360
+   "text": "absolutely",
+   "startMs": 4800,
+   "endMs": 5280
+  },
+  {
+   "text": "incredible.",
+   "startMs": 5360,
+   "endMs": 6320
+  },
+  {
+   "text": "With",
+   "startMs": 6480,
+   "endMs": 6560
+  },
+  {
+   "text": "a",
+   "startMs": 6640,
+   "endMs": 6720
+  },
+  {
+   "text": "premium",
+   "startMs": 6920,
+   "endMs": 7120
+  },
+  {
+   "text": "dark",
+   "startMs": 7200,
+   "endMs": 7440
+  },
+  {
+   "text": "mode,",
+   "startMs": 7520,
+   "endMs": 7920
+  },
+  {
+   "text": "beautiful",
+   "startMs": 8000,
+   "endMs": 8400
+  },
+  {
+   "text": "animations,",
+   "startMs": 8480,
+   "endMs": 9280
   },
   {
    "text": "and",
-   "startMs": 5480,
-   "endMs": 5600
+   "startMs": 9320,
+   "endMs": 9360
+  },
+  {
+   "text": "custom",
+   "startMs": 9520,
+   "endMs": 9840
+  },
+  {
+   "text": "backgrounds",
+   "startMs": 9920,
+   "endMs": 10400
+  },
+  {
+   "text": "for",
+   "startMs": 10480,
+   "endMs": 10560
+  },
+  {
+   "text": "your",
+   "startMs": 10640,
+   "endMs": 10800
+  },
+  {
+   "text": "specific",
+   "startMs": 10880,
+   "endMs": 11360
+  },
+  {
+   "text": "major.",
+   "startMs": 11560,
+   "endMs": 12160
+  },
+  {
+   "text": "It",
+   "startMs": 12200,
+   "endMs": 12240
+  },
+  {
+   "text": "works",
+   "startMs": 12320,
+   "endMs": 12560
+  },
+  {
+   "text": "flawlessly",
+   "startMs": 12640,
+   "endMs": 13280
+  },
+  {
+   "text": "on",
+   "startMs": 13400,
+   "endMs": 13520
+  },
+  {
+   "text": "any",
+   "startMs": 13600,
+   "endMs": 13760
+  },
+  {
+   "text": "device",
+   "startMs": 14040,
+   "endMs": 14320
+  },
+  {
+   "text": "and",
+   "startMs": 14480,
+   "endMs": 14800
   },
   {
    "text": "actually",
-   "startMs": 5800,
-   "endMs": 6000
+   "startMs": 15000,
+   "endMs": 15200
   },
   {
    "text": "makes",
-   "startMs": 6080,
-   "endMs": 6240
+   "startMs": 15280,
+   "endMs": 15440
   },
   {
-   "text": "studying...",
-   "startMs": 6320,
-   "endMs": 7280
+   "text": "studying",
+   "startMs": 15520,
+   "endMs": 16000
   },
   {
-   "text": "kinda",
-   "startMs": 7400,
-   "endMs": 7680
+   "text": "kind",
+   "startMs": 16240,
+   "endMs": 16480
+  },
+  {
+   "text": "of",
+   "startMs": 16560,
+   "endMs": 16640
   },
   {
    "text": "fun?",
-   "startMs": 7840,
-   "endMs": 8080
+   "startMs": 16720,
+   "endMs": 17280
   },
   {
    "text": "Yeah,",
-   "startMs": 8560,
-   "endMs": 9040
+   "startMs": 17520,
+   "endMs": 18000
   },
   {
    "text": "I",
-   "startMs": 9120,
-   "endMs": 9200
+   "startMs": 18080,
+   "endMs": 18160
   },
   {
    "text": "said",
-   "startMs": 9280,
-   "endMs": 9440
+   "startMs": 18240,
+   "endMs": 18400
   },
   {
    "text": "it.",
-   "startMs": 9520,
-   "endMs": 10000
+   "startMs": 18480,
+   "endMs": 18960
+  },
+  {
+   "text": "Join",
+   "startMs": 19080,
+   "endMs": 19200
+  },
+  {
+   "text": "the",
+   "startMs": 19280,
+   "endMs": 19360
+  },
+  {
+   "text": "thousands",
+   "startMs": 19440,
+   "endMs": 19840
+  },
+  {
+   "text": "of",
+   "startMs": 19880,
+   "endMs": 19920
+  },
+  {
+   "text": "students",
+   "startMs": 20000,
+   "endMs": 20480
+  },
+  {
+   "text": "already",
+   "startMs": 20720,
+   "endMs": 20960
+  },
+  {
+   "text": "upgrading",
+   "startMs": 21040,
+   "endMs": 21440
+  },
+  {
+   "text": "their",
+   "startMs": 21520,
+   "endMs": 21600
+  },
+  {
+   "text": "learning",
+   "startMs": 21760,
+   "endMs": 21920
+  },
+  {
+   "text": "experience.",
+   "startMs": 22280,
+   "endMs": 23040
+  },
+  {
+   "text": "TRED.",
+   "startMs": 23080,
+   "endMs": 23840
+  },
+  {
+   "text": "The",
+   "startMs": 23880,
+   "endMs": 23920
+  },
+  {
+   "text": "ultimate",
+   "startMs": 24080,
+   "endMs": 24400
+  },
+  {
+   "text": "university",
+   "startMs": 24480,
+   "endMs": 25120
+  },
+  {
+   "text": "in",
+   "startMs": 25280,
+   "endMs": 25360
+  },
+  {
+   "text": "your",
+   "startMs": 25440,
+   "endMs": 25600
+  },
+  {
+   "text": "pocket.",
+   "startMs": 25733,
+   "endMs": 26320
   }
  ]
 }
