@@ -22,6 +22,7 @@ import {
   userPlan,
 } from "../database/schema";
 import { account, session, user } from "../database/auth-schema";
+import { ancillaryErasureSteps, exportAncillaryData } from "./gdpr-ancillary";
 
 /**
  * DSGVO Art. 15/20 (Auskunft und Datenübertragbarkeit) und Art. 17
@@ -65,6 +66,15 @@ export const PERSONAL_DATA_TABLES = [
   // « Als Video erklären » : les vidéos explicatives et les calculs des solveurs.
   "generated_video",
   "solver_result",
+  // Six tables secondaires oubliées, traitées par lib/gdpr-ancillary.ts
+  // (décisions du fondateur du 2026-11-11). Deux sont ANONYMISÉES — le contenu
+  // reste, le lien vers le compte disparaît — et quatre sont effacées.
+  "feedback (anonymisiert)",
+  "shared_knowledge (anonymisiert)",
+  "course_member",
+  "avatar_usage",
+  "shared_knowledge_vote",
+  "user_notifications",
 ] as const;
 
 /* -------------------------------------------------------------------------- */
@@ -108,6 +118,8 @@ export async function exportUserData(userId: string) {
     optional(db.select().from(generatedVideo).where(eq(generatedVideo.userId, userId))),
     optional(db.select().from(solverResult).where(eq(solverResult.userId, userId))),
   ]);
+
+  const nebentabellen = await exportAncillaryData(db, userId);
 
   const [semesters, documents, exercises, tokens, transactions, luecken] =
     await Promise.all([
@@ -154,6 +166,7 @@ export async function exportUserData(userId: string) {
     karteikarten,
     erklaervideos,
     solverErgebnisse,
+    ...nebentabellen,
     semester: semesters,
     dokumente: documents.map((d) => ({
       ...d,
@@ -266,6 +279,9 @@ export async function deleteUserData(userId: string): Promise<DeletionReport> {
   await step("solver_result", () =>
     db.delete(solverResult).where(eq(solverResult.userId, userId)),
   );
+  // Feedback et explications partagées : anonymisés. Cours, avatar, votes,
+  // notifications : effacés. Avant la suppression du compte lui-même.
+  for (const [label, run] of ancillaryErasureSteps(db, userId)) await step(label, run);
 
   await step("session", () => db.delete(session).where(eq(session.userId, userId)));
   await step("account", () => db.delete(account).where(eq(account.userId, userId)));
