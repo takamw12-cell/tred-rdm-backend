@@ -491,7 +491,11 @@ Plan complet : `docs/VIDEO_EXPLAINER_ARCHITECTURE.md`. Le backend est en place ;
   - **À faire une fois :** lancer `node C:\dev\tred-rdm\aerostudy-ai\migre-solver-result.mjs`. Tant que ce n'est pas fait, les calculs ne sont pas conservés et la vidéo ne s'appuie que sur les documents.
   - Seuls les calculs faits **après** cette mise en ligne sont enregistrés ; les anciennes conversations n'en ont pas.
   - Suppression de compte : `generated_video` et `solver_result` sont effacées avec le reste (`api/lib/gdpr.ts`).
-- **Pas encore fait :** aucun MP4 n'est produit (le lecteur joue le script et l'audio).
+- **Lecteur et tableau de bord (2026-11-11) :** le bouton « Als Video erklären » du Hörsaal appelle la nouvelle route, affiche la préparation (« Drehbuch wird geschrieben », « Stimme wird aufgenommen »), puis joue la vidéo dans une fenêtre, avec le bouton « Im Dashboard speichern ». Le tableau de bord a une section « Meine Erklärvideos ». Tous les textes passent par `t()` dans les 12 langues (`explainer.*`).
+  - **Composition :** `packages/web/src/web/video/dynamic-explanation.tsx` (vrais composants du tableau, KaTeX, source citée ou tampon du solveur, sous-titres mot à mot). Verticale sur téléphone, horizontale sur ordinateur. Sa durée est celle de la voix. Elle est aussi enregistrée dans `packages/video` (`DynamicExplanation`) pour l'aperçu et un futur export.
+  - **Nouvelle dépendance de l'app :** `@remotion/player` et `remotion` 4.0.539 (version exacte, publiée le 26 oct. 2026, la même que le paquet vidéo). Même licence que plus haut : gratuite jusqu'à 3 personnes dans l'entreprise, payante dès la 4ᵉ. Aucun compte, aucune clé. Le lecteur est chargé à la demande (environ 360 Ko), seulement quand une vidéo est ouverte.
+  - **Repli :** si la fonction n'est pas configurée sur le serveur (clé absente, table absente), le bouton rouvre l'ancien diaporama.
+- **Pas encore fait :** aucun MP4 n'est produit (le lecteur joue le script et l'audio) ; pas de téléchargement ni de partage de la vidéo.
 
 ## Sécurité — protocole du 2026-11-09
 

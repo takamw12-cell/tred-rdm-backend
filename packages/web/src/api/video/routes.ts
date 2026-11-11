@@ -11,6 +11,7 @@ import { PRIMARY_MODEL } from "../lib/ai-models";
 import { LANGUAGES } from "../lib/languages";
 import { MEDIA_BUCKET, mediaClient, mediaStorageConfigured } from "../lib/media-storage";
 import { addOutputTokens, consume, quotaError, tokenCapError, withinTokenCap } from "../lib/plan";
+import { readProfessor } from "../lib/professor-store";
 import { selectRelevantContext } from "../lib/retrieval";
 import { MAX_SOLVER_RUNS, SOLVER_WINDOW_MS, serializeSolverRun, type SolverRun } from "../lib/solver-results";
 import {
@@ -66,7 +67,7 @@ const MAX_CONTEXT_CHARS = 24_000;
 const STALE_MS = 5 * 60_000;
 const ID_RE = /^gv_[a-f0-9]{20}$/;
 
-type StoredScript = { scenes: ValidatedScene[]; words: VoiceWord[]; sceneStartsMs: number[] };
+type StoredScript = { scenes: ValidatedScene[]; words: VoiceWord[]; sceneStartsMs: number[]; professor?: string };
 
 /** Code d'erreur stable, lu par le navigateur pour choisir son message. */
 type VideoError = "not_grounded" | "script_failed" | "daily_limit" | "voice_failed" | "storage_failed" | "timeout";
@@ -150,8 +151,8 @@ async function synthesize(text: string, voiceId: string, language: string): Prom
 }
 
 /** Le pipeline, après la réponse HTTP. Chaque étape met `status` à jour pour le polling. */
-async function runPipeline(job: { id: string; userId: string; req: VideoRequest; sources: VideoSource[]; voiceId: string }): Promise<void> {
-  const { id, userId, req, sources, voiceId } = job;
+async function runPipeline(job: { id: string; userId: string; req: VideoRequest; sources: VideoSource[]; voiceId: string; professor: string }): Promise<void> {
+  const { id, userId, req, sources, voiceId, professor } = job;
   const language = LANGUAGES[req.language]!;
 
   // 1. Le script, puis son contrôle par du code.
@@ -205,7 +206,7 @@ async function runPipeline(job: { id: string; userId: string; req: VideoRequest;
     console.error(`[video] ${id} : stockage`, (err as Error).message?.slice(0, 300));
     return void (await fail(id, "storage_failed"));
   }
-  const stored: StoredScript = { scenes, words, sceneStartsMs: sceneStartsMs(scenes, words) };
+  const stored: StoredScript = { scenes, words, sceneStartsMs: sceneStartsMs(scenes, words), professor };
   await setStatus(id, { status: "done", script: JSON.stringify(stored), audioKey, durationMs: videoDurationMs(words) });
   console.log(`[video] ${id} : prête, ${scenes.length} scènes, ${Math.round(videoDurationMs(words) / 1000)} s, ${text.length} caractères, langue ${req.language}`);
 }
@@ -226,7 +227,9 @@ export function registerVideoRoutes(app: Hono) {
     if (!LANGUAGES[language]) return c.json({ error: "unsupported_language" }, 400);
     const req: VideoRequest = { ...parsed.data, language };
 
-    const voiceId = voiceFor(language, req.professor);
+    // Le professeur de la vidéo (sa voix, son hologramme) : celui que l'étudiant a choisi.
+    const professor = req.professor ?? (await readProfessor(uid));
+    const voiceId = voiceFor(language, professor);
     if (!voiceId) return c.json({ error: "not_configured" }, 503);
 
     // Les mêmes documents que le chat : les miens, et ceux partagés dans mes cours.
@@ -267,7 +270,7 @@ export function registerVideoRoutes(app: Hono) {
     }
 
     // Le pipeline continue après la réponse ; une erreur imprévue marque la vidéo en échec.
-    void runPipeline({ id, userId: uid, req, sources, voiceId }).catch(async (err) => {
+    void runPipeline({ id, userId: uid, req, sources, voiceId, professor }).catch(async (err) => {
       console.error(`[video] ${id} : pipeline`, (err as Error).message?.slice(0, 300));
       await fail(id, "script_failed").catch(() => {});
     });
@@ -319,6 +322,7 @@ export function registerVideoRoutes(app: Hono) {
       scenes: script.scenes ?? [],
       words: script.words ?? [],
       sceneStartsMs: script.sceneStartsMs ?? [],
+      professor: script.professor ?? null,
     });
   });
 

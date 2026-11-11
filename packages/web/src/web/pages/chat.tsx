@@ -61,6 +61,8 @@ import { Repeat2, Volume2, VolumeX } from "lucide-react";
 import { useProfessorChoreography } from "@/components/hologram-professor";
 import { spokenAnswer } from "@/lib/professor-choreography";
 import { VideoExplainer, type VideoScript } from "@/components/video-explainer";
+import { ExplainerVideoDialog } from "@/components/explainer-video";
+import { runExplainerVideo, type ExplainerState } from "@/lib/explainer-video";
 import { UnderstandingQuiz } from "@/components/understanding-quiz";
 import { useGenerateFlashcards } from "@/lib/flashcards-api";
 import {
@@ -1097,6 +1099,10 @@ export default function ChatPage() {
   const [videoLoading, setVideoLoading] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const lastTopic = useRef<string>("");
+  // « Als Video erklären » : la vidéo sur mesure (script validé + voix). null = fenêtre fermée.
+  const [explainer, setExplainer] = useState<ExplainerState | null>(null);
+  const explainerAbort = useRef<AbortController | null>(null);
+  const lastExplainerMessage = useRef<string>("");
 
   // Videosuche (YouTube) — unabhängig vom generierten Erklärvideo.
   // « Prüfe mein Verständnis » : la réponse dont on vérifie la compréhension.
@@ -1229,6 +1235,45 @@ export default function ChatPage() {
     }
   }
 
+  /**
+   * La vidéo explicative de CETTE réponse : fondée sur le cours de l'étudiant
+   * et sur les calculs des solveurs de la conversation. Si la fonction n'est
+   * pas configurée sur le serveur, l'ancien diaporama prend le relais.
+   */
+  function runExplainer(messageId: string) {
+    const msg = messages.find((m) => m.id === messageId);
+    const answer = displayText(msg ?? ({} as UIMessage));
+    lastExplainerMessage.current = messageId;
+    explainerAbort.current?.abort();
+    const control = new AbortController();
+    explainerAbort.current = control;
+    void runExplainerVideo(
+      {
+        question: questionBefore(messageId),
+        answer,
+        language: locale,
+        chatId: convId,
+        messageId,
+        docId: activeDoc?.id ?? null,
+        semesterId,
+      },
+      (state) => {
+        if (state.phase === "unavailable") {
+          setExplainer(null);
+          void runVideo(answer);
+        } else {
+          setExplainer(state);
+        }
+      },
+      control.signal,
+    );
+  }
+
+  function closeExplainer() {
+    explainerAbort.current?.abort();
+    setExplainer(null);
+  }
+
   function handleAction(
     messageId: string,
     action: "why" | "explain" | "engineer" | "video" | "ytsearch" | "quiz" | "flashcards",
@@ -1249,8 +1294,7 @@ export default function ChatPage() {
       return;
     }
     if (action === "video") {
-      const msg = messages.find((m) => m.id === messageId);
-      void runVideo(displayText(msg ?? ({} as UIMessage)));
+      runExplainer(messageId);
       return;
     }
     if (action === "ytsearch") {
@@ -2178,6 +2222,7 @@ export default function ChatPage() {
         highlight={sourceView?.highlight ?? null}
         onClose={() => setSourceView(null)}
       />
+      <ExplainerVideoDialog state={explainer} onClose={closeExplainer} onRetry={() => runExplainer(lastExplainerMessage.current)} />
       <AnimatePresence>
         {videoOpen && (
           <ErrorBoundary area="video" variant="inline" label="Das Erklärvideo konnte nicht angezeigt werden.">

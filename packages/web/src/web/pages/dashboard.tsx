@@ -28,6 +28,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { MemoryCard } from "@/components/memory-card";
 import { ReviewCard } from "@/components/review-card";
 import { DocFlashcardsButton, FlashcardsWidget } from "@/components/flashcards-widget";
+import { ExplainerVideosWidget } from "@/components/explainer-video";
 import { NotificationInbox } from "@/components/notification-inbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -388,6 +389,11 @@ export default function DashboardPage() {
 
       <Reveal className="mb-6">
         <FlashcardsWidget />
+      </Reveal>
+
+      {/* « Meine Erklärvideos » : les vidéos explicatives sauvegardées depuis le Hörsaal. */}
+      <Reveal className="mb-6">
+        <ExplainerVideosWidget />
       </Reveal>
 
       {/* Real stats */}

@@ -1,6 +1,6 @@
 # Architecture — « Als Video erklären » (vidéo explicative sur mesure)
 
-> Statut : **plan validé par le fondateur le 11 novembre 2026. Backend codé ; lecteur et tableau de bord à venir.**
+> Statut : **validé par le fondateur le 11 novembre 2026. Backend, lecteur et tableau de bord codés ; export MP4 à venir.**
 > Rédigé le 11 novembre 2026. À ne pas confondre avec `VIDEO_ARCHITECTURE.md` (génération vidéo par modèle, Grok / Runway).
 
 ## Le principe
@@ -114,4 +114,5 @@ Table `generated_video`, créée par `migre-generated-video.mjs` (idempotent) :
 ## État
 
 - Backend : fait (routes, tables `generated_video` et `solver_result`, validateur, voix).
-- Remotion (`DynamicExplanation`), Frontend, Dashboard : à faire.
+- Remotion (`DynamicExplanation`), Frontend (fenêtre dans le Hörsaal, polling, 12 langues), Dashboard (« Meine Erklärvideos ») : faits le 11 novembre 2026.
+- À faire : export MP4 (Remotion Lambda), téléchargement et partage.
