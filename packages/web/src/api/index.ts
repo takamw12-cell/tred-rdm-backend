@@ -54,6 +54,7 @@ import { studyProfileHint, type StudyProfileInput } from "./lib/study-profile";
 import { mailCanReachAnyone } from "./lib/mail";
 import { registerAnalyticsRoutes } from "./analytics/routes";
 import { registerFlashcardRoutes } from "./flashcards/routes";
+import { registerVideoRoutes } from "./video/routes";
 import { registerVisionRoutes } from "./vision/routes";
 import { flashcards } from "./routes/flashcards";
 import { examPredictor } from "./routes/exam-predictor";
@@ -434,6 +435,8 @@ registerTtsRoutes(app);
 // Betreiber-Dashboard /admin/analytics (DB + PostHog), nur Rolle admin.
 registerAnalyticsRoutes(app, requireAdmin);
 registerFlashcardRoutes(app);
+// « Als Video erklären » : vidéo explicative sur mesure (script validé + voix).
+registerVideoRoutes(app);
 // Co-pilote vision (V2, Pilier 3) — squelette : 501 tant que non branché.
 registerVisionRoutes(app);
 

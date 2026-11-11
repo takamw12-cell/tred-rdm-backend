@@ -833,3 +833,44 @@ export const retentionSetting = sqliteTable("retention_setting", {
     .notNull()
     .$defaultFn(() => new Date()),
 });
+
+// ── « Als Video erklären » : les vidéos explicatives sur mesure ───────────
+//
+// Une ligne par vidéo demandée dans le chat. Le pipeline (api/video/routes.ts)
+// la fait passer de pending → script → voice → done (ou failed) ; le navigateur
+// suit `status` en polling. Il n'y a pas de MP4 : `script` (scènes validées et
+// horodatage de la voix) et `audioKey` (le MP3 dans le bucket des médias)
+// suffisent au lecteur. `videoKey` reste nul tant qu'aucun export n'existe.
+// `durationMs` est la durée de la voix : aucune durée n'est fixée dans le code.
+// Table créée sur Turso par migre-generated-video.mjs (racine du dépôt).
+export const generatedVideo = sqliteTable(
+  "generated_video",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    chatId: text("chat_id"),
+    messageId: text("message_id"),
+    title: text("title").notNull().default(""),
+    /** La question de l'étudiant (tronquée). */
+    prompt: text("prompt").notNull().default(""),
+    /** Langue de l'interface de l'étudiant : celle du script et de la voix. */
+    language: text("language").notNull().default("de"),
+    /** « pending » | « script » | « voice » | « done » | « failed ». */
+    status: text("status").notNull().default("pending"),
+    /** Code d'erreur stable (« not_grounded », « daily_limit »…), jamais un message brut. */
+    error: text("error"),
+    /** JSON : { scenes, words, sceneStartsMs } — vide tant que status ≠ done. */
+    script: text("script"),
+    audioKey: text("audio_key"),
+    videoKey: text("video_key"),
+    durationMs: integer("duration_ms").notNull().default(0),
+    /** « Im Dashboard speichern ». */
+    saved: integer("saved", { mode: "boolean" }).notNull().default(false),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("generated_video_user_idx").on(t.userId, t.createdAt)],
+);
+
+export type GeneratedVideo = typeof generatedVideo.$inferSelect;

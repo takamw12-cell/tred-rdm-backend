@@ -473,6 +473,17 @@ Les vidéos TikTok / Reels de TRED sont du **code React** : elles réutilisent l
   - **Mémoire :** le rendu tourne en `--concurrency=1` (une image à la fois). Sans cette limite, Remotion ouvre plusieurs onglets Chrome en parallèle et WSL (7,6 Go) est tué par Windows faute de mémoire. Mesuré le 2026-11-11 : pic de 3,7 Go, environ 3 min 20 par vidéo.
 - **Licence (vérifiée le 2026-11-10).** Gratuite pour une personne seule et pour les entreprises de **3 personnes au plus**, y compris en usage commercial. **Dès la 4ᵉ personne dans l'entreprise, une « Company License » est obligatoire.** Les prix publiés par des sites tiers se contredisent (de 25 $ à 100 $ par mois et plus) : vérifier le tarif officiel sur https://www.remotion.pro/license le jour de la 4ᵉ embauche. Aucun compte ni aucune clé ne sont nécessaires aujourd'hui.
 
+## « Als Video erklären » — vidéo explicative sur mesure (backend, 2026-11-11)
+
+Plan complet : `docs/VIDEO_EXPLAINER_ARCHITECTURE.md`. Le backend est en place ; le lecteur dans le chat et la section du tableau de bord suivent.
+
+- **À faire une fois :** lancer `node C:\dev\tred-rdm\aerostudy-ai\migre-generated-video.mjs` (crée la table `generated_video`, sans risque à relancer). Tant que ce n'est pas fait, la génération répond `not_migrated` et le bouton garde son comportement actuel.
+- **Aucun nouveau compte, aucune nouvelle clé.** La fonction utilise `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY` et le bucket des médias (`S3_*` ou `R2_*`). Variables optionnelles : `ELEVENLABS_VIDEO_MODEL_ID`, `ELEVENLABS_VIDEO_VOICE_<LANGUE>` (une voix native par langue).
+- **Zéro invention :** sans document de cours, la vidéo est refusée et l'étudiant est invité à déposer son cours. Avec documents, chaque scène doit citer un passage mot pour mot, et chaque nombre doit figurer dans le cours ; un programme le vérifie (`api/lib/video-script.ts`, 21 tests) et supprime les scènes non prouvées.
+- **Durée et langue :** la vidéo dure le temps de la voix (30 s à 3 min) ; script et voix sont dans la langue d'interface de l'étudiant.
+- **Coût :** la voix est facturée au caractère par ElevenLabs (jusqu'à environ 2 700 caractères pour 3 minutes). Le plafond quotidien par étudiant (`ELEVENLABS_DAILY_CHARS`) et le quota « vidéo » de l'abonnement s'appliquent.
+- **Pas encore fait :** les résultats des solveurs ne sont pas encore une source acceptée (seuls les documents le sont) ; aucun MP4 n'est produit (le lecteur joue le script et l'audio).
+
 ## Sécurité — protocole du 2026-11-09
 
 - **Documents piégés :** chaque extrait de PDF est enfermé dans un bloc `<dokument>` que le contenu ne peut ni fermer ni imiter (`lib/untrusted.ts`). Le prompt (NIVEAU 10) dit que les documents sont des données, jamais des instructions, et qu'il n'existe pas de « code admin ».
