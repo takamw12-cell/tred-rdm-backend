@@ -1,0 +1,270 @@
+{
+ "id": "d2-en",
+ "words": [
+  {
+   "text": "Stuck",
+   "startMs": 0,
+   "endMs": 320
+  },
+  {
+   "text": "on",
+   "startMs": 360,
+   "endMs": 400
+  },
+  {
+   "text": "a",
+   "startMs": 480,
+   "endMs": 520
+  },
+  {
+   "text": "complex",
+   "startMs": 560,
+   "endMs": 1040
+  },
+  {
+   "text": "circuit",
+   "startMs": 1120,
+   "endMs": 1520
+  },
+  {
+   "text": "or",
+   "startMs": 1600,
+   "endMs": 1680
+  },
+  {
+   "text": "a",
+   "startMs": 1720,
+   "endMs": 1760
+  },
+  {
+   "text": "mechanical",
+   "startMs": 1840,
+   "endMs": 2240
+  },
+  {
+   "text": "beam?",
+   "startMs": 2320,
+   "endMs": 2840
+  },
+  {
+   "text": "Watch",
+   "startMs": 3040,
+   "endMs": 3360
+  },
+  {
+   "text": "this.",
+   "startMs": 3440,
+   "endMs": 4000
+  },
+  {
+   "text": "When",
+   "startMs": 4240,
+   "endMs": 4320
+  },
+  {
+   "text": "you",
+   "startMs": 4360,
+   "endMs": 4400
+  },
+  {
+   "text": "ask",
+   "startMs": 4480,
+   "endMs": 4640
+  },
+  {
+   "text": "a",
+   "startMs": 4720,
+   "endMs": 4800
+  },
+  {
+   "text": "question,",
+   "startMs": 5080,
+   "endMs": 5600
+  },
+  {
+   "text": "TRED",
+   "startMs": 5680,
+   "endMs": 6480
+  },
+  {
+   "text": "uses",
+   "startMs": 6560,
+   "endMs": 6800
+  },
+  {
+   "text": "deterministic",
+   "startMs": 6880,
+   "endMs": 7600
+  },
+  {
+   "text": "solvers",
+   "startMs": 7760,
+   "endMs": 8160
+  },
+  {
+   "text": "to",
+   "startMs": 8240,
+   "endMs": 8280
+  },
+  {
+   "text": "draw",
+   "startMs": 8320,
+   "endMs": 8560
+  },
+  {
+   "text": "the",
+   "startMs": 8600,
+   "endMs": 8640
+  },
+  {
+   "text": "exact",
+   "startMs": 8720,
+   "endMs": 9280
+  },
+  {
+   "text": "diagram.",
+   "startMs": 9360,
+   "endMs": 10400
+  },
+  {
+   "text": "Every",
+   "startMs": 10520,
+   "endMs": 10640
+  },
+  {
+   "text": "component,",
+   "startMs": 10960,
+   "endMs": 11520
+  },
+  {
+   "text": "every",
+   "startMs": 11640,
+   "endMs": 11760
+  },
+  {
+   "text": "force,",
+   "startMs": 11920,
+   "endMs": 12560
+  },
+  {
+   "text": "perfectly",
+   "startMs": 12800,
+   "endMs": 13120
+  },
+  {
+   "text": "placed.",
+   "startMs": 13200,
+   "endMs": 14000
+  },
+  {
+   "text": "No",
+   "startMs": 14080,
+   "endMs": 14240
+  },
+  {
+   "text": "AI",
+   "startMs": 14320,
+   "endMs": 14560
+  },
+  {
+   "text": "hallucinations",
+   "startMs": 14640,
+   "endMs": 15280
+  },
+  {
+   "text": "here.",
+   "startMs": 15360,
+   "endMs": 16000
+  },
+  {
+   "text": "Just",
+   "startMs": 16080,
+   "endMs": 16320
+  },
+  {
+   "text": "pure,",
+   "startMs": 16520,
+   "endMs": 16880
+  },
+  {
+   "text": "mathematical",
+   "startMs": 17000,
+   "endMs": 17600
+  },
+  {
+   "text": "accuracy.",
+   "startMs": 17680,
+   "endMs": 18800
+  },
+  {
+   "text": "You",
+   "startMs": 18880,
+   "endMs": 18960
+  },
+  {
+   "text": "can",
+   "startMs": 19040,
+   "endMs": 19120
+  },
+  {
+   "text": "even",
+   "startMs": 19200,
+   "endMs": 19360
+  },
+  {
+   "text": "see",
+   "startMs": 19440,
+   "endMs": 19520
+  },
+  {
+   "text": "the",
+   "startMs": 19600,
+   "endMs": 19680
+  },
+  {
+   "text": "exact",
+   "startMs": 19760,
+   "endMs": 20160
+  },
+  {
+   "text": "steps",
+   "startMs": 20240,
+   "endMs": 20560
+  },
+  {
+   "text": "to",
+   "startMs": 20640,
+   "endMs": 20720
+  },
+  {
+   "text": "solve",
+   "startMs": 20840,
+   "endMs": 20960
+  },
+  {
+   "text": "it.",
+   "startMs": 21040,
+   "endMs": 21520
+  },
+  {
+   "text": "It's",
+   "startMs": 21600,
+   "endMs": 21840
+  },
+  {
+   "text": "engineering",
+   "startMs": 22160,
+   "endMs": 22480
+  },
+  {
+   "text": "made",
+   "startMs": 22640,
+   "endMs": 22880
+  },
+  {
+   "text": "visual.",
+   "startMs": 22960,
+   "endMs": 23680
+  }
+ ]
+}

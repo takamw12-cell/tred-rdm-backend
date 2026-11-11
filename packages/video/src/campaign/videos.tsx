@@ -46,12 +46,12 @@ import music5de from "../assets/music-c5-de.mp3";
  * assistant ; la mécanique s'appelle « Technische Mechanik ».
  */
 
-type Lang = "en" | "de";
-const prof = (id: keyof typeof PROFESSORS) => withStaticImage(PROFESSORS[id]);
-const PROFS = PROFESSOR_IDS.map((id) => prof(id));
+export type Lang = "en" | "de";
+export const prof = (id: keyof typeof PROFESSORS) => withStaticImage(PROFESSORS[id]);
+export const PROFS = PROFESSOR_IDS.map((id) => prof(id));
 
 /** Toutes les filières, une photo chacune (fonds de l'app). */
-const FIELDS: Record<Lang, { src: string; label: string }[]> = {
+export const FIELDS: Record<Lang, { src: string; label: string }[]> = {
   en: [
     { src: BG("medicine", 1), label: "Medicine" },
     { src: BG("law", 2), label: "Law" },
@@ -101,7 +101,7 @@ const PHONE: Record<Lang, { greeting: string; cards: { title: string; sub: strin
   },
 };
 
-const ROTATION = [BG("aerospace", 4), BG("medicine", 1), BG("law", 1), BG("electrical", 2), BG("biology", 8), BG("economics", 7), BG("physics", 1), BG("history", 8)];
+export const ROTATION = [BG("aerospace", 4), BG("medicine", 1), BG("law", 1), BG("electrical", 2), BG("biology", 8), BG("economics", 7), BG("physics", 1), BG("history", 8)];
 
 /** Mots synchronisés : chaque photo apparaît quand la voix nomme sa filière. */
 function Beats({ items }: { items: { src: string; label: string; at: number }[] }) {
@@ -121,12 +121,12 @@ function Beats({ items }: { items: { src: string; label: string; at: number }[] 
 
 /* ── Le tableau : Technische Mechanik, un balken, étape par étape ─────── */
 
-const BEAM = {
+export const BEAM = {
   en: { eyebrow: "Digitaler Hörsaal · Technische Mechanik", title: "Beam on two supports", given: "Given: q = 2 kN/m, l = 4 m", steps: ["Free-body diagram", "Equilibrium", "Support forces", "Result"], stamp: ["Computed", "by the solver"] },
   de: { eyebrow: "Digitaler Hörsaal · Technische Mechanik", title: "Balken auf zwei Lagern", given: "Gegeben: q = 2 kN/m, l = 4 m", steps: ["Freischnitt", "Gleichgewicht", "Lagerkräfte", "Ergebnis"], stamp: ["Berechnet", "mit dem Löser"] },
 } as const;
 
-function BeamBoard({ lang, at, step, scrollAt }: { lang: Lang; at: number; step: (frame: number) => number; scrollAt?: number }) {
+export function BeamBoard({ lang, at, step, scrollAt }: { lang: Lang; at: number; step: (frame: number) => number; scrollAt?: number }) {
   const frame = useCurrentFrame();
   const t = BEAM[lang];
   const k = step(frame);
@@ -206,11 +206,11 @@ function SolverWall({ lang, at }: { lang: Lang; at: number[] }) {
   );
 }
 
-type Outro = { tagline: ReactNode; sub?: string; word?: string };
+export type Outro = { tagline: ReactNode; sub?: string; word?: string };
 
 /* ── Textes par concept et par langue ────────────────────────────────── */
 
-const T = {
+export const T = {
   en: {
     real: "Let's be real.",
     pocket: <>Your university. {mark("In your pocket.")}</>,

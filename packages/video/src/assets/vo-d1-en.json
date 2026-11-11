@@ -1,0 +1,265 @@
+{
+ "id": "d1-en",
+ "words": [
+  {
+   "text": "Let",
+   "startMs": 0,
+   "endMs": 160
+  },
+  {
+   "text": "me",
+   "startMs": 200,
+   "endMs": 240
+  },
+  {
+   "text": "show",
+   "startMs": 320,
+   "endMs": 400
+  },
+  {
+   "text": "you",
+   "startMs": 480,
+   "endMs": 560
+  },
+  {
+   "text": "exactly",
+   "startMs": 720,
+   "endMs": 1200
+  },
+  {
+   "text": "how",
+   "startMs": 1280,
+   "endMs": 1360
+  },
+  {
+   "text": "TRED",
+   "startMs": 1440,
+   "endMs": 1680
+  },
+  {
+   "text": "works.",
+   "startMs": 1760,
+   "endMs": 2400
+  },
+  {
+   "text": "You",
+   "startMs": 2640,
+   "endMs": 2720
+  },
+  {
+   "text": "just",
+   "startMs": 2800,
+   "endMs": 2880
+  },
+  {
+   "text": "type",
+   "startMs": 3000,
+   "endMs": 3120
+  },
+  {
+   "text": "your",
+   "startMs": 3200,
+   "endMs": 3280
+  },
+  {
+   "text": "question",
+   "startMs": 3480,
+   "endMs": 3680
+  },
+  {
+   "text": "right",
+   "startMs": 3760,
+   "endMs": 4000
+  },
+  {
+   "text": "here...",
+   "startMs": 4160,
+   "endMs": 4720
+  },
+  {
+   "text": "hit",
+   "startMs": 4800,
+   "endMs": 4960
+  },
+  {
+   "text": "send.",
+   "startMs": 5040,
+   "endMs": 5440
+  },
+  {
+   "text": "And",
+   "startMs": 5760,
+   "endMs": 5920
+  },
+  {
+   "text": "boom,",
+   "startMs": 6080,
+   "endMs": 6800
+  },
+  {
+   "text": "TRED",
+   "startMs": 6880,
+   "endMs": 7040
+  },
+  {
+   "text": "doesn't",
+   "startMs": 7120,
+   "endMs": 7360
+  },
+  {
+   "text": "just",
+   "startMs": 7440,
+   "endMs": 7520
+  },
+  {
+   "text": "give",
+   "startMs": 7600,
+   "endMs": 7680
+  },
+  {
+   "text": "a",
+   "startMs": 7760,
+   "endMs": 7840
+  },
+  {
+   "text": "text",
+   "startMs": 8000,
+   "endMs": 8160
+  },
+  {
+   "text": "answer.",
+   "startMs": 8240,
+   "endMs": 8760
+  },
+  {
+   "text": "It",
+   "startMs": 8960,
+   "endMs": 9120
+  },
+  {
+   "text": "draws",
+   "startMs": 9200,
+   "endMs": 9360
+  },
+  {
+   "text": "the",
+   "startMs": 9440,
+   "endMs": 9600
+  },
+  {
+   "text": "whole",
+   "startMs": 9680,
+   "endMs": 9840
+  },
+  {
+   "text": "solution",
+   "startMs": 9920,
+   "endMs": 10480
+  },
+  {
+   "text": "on",
+   "startMs": 10520,
+   "endMs": 10560
+  },
+  {
+   "text": "an",
+   "startMs": 10640,
+   "endMs": 10800
+  },
+  {
+   "text": "interactive",
+   "startMs": 11080,
+   "endMs": 11360
+  },
+  {
+   "text": "whiteboard.",
+   "startMs": 11480,
+   "endMs": 12240
+  },
+  {
+   "text": "Step",
+   "startMs": 12320,
+   "endMs": 12640
+  },
+  {
+   "text": "by",
+   "startMs": 12720,
+   "endMs": 12800
+  },
+  {
+   "text": "step.",
+   "startMs": 12960,
+   "endMs": 13480
+  },
+  {
+   "text": "It's",
+   "startMs": 13680,
+   "endMs": 13800
+  },
+  {
+   "text": "like",
+   "startMs": 13840,
+   "endMs": 13920
+  },
+  {
+   "text": "having",
+   "startMs": 14040,
+   "endMs": 14160
+  },
+  {
+   "text": "a",
+   "startMs": 14240,
+   "endMs": 14320
+  },
+  {
+   "text": "private",
+   "startMs": 14520,
+   "endMs": 14720
+  },
+  {
+   "text": "tutor",
+   "startMs": 14760,
+   "endMs": 15040
+  },
+  {
+   "text": "in",
+   "startMs": 15080,
+   "endMs": 15120
+  },
+  {
+   "text": "your",
+   "startMs": 15200,
+   "endMs": 15280
+  },
+  {
+   "text": "browser.",
+   "startMs": 15520,
+   "endMs": 16160
+  },
+  {
+   "text": "Try",
+   "startMs": 16240,
+   "endMs": 16400
+  },
+  {
+   "text": "it",
+   "startMs": 16440,
+   "endMs": 16480
+  },
+  {
+   "text": "out",
+   "startMs": 16560,
+   "endMs": 16640
+  },
+  {
+   "text": "right",
+   "startMs": 16720,
+   "endMs": 16880
+  },
+  {
+   "text": "now.",
+   "startMs": 17040,
+   "endMs": 17440
+  }
+ ]
+}

@@ -1,0 +1,275 @@
+{
+ "id": "d4-en",
+ "words": [
+  {
+   "text": "This",
+   "startMs": 0,
+   "endMs": 210
+  },
+  {
+   "text": "isn't",
+   "startMs": 240,
+   "endMs": 600
+  },
+  {
+   "text": "just",
+   "startMs": 640,
+   "endMs": 780
+  },
+  {
+   "text": "a",
+   "startMs": 800,
+   "endMs": 880
+  },
+  {
+   "text": "chat,",
+   "startMs": 960,
+   "endMs": 1360
+  },
+  {
+   "text": "it's",
+   "startMs": 1680,
+   "endMs": 1860
+  },
+  {
+   "text": "an",
+   "startMs": 1880,
+   "endMs": 2000
+  },
+  {
+   "text": "interactive",
+   "startMs": 2080,
+   "endMs": 2720
+  },
+  {
+   "text": "class.",
+   "startMs": 2800,
+   "endMs": 3560
+  },
+  {
+   "text": "TRED",
+   "startMs": 3760,
+   "endMs": 4160
+  },
+  {
+   "text": "asks",
+   "startMs": 4240,
+   "endMs": 4560
+  },
+  {
+   "text": "you",
+   "startMs": 4600,
+   "endMs": 4640
+  },
+  {
+   "text": "questions",
+   "startMs": 4720,
+   "endMs": 5200
+  },
+  {
+   "text": "back.",
+   "startMs": 5280,
+   "endMs": 5800
+  },
+  {
+   "text": "It",
+   "startMs": 6000,
+   "endMs": 6160
+  },
+  {
+   "text": "waits",
+   "startMs": 6240,
+   "endMs": 6560
+  },
+  {
+   "text": "for",
+   "startMs": 6600,
+   "endMs": 6640
+  },
+  {
+   "text": "your",
+   "startMs": 6720,
+   "endMs": 6800
+  },
+  {
+   "text": "answer.",
+   "startMs": 6880,
+   "endMs": 7520
+  },
+  {
+   "text": "If",
+   "startMs": 7760,
+   "endMs": 7920
+  },
+  {
+   "text": "you're",
+   "startMs": 7960,
+   "endMs": 8080
+  },
+  {
+   "text": "wrong,",
+   "startMs": 8240,
+   "endMs": 8720
+  },
+  {
+   "text": "it",
+   "startMs": 8800,
+   "endMs": 8880
+  },
+  {
+   "text": "doesn't",
+   "startMs": 8960,
+   "endMs": 9200
+  },
+  {
+   "text": "just",
+   "startMs": 9280,
+   "endMs": 9360
+  },
+  {
+   "text": "give",
+   "startMs": 9520,
+   "endMs": 9680
+  },
+  {
+   "text": "the",
+   "startMs": 9720,
+   "endMs": 9760
+  },
+  {
+   "text": "solution.",
+   "startMs": 9840,
+   "endMs": 10400
+  },
+  {
+   "text": "It",
+   "startMs": 10720,
+   "endMs": 10800
+  },
+  {
+   "text": "explains",
+   "startMs": 10880,
+   "endMs": 11360
+  },
+  {
+   "text": "exactly",
+   "startMs": 11440,
+   "endMs": 12080
+  },
+  {
+   "text": "where",
+   "startMs": 12160,
+   "endMs": 12240
+  },
+  {
+   "text": "you",
+   "startMs": 12320,
+   "endMs": 12400
+  },
+  {
+   "text": "made",
+   "startMs": 12480,
+   "endMs": 12560
+  },
+  {
+   "text": "a",
+   "startMs": 12587,
+   "endMs": 12613
+  },
+  {
+   "text": "mistake.",
+   "startMs": 12640,
+   "endMs": 13400
+  },
+  {
+   "text": "And",
+   "startMs": 13680,
+   "endMs": 13920
+  },
+  {
+   "text": "you",
+   "startMs": 14160,
+   "endMs": 14240
+  },
+  {
+   "text": "can",
+   "startMs": 14320,
+   "endMs": 14480
+  },
+  {
+   "text": "choose",
+   "startMs": 14600,
+   "endMs": 14720
+  },
+  {
+   "text": "your",
+   "startMs": 14800,
+   "endMs": 14960
+  },
+  {
+   "text": "own",
+   "startMs": 15040,
+   "endMs": 15280
+  },
+  {
+   "text": "virtual",
+   "startMs": 15360,
+   "endMs": 15680
+  },
+  {
+   "text": "professor.",
+   "startMs": 15760,
+   "endMs": 16520
+  },
+  {
+   "text": "Different",
+   "startMs": 16720,
+   "endMs": 16960
+  },
+  {
+   "text": "voices,",
+   "startMs": 17040,
+   "endMs": 17680
+  },
+  {
+   "text": "different",
+   "startMs": 17760,
+   "endMs": 18000
+  },
+  {
+   "text": "teaching",
+   "startMs": 18080,
+   "endMs": 18400
+  },
+  {
+   "text": "styles.",
+   "startMs": 18480,
+   "endMs": 19160
+  },
+  {
+   "text": "Learning",
+   "startMs": 19360,
+   "endMs": 19760
+  },
+  {
+   "text": "that",
+   "startMs": 19840,
+   "endMs": 19920
+  },
+  {
+   "text": "adapts",
+   "startMs": 20040,
+   "endMs": 20480
+  },
+  {
+   "text": "to",
+   "startMs": 20560,
+   "endMs": 20640
+  },
+  {
+   "text": "you.",
+   "startMs": 20720,
+   "endMs": 21280
+  }
+ ]
+}

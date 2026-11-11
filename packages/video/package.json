@@ -16,6 +16,8 @@
     "audio:series": "uvx --with numpy python -I scripts/audio.py series",
     "voiceover:campaign": "node scripts/voiceover.mjs c",
     "audio:campaign": "uvx --with numpy python -I scripts/audio.py campaign",
+    "voiceover:demo": "node scripts/voiceover.mjs d",
+    "render:demo": "for c in D1-EN-The-Workflow D1-DE-Der-Workflow D2-EN-The-Schemas D2-DE-Die-Schemata D3-EN-The-Video-Feature D3-DE-Das-Video-Feature D4-EN-Interactive-Learning D4-DE-Interaktives-Lernen D5-EN-The-Dashboard D5-DE-Das-Dashboard; do remotion render src/index.ts $c out/campaign-v3/$c.mp4 --concurrency=1 --scale=2 --codec=h264 --crf=18; done",
     "render:campaign": "for c in C1-EN-Lets-Be-Real C1-DE-Seien-Wir-Ehrlich C2-EN-Professor-Who-Gets-You C2-DE-Professor-Der-Dich-Versteht C3-EN-Zero-Guessing C3-DE-Nicht-Geraten C4-EN-Exam-In-Two-Days C4-DE-Klausur-In-Zwei-Tagen C5-EN-The-Vibe C5-DE-Der-Vibe; do remotion render src/index.ts $c out/campaign/$c.mp4 --concurrency=1 --scale=2 --codec=h264 --crf=18; done"
   },
   "devDependencies": {

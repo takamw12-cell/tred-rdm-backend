@@ -1,0 +1,210 @@
+{
+ "id": "d2-de",
+ "words": [
+  {
+   "text": "Hängst",
+   "startMs": 0,
+   "endMs": 240
+  },
+  {
+   "text": "du",
+   "startMs": 280,
+   "endMs": 320
+  },
+  {
+   "text": "an",
+   "startMs": 400,
+   "endMs": 480
+  },
+  {
+   "text": "einer",
+   "startMs": 560,
+   "endMs": 720
+  },
+  {
+   "text": "komplexen",
+   "startMs": 840,
+   "endMs": 1280
+  },
+  {
+   "text": "Schaltung",
+   "startMs": 1440,
+   "endMs": 1920
+  },
+  {
+   "text": "oder",
+   "startMs": 2040,
+   "endMs": 2160
+  },
+  {
+   "text": "einem",
+   "startMs": 2240,
+   "endMs": 2400
+  },
+  {
+   "text": "Balken",
+   "startMs": 2480,
+   "endMs": 2800
+  },
+  {
+   "text": "fest?",
+   "startMs": 2880,
+   "endMs": 3520
+  },
+  {
+   "text": "Schau",
+   "startMs": 3560,
+   "endMs": 3680
+  },
+  {
+   "text": "dir",
+   "startMs": 3760,
+   "endMs": 3840
+  },
+  {
+   "text": "das",
+   "startMs": 3960,
+   "endMs": 4080
+  },
+  {
+   "text": "an.",
+   "startMs": 4200,
+   "endMs": 4720
+  },
+  {
+   "text": "Wenn",
+   "startMs": 4800,
+   "endMs": 4880
+  },
+  {
+   "text": "du",
+   "startMs": 4920,
+   "endMs": 4960
+  },
+  {
+   "text": "eine",
+   "startMs": 5013,
+   "endMs": 5120
+  },
+  {
+   "text": "Frage",
+   "startMs": 5200,
+   "endMs": 5440
+  },
+  {
+   "text": "stellst,",
+   "startMs": 5520,
+   "endMs": 6080
+  },
+  {
+   "text": "nutzt",
+   "startMs": 6200,
+   "endMs": 6400
+  },
+  {
+   "text": "TRED",
+   "startMs": 6480,
+   "endMs": 6720
+  },
+  {
+   "text": "deterministische",
+   "startMs": 6760,
+   "endMs": 7520
+  },
+  {
+   "text": "Solver,",
+   "startMs": 7680,
+   "endMs": 8160
+  },
+  {
+   "text": "um",
+   "startMs": 8240,
+   "endMs": 8320
+  },
+  {
+   "text": "das",
+   "startMs": 8400,
+   "endMs": 8480
+  },
+  {
+   "text": "exakte",
+   "startMs": 8640,
+   "endMs": 9040
+  },
+  {
+   "text": "Diagramm",
+   "startMs": 9120,
+   "endMs": 9480
+  },
+  {
+   "text": "zu",
+   "startMs": 9520,
+   "endMs": 9600
+  },
+  {
+   "text": "zeichnen.",
+   "startMs": 9680,
+   "endMs": 10480
+  },
+  {
+   "text": "Jedes",
+   "startMs": 10520,
+   "endMs": 10800
+  },
+  {
+   "text": "Bauteil,",
+   "startMs": 10880,
+   "endMs": 11600
+  },
+  {
+   "text": "jede",
+   "startMs": 11640,
+   "endMs": 11840
+  },
+  {
+   "text": "Kraft,",
+   "startMs": 11920,
+   "endMs": 12480
+  },
+  {
+   "text": "perfekt",
+   "startMs": 12640,
+   "endMs": 12960
+  },
+  {
+   "text": "platziert.",
+   "startMs": 13040,
+   "endMs": 14000
+  },
+  {
+   "text": "Keine",
+   "startMs": 14040,
+   "endMs": 14240
+  },
+  {
+   "text": "KI-Halluzinationen.",
+   "startMs": 14320,
+   "endMs": 15840
+  },
+  {
+   "text": "Nur",
+   "startMs": 15880,
+   "endMs": 16080
+  },
+  {
+   "text": "reine,",
+   "startMs": 16160,
+   "endMs": 16560
+  },
+  {
+   "text": "mathematische",
+   "startMs": 16680,
+   "endMs": 17280
+  },
+  {
+   "text": "Genauigkeit.",
+   "startMs": 17360,
+   "endMs": 18400
+  }
+ ]
+}

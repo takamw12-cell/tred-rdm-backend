@@ -93,3 +93,29 @@ export const CAMPAIGN = [
   { id: "c5-de", language: "de", voiceId: "TX3LPaxmHKxFdv7VOQHJ", ...TALK, // Liam — energetic
     text: "Seien wir ehrlich. Lernen sollte sich nicht wie eine Strafe anfühlen. TRED sieht absolut fantastisch aus. Mit einem Premium-Dark-Mode, wunderschönen Animationen und individuellen Hintergründen für deinen Studiengang. Es läuft flüssig auf jedem Gerät und macht das Lernen tatsächlich irgendwie spaßig? Ja, ich hab's gesagt. Schließe dich tausenden Studenten an, die ihr Lernen auf das nächste Level heben. TRED. Deine persönliche Universität." },
 ];
+
+// ── Campagne V3 « démonstration » (2026-11-11), 30 s ────────────────────
+// Textes du fondateur : la voix décrit ce que l'écran montre (saisie, clic,
+// tableau, vidéo, tableau de bord). Mêmes voix et mêmes réglages que CAMPAIGN.
+export const DEMO = [
+  { id: "d1-en", language: "en", voiceId: "iP95p4xoKVk53GoZ742B", ...TALK, // Chris
+    text: "Let me show you exactly how TRED works. You just type your question right here... hit send. And boom, TRED doesn't just give a text answer. It draws the whole solution on an interactive whiteboard. Step by step. It's like having a private tutor in your browser. Try it out right now." },
+  { id: "d1-de", language: "de", voiceId: "cjVigY5qzO86Huf0OWal", ...TALK, // Eric
+    text: "Ich zeige dir genau, wie TRED funktioniert. Du tippst einfach deine Frage hier ein... und drückst Enter. Und bam! TRED gibt nicht nur eine Textantwort. Es zeichnet die gesamte Lösung auf einer interaktiven Tafel. Schritt für Schritt. Wie ein Privatlehrer im Browser. Probier es aus." },
+  { id: "d2-en", language: "en", voiceId: "cgSgspJ2msm6clMCkdW9", ...TALK, // Jessica
+    text: "Stuck on a complex circuit or a mechanical beam? Watch this. When you ask a question, TRED uses deterministic solvers to draw the exact diagram. Every component, every force, perfectly placed. No AI hallucinations here. Just pure, mathematical accuracy. You can even see the exact steps to solve it. It's engineering made visual." },
+  { id: "d2-de", language: "de", voiceId: "SAz9YHcvj6GT2YYXdXww", ...TALK, // River
+    text: "Hängst du an einer komplexen Schaltung oder einem Balken fest? Schau dir das an. Wenn du eine Frage stellst, nutzt TRED deterministische Solver, um das exakte Diagramm zu zeichnen. Jedes Bauteil, jede Kraft, perfekt platziert. Keine KI-Halluzinationen. Nur reine, mathematische Genauigkeit." },
+  { id: "d3-en", language: "en", voiceId: "bIHbv24MWmeRgasZH58o", ...TALK, // Will
+    text: "What if you still don't get it? See that button? 'Explain as video'. Click it. TRED instantly generates a custom video explanation for you. With a natural voice, visual examples, and step-by-step logic. It takes the exact problem you're stuck on and turns it into a private lesson. And it saves it to your dashboard for later." },
+  { id: "d3-de", language: "de", voiceId: "CwhRBWXzGAHq8TQ4Fs17", ...TALK, // Roger
+    text: "Was, wenn du es immer noch nicht verstehst? Siehst du den Button? 'Als Video erklären'. Klick drauf. TRED generiert sofort eine individuelle Videoerklärung für dich. Mit natürlicher Stimme, visuellen Beispielen und Schritt-für-Schritt-Logik. Es speichert es in deinem Dashboard." },
+  { id: "d4-en", language: "en", voiceId: "IKne3meq5aSn9XLyUdCD", ...TALK, // Charlie
+    text: "This isn't just a chat, it's an interactive class. TRED asks you questions back. It waits for your answer. If you're wrong, it doesn't just give the solution. It explains exactly where you made a mistake. And you can choose your own virtual professor. Different voices, different teaching styles. Learning that adapts to you." },
+  { id: "d4-de", language: "de", voiceId: "wWWn96OtTHu1sn8SRGEr", ...TALK, // Hale
+    text: "Das ist nicht nur ein Chat, es ist eine interaktive Klasse. TRED stellt dir Fragen zurück. Es wartet auf deine Antwort. Wenn du falsch liegst, gibt es nicht einfach die Lösung. Es erklärt genau, wo dein Fehler war. Und du kannst deinen eigenen virtuellen Professor wählen." },
+  { id: "d5-en", language: "en", voiceId: "FGY2WhTYpPnrIDTdsKH5", ...TALK, // Laura
+    text: "So here's the full picture. Ask a question, get an interactive whiteboard, generate a video explanation, and track your progress. All in one place. Whether you're studying law, medicine, or aerospace engineering. TRED is the ultimate university in your pocket. Start learning smarter today." },
+  { id: "d5-de", language: "de", voiceId: "TX3LPaxmHKxFdv7VOQHJ", ...TALK, // Liam
+    text: "Hier ist das Gesamtbild. Stelle eine Frage, erhalte eine interaktive Tafel, generiere eine Videoerklärung und verfolge deinen Fortschritt. Alles an einem Ort. Egal ob Jura, Medizin oder Luft- und Raumfahrttechnik. TRED ist die ultimative Universität für die Hosentasche. Starte heute smarter zu lernen." },
+];
