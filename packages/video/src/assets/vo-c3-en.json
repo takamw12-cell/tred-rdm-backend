@@ -1,0 +1,160 @@
+{
+ "id": "c3-en",
+ "words": [
+  {
+   "text": "Sick",
+   "startMs": 0,
+   "endMs": 320
+  },
+  {
+   "text": "of",
+   "startMs": 400,
+   "endMs": 480
+  },
+  {
+   "text": "AI",
+   "startMs": 560,
+   "endMs": 960
+  },
+  {
+   "text": "making",
+   "startMs": 1040,
+   "endMs": 1280
+  },
+  {
+   "text": "up",
+   "startMs": 1360,
+   "endMs": 1520
+  },
+  {
+   "text": "math?",
+   "startMs": 1760,
+   "endMs": 2400
+  },
+  {
+   "text": "Yeah,",
+   "startMs": 2480,
+   "endMs": 2960
+  },
+  {
+   "text": "me",
+   "startMs": 3040,
+   "endMs": 3200
+  },
+  {
+   "text": "too.",
+   "startMs": 3360,
+   "endMs": 3800
+  },
+  {
+   "text": "TRED",
+   "startMs": 4080,
+   "endMs": 4400
+  },
+  {
+   "text": "doesn't",
+   "startMs": 4480,
+   "endMs": 4800
+  },
+  {
+   "text": "guess.",
+   "startMs": 5000,
+   "endMs": 5520
+  },
+  {
+   "text": "It",
+   "startMs": 5600,
+   "endMs": 5680
+  },
+  {
+   "text": "uses",
+   "startMs": 5760,
+   "endMs": 6080
+  },
+  {
+   "text": "real",
+   "startMs": 6160,
+   "endMs": 6480
+  },
+  {
+   "text": "solvers.",
+   "startMs": 6560,
+   "endMs": 7600
+  },
+  {
+   "text": "Every",
+   "startMs": 7760,
+   "endMs": 7920
+  },
+  {
+   "text": "formula,",
+   "startMs": 8160,
+   "endMs": 8640
+  },
+  {
+   "text": "every",
+   "startMs": 8760,
+   "endMs": 8880
+  },
+  {
+   "text": "calculation,",
+   "startMs": 8960,
+   "endMs": 9760
+  },
+  {
+   "text": "is",
+   "startMs": 9880,
+   "endMs": 10000
+  },
+  {
+   "text": "100%",
+   "startMs": 10080,
+   "endMs": 10880
+  },
+  {
+   "text": "checked.",
+   "startMs": 11040,
+   "endMs": 11840
+  },
+  {
+   "text": "You",
+   "startMs": 11880,
+   "endMs": 11920
+  },
+  {
+   "text": "can",
+   "startMs": 12000,
+   "endMs": 12160
+  },
+  {
+   "text": "actually",
+   "startMs": 12400,
+   "endMs": 12640
+  },
+  {
+   "text": "trust",
+   "startMs": 12800,
+   "endMs": 12960
+  },
+  {
+   "text": "it",
+   "startMs": 13040,
+   "endMs": 13120
+  },
+  {
+   "text": "with",
+   "startMs": 13160,
+   "endMs": 13200
+  },
+  {
+   "text": "your",
+   "startMs": 13280,
+   "endMs": 13360
+  },
+  {
+   "text": "grades.",
+   "startMs": 13440,
+   "endMs": 14240
+  }
+ ]
+}

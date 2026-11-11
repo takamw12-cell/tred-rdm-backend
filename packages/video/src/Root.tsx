@@ -6,6 +6,8 @@ import { FR_FRAMES, FrMedizinRecht } from "./videos/FrMedizinRecht";
 import { EnBeyondEngineering, EnFutureOfLearning, EnUniversalTutor } from "./series/english";
 import { DeAlleFaecher, DeJuraMedizin, DeWirtschaftTechnik } from "./series/german";
 import { SERIES_FRAMES } from "./series/engine";
+import { CAMPAIGN_FRAMES } from "./campaign/engine";
+import { CAMPAIGN_IDS } from "./campaign/videos";
 import "./style.css";
 
 /**
@@ -31,6 +33,12 @@ export function Root() {
         <Composition id="DE-1-Jura-Medizin" component={DeJuraMedizin} durationInFrames={SERIES_FRAMES} {...PHONE} />
         <Composition id="DE-2-Wirtschaft-Technik" component={DeWirtschaftTechnik} durationInFrames={SERIES_FRAMES} {...PHONE} />
         <Composition id="DE-3-Alle-Faecher" component={DeAlleFaecher} durationInFrames={SERIES_FRAMES} {...PHONE} />
+      </Folder>
+      {/* Campagne « parle comme un ami » (2026-11-11) : 5 concepts × EN/DE, 30 s. */}
+      <Folder name="Campagne-30s">
+        {CAMPAIGN_IDS.map(([id, component]) => (
+          <Composition key={id} id={id} component={component} durationInFrames={CAMPAIGN_FRAMES} {...PHONE} />
+        ))}
       </Folder>
     </>
   );

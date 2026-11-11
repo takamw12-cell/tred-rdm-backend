@@ -284,10 +284,28 @@ SERIES = {
     "de3": (94, [[53, 57, 60, 65], [50, 57, 62, 65], [46, 53, 58, 62], [48, 55, 60, 64]], "cine"),    # fa majeur
 }
 
+CAMPAIGN = {
+    # Campagne « parle comme un ami » (30 s) : une piste par vidéo, EN et DE dans des tonalités voisines.
+    "c1-en": (118, [[52, 55, 59, 64], [48, 55, 60, 64], [43, 50, 55, 59], [50, 54, 57, 62]], "drive"),  # mi mineur, énergique
+    "c1-de": (114, [[45, 52, 57, 60], [41, 53, 57, 60], [43, 55, 59, 62], [40, 52, 55, 59]], "drive"),  # la mineur
+    "c2-en": (98, [[55, 59, 62, 66], [52, 59, 64, 67], [48, 55, 60, 64], [50, 57, 62, 66]], "warm"),    # sol majeur, curieux
+    "c2-de": (96, [[50, 57, 62, 66], [47, 54, 59, 62], [43, 50, 55, 59], [45, 52, 57, 61]], "warm"),    # ré majeur
+    "c3-en": (90, [[48, 55, 60, 63], [44, 51, 56, 60], [46, 53, 58, 62], [43, 50, 55, 59]], "cine"),    # do mineur, précis
+    "c3-de": (92, [[53, 56, 60, 65], [49, 56, 61, 65], [51, 58, 63, 67], [48, 55, 60, 64]], "cine"),    # fa mineur
+    "c4-en": (126, [[50, 53, 57, 62], [46, 53, 58, 62], [48, 55, 60, 64], [45, 52, 57, 61]], "drive"),  # ré mineur, urgence
+    "c4-de": (124, [[47, 50, 54, 59], [43, 50, 55, 59], [45, 52, 57, 61], [42, 49, 54, 58]], "drive"),  # si mineur
+    "c5-en": (102, [[53, 57, 60, 64], [50, 57, 62, 65], [46, 53, 58, 62], [48, 55, 60, 64]], "warm"),   # fa majeur, léger
+    "c5-de": (100, [[48, 52, 55, 59], [45, 52, 57, 60], [41, 48, 53, 57], [43, 50, 55, 59]], "warm"),   # do majeur
+}
+
 if __name__ == "__main__":
     import sys
 
     OUT.mkdir(parents=True, exist_ok=True)
+    if len(sys.argv) > 1 and sys.argv[1] == "campaign":
+        for key, (bpm, chords, style) in CAMPAIGN.items():
+            write(f"music-{key}.wav", song(bpm, 30.5, chords, style))
+        raise SystemExit
     if len(sys.argv) > 1 and sys.argv[1] == "series":
         for key, (bpm, chords, style) in SERIES.items():
             write(f"music-{key}.wav", song(bpm, 45.5, chords, style))

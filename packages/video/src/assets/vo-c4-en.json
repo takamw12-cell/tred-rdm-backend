@@ -1,0 +1,155 @@
+{
+ "id": "c4-en",
+ "words": [
+  {
+   "text": "Exam",
+   "startMs": 0,
+   "endMs": 420
+  },
+  {
+   "text": "in",
+   "startMs": 480,
+   "endMs": 600
+  },
+  {
+   "text": "two",
+   "startMs": 640,
+   "endMs": 827
+  },
+  {
+   "text": "days?",
+   "startMs": 880,
+   "endMs": 1560
+  },
+  {
+   "text": "Don't",
+   "startMs": 1760,
+   "endMs": 2000
+  },
+  {
+   "text": "panic.",
+   "startMs": 2200,
+   "endMs": 2560
+  },
+  {
+   "text": "Just",
+   "startMs": 2720,
+   "endMs": 2880
+  },
+  {
+   "text": "open",
+   "startMs": 2960,
+   "endMs": 3200
+  },
+  {
+   "text": "TRED.",
+   "startMs": 3360,
+   "endMs": 4720
+  },
+  {
+   "text": "Throw",
+   "startMs": 4840,
+   "endMs": 4960
+  },
+  {
+   "text": "your",
+   "startMs": 5040,
+   "endMs": 5280
+  },
+  {
+   "text": "old",
+   "startMs": 5400,
+   "endMs": 5520
+  },
+  {
+   "text": "exams",
+   "startMs": 5640,
+   "endMs": 5920
+  },
+  {
+   "text": "at",
+   "startMs": 6000,
+   "endMs": 6080
+  },
+  {
+   "text": "it,",
+   "startMs": 6160,
+   "endMs": 6400
+  },
+  {
+   "text": "and",
+   "startMs": 6440,
+   "endMs": 6480
+  },
+  {
+   "text": "it",
+   "startMs": 6560,
+   "endMs": 6640
+  },
+  {
+   "text": "creates",
+   "startMs": 6840,
+   "endMs": 7040
+  },
+  {
+   "text": "a",
+   "startMs": 7120,
+   "endMs": 7200
+  },
+  {
+   "text": "custom",
+   "startMs": 7280,
+   "endMs": 7600
+  },
+  {
+   "text": "simulation",
+   "startMs": 7680,
+   "endMs": 8240
+  },
+  {
+   "text": "for",
+   "startMs": 8320,
+   "endMs": 8480
+  },
+  {
+   "text": "you.",
+   "startMs": 8560,
+   "endMs": 9040
+  },
+  {
+   "text": "You",
+   "startMs": 9120,
+   "endMs": 9200
+  },
+  {
+   "text": "practice,",
+   "startMs": 9280,
+   "endMs": 9920
+  },
+  {
+   "text": "it",
+   "startMs": 10000,
+   "endMs": 10160
+  },
+  {
+   "text": "corrects.",
+   "startMs": 10360,
+   "endMs": 10960
+  },
+  {
+   "text": "Boom.",
+   "startMs": 11120,
+   "endMs": 11600
+  },
+  {
+   "text": "You're",
+   "startMs": 11640,
+   "endMs": 11760
+  },
+  {
+   "text": "ready.",
+   "startMs": 11920,
+   "endMs": 12400
+  }
+ ]
+}

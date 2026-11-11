@@ -1,0 +1,130 @@
+{
+ "id": "c5-de",
+ "words": [
+  {
+   "text": "Lernen",
+   "startMs": 0,
+   "endMs": 400
+  },
+  {
+   "text": "sollte",
+   "startMs": 440,
+   "endMs": 640
+  },
+  {
+   "text": "sich",
+   "startMs": 680,
+   "endMs": 880
+  },
+  {
+   "text": "nicht",
+   "startMs": 960,
+   "endMs": 1200
+  },
+  {
+   "text": "wie",
+   "startMs": 1240,
+   "endMs": 1280
+  },
+  {
+   "text": "eine",
+   "startMs": 1360,
+   "endMs": 1520
+  },
+  {
+   "text": "Strafe",
+   "startMs": 1600,
+   "endMs": 2080
+  },
+  {
+   "text": "anfühlen.",
+   "startMs": 2200,
+   "endMs": 2880
+  },
+  {
+   "text": "TRED",
+   "startMs": 3120,
+   "endMs": 3360
+  },
+  {
+   "text": "sieht",
+   "startMs": 3400,
+   "endMs": 3520
+  },
+  {
+   "text": "fantastisch",
+   "startMs": 3680,
+   "endMs": 4240
+  },
+  {
+   "text": "aus,",
+   "startMs": 4320,
+   "endMs": 4720
+  },
+  {
+   "text": "läuft",
+   "startMs": 4880,
+   "endMs": 5040
+  },
+  {
+   "text": "flüssig",
+   "startMs": 5120,
+   "endMs": 5520
+  },
+  {
+   "text": "und",
+   "startMs": 5840,
+   "endMs": 5920
+  },
+  {
+   "text": "macht",
+   "startMs": 6000,
+   "endMs": 6160
+  },
+  {
+   "text": "das",
+   "startMs": 6240,
+   "endMs": 6320
+  },
+  {
+   "text": "Lernen",
+   "startMs": 6360,
+   "endMs": 6640
+  },
+  {
+   "text": "tatsächlich...",
+   "startMs": 6680,
+   "endMs": 7760
+  },
+  {
+   "text": "irgendwie",
+   "startMs": 7800,
+   "endMs": 8240
+  },
+  {
+   "text": "spaßig?",
+   "startMs": 8400,
+   "endMs": 9360
+  },
+  {
+   "text": "Ja,",
+   "startMs": 9600,
+   "endMs": 10160
+  },
+  {
+   "text": "ich",
+   "startMs": 10240,
+   "endMs": 10320
+  },
+  {
+   "text": "hab's",
+   "startMs": 10360,
+   "endMs": 10480
+  },
+  {
+   "text": "gesagt.",
+   "startMs": 10560,
+   "endMs": 11280
+  }
+ ]
+}

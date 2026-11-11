@@ -1,0 +1,110 @@
+{
+ "id": "c5-en",
+ "words": [
+  {
+   "text": "Learning",
+   "startMs": 0,
+   "endMs": 400
+  },
+  {
+   "text": "shouldn't",
+   "startMs": 560,
+   "endMs": 880
+  },
+  {
+   "text": "feel",
+   "startMs": 960,
+   "endMs": 1120
+  },
+  {
+   "text": "like",
+   "startMs": 1200,
+   "endMs": 1280
+  },
+  {
+   "text": "a",
+   "startMs": 1333,
+   "endMs": 1387
+  },
+  {
+   "text": "punishment.",
+   "startMs": 1440,
+   "endMs": 2160
+  },
+  {
+   "text": "TRED",
+   "startMs": 2560,
+   "endMs": 2880
+  },
+  {
+   "text": "looks",
+   "startMs": 3000,
+   "endMs": 3120
+  },
+  {
+   "text": "incredible,",
+   "startMs": 3200,
+   "endMs": 4160
+  },
+  {
+   "text": "works",
+   "startMs": 4320,
+   "endMs": 4480
+  },
+  {
+   "text": "flawlessly,",
+   "startMs": 4560,
+   "endMs": 5360
+  },
+  {
+   "text": "and",
+   "startMs": 5480,
+   "endMs": 5600
+  },
+  {
+   "text": "actually",
+   "startMs": 5800,
+   "endMs": 6000
+  },
+  {
+   "text": "makes",
+   "startMs": 6080,
+   "endMs": 6240
+  },
+  {
+   "text": "studying...",
+   "startMs": 6320,
+   "endMs": 7280
+  },
+  {
+   "text": "kinda",
+   "startMs": 7400,
+   "endMs": 7680
+  },
+  {
+   "text": "fun?",
+   "startMs": 7840,
+   "endMs": 8080
+  },
+  {
+   "text": "Yeah,",
+   "startMs": 8560,
+   "endMs": 9040
+  },
+  {
+   "text": "I",
+   "startMs": 9120,
+   "endMs": 9200
+  },
+  {
+   "text": "said",
+   "startMs": 9280,
+   "endMs": 9440
+  },
+  {
+   "text": "it.",
+   "startMs": 9520,
+   "endMs": 10000
+  }
+ ]
+}
