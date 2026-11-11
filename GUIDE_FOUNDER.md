@@ -497,6 +497,16 @@ Plan complet : `docs/VIDEO_EXPLAINER_ARCHITECTURE.md`. Le backend est en place ;
   - **Repli :** si la fonction n'est pas configurée sur le serveur (clé absente, table absente), le bouton rouvre l'ancien diaporama.
 - **Pas encore fait :** aucun MP4 n'est produit (le lecteur joue le script et l'audio) ; pas de téléchargement ni de partage de la vidéo.
 
+## Page d'accueil (refonte du 2026-11-11)
+
+`packages/web/src/web/pages/landing.tsx`, servie sur `/` et `/landing` aux visiteurs sans compte.
+
+- **Aucun prix** : TRED est en bêta, l'accès est annoncé gratuit. Les tarifs et le paiement restent sur `/pricing`, dans l'app ; la page d'accueil n'appelle plus Stripe.
+- **Vocabulaire** : jamais « RDM » (Technische Mechanik en allemand, Engineering Mechanics en anglais et en français), aucune comparaison avec un autre assistant. Un test le vérifie (`tests/landing-page.test.ts`), ainsi que l'absence de prix, de témoignage et de nombre d'utilisateurs.
+- **Sections** : hero (deux boutons « Kostenlos testen » et « Anmelden »), quatre cartes (Hörsaal, solveurs, vidéos explicatives, toutes les matières), trois étapes, bloc bêta. En-tête collant avec le bouton d'inscription.
+- **Langues** : allemand, anglais, français, espagnol (`landing.*`). Les huit autres langues affichent l'allemand tant qu'elles ne sont pas traduites. Le pré-rendu SEO et ses métadonnées sont en allemand.
+- **Avant de quitter la bêta** : la page promet un accès gratuit sans donnée de paiement. Le jour où l'offre change, ces textes (`landing.beta`, `landing.note`, `landing.whyText`, `landing.p1`) doivent changer en même temps.
+
 ## Sécurité — protocole du 2026-11-09
 
 - **Documents piégés :** chaque extrait de PDF est enfermé dans un bloc `<dokument>` que le contenu ne peut ni fermer ni imiter (`lib/untrusted.ts`). Le prompt (NIVEAU 10) dit que les documents sont des données, jamais des instructions, et qu'il n'existe pas de « code admin ».

@@ -47,7 +47,8 @@ describe("page d'accueil `/`", () => {
 
   test("pré-rendue dans prerendered/index.html, jamais dans dist/index.html", () => {
     expect(fileNameFor("/")).toBe("index");
-    expect(root.lang).toBe("fr");
+    // Allemand : le public visé d'abord, et la langue par défaut de l'interface.
+    expect(root.lang).toBe("de");
   });
   test("canonical sur la racine du site", () => {
     const html: string = assemble(shell, root, "<main><h1>TRED</h1></main>");

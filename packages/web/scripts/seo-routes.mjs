@@ -20,18 +20,18 @@ export const SITE = (process.env.VITE_WEBSITE_URL || process.env.SITE_URL || "ht
 export const ROUTES = [
   {
     path: "/",
-    lang: "fr",
-    title: "TRED — le tuteur IA des étudiants en ingénierie en Allemagne",
+    lang: "de",
+    title: "TRED — KI-Tutor fürs Studium: interaktive Tafel, deterministische Solver, Erklärvideos",
     description:
-      "TRED lit ton propre polycopié, cite la page de cours de chaque réponse et trace les diagrammes N, T, M exacts avec un solveur RDM. Conçu pour les étudiants en ingénierie en Allemagne.",
+      "TRED erklärt dein eigenes Skript an einer interaktiven Tafel, rechnet mit deterministischen Solvern statt zu raten und macht aus deiner Frage ein Erklärvideo. In der Beta kostenlos testen.",
     priority: "1.0",
   },
   {
     path: "/landing",
-    lang: "fr",
-    title: "TRED — le tuteur IA des étudiants en ingénierie en Allemagne",
+    lang: "de",
+    title: "TRED — KI-Tutor fürs Studium: interaktive Tafel, deterministische Solver, Erklärvideos",
     description:
-      "TRED lit ton propre polycopié, cite la page de cours de chaque réponse et trace les diagrammes N, T, M exacts avec un solveur RDM. Conçu pour les étudiants en ingénierie en Allemagne.",
+      "TRED erklärt dein eigenes Skript an einer interaktiven Tafel, rechnet mit deterministischen Solvern statt zu raten und macht aus deiner Frage ein Erklärvideo. In der Beta kostenlos testen.",
     priority: "1.0",
     canonical: "/",
     sitemap: false,
