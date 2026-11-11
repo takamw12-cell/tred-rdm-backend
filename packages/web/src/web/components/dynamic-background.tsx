@@ -5,6 +5,7 @@ import { useUserStore } from "@/stores/user";
 import { useT } from "@/i18n";
 import { backgroundsFor, categoryForProgram, portraitOf, shuffled } from "@/lib/background-sets";
 import { VEILS } from "@/lib/background-veils";
+import { PRELOAD_TIMEOUT_MS, ROTATION_TICK_MS, busyExpired, pausedFromStorage, shouldRotate } from "@/lib/background-rotation";
 
 /**
  * Fond photographique tournant (refonte du 11 nov. 2026).
@@ -17,12 +18,23 @@ import { VEILS } from "@/lib/background-veils";
  *   fois la même séquence, jamais deux fois la même image de suite.
  * - Deux couches FIXES (A et B) superposées : l'image suivante est chargée
  *   dans la couche cachée, décodée (`new Image()` + `decode()`), puis on
- *   bascule l'opacité. Pas de démontage, jamais de fondu vers un écran vide,
- *   et l'onglet masqué ne travaille pas (minuteur suspendu).
- * - Bouton Pause discret (au-dessus du bouton de retours). Avec
- *   `prefers-reduced-motion`, le fond est en pause par défaut. Le choix de
- *   l'utilisateur est retenu sur l'appareil.
- * - Mode test : `?bg=30` → rotation en 30 s + étiquette de diagnostic.
+ *   bascule l'opacité. Pas de démontage, jamais de fondu vers un écran vide.
+ * - Rotation pilotée par une HORLOGE (lib/background-rotation.ts) : un
+ *   battement d'une seconde compare l'heure au dernier changement. Sur
+ *   téléphone et tablette, le navigateur suspend les minuteurs en arrière-plan
+ *   et iOS ne signale pas toujours le retour ; un `setInterval(10 s)` arrêté
+ *   puis jamais relancé laissait le fond figé. L'onglet masqué ne travaille
+ *   toujours pas, et le fond repart dès qu'il redevient visible.
+ * - Un chargement d'image qui n'aboutit pas (réseau mobile) est abandonné au
+ *   bout de quelques secondes : la rotation ne reste jamais bloquée dessus.
+ * - Bouton Pause discret (au-dessus du bouton de retours). Le fond n'est en
+ *   pause QUE si l'utilisateur l'a demandé ; son choix est retenu sur
+ *   l'appareil. Le réglage système « réduire les animations » ne le fige plus
+ *   (correction du 11 nov. 2026 : il le laissait sur la première image).
+ * - Indépendant du mode immersif : le fond est dans un portail, hors de
+ *   l'interface qui s'efface.
+ * - Mode test : `?bg=30` → rotation en 30 s + étiquette de diagnostic (image,
+ *   variante portrait, nombre de changements, pause, dernière erreur).
  * - Voile en dégradé, selon la page (VEILS), calibré pour le contraste AA
  *   (tests/background-sets.test.ts).
  * - Rendu dans <body> par un portail : la page parente est animée
@@ -42,15 +54,14 @@ function readDebugSeconds(): number | null {
   return Number.isFinite(n) && n > 0 ? Math.min(3600, Math.max(3, n)) : 30;
 }
 
-/** Pause retenue sur l'appareil ; sinon `prefers-reduced-motion` décide. */
+/** En pause seulement si l'utilisateur l'a demandé sur cet appareil. */
 function readPaused(): boolean {
   try {
-    const saved = localStorage.getItem(PAUSE_KEY);
-    if (saved !== null) return saved === "1";
+    return pausedFromStorage(localStorage.getItem(PAUSE_KEY));
   } catch {
-    /* navigation privée : on retombe sur la préférence système */
+    /* navigation privée : rien de retenu, le fond tourne */
+    return false;
   }
-  return typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 }
 
 export { VEILS };
@@ -60,12 +71,23 @@ const PORTRAIT_MEDIA = "(orientation: portrait) and (max-width: 1024px)";
 const isPortrait = () => typeof window !== "undefined" && !!window.matchMedia?.(PORTRAIT_MEDIA).matches;
 const urlFor = (src: string) => (src && isPortrait() ? portraitOf(src) : src);
 
-/** Résout quand l'image est téléchargée ET décodée — ou en erreur : jamais bloqué. */
-function preload(url: string): Promise<void> {
+/**
+ * Résout « ok » quand l'image est téléchargée ET décodée, « error » si elle
+ * est illisible, « timeout » si le réseau ne répond pas à temps. Jamais
+ * bloqué : sur Safari, `decode()` peut ne jamais aboutir.
+ */
+function preload(url: string): Promise<"ok" | "error" | "timeout"> {
   const img = new Image();
   img.decoding = "async";
   img.src = url;
-  return img.decode().catch(() => undefined);
+  return Promise.race([
+    img.decode().then(
+      () => "ok" as const,
+      // `decode()` refuse parfois une image pourtant chargée : on se fie alors au chargement.
+      () => (img.complete && img.naturalWidth > 0 ? ("ok" as const) : ("error" as const)),
+    ),
+    new Promise<"timeout">((resolve) => setTimeout(() => resolve("timeout"), PRELOAD_TIMEOUT_MS)),
+  ]);
 }
 
 export function DynamicBackground({ variant = "calm" }: { variant?: keyof typeof VEILS }) {
@@ -88,24 +110,38 @@ export function DynamicBackground({ variant = "calm" }: { variant?: keyof typeof
   /** Tour en cours (ordre aléatoire), consommé image par image. */
   const queue = useRef<string[]>([]);
   /** Miroir de `front`/`shown` pour les minuteurs (mis à jour au moment du fondu, jamais au rendu). */
-  const state = useRef({ front: 0 as 0 | 1, shown: initial, busy: false });
+  const state = useRef({ front: 0 as 0 | 1, shown: initial, busySince: null as number | null, lastSwitch: Date.now() });
+  /** Diagnostic (`?bg=…`) : nombre de changements et dernier incident de chargement. */
+  const [diag, setDiag] = useState({ switches: 0, issue: "" });
 
   /** Fondu vers `src` : chargement dans la couche cachée, puis bascule de l'opacité. */
   const showImage = useCallback(async (src: string) => {
-    if (state.current.busy || src === state.current.shown) return;
-    state.current.busy = true;
+    if (src === state.current.shown) return;
+    // Un fondu resté « en cours » trop longtemps (chargement perdu) ne bloque plus rien.
+    if (state.current.busySince !== null && !busyExpired(state.current.busySince, Date.now())) return;
+    state.current.busySince = Date.now();
     const url = urlFor(src);
-    await preload(url);
+    const loaded = await preload(url);
+    if (loaded !== "ok") {
+      // Image illisible ou réseau trop lent : on garde l'image affichée (jamais
+      // de fondu vers un écran vide) et la rotation essaiera la suivante.
+      state.current.busySince = null;
+      state.current.lastSwitch = Date.now();
+      setDiag((d) => ({ ...d, issue: `${loaded}: ${url.split("/").pop()}` }));
+      return;
+    }
     const back = state.current.front === 0 ? 1 : 0;
     setLayers((l) => (back === 0 ? [url, l[1]] : [l[0], url]));
     // Une frame pour que la couche cachée reçoive son image AVANT le fondu.
     requestAnimationFrame(() => {
       state.current.front = back;
       state.current.shown = src;
+      state.current.lastSwitch = Date.now();
       setFront(back);
       setShown(src);
+      setDiag((d) => ({ ...d, switches: d.switches + 1 }));
       setTimeout(() => {
-        state.current.busy = false;
+        state.current.busySince = null;
       }, FADE_MS);
     });
   }, []);
@@ -124,23 +160,37 @@ export function DynamicBackground({ variant = "calm" }: { variant?: keyof typeof
     }
   }, [images, showImage]);
 
-  // La rotation : arrêtée en pause et quand l'onglet est masqué.
+  // La rotation, pilotée par l'horloge : un battement court demande « est-il
+  // temps ? ». Un minuteur suspendu par le téléphone (arrière-plan, économie
+  // d'énergie) est rattrapé au premier battement qui passe ; rien n'est à
+  // « relancer ». Les événements de retour ne servent qu'à ne pas attendre le
+  // battement suivant — iOS n'envoie pas toujours `visibilitychange`.
   useEffect(() => {
     if (paused || images.length < 2) return;
-    let timer: ReturnType<typeof setInterval> | undefined;
-    const start = () => {
-      clearInterval(timer);
-      timer = setInterval(() => {
-        const next = nextImage();
-        if (next) void showImage(next);
-      }, rotateMs);
+    // Reprise (ou sortie de pause) : l'image affichée a droit à sa durée entière.
+    state.current.lastSwitch = Date.now();
+    const check = () => {
+      const due = shouldRotate({
+        now: Date.now(),
+        lastSwitch: state.current.lastSwitch,
+        rotateMs,
+        hidden: document.visibilityState === "hidden",
+        paused: false,
+        imageCount: images.length,
+      });
+      if (!due) return;
+      const next = nextImage();
+      if (next) void showImage(next);
     };
-    const onVisibility = () => (document.hidden ? clearInterval(timer) : start());
-    start();
-    document.addEventListener("visibilitychange", onVisibility);
+    const timer = setInterval(check, ROTATION_TICK_MS);
+    document.addEventListener("visibilitychange", check);
+    window.addEventListener("pageshow", check);
+    window.addEventListener("focus", check);
     return () => {
       clearInterval(timer);
-      document.removeEventListener("visibilitychange", onVisibility);
+      document.removeEventListener("visibilitychange", check);
+      window.removeEventListener("pageshow", check);
+      window.removeEventListener("focus", check);
     };
   }, [paused, images, rotateMs, nextImage, showImage]);
 
@@ -190,7 +240,10 @@ export function DynamicBackground({ variant = "calm" }: { variant?: keyof typeof
         <div className={`absolute inset-0 bg-gradient-to-b transition-colors duration-700 ${VEILS[variant]}`} />
         {debugSeconds !== null && (
           <div className="bg-primary text-primary-foreground absolute bottom-3 left-3 rounded-md px-2 py-1 font-mono text-[11px] leading-tight">
-            {category} · {shown.split("/").slice(-2).join("/")} · {debugSeconds}s · {images.length} img
+            {category} · {urlFor(shown).split("/").slice(-2).join("/")} · {debugSeconds}s · {images.length} img
+            <br />
+            {isPortrait() ? "portrait" : "paysage"} · {diag.switches} changement(s) · {paused ? "EN PAUSE (bouton)" : "en rotation"}
+            {diag.issue ? ` · ${diag.issue}` : ""}
             <br />
             Studiengang: {program || "—"}
           </div>
