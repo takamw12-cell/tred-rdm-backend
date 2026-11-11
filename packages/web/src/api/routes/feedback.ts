@@ -1,3 +1,4 @@
+import { anonymize } from "../lib/shared-knowledge";
 import { z } from "zod";
 import { and, count, desc, eq, gte } from "drizzle-orm";
 import { ORPCError } from "@orpc/server";
@@ -45,7 +46,10 @@ export const feedbackRoutes = {
       userId: context.user.id,
       type: input.type,
       rating: input.rating ?? null,
-      message: input.message,
+      // Pas de coordonnées personnelles dans un texte libre : e-mail, téléphone,
+      // matricule, lien et prénom annoncé sont remplacés avant l'enregistrement
+      // (même filtre que la base de connaissances partagée).
+      message: anonymize(input.message),
       pageUrl: cleanPageUrl(input.pageUrl),
       // Lu côté serveur : c'est le professeur réellement enregistré, pas ce
       // que l'écran croyait.

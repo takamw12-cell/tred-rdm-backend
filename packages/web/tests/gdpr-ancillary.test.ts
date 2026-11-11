@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { createClient, type Client } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import { eq } from "drizzle-orm";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import * as schema from "../src/api/database/schema";
+import { anonymize } from "../src/api/lib/shared-knowledge";
 import { ANONYMOUS_USER_ID, ancillaryErasureSteps, exportAncillaryData } from "../src/api/lib/gdpr-ancillary";
 
 /**
@@ -36,7 +39,7 @@ beforeEach(async () => {
   for (const sql of DDL) await client.execute(sql);
   db = drizzle(client, { schema });
   for (const u of [LENA, TOM]) {
-    await db.insert(schema.feedback).values({ id: `fb_${u}`, userId: u, type: "bug", rating: 4, message: `Rückmeldung von ${u}`, userAgent: "Mozilla/5.0 (Pixel 9)" });
+    await db.insert(schema.feedback).values({ id: `fb_${u}`, userId: u, type: "bug", rating: 4, message: `Rückmeldung von ${u}, schreibt mir an ${u}@fh-aachen.de oder +49 241 6009 1234`, userAgent: "Mozilla/5.0 (Pixel 9)" });
     await db.insert(schema.courseMember).values({ courseId: "tm2", userId: u });
     await db.insert(schema.avatarUsage).values({ id: `av_${u}`, userId: u, durationSec: 30, costCents: 12 });
     await db.insert(schema.sharedKnowledge).values({ id: `sk_${u}`, courseId: "tm2", question: "Warum A = B?", answer: `Erklärung von ${u}`, upvotes: 2, status: "published", contributorId: u });
@@ -57,7 +60,8 @@ describe("RGPD — anonymisation (le contenu reste, le lien disparaît)", () => 
   test("feedback : le retour est gardé, sans identifiant ni appareil", async () => {
     await erase(LENA);
     const [row] = await db.select().from(schema.feedback).where(eq(schema.feedback.id, `fb_${LENA}`));
-    expect(row).toMatchObject({ userId: ANONYMOUS_USER_ID, userAgent: "", message: `Rückmeldung von ${LENA}`, rating: 4, type: "bug" });
+    expect(row).toMatchObject({ userId: ANONYMOUS_USER_ID, userAgent: "", rating: 4, type: "bug" });
+    expect(row!.message).toStartWith(`Rückmeldung von ${LENA}`);
     expect(await db.select().from(schema.feedback).where(eq(schema.feedback.userId, LENA))).toHaveLength(0);
   });
 
@@ -66,6 +70,52 @@ describe("RGPD — anonymisation (le contenu reste, le lien disparaît)", () => 
     const [row] = await db.select().from(schema.sharedKnowledge).where(eq(schema.sharedKnowledge.id, `sk_${LENA}`));
     expect(row).toMatchObject({ contributorId: null, answer: `Erklärung von ${LENA}`, status: "published", upvotes: 2 });
     expect(await db.select().from(schema.sharedKnowledge).where(eq(schema.sharedKnowledge.contributorId, LENA))).toHaveLength(0);
+  });
+});
+
+describe("RGPD — le texte du feedback est nettoyé", () => {
+  test("e-mail et téléphone sont retirés du message à la suppression du compte", async () => {
+    await erase(LENA);
+    const [row] = await db.select().from(schema.feedback).where(eq(schema.feedback.id, `fb_${LENA}`));
+    expect(row!.message).not.toMatch(/fh-aachen|6009|@/);
+    expect(row!.message).toContain("[E-Mail]");
+    expect(row!.message).toContain("[Telefon]");
+  });
+
+  test("le feedback d'un autre étudiant n'est pas réécrit", async () => {
+    await erase(LENA);
+    const [row] = await db.select().from(schema.feedback).where(eq(schema.feedback.id, `fb_${TOM}`));
+    expect(row!.message).toContain(`${TOM}@fh-aachen.de`);
+  });
+
+  test("le filtre s'applique dès l'envoi d'un feedback", () => {
+    const route = readFileSync(join(import.meta.dir, "../src/api/routes/feedback.ts"), "utf8");
+    expect(route).toContain("message: anonymize(input.message),");
+    expect(anonymize("Bug! Mail: lena.s@fh-aachen.de, Tel. +49 241 6009 1234")).toBe("Bug! Mail: [E-Mail], Tel. [Telefon]");
+  });
+});
+
+describe("RGPD — le compteur de votes reste juste", () => {
+  const upvotes = async (id: string) => (await db.select().from(schema.sharedKnowledge).where(eq(schema.sharedKnowledge.id, id)))[0]!.upvotes;
+
+  test("le vote effacé est décompté de l'explication concernée, pas des autres", async () => {
+    // Lena et Tom ont tous deux voté pour l'explication de Tom (2 votes).
+    await erase(LENA);
+    expect(await upvotes(`sk_${TOM}`)).toBe(1);
+    expect(await upvotes(`sk_${LENA}`)).toBe(2);
+    expect(await db.select().from(schema.sharedKnowledgeVote)).toHaveLength(1);
+  });
+
+  test("le compteur ne passe jamais sous zéro", async () => {
+    await db.update(schema.sharedKnowledge).set({ upvotes: 0 }).where(eq(schema.sharedKnowledge.id, `sk_${TOM}`));
+    await erase(LENA);
+    expect(await upvotes(`sk_${TOM}`)).toBe(0);
+  });
+
+  test("supprimer le compte une seconde fois ne décompte pas à nouveau", async () => {
+    await erase(LENA);
+    await erase(LENA);
+    expect(await upvotes(`sk_${TOM}`)).toBe(1);
   });
 });
 
@@ -82,6 +132,7 @@ describe("RGPD — suppression définitive", () => {
     expect(await erase(LENA)).toEqual({
       "feedback (anonymisé)": 1,
       "shared_knowledge (anonymisé)": 1,
+      "shared_knowledge (upvotes)": 1,
       course_member: 1,
       avatar_usage: 1,
       shared_knowledge_vote: 1,
@@ -132,7 +183,7 @@ describe("RGPD — export (art. 15)", () => {
 
   test("ne contient rien d'un autre étudiant", async () => {
     const out = await exportAncillaryData(db as never, LENA);
-    expect(JSON.stringify(out)).not.toContain(`Rückmeldung von ${TOM}`);
+    expect(JSON.stringify(out)).not.toContain(`Rückmeldung von ${TOM},`);
     expect(JSON.stringify(out)).not.toContain(`Erklärung von ${TOM}`);
   });
 

@@ -1,6 +1,7 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import type { db as appDb } from "../database";
 import { avatarUsage, courseMember, feedback, sharedKnowledge, sharedKnowledgeVote, userNotification } from "../database/schema";
+import { anonymize } from "./shared-knowledge";
 
 /**
  * RGPD — les six tables secondaires oubliées par la routine d'origine.
@@ -9,11 +10,17 @@ import { avatarUsage, courseMember, feedback, sharedKnowledge, sharedKnowledgeVo
  *   ANONYMISATION (le contenu reste, le lien vers le compte disparaît)
  *     shared_knowledge   contributor_id → NULL : l'explication partagée reste
  *                        utile aux autres étudiants du cours.
- *     feedback           user_id → « anonymous », user_agent vidé : le retour
- *                        sert à améliorer TRED, plus rien ne mène au compte.
+ *     feedback           user_id → « anonymous », user_agent vidé, et le
+ *                        texte repassé au filtre d'anonymisation (e-mail,
+ *                        téléphone, matricule, lien, prénom annoncé) : le
+ *                        retour sert à améliorer TRED, plus rien ne mène au
+ *                        compte. Le filtre s'applique aussi dès l'envoi
+ *                        (routes/feedback.ts) ; ici il rattrape les anciens.
  *
  *   SUPPRESSION (droit à l'oubli)
  *     course_member, avatar_usage, shared_knowledge_vote, user_notifications
+ *     Avant d'effacer les votes, le compteur `upvotes` des explications
+ *     concernées est décrémenté : le total reste égal au nombre de votes.
  *
  * La base est passée en paramètre : tests/gdpr-ancillary.test.ts exécute ces
  * requêtes sur une vraie base SQLite en mémoire, sans toucher à Turso.
@@ -29,7 +36,17 @@ export function ancillaryErasureSteps(database: Db, userId: string): [label: str
   return [
     [
       "feedback (anonymisé)",
-      () => database.update(feedback).set({ userId: ANONYMOUS_USER_ID, userAgent: "" }).where(eq(feedback.userId, userId)),
+      async () => {
+        // Ligne par ligne : le texte de chacune passe au filtre.
+        const rows = await database.select({ id: feedback.id, message: feedback.message }).from(feedback).where(eq(feedback.userId, userId));
+        for (const row of rows) {
+          await database
+            .update(feedback)
+            .set({ userId: ANONYMOUS_USER_ID, userAgent: "", message: anonymize(row.message) })
+            .where(eq(feedback.id, row.id));
+        }
+        return { rowsAffected: rows.length };
+      },
     ],
     [
       "shared_knowledge (anonymisé)",
@@ -37,6 +54,20 @@ export function ancillaryErasureSteps(database: Db, userId: string): [label: str
     ],
     ["course_member", () => database.delete(courseMember).where(eq(courseMember.userId, userId))],
     ["avatar_usage", () => database.delete(avatarUsage).where(eq(avatarUsage.userId, userId))],
+    [
+      // AVANT la suppression des votes : sinon on ne sait plus lesquels décompter.
+      "shared_knowledge (upvotes)",
+      () =>
+        database
+          .update(sharedKnowledge)
+          .set({ upvotes: sql`max(${sharedKnowledge.upvotes} - 1, 0)` })
+          .where(
+            inArray(
+              sharedKnowledge.id,
+              database.select({ id: sharedKnowledgeVote.knowledgeId }).from(sharedKnowledgeVote).where(eq(sharedKnowledgeVote.userId, userId)),
+            ),
+          ),
+    ],
     ["shared_knowledge_vote", () => database.delete(sharedKnowledgeVote).where(eq(sharedKnowledgeVote.userId, userId))],
     ["user_notifications", () => database.delete(userNotification).where(eq(userNotification.userId, userId))],
   ];
