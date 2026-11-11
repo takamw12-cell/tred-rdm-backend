@@ -5,7 +5,7 @@ import webpack from "webpack";
 
 /**
  * La vidéo réutilise les VRAIS composants de packages/web (Tafel, professeur,
- * logo, solveur RDM). On donne donc à Remotion :
+ * logo, solveur de Technische Mechanik). On donne donc à Remotion :
  *  - l'alias `@` de l'app web (src/web) ;
  *  - Tailwind v4, avec la feuille de styles de l'app (src/style.css) ;
  *  - les fichiers publics de l'app (avatars, fonds, polices) ;

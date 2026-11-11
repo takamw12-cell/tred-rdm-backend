@@ -1,5 +1,5 @@
 /**
- * RDM / Balkenstatik — der Schiedsrichter über alle Zahlen.
+ * Technische Mechanik / Balkenstatik — der Schiedsrichter über alle Zahlen.
  *
  * Ein Sprachmodell schreibt Zahlen, es rechnet sie nicht. Deshalb rechnet
  * dieses Modul, und das Modell darf das Ergebnis ausschließlich ERKLÄREN und
@@ -301,7 +301,7 @@ function rootsOnInterval(fn: (x: number) => number, lo: number, hi: number): num
   return ts.map((t) => t + x1).filter((x) => x > lo + e / 2 && x < hi - e / 2);
 }
 
-export function solveRdm(problem: BeamProblem): SolveResult {
+export function solveMechanics(problem: BeamProblem): SolveResult {
   const warnings: string[] = [];
 
   /* ── 1. Einheiten normalisieren ─────────────────────────────────────── */
@@ -720,11 +720,11 @@ export function solveRdm(problem: BeamProblem): SolveResult {
  * Ein unerwarteter Fehler darf nie dazu führen, dass das Modell sich seine
  * eigenen Zahlen ausdenkt — es bekommt stattdessen eine klare Absage.
  */
-export function solveRdmSafe(problem: BeamProblem): SolveResult {
+export function solveMechanicsSafe(problem: BeamProblem): SolveResult {
   try {
-    return solveRdm(problem);
+    return solveMechanics(problem);
   } catch (error) {
-    console.error("[rdm-solver] unerwarteter Fehler", error);
+    console.error("[mechanics-solver] unerwarteter Fehler", error);
     return {
       ok: false,
       code: "NUMERICAL",

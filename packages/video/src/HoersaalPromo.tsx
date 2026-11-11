@@ -20,7 +20,7 @@ import { HologramProfessor } from "@/components/hologram-professor";
 import { Logo } from "@/components/logo";
 import { parseBeamPayload, renderBeamSvg } from "@/lib/beam-svg";
 import { PROFESSORS, PROFESSOR_IDS, professorText, type Professor } from "../../web/src/api/lib/professors";
-import { solveRdmSafe } from "../../web/src/api/lib/rdm-solver";
+import { solveMechanicsSafe } from "../../web/src/api/lib/mechanics-solver";
 import { payloadToProblem } from "../../web/src/api/lib/beam-tool";
 
 /**
@@ -29,9 +29,9 @@ import { payloadToProblem } from "../../web/src/api/lib/beam-tool";
  * fonction pure du temps, donc le rendu est identique d'une fois à l'autre.
  *
  * Storyboard (packages/video/storyboard.md, resserré à 15 s) :
- *   0,0–2,5 s  Hook : « ChatGPT s'est encore trompé de signe ? »
+ *   0,0–2,5 s  Hook : « L'IA s'est encore trompée de signe ? »
  *   2,5–5,0 s  Reveal : logo TRED + promesse (copie de la landing)
- *   5,0–10,0 s Le Hörsaal : la Tafel s'écrit, le solveur RDM trace Q(x) et M(x)
+ *   5,0–10,0 s Le Hörsaal : la Tafel s'écrit, le solveur de Technische Mechanik trace Q(x) et M(x)
  *  10,0–12,5 s Les quatre professeurs
  *  12,5–15,0 s Outro : tred-tutor.de
  */
@@ -150,7 +150,7 @@ function Hook() {
             margin: 0,
           }}
         >
-          ChatGPT s'est encore trompé de <span style={{ color: YELLOW }}>signe</span>&nbsp;?
+          L'IA s'est encore trompée de <span style={{ color: YELLOW }}>signe</span>&nbsp;?
         </p>
       </AbsoluteFill>
 
@@ -214,12 +214,12 @@ const BEAM = {
   units: { length: "m", force: "kN" },
 };
 
-/** Le SVG que le VRAI solveur RDM de TRED dessine (même code que /chat). */
+/** Le SVG que le VRAI solveur de Technische Mechanik de TRED dessine (même code que /chat). */
 function useSolverSvg() {
   return useMemo(() => {
     const payload = parseBeamPayload(JSON.stringify(BEAM));
     if (!payload) throw new Error("Poutre de démonstration invalide");
-    const r = solveRdmSafe(payloadToProblem(payload.problem));
+    const r = solveMechanicsSafe(payloadToProblem(payload.problem));
     if (!r.ok) throw new Error(`Le solveur a refusé la poutre : ${r.error}`);
     return renderBeamSvg(payload, r);
   }, []);
@@ -332,7 +332,7 @@ function Hoersaal() {
 
       {/* La légende : ce qui rend TRED différent */}
       <Caption frame={frame} start={74} end={dur - 4}>
-        Tracé par le solveur RDM, <span style={{ color: YELLOW }}>pas inventé par l'IA.</span>
+        Tracé par le solveur de Technische Mechanik, <span style={{ color: YELLOW }}>pas inventé par l'IA.</span>
       </Caption>
     </AbsoluteFill>
   );

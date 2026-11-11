@@ -1,6 +1,6 @@
 /**
  * Crée la table `solver_result` sur Turso, sans drizzle-kit — les calculs
- * réussis des solveurs dans le chat (RDM, thermo, circuits…), sur lesquels la
+ * réussis des solveurs dans le chat (Technische Mechanik, thermo, circuits…), sur lesquels la
  * vidéo explicative « Als Video erklären » s'appuie.
  *
  * Lançable depuis N'IMPORTE QUEL dossier du dépôt : le script remonte

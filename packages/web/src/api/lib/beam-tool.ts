@@ -1,4 +1,4 @@
-import { solveRdmSafe, type BeamProblem, type Point, type SolveError, type SupportKind } from "./rdm-solver";
+import { solveMechanicsSafe, type BeamProblem, type Point, type SolveError, type SupportKind } from "./mechanics-solver";
 import { toSI } from "./units";
 
 /**
@@ -170,7 +170,7 @@ export function runBalkenstatik(a: BalkenstatikInput) {
     } satisfies SolveError;
   }
 
-  const r = solveRdmSafe(payloadToProblem(payload.problem));
+  const r = solveMechanicsSafe(payloadToProblem(payload.problem));
   if (!r.ok) return r;
 
   const events = eventPositions(payload.problem);

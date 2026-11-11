@@ -3,7 +3,7 @@ import { AbsoluteFill, Img, Sequence, interpolate, staticFile, useCurrentFrame }
 import { PaperNote, SolverStamp, StepChecklist } from "@/components/hoersaal";
 import { parseBeamPayload, renderBeamSvg } from "@/lib/beam-svg";
 import { PROFESSORS, PROFESSOR_IDS } from "../../../web/src/api/lib/professors";
-import { solveRdmSafe } from "../../../web/src/api/lib/rdm-solver";
+import { solveMechanicsSafe } from "../../../web/src/api/lib/mechanics-solver";
 import { payloadToProblem } from "../../../web/src/api/lib/beam-tool";
 import { Appear, HoersaalBoard, Tex } from "../promo/board";
 import {
@@ -59,7 +59,7 @@ function useSolver() {
   return useMemo(() => {
     const payload = parseBeamPayload(JSON.stringify(BEAM));
     if (!payload) throw new Error("Poutre de démonstration invalide");
-    const r = solveRdmSafe(payloadToProblem(payload.problem));
+    const r = solveMechanicsSafe(payloadToProblem(payload.problem));
     if (!r.ok) throw new Error(`Le solveur a refusé la poutre : ${r.error}`);
     return { svg: renderBeamSvg(payload, r), r };
   }, []);

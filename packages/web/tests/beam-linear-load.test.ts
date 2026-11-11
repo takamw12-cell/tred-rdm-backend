@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import { runBalkenstatik, type BalkenstatikInput } from "../src/api/lib/beam-tool";
 import { renderBeamSvg } from "../src/web/lib/beam-svg";
-import { solveRdmSafe } from "../src/api/lib/rdm-solver";
+import { solveMechanicsSafe } from "../src/api/lib/mechanics-solver";
 
 /**
  * Module 2 — charges triangulaires et trapézoïdales.
@@ -43,7 +43,7 @@ describe("balkenstatik — Dreiecks- und Trapezlast (Module 2)", () => {
 
     // Le dessin montre un triangle, pas un rectangle.
     const p = r.diagramm;
-    const s = solveRdmSafe({ ...p.problem });
+    const s = solveMechanicsSafe({ ...p.problem });
     if (!s.ok) throw new Error("solveur");
     const svg = renderBeamSvg(p, s);
     expect(svg).toContain("<polygon");

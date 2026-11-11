@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { AlertTriangle } from "lucide-react";
-import { solveRdmSafe } from "../../api/lib/rdm-solver";
+import { solveMechanicsSafe } from "../../api/lib/mechanics-solver";
 import { payloadToProblem } from "../../api/lib/beam-tool";
 import { parseBeamPayload, renderBeamSvg } from "@/lib/beam-svg";
 import { SvgDiagramFrame } from "./diagram-frame";
@@ -13,7 +13,7 @@ export { BEAM_LANG, beamBlockFromPart, dropDuplicateBeamCharts } from "@/lib/bea
  * Chaîne complète :
  *   outil `balkenstatik` (serveur) → partie « tool-balkenstatik » du message
  *   → `beamBlockFromPart()` l'écrit en bloc ```balkendiagramm dans le texte
- *   → <MarkdownContent> → <BeamDiagram> → solveRdmSafe() ICI, même module que
+ *   → <MarkdownContent> → <BeamDiagram> → solveMechanicsSafe() ICI, même module que
  *   le serveur → SVG.
  *
  * Le modèle n'écrit pas un seul chiffre de ce dessin. Et comme le bloc vit
@@ -29,7 +29,7 @@ export function BeamDiagram({ code }: { code: string }) {
   const svg = useMemo(() => {
     const payload = parseBeamPayload(code);
     if (!payload) return null;
-    const r = solveRdmSafe(payloadToProblem(payload.problem));
+    const r = solveMechanicsSafe(payloadToProblem(payload.problem));
     return r.ok ? renderBeamSvg(payload, r) : null;
   }, [code]);
 

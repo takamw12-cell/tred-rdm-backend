@@ -1,7 +1,7 @@
 /**
  * Les résultats des solveurs, conservés pour « Als Video erklären ».
  *
- * Quand le tuteur appelle un solveur dans le chat (RDM, thermo, circuits…),
+ * Quand le tuteur appelle un solveur dans le chat (Technische Mechanik, thermo, circuits…),
  * l'entrée et la sortie sont enregistrées (table `solver_result`). La vidéo
  * explicative peut alors s'appuyer sur ces chiffres CALCULÉS, et le validateur
  * (lib/video-script.ts) refuse tout nombre qui ne vient ni du cours ni d'eux.

@@ -5,7 +5,7 @@
  *
  * Deux composants finis dormaient dans le dépôt sans être importés nulle part :
  * `dictionary-tooltip.tsx` et `source-citation.tsx`. Ce sont exactement les
- * deux choses qui séparent TRED d'un ChatGPT généraliste :
+ * deux choses qui font la différence de TRED :
  *
  *   · le terme technique allemand, souligné, qui donne sa traduction et sa
  *     définition au survol — la promesse trilingue, rendue visible ;

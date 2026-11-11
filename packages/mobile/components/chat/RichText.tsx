@@ -9,7 +9,7 @@ import { Space } from "@/constants/theme";
  *
  * Trois décisions qui expliquent la forme de ce fichier :
  *
- * **Une WebView, et seulement quand il y a des maths.** Un étudiant en RDM
+ * **Une WebView, et seulement quand il y a des maths.** Un étudiant en Technische Mechanik
  * lit `σ = M/W`, pas `$$\sigma = M/W$$`. Aucune bibliothèque React Native ne
  * rend correctement du LaTeX ; KaTeX dans une WebView, si. Mais une WebView
  * coûte cher en mémoire, donc les messages sans formule passent par du texte

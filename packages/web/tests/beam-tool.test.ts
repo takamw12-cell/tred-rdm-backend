@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { runBalkenstatik, payloadToProblem, type BalkenstatikInput } from "../src/api/lib/beam-tool";
-import { solveRdmSafe, type Point } from "../src/api/lib/rdm-solver";
+import { solveMechanicsSafe, type Point } from "../src/api/lib/mechanics-solver";
 import {
   BEAM_LANG,
   beamBlockFromPart,
@@ -74,7 +74,7 @@ describe("balkenstatik — sauts conservés (non-régression thin())", () => {
 describe("balkenstatik — le bloc reproduit le calcul", () => {
   test("re-résoudre `diagramm` redonne les mêmes réactions", () => {
     const r = ok(EINFELD_F100);
-    const again = solveRdmSafe(payloadToProblem(r.diagramm.problem));
+    const again = solveMechanicsSafe(payloadToProblem(r.diagramm.problem));
     expect(again.ok).toBe(true);
     if (!again.ok) return;
     expect(again.reactions).toEqual(r.auflagerkraefte);
@@ -200,7 +200,7 @@ describe("chaîne d'affichage", () => {
 
   test("le SVG trace le saut de Q en vertical (même x, deux y)", () => {
     const r = ok(EINFELD_F100);
-    const solved = solveRdmSafe(payloadToProblem(r.diagramm.problem));
+    const solved = solveMechanicsSafe(payloadToProblem(r.diagramm.problem));
     if (!solved.ok) throw new Error("solveur");
     const svg = renderBeamSvg(r.diagramm, solved);
     // Première polyline = Q(x). x = 1 m → px = 64 + 1/4 · 500 = 189.

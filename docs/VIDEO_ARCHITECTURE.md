@@ -1,6 +1,6 @@
 # Architecture — génération vidéo (Grok Imagine / Runway)
 
-> Statut : **validé, non implémenté.** À coder après la mise en production du Module 2 RDM.
+> Statut : **validé, non implémenté.** À coder après la mise en production du Module 2 de Technische Mechanik.
 > Décidé le 5 novembre 2026.
 
 ## Décisions

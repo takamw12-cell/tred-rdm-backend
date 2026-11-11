@@ -28,7 +28,7 @@ describe("Routage : modèle et raisonnement selon la question", () => {
   });
 
   test.each([
-    "Qu'est-ce que la RDM ?",
+    "Qu'est-ce que la Technische Mechanik ?",
     "Explique la loi d'Ohm",
     "Was ist ein Biegemoment?",
     "Was ist eine Ableitung?",

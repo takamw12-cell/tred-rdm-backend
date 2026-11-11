@@ -4,7 +4,7 @@ import { BookOpen, Check, Clapperboard, Flame, Layers, Loader2, Mic, Pause, Play
 import { Logo } from "@/components/logo";
 import { PaperNote, SolverStamp, StepChecklist } from "@/components/hoersaal";
 import { parseBeamPayload, renderBeamSvg } from "@/lib/beam-svg";
-import { solveRdmSafe } from "../../../web/src/api/lib/rdm-solver";
+import { solveMechanicsSafe } from "../../../web/src/api/lib/mechanics-solver";
 import { payloadToProblem } from "../../../web/src/api/lib/beam-tool";
 import { Appear, HoersaalBoard, Tex, UI } from "../promo/board";
 import { CREAM, INK, NIGHT, YELLOW, clamp, easeOut, interpolateScroll, pop, progress, rise } from "../promo/kit";
@@ -179,7 +179,7 @@ function useBeamSvg() {
   return useMemo(() => {
     const payload = parseBeamPayload(JSON.stringify(BEAM_PAYLOAD));
     if (!payload) throw new Error("Poutre de démonstration invalide");
-    const r = solveRdmSafe(payloadToProblem(payload.problem));
+    const r = solveMechanicsSafe(payloadToProblem(payload.problem));
     if (!r.ok) throw new Error(`Le solveur a refusé la poutre : ${r.error}`);
     return renderBeamSvg(payload, r);
   }, []);

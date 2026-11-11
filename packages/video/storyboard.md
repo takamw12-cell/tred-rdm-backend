@@ -7,9 +7,9 @@ Ton : « premium, futuriste, inspirant » → base `cinematic`, retenu comme `po
 
 ## Rubrique
 - **Quoi :** un tuteur IA pour les études d'ingénieur, qui écrit la solution au tableau (la Tafel du Hörsaal numérique).
-- **Pour qui :** les étudiants en ingénierie en Allemagne (RDM / Technische Mechanik d'abord).
+- **Pour qui :** les étudiants en ingénierie en Allemagne (Technische Mechanik d'abord).
 - **Ce qui le distingue :** il lit TON polycopié et cite la page ; les diagrammes N, T, M viennent d'un solveur, pas d'un modèle de langage ; 4 professeurs d'anime au choix.
-- **Promesse la plus forte (copie réelle de la landing) :** « Ne rate plus ton partiel de RDM à cause d'une erreur de ChatGPT. »
+- **Promesse la plus forte (page d'accueil du 2026-11-11) :** « Die Universität für die Hosentasche » : un tableau interactif, des solveurs déterministes à la place de chiffres devinés. Aucune comparaison avec un autre assistant.
 - **Accroche visuelle :** la turbine (fond aerospace-01 du projet) qui tourne + une formule au feutre barrée en rouge.
 - **UI réelle montrée :** la Tafel (verre dans un cadre en métal brossé, salle bleu nuit), le professeur flottant avec sa pastille d'état, le vestiaire des 4 profs.
 - **Légende :** voir share-copy.txt.
@@ -26,10 +26,10 @@ Synthétisée, 120 BPM (temps = 0,5 s, mesure = 2 s), la mineur : nappe Am–F�
 ## Storyboard (22 s)
 | # | Temps | Scène | Texte à l'écran |
 |---|---|---|---|
-| 1 | 0–3 s | Hook. Turbine sombre qui tourne. Une formule s'écrit au feutre, un trait rouge la barre. | « M_max = −4 kNm » ✗ — « ChatGPT s'est encore trompé de signe ? » |
+| 1 | 0–3 s | Hook. Turbine sombre qui tourne. Une formule s'écrit au feutre, un trait rouge la barre. | « M_max = −4 kNm » ✗ — « L'IA s'est encore trompée de signe ? » |
 | 2 | 3–6 s | Reveal. Flash crème, logo TRED qui se pose. | « Le premier tuteur IA qui lit ton propre polycopié. » |
 | 3 | 6–11 s | Le Hörsaal. Salle bleu nuit, la Tafel ; Prof. Kenta flottant « schreibt an die Tafel… » ; la solution s'écrit ligne par ligne. | Gegeben q = 2 kN/m, L = 4 m · A = B = qL/2 = 4 kN · M_max = qL²/8 = 4 kNm · « Chaque réponse cite la page du cours » |
-| 4 | 11–15 s | Le solveur. Poutre sur deux appuis, charge répartie ; T(x) puis M(x) se tracent. | « Diagrammes N, T, M tracés par un solveur RDM. » |
+| 4 | 11–15 s | Le solveur. Poutre sur deux appuis, charge répartie ; T(x) puis M(x) se tracent. | « Diagrammes N, T, M tracés par un solveur de Technische Mechanik. » |
 | 5 | 15–18,5 s | Les profs. 4 cartes qui arrivent l'une après l'autre. | « Choisis qui t'explique au tableau. Le ton change, l'exactitude jamais. » |
 | 6 | 18,5–22 s | Outro. Logo, URL, cible. | « tred-tutor.de » · « Conçu pour les étudiants en ingénierie en Allemagne. » |
 

@@ -877,7 +877,7 @@ export type GeneratedVideo = typeof generatedVideo.$inferSelect;
 
 // ── Résultats des solveurs (source de « Als Video erklären ») ─────────────
 //
-// Chaque calcul réussi d'un solveur dans le chat (RDM, thermo, circuits…) :
+// Chaque calcul réussi d'un solveur dans le chat (Technische Mechanik, thermo, circuits…) :
 // l'entrée et la sortie en JSON, bornées (lib/solver-results.ts). La vidéo
 // explicative s'appuie sur ces chiffres calculés, et son validateur refuse
 // tout nombre qui ne vient ni du cours ni d'eux. `conversationId` est celui

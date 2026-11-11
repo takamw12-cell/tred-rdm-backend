@@ -1,4 +1,4 @@
-import { type Point, type SolveOk } from "../../api/lib/rdm-solver";
+import { type Point, type SolveOk } from "../../api/lib/mechanics-solver";
 import { criticalPoints, eventPositions, type BeamDiagramPayload } from "../../api/lib/beam-tool";
 import { toSI } from "../../api/lib/units";
 
