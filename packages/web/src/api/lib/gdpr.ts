@@ -7,6 +7,7 @@ import {
   contentReport,
   creditTransaction,
   document,
+  flashcard,
   generatedVideo,
   misconception,
   purchasedCredits,
@@ -58,6 +59,9 @@ export const PERSONAL_DATA_TABLES = [
   // ici. `misconception` contient ce que l'étudiant a mal compris, nommément.
   "misconception",
   "content_report",
+  // Oubliée à sa création (V2, Pilier 1) : les Karteikarten survivaient à la
+  // suppression du compte et manquaient à l'export. Corrigé le 2026-11-11.
+  "flashcard",
   // « Als Video erklären » : les vidéos explicatives et les calculs des solveurs.
   "generated_video",
   "solver_result",
@@ -95,6 +99,15 @@ export async function exportUserData(userId: string) {
         .from(chatMessage)
         .where(inArray(chatMessage.conversationId, conversationIds))
     : [];
+
+  // Tables créées par un script migre-*.mjs : si l'une manque encore sur une
+  // base, l'export ne doit pas échouer pour autant.
+  const optional = <T>(query: Promise<T[]>): Promise<T[]> => query.catch(() => []);
+  const [karteikarten, erklaervideos, solverErgebnisse] = await Promise.all([
+    optional(db.select().from(flashcard).where(eq(flashcard.userId, userId))),
+    optional(db.select().from(generatedVideo).where(eq(generatedVideo.userId, userId))),
+    optional(db.select().from(solverResult).where(eq(solverResult.userId, userId))),
+  ]);
 
   const [semesters, documents, exercises, tokens, transactions, luecken] =
     await Promise.all([
@@ -138,6 +151,9 @@ export async function exportUserData(userId: string) {
     // hat, gehört ausdrücklich dazu — es ist die persönlichste Tabelle der
     // ganzen Anwendung.
     wissensluecken: luecken,
+    karteikarten,
+    erklaervideos,
+    solverErgebnisse,
     semester: semesters,
     dokumente: documents.map((d) => ({
       ...d,
@@ -240,6 +256,9 @@ export async function deleteUserData(userId: string): Promise<DeletionReport> {
   );
   await step("content_report", () =>
     db.delete(contentReport).where(eq(contentReport.userId, userId)),
+  );
+  await step("flashcard", () =>
+    db.delete(flashcard).where(eq(flashcard.userId, userId)),
   );
   await step("generated_video", () =>
     db.delete(generatedVideo).where(eq(generatedVideo.userId, userId)),
