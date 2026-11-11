@@ -114,23 +114,12 @@ const BORROWED: Partial<Record<BackgroundCategory, string[]>> = {
 };
 
 /**
- * Filières dont les images sont commandées mais pas encore là (génération
- * Replicate bloquée faute de crédit le 2026-11-09 : relancer
- * `bun --env-file=.env scripts/generate-backgrounds.mjs medicine law economics`).
- * En attendant : le fond général, jamais un fond vide. Les tests vérifient que
- * cette liste se vide dès que les images arrivent.
+ * Filières dont les images sont commandées mais pas encore là. En
+ * attendant : le fond général, jamais un fond vide. Vide depuis le
+ * 2026-11-11 : les 23 filières ont leurs fonds universels. Une nouvelle
+ * filière s'y ajoute le temps de générer ses images.
  */
-export const AWAITING_IMAGES: readonly BackgroundCategory[] = [
-  "law",
-  "economics",
-  // Refonte du 2026-11-11 : aucune photo d'avant, en attente de
-  // `bun --env-file=.env packages/web/scripts/generate-universal-backgrounds.mjs --all`.
-  "biology",
-  "psychology",
-  "philosophy",
-  "languages",
-  "history",
-];
+export const AWAITING_IMAGES: readonly BackgroundCategory[] = [];
 
 export const CATEGORY_IMAGES: Record<BackgroundCategory, string[]> = Object.fromEntries(
   (Object.keys(PLANNED) as BackgroundCategory[]).map((c) => {

@@ -78,6 +78,7 @@
     "/backgrounds/architecture/architecture-u04.webp",
     "/backgrounds/architecture/architecture-u05.webp",
     "/backgrounds/architecture/architecture-u06.webp",
+    "/backgrounds/architecture/architecture-u07.webp",
     "/backgrounds/architecture/architecture-u08.webp",
     "/backgrounds/architecture/architecture-u09.webp",
     "/backgrounds/architecture/architecture-u10.webp"
@@ -127,7 +128,8 @@
     "/backgrounds/biomedical/biomedical-u06.webp",
     "/backgrounds/biomedical/biomedical-u07.webp",
     "/backgrounds/biomedical/biomedical-u08.webp",
-    "/backgrounds/biomedical/biomedical-u09.webp"
+    "/backgrounds/biomedical/biomedical-u09.webp",
+    "/backgrounds/biomedical/biomedical-u10.webp"
   ],
   "informatics": [
     "/backgrounds/informatics/informatics-u01.webp",
@@ -174,7 +176,8 @@
     "/backgrounds/physics/physics-u06.webp",
     "/backgrounds/physics/physics-u07.webp",
     "/backgrounds/physics/physics-u08.webp",
-    "/backgrounds/physics/physics-u09.webp"
+    "/backgrounds/physics/physics-u09.webp",
+    "/backgrounds/physics/physics-u10.webp"
   ],
   "medicine": [
     "/backgrounds/medicine/medicine-u01.webp",
@@ -187,5 +190,86 @@
     "/backgrounds/medicine/medicine-u08.webp",
     "/backgrounds/medicine/medicine-u09.webp",
     "/backgrounds/medicine/medicine-u10.webp"
+  ],
+  "law": [
+    "/backgrounds/law/law-u01.webp",
+    "/backgrounds/law/law-u02.webp",
+    "/backgrounds/law/law-u03.webp",
+    "/backgrounds/law/law-u04.webp",
+    "/backgrounds/law/law-u05.webp",
+    "/backgrounds/law/law-u06.webp",
+    "/backgrounds/law/law-u07.webp",
+    "/backgrounds/law/law-u08.webp",
+    "/backgrounds/law/law-u09.webp",
+    "/backgrounds/law/law-u10.webp"
+  ],
+  "economics": [
+    "/backgrounds/economics/economics-u01.webp",
+    "/backgrounds/economics/economics-u02.webp",
+    "/backgrounds/economics/economics-u03.webp",
+    "/backgrounds/economics/economics-u04.webp",
+    "/backgrounds/economics/economics-u05.webp",
+    "/backgrounds/economics/economics-u06.webp",
+    "/backgrounds/economics/economics-u07.webp",
+    "/backgrounds/economics/economics-u08.webp",
+    "/backgrounds/economics/economics-u09.webp",
+    "/backgrounds/economics/economics-u10.webp"
+  ],
+  "biology": [
+    "/backgrounds/biology/biology-u01.webp",
+    "/backgrounds/biology/biology-u02.webp",
+    "/backgrounds/biology/biology-u03.webp",
+    "/backgrounds/biology/biology-u04.webp",
+    "/backgrounds/biology/biology-u05.webp",
+    "/backgrounds/biology/biology-u06.webp",
+    "/backgrounds/biology/biology-u07.webp",
+    "/backgrounds/biology/biology-u08.webp",
+    "/backgrounds/biology/biology-u09.webp",
+    "/backgrounds/biology/biology-u10.webp"
+  ],
+  "psychology": [
+    "/backgrounds/psychology/psychology-u01.webp",
+    "/backgrounds/psychology/psychology-u02.webp",
+    "/backgrounds/psychology/psychology-u03.webp",
+    "/backgrounds/psychology/psychology-u04.webp",
+    "/backgrounds/psychology/psychology-u06.webp",
+    "/backgrounds/psychology/psychology-u07.webp",
+    "/backgrounds/psychology/psychology-u08.webp",
+    "/backgrounds/psychology/psychology-u09.webp",
+    "/backgrounds/psychology/psychology-u10.webp"
+  ],
+  "philosophy": [
+    "/backgrounds/philosophy/philosophy-u01.webp",
+    "/backgrounds/philosophy/philosophy-u02.webp",
+    "/backgrounds/philosophy/philosophy-u03.webp",
+    "/backgrounds/philosophy/philosophy-u04.webp",
+    "/backgrounds/philosophy/philosophy-u05.webp",
+    "/backgrounds/philosophy/philosophy-u06.webp",
+    "/backgrounds/philosophy/philosophy-u07.webp",
+    "/backgrounds/philosophy/philosophy-u08.webp",
+    "/backgrounds/philosophy/philosophy-u09.webp",
+    "/backgrounds/philosophy/philosophy-u10.webp"
+  ],
+  "languages": [
+    "/backgrounds/languages/languages-u02.webp",
+    "/backgrounds/languages/languages-u03.webp",
+    "/backgrounds/languages/languages-u04.webp",
+    "/backgrounds/languages/languages-u05.webp",
+    "/backgrounds/languages/languages-u06.webp",
+    "/backgrounds/languages/languages-u07.webp",
+    "/backgrounds/languages/languages-u09.webp",
+    "/backgrounds/languages/languages-u10.webp"
+  ],
+  "history": [
+    "/backgrounds/history/history-u01.webp",
+    "/backgrounds/history/history-u02.webp",
+    "/backgrounds/history/history-u03.webp",
+    "/backgrounds/history/history-u04.webp",
+    "/backgrounds/history/history-u05.webp",
+    "/backgrounds/history/history-u06.webp",
+    "/backgrounds/history/history-u07.webp",
+    "/backgrounds/history/history-u08.webp",
+    "/backgrounds/history/history-u09.webp",
+    "/backgrounds/history/history-u10.webp"
   ]
 }
