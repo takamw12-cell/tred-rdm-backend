@@ -95,6 +95,9 @@ export const en: Messages = {
     pause: "Pause background",
     play: "Play background",
   },
+  immersive: {
+    enter: "Zen mode: background only",
+  },
   fontSize: {
     label: "Text size",
     small: "Small",

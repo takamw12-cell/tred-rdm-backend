@@ -29,6 +29,9 @@ export const ru: PartialMessages = {
     pause: "Остановить фон",
     play: "Запустить фон",
   },
+  immersive: {
+    enter: "Режим дзен: только фон",
+  },
   common: {
     email: "Эл. почта",
     password: "Пароль",

@@ -94,6 +94,9 @@ export const de = {
     pause: "Hintergrund anhalten",
     play: "Hintergrund abspielen",
   },
+  immersive: {
+    enter: "Zen-Modus: nur der Hintergrund",
+  },
   fontSize: {
     label: "Textgröße",
     small: "Klein",

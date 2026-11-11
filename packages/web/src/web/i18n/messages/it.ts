@@ -29,6 +29,9 @@ export const it: PartialMessages = {
     pause: "Metti in pausa lo sfondo",
     play: "Riprendi lo sfondo",
   },
+  immersive: {
+    enter: "Modalità zen: solo lo sfondo",
+  },
   common: {
     email: "E-mail",
     password: "Password",

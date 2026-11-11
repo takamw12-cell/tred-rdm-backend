@@ -772,3 +772,14 @@ html[data-font-size="large"]  { --reading-font-size: 24px; }
     scroll-behavior: auto !important;
   }
 }
+
+/* Mode immersif du Dashboard (hooks/use-immersive-mode.ts) : le bouton Pause
+   du fond vit dans un portail, hors du layout ; il s'efface avec le reste. */
+[data-bg-control] {
+  transition-property: opacity, background-color, color;
+  transition-duration: 1000ms;
+}
+body[data-immersive="true"] [data-bg-control] {
+  opacity: 0;
+  pointer-events: none;
+}

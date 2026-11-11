@@ -107,6 +107,9 @@ export const es: Messages = {
     pause: "Pausar el fondo",
     play: "Reanudar el fondo",
   },
+  immersive: {
+    enter: "Modo zen: solo el fondo",
+  },
   fontSize: {
     label: "Tamaño del texto",
     small: "Pequeño",

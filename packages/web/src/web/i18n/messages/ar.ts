@@ -29,6 +29,9 @@ export const ar: PartialMessages = {
     pause: "إيقاف الخلفية مؤقتًا",
     play: "تشغيل الخلفية",
   },
+  immersive: {
+    enter: "وضع الهدوء: الخلفية فقط",
+  },
   common: {
     email: "البريد الإلكتروني",
     password: "كلمة المرور",

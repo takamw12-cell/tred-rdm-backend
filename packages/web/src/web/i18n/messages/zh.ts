@@ -29,6 +29,9 @@ export const zh: PartialMessages = {
     pause: "暂停背景",
     play: "播放背景",
   },
+  immersive: {
+    enter: "禅模式：只显示背景",
+  },
   common: {
     email: "电子邮箱",
     password: "密码",

@@ -8,6 +8,7 @@ import {
   PanelLeftOpen,
   X,
   Search,
+  Eye,
 } from "lucide-react";
 import { SidebarContent } from "@/components/sidebar";
 import { OnboardingGuide } from "@/components/onboarding-guide";
@@ -19,6 +20,7 @@ import { LogoMark } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { LegalFooter } from "@/components/legal-footer";
 import { DynamicBackground } from "@/components/dynamic-background";
+import { useImmersiveMode } from "@/hooks/use-immersive-mode";
 import { SearchDialog, useSearchShortcut } from "@/components/search-dialog";
 import { InterstitialHost } from "@/components/InterstitialAdScreen";
 import { FeedbackFab, FeedbackHost } from "@/components/feedback-widget";
@@ -80,6 +82,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
   // Salle sombre : le Dashboard et le Hörsaal (/chat), où la photo de la
   // filière se voit sous un voile sombre (dynamic-background.tsx, « vivid »).
   const darkRoom = location.startsWith("/dashboard") || location.startsWith("/chat");
+  // Mode immersif (Dashboard seulement) : 15 s sans souris, clavier ni toucher,
+  // et toute l'interface s'efface ; il ne reste que le fond, qui continue de
+  // tourner. La première action la fait revenir.
+  const onDashboard = location.startsWith("/dashboard");
+  const { isImmersive, enter: enterImmersive } = useImmersiveMode({ enabled: onDashboard });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   // Mémorisé : `useSearchShortcut` dépend de cette fonction ; une nouvelle à
@@ -117,7 +124,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
     // les cartes (et les éléments `.glass`) en verre dépoli. Le dashboard a un
     // voile plus léger : on y lit peu, on y vient pour l'ambiance.
     <div
-      className="glass-scope relative flex min-h-screen"
+      // Le fond (DynamicBackground) est monté dans un portail, hors de ce
+      // conteneur : l'opacité ne le touche pas.
+      className={cn(
+        "glass-scope relative flex min-h-screen transition-opacity duration-1000 ease-in-out",
+        isImmersive ? "pointer-events-none opacity-0" : "opacity-100",
+      )}
+      data-immersive={isImmersive ? "true" : undefined}
       // Salle sombre : la barre du haut et le pied de page passent en clair
       // sur sombre (styles.css, [data-room="dark"]).
       data-room={darkRoom ? "dark" : undefined}
@@ -217,6 +230,18 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 ⌘K
               </kbd>
             </button>
+            {onDashboard && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="topbar-icon"
+                aria-label={t("immersive.enter")}
+                title={t("immersive.enter")}
+                onClick={enterImmersive}
+              >
+                <Eye className="size-5" />
+              </Button>
+            )}
             <FontSizeToggle />
             <span data-tour="language">
               <LanguageSwitcher />

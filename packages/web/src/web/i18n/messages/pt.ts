@@ -29,6 +29,9 @@ export const pt: PartialMessages = {
     pause: "Pausar o fundo",
     play: "Retomar o fundo",
   },
+  immersive: {
+    enter: "Modo zen: apenas o fundo",
+  },
   common: {
     email: "E-mail",
     password: "Palavra-passe",

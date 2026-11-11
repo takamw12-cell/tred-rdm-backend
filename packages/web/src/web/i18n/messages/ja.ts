@@ -29,6 +29,9 @@ export const ja: PartialMessages = {
     pause: "背景を一時停止",
     play: "背景を再生",
   },
+  immersive: {
+    enter: "禅モード：背景のみ",
+  },
   common: {
     email: "メールアドレス",
     password: "パスワード",

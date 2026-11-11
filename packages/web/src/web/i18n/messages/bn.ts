@@ -29,6 +29,9 @@ export const bn: PartialMessages = {
     pause: "পটভূমি থামান",
     play: "পটভূমি চালান",
   },
+  immersive: {
+    enter: "জেন মোড: শুধু পটভূমি",
+  },
   common: {
     email: "ইমেল",
     password: "পাসওয়ার্ড",

@@ -95,6 +95,9 @@ export const fr: Messages = {
     pause: "Mettre le fond en pause",
     play: "Relancer le fond",
   },
+  immersive: {
+    enter: "Mode zen : seulement le fond",
+  },
   fontSize: {
     label: "Taille du texte",
     small: "Petit",

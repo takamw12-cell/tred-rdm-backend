@@ -201,6 +201,7 @@ export function DynamicBackground({ variant = "calm" }: { variant?: keyof typeof
           type="button"
           onClick={togglePause}
           aria-pressed={paused}
+          data-bg-control
           aria-label={paused ? t("background.play") : t("background.pause")}
           title={paused ? t("background.play") : t("background.pause")}
           className={

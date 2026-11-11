@@ -29,6 +29,9 @@ export const hi: PartialMessages = {
     pause: "पृष्ठभूमि रोकें",
     play: "पृष्ठभूमि चलाएँ",
   },
+  immersive: {
+    enter: "ज़ेन मोड: केवल पृष्ठभूमि",
+  },
   common: {
     email: "ईमेल",
     password: "पासवर्ड",
