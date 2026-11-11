@@ -4,8 +4,12 @@ import {
   MAX_VOICE_WORDS,
   alignmentToWords,
   buildVideoPrompt,
+  QUOTE_SUPPORT_MIN,
   extractNumbers,
+  indexSource,
   normalizeText,
+  quoteSupport,
+  quoteTokens,
   sceneStartsMs,
   validateVideoScript,
   videoDurationMs,
@@ -55,7 +59,17 @@ describe("validateVideoScript — zéro invention", () => {
   test("supprime une scène dont la citation est inventée ou reformulée", () => {
     const r = validateVideoScript({ title: "t", scenes: [scene({ quote: "die Lager teilen sich die Last gleichmäßig auf" }), scene(), scene()] }, SOURCES);
     expect(r.ok && r.scenes.length).toBe(2);
-    expect(r.dropped).toEqual([{ index: 0, reason: "quote_not_in_source" }]);
+    expect(r.dropped).toEqual([{ index: 0, reason: "quote_not_in_source", detail: "0.00" }]);
+  });
+
+  test("supprime une citation traduite dans la langue de l'étudiant", () => {
+    const r = validateVideoScript({ title: "t", scenes: [scene({ quote: "les deux appuis portent la charge à parts égales" }), scene(), scene()] }, SOURCES);
+    expect(r.dropped[0]?.reason).toBe("quote_not_in_source");
+  });
+
+  test("des mots du cours dans le désordre ne font pas une citation", () => {
+    const r = validateVideoScript({ title: "t", scenes: [scene({ quote: "Teilen gleichen Last Lager beide tragen die zu" }), scene(), scene()] }, SOURCES);
+    expect(r.dropped[0]?.reason).toBe("quote_not_in_source");
   });
 
   test("supprime une scène qui cite un extrait qui n'existe pas", () => {
@@ -105,6 +119,46 @@ describe("validateVideoScript — zéro invention", () => {
 
   test("sans aucun extrait, aucune scène ne passe", () => {
     expect(validateVideoScript({ title: "t", scenes: [scene(), scene()] }, [])).toMatchObject({ ok: false, error: "no_valid_scene" });
+  });
+});
+
+describe("citations — le texte d'un PDF est abîmé, la citation reste vraie", () => {
+  // Ce que l'extraction d'un PDF produit vraiment : coupures de ligne, mots coupés, espaces doubles, ligature.
+  const PDF: VideoSource[] = [
+    {
+      title: "TM2_Skript.pdf",
+      content:
+        "3.2 Lagerreaktionen\n\nBei einer Gleich-\nstreckenlast  q über die  Länge l tragen beide\nLager die Last zu gleichen Teilen (vgl. Abb. 3.4).\nDie Auﬂagerkräfte ergeben sich aus dem Momenten-\ngleichgewicht um das Lager A.",
+    },
+  ];
+  const src = indexSource(PDF[0]!.content);
+
+  test("citation recopiée proprement d'un texte coupé par des fins de ligne", () => {
+    expect(quoteSupport("Bei einer Gleichstreckenlast q über die Länge l tragen beide Lager die Last zu gleichen Teilen", src)).toBe(1);
+    const r = validateVideoScript({ title: "t", scenes: [scene({ quote: "Bei einer Gleichstreckenlast q über die Länge l tragen beide Lager die Last zu gleichen Teilen" }), scene({ quote: "Die Auflagerkräfte ergeben sich aus dem Momentengleichgewicht um das Lager A." })] }, PDF);
+    expect(r.ok && r.dropped.length).toBe(0);
+  });
+
+  test("ponctuation, parenthèses et guillemets ne comptent pas", () => {
+    expect(quoteSupport("tragen beide Lager die Last zu gleichen Teilen, vgl. Abb. 3.4", src)).toBe(1);
+  });
+
+  test("une faute de frappe corrigée ou un mot sauté ne fait pas rejeter une vraie citation", () => {
+    expect(quoteSupport("Bei einer Gleichstreckenlast q über die Länge l tragen beide Lager die Last zu gleichen Teilen vergleiche Abb. 3.4", src)).toBeGreaterThanOrEqual(QUOTE_SUPPORT_MIN);
+    expect(quoteSupport("Bei einer Gleichstreckenlast über die Länge l tragen beide Lager die Last zu gleichen Teilen", src)).toBeGreaterThanOrEqual(QUOTE_SUPPORT_MIN);
+  });
+
+  test("une phrase inventée sur le même sujet reste sous le seuil", () => {
+    expect(quoteSupport("Die Lagerkräfte eines Balkens sind immer gleich groß und betragen die Hälfte der Last", src)).toBeLessThan(0.2);
+    expect(quoteSupport("Das maximale Moment liegt in der Mitte des Balkens", src)).toBeLessThan(0.2);
+  });
+
+  test("une citation de moins de quatre mots ne prouve rien", () => {
+    expect(quoteSupport("die Last", src)).toBe(0);
+  });
+
+  test("quoteTokens recolle un mot coupé en fin de ligne et aplatit la ligature", () => {
+    expect(quoteTokens("Momenten-\ngleichgewicht der Auﬂagerkräfte")).toEqual(["momentengleichgewicht", "der", "auflagerkräfte"]);
   });
 });
 

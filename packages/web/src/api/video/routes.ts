@@ -171,10 +171,10 @@ async function runPipeline(job: { id: string; userId: string; req: VideoRequest;
     void addOutputTokens(userId, usage?.outputTokens ?? 0);
     const checked = validateVideoScript(object, sources, req.question);
     if (checked.dropped.length > 0) {
-      console.warn(`[video] ${id} : ${checked.dropped.length} scène(s) supprimée(s)`, checked.dropped.map((d) => d.reason).join(", "));
+      console.warn(`[video] ${id} : ${checked.dropped.length} scène(s) supprimée(s)`, checked.dropped.map((d) => (d.detail ? `${d.reason}(${d.detail})` : d.reason)).join(", "));
     }
     if (!checked.ok) {
-      console.warn(`[video] ${id} : script refusé (${checked.error}, ${checked.words} mots)`);
+      console.warn(`[video] ${id} : script refusé (${checked.error}, ${checked.words} mots, ${object.scenes.length} scènes écrites, ${sources.length} sources dont ${sources.filter((x) => x.solver).length} solveur)`);
       return void (await fail(id, "not_grounded"));
     }
     scenes = checked.scenes;

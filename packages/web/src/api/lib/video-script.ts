@@ -64,7 +64,7 @@ export const videoSceneSchema = z.object({
   bullets: z.array(z.string()).describe("0 à 3 points très courts affichés à l'écran."),
   formula: z.string().describe("UNE formule en LaTeX pur, copiée de l'extrait cité. Chaîne vide s'il n'y en a pas."),
   sourceIndex: z.number().int().describe("Numéro de la source citée : 1 pour [S1], 2 pour [S2]…"),
-  quote: z.string().describe("Pour un extrait de cours : passage copié MOT POUR MOT qui prouve ce que dit la scène (10 à 40 mots). Pour un calcul de solveur : chaîne vide."),
+  quote: z.string().describe("Pour un extrait de cours : UNE phrase courte (8 à 25 mots) copiée MOT POUR MOT de l'extrait, sans formule, qui prouve ce que dit la scène. Pour un calcul de solveur : chaîne vide."),
   voiceover: z.string().describe("Ce que dit la voix pendant la scène. Langue parlée, sans LaTeX ni symboles."),
 });
 
@@ -151,6 +151,66 @@ function trimNumber(n: string): string {
 /** Un chiffre seul (0 à 9) est structurel : exposant, « Schritt 2 », « deux appuis ». */
 const isStructural = (n: string) => /^\d$/.test(n);
 
+/* ── Citations ─────────────────────────────────────────────────────────── */
+
+/**
+ * Seuil au-dessus duquel une citation est considérée comme tirée de l'extrait.
+ *
+ * Le premier contrôle exigeait une copie caractère pour caractère. Le premier
+ * essai réel (11 nov. 2026) a rejeté 12 scènes sur 12 : le texte extrait d'un
+ * PDF est plein de coupures de ligne, de mots coupés par un tiret, de
+ * ligatures et de symboles, et le modèle, même en recopiant, répare ces
+ * accidents sans le vouloir. Une égalité stricte refusait donc des citations
+ * authentiques.
+ *
+ * On compare maintenant des MOTS, et on mesure quelle part des suites de trois
+ * mots de la citation se retrouve dans l'extrait. Une citation recopiée, même
+ * abîmée, dépasse largement le seuil ; une phrase inventée, reformulée ou
+ * traduite reste proche de zéro.
+ */
+export const QUOTE_SUPPORT_MIN = 0.6;
+const MIN_QUOTE_WORDS = 4;
+
+/** Les mots d'un texte, pour comparer : minuscules, sans ponctuation, mots coupés en fin de ligne recollés. */
+export function quoteTokens(text: string): string[] {
+  return (
+    text
+      .normalize("NFKC")
+      .toLowerCase()
+      .replace(/\u00AD/g, "")
+      // « Gleich-\nstreckenlast » → « Gleichstreckenlast »
+      .replace(/(\p{L})[-\u2010\u2011]\s*\n\s*(\p{L})/gu, "$1$2")
+      .match(/[\p{L}\p{N}]+/gu) ?? []
+  );
+}
+
+const grams = (tokens: string[], n: number): string[] => {
+  const out: string[] = [];
+  for (let i = 0; i + n <= tokens.length; i++) out.push(tokens.slice(i, i + n).join(" "));
+  return out;
+};
+
+/** L'extrait, préparé une fois pour vérifier plusieurs citations. */
+export function indexSource(content: string): { text: string; words: Set<string>; trigrams: Set<string> } {
+  const tokens = quoteTokens(content);
+  return { text: ` ${tokens.join(" ")} `, words: new Set(tokens), trigrams: new Set(grams(tokens, 3)) };
+}
+
+/**
+ * À quel point la citation est portée par l'extrait, de 0 à 1.
+ * 1 : elle s'y trouve telle quelle (aux espaces et à la ponctuation près).
+ */
+export function quoteSupport(quote: string, source: ReturnType<typeof indexSource>): number {
+  const tokens = quoteTokens(quote);
+  if (tokens.length < MIN_QUOTE_WORDS) return 0;
+  if (source.text.includes(` ${tokens.join(" ")} `)) return 1;
+  const tri = grams(tokens, 3);
+  const inOrder = tri.filter((g) => source.trigrams.has(g)).length / tri.length;
+  const known = tokens.filter((t) => source.words.has(t)).length / tokens.length;
+  // Les suites de mots comptent (l'ordre fait la citation) ; les mots seuls ne suffisent jamais.
+  return Math.min(inOrder, known);
+}
+
 /* ── Contrôle ──────────────────────────────────────────────────────────── */
 
 /**
@@ -158,7 +218,7 @@ const isStructural = (n: string) => /^\d$/.test(n);
  * `question` : les nombres de l'énoncé de l'étudiant sont permis (il les a donnés).
  */
 export function validateVideoScript(script: VideoScript, sources: VideoSource[], question = ""): ValidationResult {
-  const normalized = sources.map((s) => normalizeText(s.content));
+  const indexed = sources.map((s) => (s.solver ? null : indexSource(s.content)));
   // Les nombres permis : ceux du cours, ceux de la question, et ceux que les
   // solveurs ont calculés (avec leurs arrondis et conversions d'unité).
   const allowed = new Set<string>([...sources.filter((s) => !s.solver).flatMap((s) => extractNumbers(s.content)), ...extractNumbers(question)]);
@@ -173,9 +233,12 @@ export function validateVideoScript(script: VideoScript, sources: VideoSource[],
 
     // Un extrait de cours se prouve par une citation ; un calcul de solveur, par ses nombres.
     if (!src.solver) {
-      const quote = normalizeText(scene.quote);
-      if (quote.length < MIN_QUOTE_CHARS) return void dropped.push({ index, reason: "quote_too_short" });
-      if (!normalized[scene.sourceIndex - 1]!.includes(quote)) return void dropped.push({ index, reason: "quote_not_in_source" });
+      if (normalizeText(scene.quote).length < MIN_QUOTE_CHARS || quoteTokens(scene.quote).length < MIN_QUOTE_WORDS) {
+        return void dropped.push({ index, reason: "quote_too_short" });
+      }
+      const support = quoteSupport(scene.quote, indexed[scene.sourceIndex - 1]!);
+      // `detail` : le score seulement, jamais le texte du cours (journaux du serveur).
+      if (support < QUOTE_SUPPORT_MIN) return void dropped.push({ index, reason: "quote_not_in_source", detail: support.toFixed(2) });
     }
 
     const said = [scene.heading, ...scene.bullets, scene.formula, scene.voiceover].join(" ");
@@ -210,7 +273,7 @@ Le script et la voix off sont écrits dans cette langue : ${language.label}. Les
 
 CHAQUE SCÈNE
 - "sourceIndex" : le numéro de la source sur laquelle elle s'appuie.
-- "quote" : si la source est un extrait de cours, un passage copié MOT POUR MOT (10 à 40 mots), sans le reformuler ni le traduire. Un programme vérifie cette citation : une scène dont la citation n'est pas exacte est supprimée. Si la source est un calcul de solveur, laisse "quote" vide.
+- "quote" : si la source est un extrait de cours, UNE phrase courte (8 à 25 mots) copiée MOT POUR MOT de cet extrait, dans SA langue d'origine. Ne la reformule pas, ne la traduis pas, ne la résume pas, ne corrige pas ses fautes. Choisis une phrase de texte courant, pas une formule ni un tableau. Un programme vérifie cette citation : une scène dont la citation ne vient pas de l'extrait est supprimée. Si la source est un calcul de solveur, laisse "quote" vide.
 - "voiceover" : ce que dit la voix, en langue parlée, naturelle et fluide. Pas de LaTeX, pas de symboles : écris « sigma égale M sur W » dans la langue de l'étudiant.
 - "formula" : au plus UNE formule, en LaTeX pur sans dollars, copiée de l'extrait. Chaîne vide sinon.
 - "bullets" : 0 à 3 points de 8 mots au plus.
