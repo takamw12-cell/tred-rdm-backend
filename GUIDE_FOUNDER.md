@@ -487,7 +487,11 @@ Plan complet : `docs/VIDEO_EXPLAINER_ARCHITECTURE.md`. Le backend est en place ;
 - **Zéro invention :** sans document de cours, la vidéo est refusée et l'étudiant est invité à déposer son cours. Avec documents, chaque scène doit citer un passage mot pour mot, et chaque nombre doit figurer dans le cours ; un programme le vérifie (`api/lib/video-script.ts`, 21 tests) et supprime les scènes non prouvées.
 - **Durée et langue :** la vidéo dure le temps de la voix (30 s à 3 min) ; script et voix sont dans la langue d'interface de l'étudiant.
 - **Coût :** la voix est facturée au caractère par ElevenLabs (jusqu'à environ 2 700 caractères pour 3 minutes). Le plafond quotidien par étudiant (`ELEVENLABS_DAILY_CHARS`) et le quota « vidéo » de l'abonnement s'appliquent.
-- **Pas encore fait :** les résultats des solveurs ne sont pas encore une source acceptée (seuls les documents le sont) ; aucun MP4 n'est produit (le lecteur joue le script et l'audio).
+- **Solveurs (2026-11-11) :** chaque calcul réussi d'un solveur dans le chat (RDM, thermo, circuits… 16 solveurs) est enregistré avec son entrée et sa sortie (table `solver_result`). La vidéo reçoit ces chiffres avec la consigne « utilise exclusivement ces chiffres calculés par nos solveurs », et le validateur rejette tout nombre qui n'est ni dans les documents ni dans une sortie de solveur. Les arrondis et les changements d'unité d'une valeur calculée sont acceptés (4166,67 N → 4,17 kN), une autre valeur non.
+  - **À faire une fois :** lancer `node C:\dev\tred-rdm\aerostudy-ai\migre-solver-result.mjs`. Tant que ce n'est pas fait, les calculs ne sont pas conservés et la vidéo ne s'appuie que sur les documents.
+  - Seuls les calculs faits **après** cette mise en ligne sont enregistrés ; les anciennes conversations n'en ont pas.
+  - Suppression de compte : `generated_video` et `solver_result` sont effacées avec le reste (`api/lib/gdpr.ts`).
+- **Pas encore fait :** aucun MP4 n'est produit (le lecteur joue le script et l'audio).
 
 ## Sécurité — protocole du 2026-11-09
 

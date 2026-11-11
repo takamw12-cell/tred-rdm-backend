@@ -874,3 +874,29 @@ export const generatedVideo = sqliteTable(
 );
 
 export type GeneratedVideo = typeof generatedVideo.$inferSelect;
+
+// ── Résultats des solveurs (source de « Als Video erklären ») ─────────────
+//
+// Chaque calcul réussi d'un solveur dans le chat (RDM, thermo, circuits…) :
+// l'entrée et la sortie en JSON, bornées (lib/solver-results.ts). La vidéo
+// explicative s'appuie sur ces chiffres calculés, et son validateur refuse
+// tout nombre qui ne vient ni du cours ni d'eux. `conversationId` est celui
+// du chat (navigateur) ; nul pour les surfaces qui ne l'envoient pas.
+// Table créée sur Turso par migre-solver-result.mjs (racine du dépôt).
+export const solverResult = sqliteTable(
+  "solver_result",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    conversationId: text("conversation_id"),
+    solver: text("solver").notNull(),
+    input: text("input").notNull().default("{}"),
+    output: text("output").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("solver_result_user_idx").on(t.userId, t.conversationId, t.createdAt)],
+);
+
+export type SolverResult = typeof solverResult.$inferSelect;

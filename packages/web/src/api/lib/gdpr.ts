@@ -7,12 +7,14 @@ import {
   contentReport,
   creditTransaction,
   document,
+  generatedVideo,
   misconception,
   purchasedCredits,
   pushToken,
   savedExercise,
   semester,
   semesterShare,
+  solverResult,
   subject,
   usageCounter,
   userAccess,
@@ -56,6 +58,9 @@ export const PERSONAL_DATA_TABLES = [
   // ici. `misconception` contient ce que l'étudiant a mal compris, nommément.
   "misconception",
   "content_report",
+  // « Als Video erklären » : les vidéos explicatives et les calculs des solveurs.
+  "generated_video",
+  "solver_result",
 ] as const;
 
 /* -------------------------------------------------------------------------- */
@@ -235,6 +240,12 @@ export async function deleteUserData(userId: string): Promise<DeletionReport> {
   );
   await step("content_report", () =>
     db.delete(contentReport).where(eq(contentReport.userId, userId)),
+  );
+  await step("generated_video", () =>
+    db.delete(generatedVideo).where(eq(generatedVideo.userId, userId)),
+  );
+  await step("solver_result", () =>
+    db.delete(solverResult).where(eq(solverResult.userId, userId)),
   );
 
   await step("session", () => db.delete(session).where(eq(session.userId, userId)));

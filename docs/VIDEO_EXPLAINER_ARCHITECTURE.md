@@ -1,6 +1,6 @@
 # Architecture — « Als Video erklären » (vidéo explicative sur mesure)
 
-> Statut : **plan, en attente de validation du fondateur. Rien n'est codé.**
+> Statut : **plan validé par le fondateur le 11 novembre 2026. Backend codé ; lecteur et tableau de bord à venir.**
 > Rédigé le 11 novembre 2026. À ne pas confondre avec `VIDEO_ARCHITECTURE.md` (génération vidéo par modèle, Grok / Runway).
 
 ## Le principe
@@ -105,7 +105,13 @@ Table `generated_video`, créée par `migre-generated-video.mjs` (idempotent) :
 3. Frontend : chargement, polling, lecteur dans le chat.
 4. Dashboard : « Meine Erklärvideos ».
 
-## Questions ouvertes
+## Décisions du fondateur (11 novembre 2026)
 
-1. Sans document ni solveur sur le sujet : refuser la vidéo et le dire (proposé), ou s'appuyer sur les standards en citant la source ?
-2. Validation des textes d'interface ci-dessus.
+1. **Sans document ni solveur : la vidéo est refusée.** Le bouton affiche « Lade dein Skript hoch, damit ich dir eine genaue Videoerklärung erstellen kann. »
+2. **Textes d'interface validés**, tous passés par `t()` dans les 12 langues.
+3. **Les solveurs sont une source de la V1.** Chaque calcul réussi dans le chat est enregistré (`solver_result`, via `guardSolver` → `onSolver`), injecté dans le prompt comme source numérotée, et le validateur rejette tout nombre absent des documents et des sorties des solveurs (`api/lib/solver-results.ts`).
+
+## État
+
+- Backend : fait (routes, tables `generated_video` et `solver_result`, validateur, voix).
+- Remotion (`DynamicExplanation`), Frontend, Dashboard : à faire.

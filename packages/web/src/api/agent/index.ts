@@ -246,6 +246,12 @@ export function buildTutorAgent(opts: {
    */
   media?: (input: { prompt: string; type: "image" | "video"; dauer?: number }) => Promise<unknown>;
   /**
+   * Reçoit chaque résultat de solveur réussi (entrée + sortie), pour
+   * l'enregistrer : « Als Video erklären » s'appuie ensuite sur ces chiffres
+   * calculés. Absent = rien n'est enregistré.
+   */
+  onSolver?: (run: { solver: string; input: unknown; output: unknown }) => void;
+  /**
    * Fachgebiet der letzten Frage (lib/solvers/domain.ts → domainHint).
    * Geht als ZWEITE System-Nachricht mit, damit der lange, gecachte Prompt
    * davor unverändert bleibt und der Cache greift.
@@ -2022,7 +2028,7 @@ export function buildTutorAgent(opts: {
             .optional()
             .describe("Kurz, wofür die Zahl steht, z. B. \"U- bei 29 °C\""),
         }),
-        execute: guardSolver("rechnen", async ({ ausdruck }: { ausdruck: string }) => calculate(ausdruck)),
+        execute: guardSolver("rechnen", async ({ ausdruck }: { ausdruck: string }) => calculate(ausdruck), opts.onSolver),
       }),
 
       // Wissen ohne Skript : Wikipedia (ohne Schlüssel), Web über Tavily wenn
@@ -2058,7 +2064,7 @@ export function buildTutorAgent(opts: {
           'I (speist in a ein), OPV (ideal, mit Gegenkopplung). Masse = Knoten "0". ' +
           "Für Teiler, Kirchhoff, Impedanzen, Thevenin IMMER dieses Werkzeug, nie selbst rechnen.",
         inputSchema: circuitInputSchema,
-        execute: guardSolver("schaltung_berechnen", solveCircuit),
+        execute: guardSolver("schaltung_berechnen", solveCircuit, opts.onSolver),
       }),
 
       thermo_berechnen: tool({
@@ -2075,7 +2081,7 @@ export function buildTutorAgent(opts: {
           'Werte mit Einheit: "1 bar", "20 °C", "2 L", "500 kJ", "2 mol". ' +
           "Vorzeichen: zugeführt positiv. Wasserdampf/Kältemittel sind NICHT abgedeckt.",
         inputSchema: thermoInputSchema,
-        execute: guardSolver("thermo_berechnen", solveThermo),
+        execute: guardSolver("thermo_berechnen", solveThermo, opts.onSolver),
       }),
 
       physik_berechnen: tool({
@@ -2088,7 +2094,7 @@ export function buildTutorAgent(opts: {
           'Einheit: "72 km/h", "-2 m/s²", "1,2 kN", "30 °". Diagramme s(t)/v(t) bzw. die ' +
           "Wurfbahn werden automatisch angezeigt. Ohne Luftwiderstand.",
         inputSchema: physicsInputSchema,
-        execute: guardSolver("physik_berechnen", solvePhysics),
+        execute: guardSolver("physik_berechnen", solvePhysics, opts.onSolver),
       }),
 
       solve_cyber: tool({
@@ -2102,7 +2108,7 @@ export function buildTutorAgent(opts: {
           "Boolesche Schreibweisen: \"A·B + ¬C\", \"a & !b | c\", \"A B' + C\", UND/ODER/NICHT/XOR. " +
           "IMMER dieses Werkzeug, nie selbst rechnen.",
         inputSchema: cyberInputSchema,
-        execute: guardSolver("solve_cyber", solveCyber),
+        execute: guardSolver("solve_cyber", solveCyber, opts.onSolver),
       }),
 
       solve_ai: tool({
@@ -2113,7 +2119,7 @@ export function buildTutorAgent(opts: {
           "werte), perzeptron (eingaben, gewichte, bias, aktivierung step/sigmoid/relu/linear/tanh). " +
           "IMMER dieses Werkzeug, nie selbst rechnen. Inverse/Eigenwerte: mathe_berechnen.",
         inputSchema: aiInputSchema,
-        execute: guardSolver("solve_ai", solveAi),
+        execute: guardSolver("solve_ai", solveAi, opts.onSolver),
       }),
 
       elektro_berechnen: tool({
@@ -2125,7 +2131,7 @@ export function buildTutorAgent(opts: {
           "kirchhoff (A, b, unbekannte: Gleichungssystem aus Maschen- und Knotengleichungen). Werte mit Einheit: " +
           '"4,7 kΩ", "10 mH", "1 µF", "2 ms". Ganze Netzwerke (mehrere Quellen, Thevenin, Zeiger) → schaltung_berechnen.',
         inputSchema: electricalInputSchema,
-        execute: guardSolver("elektro_berechnen", solveElectrical),
+        execute: guardSolver("elektro_berechnen", solveElectrical, opts.onSolver),
       }),
 
       werkstoff_berechnen: tool({
@@ -2136,7 +2142,7 @@ export function buildTutorAgent(opts: {
           '(eps_quer + eps_laengs, oder E + G; mit E → G). Werte mit Einheit: "210 GPa", "235 N/mm²", "0,1 %", ' +
           '"12e-6 1/K", "869 cm⁴". Kennwerte NIE erfinden — aus Aufgabe oder Skript.',
         inputSchema: materialsInputSchema,
-        execute: guardSolver("werkstoff_berechnen", solveMaterials),
+        execute: guardSolver("werkstoff_berechnen", solveMaterials, opts.onSolver),
       }),
 
       chemie_berechnen: tool({
@@ -2147,7 +2153,7 @@ export function buildTutorAgent(opts: {
           "oxonium, hydroxid, starke_saeure, starke_base, schwache_saeure + pKs, schwache_base + pKb, puffer, aus_ph), " +
           'ideales_gas (drei von p, V, T, n bzw. m + formel). Werte mit Einheit: "0,1 mol/L", "250 mL", "25 °C", "1 atm". 25 °C.',
         inputSchema: chemistryInputSchema,
-        execute: guardSolver("chemie_berechnen", solveChemistry),
+        execute: guardSolver("chemie_berechnen", solveChemistry, opts.onSolver),
       }),
 
       wirtschaft_berechnen: tool({
@@ -2158,7 +2164,7 @@ export function buildTutorAgent(opts: {
           'Zinsfüße, mehrere werden gemeldet), annuitaet (K0, zins, laufzeit → Annuität, Tilgungsplan). Zins als "5 %". ' +
           "Lernhilfe, keine Anlageberatung.",
         inputSchema: financeInputSchema,
-        execute: guardSolver("wirtschaft_berechnen", solveFinance),
+        execute: guardSolver("wirtschaft_berechnen", solveFinance, opts.onSolver),
       }),
 
       schule_berechnen: tool({
@@ -2168,7 +2174,7 @@ export function buildTutorAgent(opts: {
           "automatisch), pythagoras (zwei von a, b, c → dritte Seite, auch exakt; drei → rechtwinklig?). " +
           "Alles andere → mathe_berechnen.",
         inputSchema: schoolInputSchema,
-        execute: guardSolver("schule_berechnen", solveSchoolMath),
+        execute: guardSolver("schule_berechnen", solveSchoolMath, opts.onSolver),
       }),
 
       evaluate_structure: tool({
@@ -2187,7 +2193,7 @@ export function buildTutorAgent(opts: {
           domain: z.enum(["recht", "medizin", "wirtschaft", "biologie", "psychologie", "verhaltensanalyse", "philosophie", "sprachen", "geschichte"]),
           text: z.string().min(1).max(30000).describe("Die Lösung der Person, wörtlich"),
         }),
-        execute: guardSolver("evaluate_structure", async ({ domain, text }: { domain: StructureDomain; text: string }) => ({ ok: true as const, ...evaluateStructure(domain, text) })),
+        execute: guardSolver("evaluate_structure", async ({ domain, text }: { domain: StructureDomain; text: string }) => ({ ok: true as const, ...evaluateStructure(domain, text) }), opts.onSolver),
       }),
 
       solve_open_math: tool({
@@ -2199,7 +2205,7 @@ export function buildTutorAgent(opts: {
           "primzahlluecken (grenze → Rekordlücken, größte Lücke, Primzahlzwillinge). IMMER dieses Werkzeug für " +
           "Collatz und solche Vermutungen — nie selbst rechnen. Eine Prüfung ist kein Beweis.",
         inputSchema: openMathInputSchema,
-        execute: guardSolver("solve_open_math", solveOpenMath),
+        execute: guardSolver("solve_open_math", solveOpenMath, opts.onSolver),
       }),
 
       mathe_berechnen: tool({
@@ -2212,7 +2218,7 @@ export function buildTutorAgent(opts: {
           "inverse, lgs, eigenwerte, rang, transponiert, produkt), nullstellen (von, bis), " +
           'auswerten. Ausdrücke wie "x^3*sin(x)", "exp(-2*t)", ln = natürlicher Logarithmus.',
         inputSchema: mathInputSchema,
-        execute: guardSolver("mathe_berechnen", solveMath),
+        execute: guardSolver("mathe_berechnen", solveMath, opts.onSolver),
       }),
 
       statik_berechnen: tool({
@@ -2230,7 +2236,7 @@ export function buildTutorAgent(opts: {
           "Uhrzeigersinn, Einheiten der Aufgabe beibehalten. Für Fachwerke, Reibung " +
           "und Kraftsysteme IMMER dieses Werkzeug, nie selbst rechnen. Balken: balkenstatik.",
         inputSchema: staticsInputSchema,
-        execute: guardSolver("statik_berechnen", solveStatics),
+        execute: guardSolver("statik_berechnen", solveStatics, opts.onSolver),
       }),
 
       // Balkenstatik geschlossen rechnen statt formulieren. Auflagerkräfte und
@@ -2304,7 +2310,7 @@ export function buildTutorAgent(opts: {
         // Logique dans lib/beam-tool.ts (testée) : conversion d'unités,
         // points critiques AVEC les deux côtés de chaque saut, et le bloc
         // `diagramm` que le navigateur dessine lui-même.
-        execute: guardSolver("balkenstatik", runBalkenstatik),
+        execute: guardSolver("balkenstatik", runBalkenstatik, opts.onSolver),
       }),
 
       // Geprüfte Standard-Skizzen. Das Modell zeichnet nicht mehr frei,

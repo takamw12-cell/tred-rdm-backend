@@ -419,6 +419,9 @@ export default function ChatPage() {
 
   // The client owns the conversation id so saves are idempotent upserts.
   const [convId, setConvId] = useState<string>(() => crypto.randomUUID());
+  // Lu par le transport au moment de l'envoi (comme les autres portées).
+  const convIdRef = useRef(convId);
+  convIdRef.current = convId;
   // Suppresses the scope-reset + auto-save side effects while we programmatically
   // restore a saved conversation.
   const restoringRef = useRef(false);
@@ -471,6 +474,8 @@ export default function ChatPage() {
           studyProfile: pickStudyProfile(useUserStore.getState().profile),
           // Hörsaal sans chat : le tuteur écrit TOUTE sa réponse au tableau.
           hoersaal: true,
+          // Rattache les calculs des solveurs à cette conversation (vidéo explicative).
+          conversationId: convIdRef.current,
         }),
       }),
     [],

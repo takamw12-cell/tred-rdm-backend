@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Language } from "./languages";
+import { collectNumbers, type SolverRun } from "./solver-results";
 
 /**
  * « Als Video erklären » — le script de la vidéo explicative, et son contrôle.
@@ -9,12 +10,14 @@ import type { Language } from "./languages";
  * ── Zéro hallucination, vérifiée par du code ──────────────────────────────
  *
  * Le prompt interdit au modèle d'inventer, mais un prompt ne garantit rien.
- * Chaque scène doit donc citer un extrait du cours (`sourceIndex` + `quote`),
- * et `validateVideoScript` vérifie, sans modèle :
+ * Chaque scène doit donc citer sa source (`sourceIndex`) : un extrait du
+ * cours, avec une citation (`quote`), ou un calcul d'un solveur.
+ * `validateVideoScript` vérifie, sans modèle :
  *
- *   1. que la citation se retrouve mot pour mot dans l'extrait fourni ;
+ *   1. pour un extrait de cours, que la citation s'y retrouve mot pour mot ;
  *   2. que chaque nombre dit, affiché ou écrit dans une formule figure dans
- *      les extraits (ou dans la question de l'étudiant).
+ *      les extraits, dans une sortie de solveur (lib/solver-results.ts) ou
+ *      dans la question de l'étudiant. Tout autre nombre est rejeté.
  *
  * Une scène qui échoue est supprimée. S'il ne reste pas de quoi faire une
  * explication, la vidéo est refusée : mieux vaut pas de vidéo qu'une vidéo
@@ -38,14 +41,30 @@ export interface VideoSource {
   title: string;
   kind?: string;
   content: string;
+  /**
+   * Présent : la source est un calcul de solveur (entrée + sortie), pas un
+   * extrait de cours. Aucune citation n'est exigée — ce sont des données, pas
+   * un texte — mais ses nombres sont les seuls que la scène peut employer.
+   */
+  solver?: SolverRun;
+}
+
+/** Un calcul de solveur, présenté comme une source numérotée du script. */
+export function solverSource(run: SolverRun): VideoSource {
+  return {
+    title: `Solver · ${run.solver}`,
+    kind: "solver",
+    content: `EINGABE: ${JSON.stringify(run.input)}\nERGEBNIS: ${JSON.stringify(run.output)}`,
+    solver: run,
+  };
 }
 
 export const videoSceneSchema = z.object({
   heading: z.string().describe("Titre court de la scène, 2 à 6 mots."),
   bullets: z.array(z.string()).describe("0 à 3 points très courts affichés à l'écran."),
   formula: z.string().describe("UNE formule en LaTeX pur, copiée de l'extrait cité. Chaîne vide s'il n'y en a pas."),
-  sourceIndex: z.number().int().describe("Numéro de l'extrait cité : 1 pour [S1], 2 pour [S2]…"),
-  quote: z.string().describe("Passage copié MOT POUR MOT de cet extrait, qui prouve ce que dit la scène (10 à 40 mots)."),
+  sourceIndex: z.number().int().describe("Numéro de la source citée : 1 pour [S1], 2 pour [S2]…"),
+  quote: z.string().describe("Pour un extrait de cours : passage copié MOT POUR MOT qui prouve ce que dit la scène (10 à 40 mots). Pour un calcul de solveur : chaîne vide."),
   voiceover: z.string().describe("Ce que dit la voix pendant la scène. Langue parlée, sans LaTeX ni symboles."),
 });
 
@@ -60,6 +79,8 @@ export type VideoScript = z.infer<typeof videoScriptSchema>;
 /** Une scène validée : la source est résolue (titre du document). */
 export interface ValidatedScene extends VideoScene {
   sourceTitle: string;
+  /** « document » : prouvée par une citation ; « solver » : par un calcul. */
+  sourceKind: "document" | "solver";
 }
 
 export type DropReason = "unknown_source" | "quote_too_short" | "quote_not_in_source" | "number_not_in_sources" | "empty_voiceover";
@@ -138,7 +159,10 @@ const isStructural = (n: string) => /^\d$/.test(n);
  */
 export function validateVideoScript(script: VideoScript, sources: VideoSource[], question = ""): ValidationResult {
   const normalized = sources.map((s) => normalizeText(s.content));
-  const allowed = new Set<string>([...sources.flatMap((s) => extractNumbers(s.content)), ...extractNumbers(question)]);
+  // Les nombres permis : ceux du cours, ceux de la question, et ceux que les
+  // solveurs ont calculés (avec leurs arrondis et conversions d'unité).
+  const allowed = new Set<string>([...sources.filter((s) => !s.solver).flatMap((s) => extractNumbers(s.content)), ...extractNumbers(question)]);
+  for (const s of sources) if (s.solver) collectNumbers([s.solver.input, s.solver.output], extractNumbers, allowed);
   const dropped: { index: number; reason: DropReason; detail?: string }[] = [];
   const scenes: ValidatedScene[] = [];
 
@@ -147,15 +171,18 @@ export function validateVideoScript(script: VideoScript, sources: VideoSource[],
     if (!src) return void dropped.push({ index, reason: "unknown_source" });
     if (!scene.voiceover.trim()) return void dropped.push({ index, reason: "empty_voiceover" });
 
-    const quote = normalizeText(scene.quote);
-    if (quote.length < MIN_QUOTE_CHARS) return void dropped.push({ index, reason: "quote_too_short" });
-    if (!normalized[scene.sourceIndex - 1]!.includes(quote)) return void dropped.push({ index, reason: "quote_not_in_source" });
+    // Un extrait de cours se prouve par une citation ; un calcul de solveur, par ses nombres.
+    if (!src.solver) {
+      const quote = normalizeText(scene.quote);
+      if (quote.length < MIN_QUOTE_CHARS) return void dropped.push({ index, reason: "quote_too_short" });
+      if (!normalized[scene.sourceIndex - 1]!.includes(quote)) return void dropped.push({ index, reason: "quote_not_in_source" });
+    }
 
     const said = [scene.heading, ...scene.bullets, scene.formula, scene.voiceover].join(" ");
     const invented = extractNumbers(said).find((n) => !isStructural(n) && !allowed.has(n));
     if (invented !== undefined) return void dropped.push({ index, reason: "number_not_in_sources", detail: invented });
 
-    scenes.push({ ...scene, bullets: scene.bullets.slice(0, 3), sourceTitle: src.title });
+    scenes.push({ ...scene, quote: src.solver ? "" : scene.quote, bullets: scene.bullets.slice(0, 3), sourceTitle: src.title, sourceKind: src.solver ? "solver" : "document" });
   });
 
   const words = countWords(scriptVoiceText(scenes));
@@ -169,19 +196,21 @@ export function validateVideoScript(script: VideoScript, sources: VideoSource[],
 
 export function buildVideoPrompt(input: { language: Language; sources: VideoSource[]; question: string; answer: string }): { system: string; prompt: string } {
   const { language, sources, question, answer } = input;
+  const hasSolver = sources.some((s) => s.solver);
   const system = `${language.top}
 
 Tu es TRED, professeur. Tu écris le script d'une courte vidéo qui explique à un étudiant le point exact qui le bloque.
 
 RÈGLE ABSOLUE — ZÉRO INVENTION
-Tu expliques en te basant UNIQUEMENT sur les extraits de cours fournis ([S1], [S2]…). Si une information n'est pas dans ces extraits, tu ne l'inventes pas et tu n'en parles pas. Aucune formule, aucune valeur, aucun chiffre qui ne figure pas dans un extrait ou dans la question de l'étudiant.
+Tu expliques en te basant UNIQUEMENT sur les extraits de cours fournis et sur les résultats des solveurs ([S1], [S2]…). Si une information n'est pas dans ces sources, tu ne l'inventes pas et tu n'en parles pas. Aucune formule, aucune valeur, aucun chiffre qui ne figure pas dans une source ou dans la question de l'étudiant.
+${hasSolver ? "\nCHIFFRES CALCULÉS\nUtilise EXCLUSIVEMENT ces chiffres calculés par nos solveurs (sources marquées « solver ») pour tout résultat numérique : tu ne recalcules rien, tu n'arrondis pas autrement, tu ne complètes pas une valeur manquante. Un programme vérifie chaque nombre : une scène qui contient un nombre absent des sources est supprimée.\n" : ""}
 
 LANGUE
 Le script et la voix off sont écrits dans cette langue : ${language.label}. Les formules et les termes techniques des extraits restent dans leur langue d'origine (par exemple l'allemand), mais l'explication est dans la langue de l'étudiant.
 
 CHAQUE SCÈNE
-- "sourceIndex" : le numéro de l'extrait sur lequel elle s'appuie.
-- "quote" : un passage de cet extrait copié MOT POUR MOT (10 à 40 mots), sans le reformuler ni le traduire. Un programme vérifie cette citation : une scène dont la citation n'est pas exacte est supprimée.
+- "sourceIndex" : le numéro de la source sur laquelle elle s'appuie.
+- "quote" : si la source est un extrait de cours, un passage copié MOT POUR MOT (10 à 40 mots), sans le reformuler ni le traduire. Un programme vérifie cette citation : une scène dont la citation n'est pas exacte est supprimée. Si la source est un calcul de solveur, laisse "quote" vide.
 - "voiceover" : ce que dit la voix, en langue parlée, naturelle et fluide. Pas de LaTeX, pas de symboles : écris « sigma égale M sur W » dans la langue de l'étudiant.
 - "formula" : au plus UNE formule, en LaTeX pur sans dollars, copiée de l'extrait. Chaîne vide sinon.
 - "bullets" : 0 à 3 points de 8 mots au plus.
@@ -196,7 +225,7 @@ Pars de ce que l'étudiant n'a pas compris, avance pas à pas, donne une image c
 ${language.bottom}`;
 
   const block = sources.map((s, i) => `[S${i + 1}] ${s.title}${s.kind ? ` (${s.kind})` : ""}\n${s.content}`).join("\n\n");
-  const prompt = `EXTRAITS DU COURS DE L'ÉTUDIANT\n${block}\n\nQUESTION DE L'ÉTUDIANT\n${question.trim() || "(non précisée)"}\n\nDERNIÈRE RÉPONSE DU TUTEUR (contexte seulement : ce n'est PAS une source, n'y prends aucun chiffre)\n${answer.trim() || "(aucune)"}\n\nÉcris maintenant le script.`;
+  const prompt = `SOURCES (extraits du cours de l'étudiant${hasSolver ? " et calculs des solveurs" : ""})\n${block}\n\nQUESTION DE L'ÉTUDIANT\n${question.trim() || "(non précisée)"}\n\nDERNIÈRE RÉPONSE DU TUTEUR (contexte seulement : ce n'est PAS une source, n'y prends aucun chiffre)\n${answer.trim() || "(aucune)"}\n\nÉcris maintenant le script.`;
   return { system, prompt };
 }
 

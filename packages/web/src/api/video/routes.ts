@@ -1,22 +1,24 @@
 import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { generateObject } from "ai";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, gt } from "drizzle-orm";
 import type { Hono } from "hono";
 import { gateway } from "../agent/gateway";
 import { auth } from "../auth";
 import { elevenLabsConfigured, resolvePremiumVoice } from "../avatar/elevenlabs";
 import { db } from "../database";
-import { document, generatedVideo } from "../database/schema";
+import { document, generatedVideo, solverResult } from "../database/schema";
 import { PRIMARY_MODEL } from "../lib/ai-models";
 import { LANGUAGES } from "../lib/languages";
 import { MEDIA_BUCKET, mediaClient, mediaStorageConfigured } from "../lib/media-storage";
 import { addOutputTokens, consume, quotaError, tokenCapError, withinTokenCap } from "../lib/plan";
 import { selectRelevantContext } from "../lib/retrieval";
+import { MAX_SOLVER_RUNS, SOLVER_WINDOW_MS, serializeSolverRun, type SolverRun } from "../lib/solver-results";
 import {
   alignmentToWords,
   buildVideoPrompt,
   sceneStartsMs,
   scriptVoiceText,
+  solverSource,
   validateVideoScript,
   videoDurationMs,
   videoRequestSchema,
@@ -45,10 +47,14 @@ import { reserveChars } from "../tts/budget";
  * de la voix.
  *
  * ── Zéro hallucination ────────────────────────────────────────────────────
- * Sans document de cours, la vidéo est REFUSÉE (422 no_documents) : le
- * navigateur invite l'étudiant à déposer son cours. Avec documents, le script
- * est contrôlé par lib/video-script.ts ; s'il ne reste pas assez de scènes
- * prouvées, la vidéo échoue (not_grounded) plutôt que d'inventer.
+ * Deux sources seulement : les documents de cours de l'étudiant, et les
+ * calculs que les solveurs ont faits dans ce chat (table `solver_result`,
+ * remplie par `recordSolverRun`). Sans l'une ni l'autre, la vidéo est REFUSÉE
+ * (422 no_documents) : le navigateur invite l'étudiant à déposer son cours.
+ * Le script est ensuite contrôlé par lib/video-script.ts : tout nombre qui
+ * n'est ni dans les documents ni dans une sortie de solveur fait supprimer sa
+ * scène ; s'il ne reste pas assez de scènes prouvées, la vidéo échoue
+ * (not_grounded) plutôt que d'inventer.
  *
  * ── Inerte sans clés ──────────────────────────────────────────────────────
  * Sans ANTHROPIC_API_KEY ou ELEVENLABS_API_KEY : 503 not_configured, et le
@@ -69,6 +75,46 @@ const setStatus = (id: string, patch: Partial<typeof generatedVideo.$inferInsert
   db.update(generatedVideo).set(patch).where(eq(generatedVideo.id, id));
 
 const fail = (id: string, error: VideoError) => setStatus(id, { status: "failed", error });
+
+/**
+ * Enregistre un calcul de solveur réussi (appelé par le tuteur, lib/solver-guard.ts).
+ * Ne lève jamais et ne retarde pas la réponse du chat : sans la table
+ * (migre-solver-result.mjs pas encore lancé), le calcul n'est simplement pas gardé.
+ */
+let warnedMissingTable = false;
+export function recordSolverRun(userId: string, conversationId: string | null, run: SolverRun): void {
+  const row = serializeSolverRun(run);
+  if (!row) return;
+  void db
+    .insert(solverResult)
+    .values({ id: `sr_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`, userId, conversationId, ...row })
+    .catch((err) => {
+      if (warnedMissingTable) return;
+      warnedMissingTable = true;
+      console.error("[solver] résultat non enregistré — lancer migre-solver-result.mjs", (err as Error).message?.slice(0, 200));
+    });
+}
+
+/**
+ * Les calculs récents de l'étudiant : ceux de cette conversation si elle est
+ * connue, sinon ceux des deux dernières heures. Les plus récents d'abord.
+ */
+async function recentSolverRuns(userId: string, chatId?: string | null): Promise<SolverRun[]> {
+  try {
+    const scope = chatId
+      ? eq(solverResult.conversationId, chatId)
+      : gt(solverResult.createdAt, new Date(Date.now() - SOLVER_WINDOW_MS));
+    const rows = await db
+      .select()
+      .from(solverResult)
+      .where(and(eq(solverResult.userId, userId), scope))
+      .orderBy(desc(solverResult.createdAt))
+      .limit(MAX_SOLVER_RUNS);
+    return rows.map((r) => ({ solver: r.solver, input: JSON.parse(r.input), output: JSON.parse(r.output) }));
+  } catch {
+    return [];
+  }
+}
 
 /** La voix de la vidéo : une voix imposée pour la langue, sinon celle du professeur choisi. */
 function voiceFor(language: string, professor?: string | null): string | null {
@@ -191,9 +237,12 @@ export function registerVideoRoutes(app: Hono) {
         ? await db.select().from(document).where(and(eq(document.semesterId, req.semesterId), eq(document.userId, uid)))
         : await db.select().from(document).where(visible);
     const docs = rows.filter((d) => (d.textContent ?? "").trim().length > 0).map((d) => ({ title: d.title, kind: d.kind, content: d.textContent ?? "" }));
-    // Zéro invention : sans cours, pas de vidéo. Le navigateur invite à déposer le cours.
-    if (docs.length === 0) return c.json({ error: "no_documents" }, 422);
-    const { sources } = selectRelevantContext(docs, `${req.question}\n${req.answer}`.slice(0, 4000), MAX_CONTEXT_CHARS);
+    const runs = await recentSolverRuns(uid, req.chatId);
+    // Zéro invention : sans cours ni calcul de solveur, pas de vidéo. Le navigateur invite à déposer le cours.
+    if (docs.length === 0 && runs.length === 0) return c.json({ error: "no_documents" }, 422);
+    const excerpts = docs.length > 0 ? selectRelevantContext(docs, `${req.question}\n${req.answer}`.slice(0, 4000), MAX_CONTEXT_CHARS).sources : [];
+    // Les extraits du cours d'abord, puis les calculs des solveurs : tous numérotés [S1], [S2]…
+    const sources: VideoSource[] = [...excerpts, ...runs.map(solverSource)];
 
     const cap = await withinTokenCap(uid);
     if (!cap.ok) return c.json(tokenCapError(cap.used, cap.cap), 402);

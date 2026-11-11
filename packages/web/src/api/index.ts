@@ -54,7 +54,7 @@ import { studyProfileHint, type StudyProfileInput } from "./lib/study-profile";
 import { mailCanReachAnyone } from "./lib/mail";
 import { registerAnalyticsRoutes } from "./analytics/routes";
 import { registerFlashcardRoutes } from "./flashcards/routes";
-import { registerVideoRoutes } from "./video/routes";
+import { registerVideoRoutes, recordSolverRun } from "./video/routes";
 import { registerVisionRoutes } from "./vision/routes";
 import { flashcards } from "./routes/flashcards";
 import { examPredictor } from "./routes/exam-predictor";
@@ -532,7 +532,10 @@ app.post("/api/agent/messages", async (c) => {
     codeLang,
     studyProfile,
     hoersaal,
+    conversationId,
   } = body as {
+      /** L'id de la conversation côté navigateur : rattache les calculs des solveurs au chat. */
+      conversationId?: string | null;
       studyProfile?: StudyProfileInput | null;
       /** Le Hörsaal web : toute la réponse au tableau (NIVEAU 7). */
       hoersaal?: boolean;
@@ -719,6 +722,8 @@ app.post("/api/agent/messages", async (c) => {
     media: replicateConfigured()
       ? (input) => generateMedia({ userId: uid, ...input })
       : undefined,
+    // Chaque calcul réussi est conservé : « Als Video erklären » s'appuie dessus.
+    onSolver: (run) => recordSolverRun(uid, typeof conversationId === "string" ? conversationId.slice(0, 100) : null, run),
     memory: {
       open: gaps,
       note: (input) => noteGap(uid, { ...input, semesterId: semesterId ?? null }),

@@ -31,17 +31,35 @@ export function solverFailure(solver: string): SolverFailure {
   return { ok: false, solver, fehler: "solver_ausgefallen", anweisung: SOLVER_FAILURE_INSTRUCTION };
 }
 
+/** Appelé après un calcul réussi (jamais après un échec). Ne doit pas lever. */
+export type SolverObserver = (run: { solver: string; input: unknown; output: unknown }) => void;
+
 /**
  * Enveloppe l'`execute` d'un outil de calcul. Le détail technique part dans
  * les journaux du serveur (jamais vers l'étudiant ni vers le modèle).
+ * `observe` reçoit chaque résultat réussi (pour l'enregistrer) ; une erreur
+ * dans l'observateur ne change jamais la réponse du solveur.
  */
-export function guardSolver<I, O>(solver: string, fn: (input: I) => O | Promise<O>): (input: I) => Promise<O | SolverFailure> {
+export function guardSolver<I, O>(
+  solver: string,
+  fn: (input: I) => O | Promise<O>,
+  observe?: SolverObserver,
+): (input: I) => Promise<O | SolverFailure> {
   return async (input: I) => {
+    let output: O;
     try {
-      return await fn(input);
+      output = await fn(input);
     } catch (err) {
       console.error(`[solver] ${solver} ausgefallen:`, err instanceof Error ? err.message : String(err));
       return solverFailure(solver);
     }
+    if (observe) {
+      try {
+        observe({ solver, input, output });
+      } catch (err) {
+        console.error(`[solver] ${solver} : observateur`, err instanceof Error ? err.message : String(err));
+      }
+    }
+    return output;
   };
 }
