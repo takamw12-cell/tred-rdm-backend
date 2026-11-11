@@ -19,10 +19,12 @@
  * - N'écrase jamais une image : les fichiers sont servis « immutable » (cache
  *   d'un an, __server.ts). Changer une image = lui donner un nouveau nom.
  * - Reprend où il s'est arrêté (fichiers existants ignorés).
- * - --budget=X : plafond en dollars, vérifié AVANT le premier appel.
+ * - --budget=X : plafond en dollars, vérifié AVANT le premier appel ; s'il ne
+ *   couvre pas tout, seules les filières complètes qui y tiennent sont générées.
+ * - --dry-run : affiche le plan et le coût, sans aucun appel.
  * - Lit REPLICATE_API_TOKEN dans l'environnement — jamais affiché.
  */
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
@@ -44,15 +46,15 @@ const STYLE =
 /** 10 sujets par filière. Neutres : aucune marque, aucune personne. */
 export const SUBJECTS = {
   aerospace: [
-    "rocket on the launch pad at night, illuminated by floodlights, vapor venting from the engines",
+    "rocket on the launch pad at night, illuminated by floodlights, vapor venting from the engines, plain unmarked white rocket body, strictly no text, no letters, no numbers, no logos, no markings, no watermarks",
     "close-up of a turbofan jet engine's fan blades in a dark hangar",
     "airliner wing above a sea of clouds at sunset",
     "planet Earth seen from orbit at night with city lights and a thin atmosphere glow, satellite solar panel in the foreground",
-    "rocket engine nozzle during a static fire test with a bright exhaust plume",
+    "close-up of a metal rocket engine bell nozzle on a test stand during a static fire test, the nozzle in sharp focus and clearly visible, bright exhaust plume below",
     "space station module interior with panels and soft lights, empty",
     "fighter jet silhouette in a dark hangar, rim light on the fuselage",
-    "wind tunnel test section with a scale aircraft model and smoke streamlines",
-    "satellite in a clean room under assembly, gold thermal foil reflecting light",
+    "empty wind tunnel test section in a laboratory, a small white scale aircraft model on a sting mount, thin white smoke streamlines flowing over its wing, calm and precise, no explosions, no fire",
+    "satellite on an assembly stand in a clean room, smooth gold thermal blanket with soft crisp reflections, sharp fine detail, photographic, not pixelated",
     "aircraft cockpit at night, glowing instruments, runway lights through the windshield",
   ],
   mechanical: [
@@ -122,7 +124,7 @@ export const SUBJECTS = {
     "contemporary museum facade with a geometric pattern illuminated at night",
     "brutalist concrete interior with light shafts",
     "drafting table with architectural drawings, pencils and a lamp",
-    "curved timber roof structure interior",
+    "interior of a large curved timber roof structure with repeating wooden ribs, no signs, no lettering",
     "glass atrium with sunlight beams",
     "cathedral vaulted ceiling, gothic arches",
     "minimalist courtyard with a reflecting pool at night",
@@ -173,7 +175,7 @@ export const SUBJECTS = {
     "pacemaker on a dark surface, macro",
     "lab-on-a-chip microfluidic device with colored channels",
     "artificial heart valve prototype, macro",
-    "biomedical lab with sterile instruments",
+    "empty biomedical lab, sterile surgical instruments neatly arranged on a steel tray, nobody in the room",
   ],
   informatics: [
     "screen with code in a dark editor, shallow depth of field",
@@ -221,7 +223,7 @@ export const SUBJECTS = {
     "large radio telescope dish at night",
     "pendulum and physics apparatus in an old lab",
     "aurora borealis over a frozen lake",
-    "prism splitting light into a spectrum in darkness",
+    "glass lens focusing a thin beam of light onto a dark optical bench, precise and minimal",
   ],
   medicine: [
     "DNA double helix floating in darkness, scientific visualization",
@@ -327,6 +329,9 @@ const portrait = (file) => file.replace(/\.webp$/, "-p.webp");
 
 /** Deux recadrages centrés depuis le carré 2048 : jamais d'agrandissement. */
 async function writeVariants(raw, land, port) {
+  // Écriture atomique : fichier temporaire puis renommage. Un processus
+  // coupé au milieu ne laisse jamais une image tronquée sous le nom final.
+  const tmp = (f) => `${f}.tmp`;
   const { width, height } = await sharp(raw).metadata();
   const side = Math.min(width, height);
   const short = Math.round((side * 9) / 16);
@@ -335,12 +340,15 @@ async function writeVariants(raw, land, port) {
     .extract({ left: Math.round((width - side) / 2), top: Math.round((height - short) / 2), width: side, height: short })
     .resize(1920, 1080, { fit: "cover" })
     .webp(webp)
-    .toFile(land);
+    .toFile(tmp(land));
   await sharp(raw)
     .extract({ left: Math.round((width - short) / 2), top: Math.round((height - side) / 2), width: short, height: side })
     .resize(1080, 1920, { fit: "cover" })
     .webp(webp)
-    .toFile(port);
+    .toFile(tmp(port));
+  // Portrait d'abord, paysage en dernier : le paysage présent = l'image est complète.
+  renameSync(tmp(port), port);
+  renameSync(tmp(land), land);
 }
 
 /** universal-backgrounds.json : { filière: [images présentes avec leur variante portrait] }. */
@@ -376,14 +384,29 @@ if (!process.env.REPLICATE_API_TOKEN) {
   process.exit(1);
 }
 
-const todo = cats.flatMap((cat) => SUBJECTS[cat].map((subject, i) => [cat, i + 1, subject])).filter(([cat, n]) => !existsSync(target(cat, n)));
+let todo = cats.flatMap((cat) => SUBJECTS[cat].map((subject, i) => [cat, i + 1, subject])).filter(([cat, n]) => !(existsSync(target(cat, n)) && existsSync(portrait(target(cat, n)))));
+// Restes d'un lancement coupé : paysage sans portrait, fichiers .tmp.
+for (const [cat, n] of todo) for (const f of [target(cat, n), portrait(target(cat, n))]) for (const g of [f, `${f}.tmp`]) if (existsSync(g)) rmSync(g);
 const budget = Number(args.find((a) => a.startsWith("--budget="))?.slice(9) ?? Infinity);
-const estimate = todo.length * COST_PER_IMAGE;
-console.log(`${todo.length} fond(s) à générer avec ${MODEL} — ~${estimate.toFixed(2)} $`);
-if (estimate > budget) {
-  console.error(`x  estimation ${estimate.toFixed(2)} $ > budget ${budget} $ : rien n'est lancé.`);
-  process.exit(1);
+const total = todo.length;
+/**
+ * Budget plus petit que le total : on génère autant de filières COMPLÈTES
+ * qu'il le permet, dans l'ordre de SUBJECTS (filières du sélecteur d'abord),
+ * au lieu de tout refuser. Les suivantes : à la prochaine relance.
+ */
+if (total * COST_PER_IMAGE > budget) {
+  const kept = [];
+  for (const cat of cats) {
+    const jobs = todo.filter(([c]) => c === cat);
+    if ((kept.length + jobs.length) * COST_PER_IMAGE > budget + 1e-9) break;
+    kept.push(...jobs);
+  }
+  todo = kept;
+  const planned = [...new Set(todo.map(([c]) => c))];
+  console.log(`budget ${budget} $ : ${todo.length}/${total} fond(s) — ${planned.join(", ") || "aucune filière"} ; le reste à la prochaine relance.`);
 }
+console.log(`${todo.length} fond(s) à générer avec ${MODEL} — ~${(todo.length * COST_PER_IMAGE).toFixed(2)} $`);
+if (todo.length === 0 || args.includes("--dry-run")) process.exit(0);
 
 const { default: Replicate } = await import("replicate");
 const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN, useFileOutput: false });
@@ -396,7 +419,8 @@ async function createWithRetry(input) {
       return await replicate.predictions.create({ model: MODEL, input });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes("402")) throw new Error("402 — crédit Replicate épuisé");
+      // 402 : on arrête net et on montre le message EXACT de Replicate.
+      if (msg.includes("402")) throw new Error(`402 — Replicate : ${msg.slice(0, 300)}`);
       if (!msg.includes("429") || attempt >= 6) throw err;
       const wait = Number(/retry_after"?:\s*(\d+)/.exec(msg)?.[1] ?? 12) + 1;
       console.log(`   limite Replicate — nouvelle tentative dans ${wait} s`);
@@ -409,6 +433,7 @@ const firstUrl = (o) =>
   typeof o === "string" ? (o.startsWith("http") ? o : null) : Array.isArray(o) ? (o.map(firstUrl).find(Boolean) ?? null) : null;
 
 let spent = 0;
+let done = 0;
 let failures = 0;
 // Deux à la fois : assez rapide, sous la limite des petits comptes.
 const CONCURRENCY = 2;
@@ -442,7 +467,8 @@ for (let i = 0; i < todo.length; i += CONCURRENCY) {
         }
         mkdirSync(join(ROOT, cat), { recursive: true });
         await writeVariants(Buffer.from(await res.arrayBuffer()), target(cat, n), portrait(target(cat, n)));
-        console.log(`ok  ${cat}-u${pad(n)}.webp + -p.webp`);
+        done++;
+        console.log(`ok  ${cat}-u${pad(n)}.webp + -p.webp  (${done}/${todo.length}, ~${spent.toFixed(2)} $)`);
       }),
     );
   } catch (err) {

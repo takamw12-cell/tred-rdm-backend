@@ -121,7 +121,6 @@ const BORROWED: Partial<Record<BackgroundCategory, string[]>> = {
  * cette liste se vide dès que les images arrivent.
  */
 export const AWAITING_IMAGES: readonly BackgroundCategory[] = [
-  "medicine",
   "law",
   "economics",
   // Refonte du 2026-11-11 : aucune photo d'avant, en attente de
