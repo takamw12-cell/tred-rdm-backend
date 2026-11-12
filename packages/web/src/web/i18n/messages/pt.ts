@@ -123,6 +123,8 @@ export const pt: PartialMessages = {
     studiengangLabel: "Curso (Studiengang)",
     studiengangDesc: "Também define a imagem de fundo da aplicação.",
     studiengangOther: "Outro",
+    studiengangOtherPlaceholder: "O teu curso, ex.: Biofísica",
+    studiengangOtherRequired: "Indica o teu curso.",
     learningStyleSection: "Estilo de aprendizagem",
     learningStyleDesc: "O TRED adapta a forma das explicações. O conteúdo continua o mesmo.",
     lsVisual: "Visual",

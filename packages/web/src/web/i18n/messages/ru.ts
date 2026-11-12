@@ -123,6 +123,8 @@ export const ru: PartialMessages = {
     studiengangLabel: "Направление (Studiengang)",
     studiengangDesc: "Также задаёт фоновое изображение приложения.",
     studiengangOther: "Другое",
+    studiengangOtherPlaceholder: "Специальность, напр. биофизика",
+    studiengangOtherRequired: "Укажи свою специальность.",
     learningStyleSection: "Стиль обучения",
     learningStyleDesc: "TRED подстраивает форму объяснений. Содержание остаётся тем же.",
     lsVisual: "Визуальный",

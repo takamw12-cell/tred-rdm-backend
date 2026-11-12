@@ -123,6 +123,8 @@ export const ja: PartialMessages = {
     studiengangLabel: "専攻（Studiengang）",
     studiengangDesc: "アプリの背景画像もこれで決まります。",
     studiengangOther: "その他",
+    studiengangOtherPlaceholder: "専攻を入力…例：生物物理学",
+    studiengangOtherRequired: "専攻を入力してください。",
     learningStyleSection: "学習スタイル",
     learningStyleDesc: "TRED が説明の仕方を合わせます。内容は変わりません。",
     lsVisual: "視覚型",

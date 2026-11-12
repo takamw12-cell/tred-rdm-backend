@@ -123,6 +123,8 @@ export const zh: PartialMessages = {
     studiengangLabel: "专业（Studiengang）",
     studiengangDesc: "同时决定应用的背景图片。",
     studiengangOther: "其他",
+    studiengangOtherPlaceholder: "请填写你的专业…例如：生物物理",
+    studiengangOtherRequired: "请填写你的专业。",
     learningStyleSection: "学习风格",
     learningStyleDesc: "TRED 会调整讲解方式，内容保持不变。",
     lsVisual: "视觉型",

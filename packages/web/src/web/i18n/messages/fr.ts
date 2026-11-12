@@ -662,6 +662,8 @@ export const fr: Messages = {
     studiengangDesc: "Détermine aussi l'image de fond de l'application.",
     studyLevelDesc: "TRED adapte la profondeur et le rythme des explications : plus concis et plus général en master, plus simple et pas à pas au lycée.",
     studiengangOther: "Autre",
+    studiengangOtherPlaceholder: "Ta filière, p. ex. Biophysique",
+    studiengangOtherRequired: "Indique ta filière.",
     learningStyleSection: "Style d'apprentissage",
     learningStyleDesc: "TRED adapte la forme de ses explications. Le contenu reste le même.",
     lsVisual: "Visuel",

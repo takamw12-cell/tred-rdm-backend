@@ -123,6 +123,8 @@ export const it: PartialMessages = {
     studiengangLabel: "Corso di laurea (Studiengang)",
     studiengangDesc: "Determina anche l'immagine di sfondo dell'app.",
     studiengangOther: "Altro",
+    studiengangOtherPlaceholder: "Il tuo corso, es. Biofisica",
+    studiengangOtherRequired: "Indica il tuo corso di studi.",
     learningStyleSection: "Stile di apprendimento",
     learningStyleDesc: "TRED adatta la forma delle spiegazioni. Il contenuto resta lo stesso.",
     lsVisual: "Visivo",

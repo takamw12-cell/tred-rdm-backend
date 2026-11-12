@@ -123,6 +123,8 @@ export const hi: PartialMessages = {
     studiengangLabel: "पाठ्यक्रम (Studiengang)",
     studiengangDesc: "यह ऐप की पृष्ठभूमि छवि भी तय करता है।",
     studiengangOther: "अन्य",
+    studiengangOtherPlaceholder: "आपका विषय, जैसे बायोफिज़िक्स",
+    studiengangOtherRequired: "कृपया अपना विषय लिखें।",
     learningStyleSection: "सीखने की शैली",
     learningStyleDesc: "TRED समझाने का तरीका आपके अनुसार बदलता है, विषय-वस्तु वही रहती है।",
     lsVisual: "दृश्य",

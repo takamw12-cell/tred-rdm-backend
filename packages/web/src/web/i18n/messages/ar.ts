@@ -123,6 +123,8 @@ export const ar: PartialMessages = {
     studiengangLabel: "التخصص (Studiengang)",
     studiengangDesc: "يحدد أيضًا صورة خلفية التطبيق.",
     studiengangOther: "آخر",
+    studiengangOtherPlaceholder: "تخصصك، مثلاً: الفيزياء الحيوية",
+    studiengangOtherRequired: "يرجى إدخال تخصصك.",
     learningStyleSection: "أسلوب التعلّم",
     learningStyleDesc: "يكيّف TRED طريقة شرحه، ويبقى المحتوى كما هو.",
     lsVisual: "بصري",

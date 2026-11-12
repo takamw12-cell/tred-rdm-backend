@@ -123,6 +123,8 @@ export const bn: PartialMessages = {
     studiengangLabel: "প্রোগ্রাম (Studiengang)",
     studiengangDesc: "এটি অ্যাপের পটভূমির ছবিও ঠিক করে।",
     studiengangOther: "অন্যান্য",
+    studiengangOtherPlaceholder: "তোমার বিভাগ, যেমন বায়োফিজিক্স",
+    studiengangOtherRequired: "তোমার বিভাগ লেখো।",
     learningStyleSection: "শেখার ধরন",
     learningStyleDesc: "TRED তোমার মতো করে ব্যাখ্যার ধরন বদলায়, বিষয়বস্তু একই থাকে।",
     lsVisual: "দৃশ্যমান",

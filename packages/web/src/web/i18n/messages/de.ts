@@ -661,6 +661,8 @@ export const de = {
     studiengangDesc: "Bestimmt unter anderem das Hintergrundbild der App.",
     studyLevelDesc: "TRED passt Tiefe und Tempo der Erklärungen an: im Master knapper und allgemeiner, in der Schule einfacher und kleinschrittiger.",
     studiengangOther: "Andere",
+    studiengangOtherPlaceholder: "Dein Studiengang, z. B. Biophysik",
+    studiengangOtherRequired: "Bitte gib deinen Studiengang an.",
     learningStyleSection: "Lernstil",
     learningStyleDesc: "TRED passt die Form seiner Erklärungen an. Die Inhalte bleiben gleich.",
     lsVisual: "Visuell",

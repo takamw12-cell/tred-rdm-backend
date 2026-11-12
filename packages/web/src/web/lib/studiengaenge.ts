@@ -9,6 +9,8 @@
  * Module pur, testé dans tests/background-sets.test.ts.
  */
 
+import { z } from "zod";
+
 type Locale = "en" | "fr" | "es" | "it" | "pt" | "ru" | "zh" | "ja" | "ar" | "bn" | "hi";
 
 export interface Studiengang {
@@ -48,4 +50,22 @@ export function studiengangLabel(s: Studiengang, locale: string): string {
   if (locale === "de") return s.value;
   const tr = s.labels[locale as Locale] ?? s.labels.en;
   return tr === s.value ? tr : `${tr} · ${s.value}`;
+}
+
+/** Longueur maximale d'une filière saisie librement (le serveur coupe au même endroit : api/lib/study-profile.ts). */
+export const CUSTOM_STUDIENGANG_MAX = 80;
+
+/**
+ * Filière saisie à la main quand l'étudiant choisit « Andere » : obligatoire,
+ * sur une ligne, 2 à 80 caractères. Enregistrée telle quelle (« Biophysik »),
+ * jamais comme « Andere ».
+ */
+export const customStudiengangSchema = z
+  .string()
+  .transform((v) => v.replace(/\s+/g, " ").trim())
+  .pipe(z.string().min(2).max(CUSTOM_STUDIENGANG_MAX));
+
+/** Vrai si la valeur est une filière de la liste (et non une saisie libre). */
+export function isListedStudiengang(value: string | null | undefined): boolean {
+  return STUDIENGAENGE.some((s) => s.value === value);
 }

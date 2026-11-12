@@ -674,6 +674,8 @@ export const es: Messages = {
     studiengangDesc: "También define la imagen de fondo de la app.",
     studyLevelDesc: "TRED adapta la profundidad y el ritmo de las explicaciones: más concisas y generales en el máster, más sencillas y paso a paso en el bachillerato.",
     studiengangOther: "Otra",
+    studiengangOtherPlaceholder: "Tu carrera, p. ej. Biofísica",
+    studiengangOtherRequired: "Indica tu carrera.",
     learningStyleSection: "Estilo de aprendizaje",
     learningStyleDesc: "TRED adapta la forma de sus explicaciones. El contenido no cambia.",
     lsVisual: "Visual",
