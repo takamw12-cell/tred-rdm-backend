@@ -61,6 +61,7 @@ export const pt: PartialMessages = {
     quantity: "Quantidade",
   },
   common: {
+    student: "Estudante",
     email: "E-mail",
     password: "Palavra-passe",
     firstName: "Nome",
@@ -114,7 +115,7 @@ export const pt: PartialMessages = {
     toSignUp: "Ainda não tens conta? Regista-te",
     toSignIn: "Já tens conta? Inicia sessão",
     signOut: "Terminar sessão",
-    name: "Nome",
+    name: "Nome completo",
     errorGeneric: "Início de sessão falhou. Verifica os teus dados.",
   },
   settings: {

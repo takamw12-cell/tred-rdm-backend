@@ -20,7 +20,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { useT } from "@/i18n";
-import { useUserStore } from "@/stores/user";
+import { useIdentity } from "@/hooks/use-identity";
+import { subscriptionMeOptions } from "@/queries/subscriptions";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TrustBadge } from "@/components/trust-badge";
 import { authClient } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -51,11 +53,13 @@ export function SidebarContent({
 }) {
   const [location] = useLocation();
   const { t } = useT();
-  const profile = useUserStore((s) => s.profile);
-  const plan = useUserStore((s) => s.plan);
+  // Nom et plan viennent du compte connecté (session, serveur), jamais d'une
+  // valeur par défaut du navigateur.
+  const identity = useIdentity();
+  const qc = useQueryClient();
+  const { data: sub } = useQuery(subscriptionMeOptions());
+  const plan = sub?.plan ?? "free";
   const openFeedback = useFeedbackUi((s) => s.openFeedback);
-  const initials =
-    (profile.firstName[0] ?? "") + (profile.lastName[0] ?? "");
 
   return (
     <div className="flex h-full flex-col">
@@ -117,12 +121,12 @@ export function SidebarContent({
         <div className="flex items-center gap-3 rounded-xl bg-white/5 p-2.5">
           <Avatar>
             <AvatarFallback className="brand-gradient text-xs font-bold text-white">
-              {initials.toUpperCase()}
+              {identity.initials}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-white">
-              {profile.firstName} {profile.lastName}
+              {identity.full}
             </p>
             <Badge variant="secondary" className="mt-0.5 border-0 bg-white/10 text-white/80 capitalize">
               {plan}
@@ -130,7 +134,11 @@ export function SidebarContent({
           </div>
           <ThemeToggle variant="sidebar" />
           <button
-            onClick={() => authClient.signOut()}
+            onClick={() => {
+              // Le cache des requêtes (cours, documents) ne doit pas survivre
+              // à la déconnexion : le compte suivant ne doit rien en voir.
+              void authClient.signOut().finally(() => qc.clear());
+            }}
             className="shrink-0 text-white/60 transition-colors hover:text-red-400"
             aria-label={t("auth.signOut")}
             title={t("auth.signOut")}

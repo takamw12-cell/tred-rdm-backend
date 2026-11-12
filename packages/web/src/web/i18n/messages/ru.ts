@@ -61,6 +61,7 @@ export const ru: PartialMessages = {
     quantity: "Количество",
   },
   common: {
+    student: "Студент",
     email: "Эл. почта",
     password: "Пароль",
     firstName: "Имя",
@@ -114,7 +115,7 @@ export const ru: PartialMessages = {
     toSignUp: "Нет аккаунта? Зарегистрируйтесь",
     toSignIn: "Уже есть аккаунт? Войдите",
     signOut: "Выйти",
-    name: "Имя",
+    name: "Полное имя",
     errorGeneric: "Не удалось войти. Проверьте введённые данные.",
   },
   settings: {

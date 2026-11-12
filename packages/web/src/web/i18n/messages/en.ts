@@ -62,6 +62,7 @@ export const en: Messages = {
     menu: "Menu",
   },
   common: {
+    student: "Student",
     email: "Email",
     password: "Password",
     firstName: "First name",
@@ -609,7 +610,7 @@ export const en: Messages = {
     toSignUp: "No account yet? Sign up",
     toSignIn: "Already have an account? Sign in",
     signOut: "Sign out",
-    name: "Name",
+    name: "Full name",
     errorGeneric: "Sign-in failed. Please check your details.",
   },
   dictionary: {

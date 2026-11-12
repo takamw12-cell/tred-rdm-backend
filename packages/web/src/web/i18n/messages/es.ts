@@ -74,6 +74,7 @@ export const es: Messages = {
     menu: "Menú",
   },
   common: {
+    student: "Estudiante",
     email: "Correo electrónico",
     password: "Contraseña",
     firstName: "Nombre",
@@ -621,7 +622,7 @@ export const es: Messages = {
     toSignUp: "¿Aún no tienes cuenta? Regístrate",
     toSignIn: "¿Ya tienes cuenta? Inicia sesión",
     signOut: "Cerrar sesión",
-    name: "Nombre",
+    name: "Nombre completo",
     errorGeneric: "No se ha podido iniciar sesión. Revisa tus datos.",
   },
   dictionary: {

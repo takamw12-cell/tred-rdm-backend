@@ -61,6 +61,7 @@ export const bn: PartialMessages = {
     quantity: "পরিমাণ",
   },
   common: {
+    student: "শিক্ষার্থী",
     email: "ইমেল",
     password: "পাসওয়ার্ড",
     firstName: "নাম",
@@ -114,7 +115,7 @@ export const bn: PartialMessages = {
     toSignUp: "অ্যাকাউন্ট নেই? নিবন্ধন করুন",
     toSignIn: "অ্যাকাউন্ট আছে? সাইন ইন করুন",
     signOut: "সাইন আউট",
-    name: "নাম",
+    name: "পুরো নাম",
     errorGeneric: "সাইন-ইন ব্যর্থ। তথ্য যাচাই করুন।",
   },
   settings: {

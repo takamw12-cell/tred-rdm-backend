@@ -61,6 +61,7 @@ export const de = {
     menu: "Menü",
   },
   common: {
+    student: "Student",
     email: "E-Mail",
     password: "Passwort",
     firstName: "Vorname",
@@ -608,7 +609,7 @@ export const de = {
     toSignUp: "Noch kein Konto? Registrieren",
     toSignIn: "Bereits ein Konto? Anmelden",
     signOut: "Abmelden",
-    name: "Name",
+    name: "Vollständiger Name",
     errorGeneric: "Anmeldung fehlgeschlagen. Bitte prüfe deine Angaben.",
   },
   dictionary: {

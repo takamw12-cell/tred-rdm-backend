@@ -39,6 +39,7 @@ import { NativeAdSlot } from "@/components/NativeAdSlot";
 import { UniversityBadge } from "@/components/university-picker";
 import { useT } from "@/i18n";
 import { useUserStore } from "@/stores/user";
+import { useIdentity } from "@/hooks/use-identity";
 import { useSemesterStore } from "@/stores/semester";
 import { useReconciledSemester } from "@/hooks/use-reconciled-semester";
 import { useLocaleStore } from "@/stores/locale";
@@ -79,6 +80,7 @@ export default function DashboardPage() {
   const [, navigate] = useLocation();
   const qc = useQueryClient();
   const profile = useUserStore((s) => s.profile);
+  const identity = useIdentity();
   const locale = useLocaleStore((s) => s.locale);
   // activeId vient du localStorage : le hook le confronte aux semestres réels.
   const activeId = useReconciledSemester();
@@ -299,7 +301,7 @@ export default function DashboardPage() {
               photo assombrie, sans carte — donc en blanc. */}
           <p className="on-photo mb-2 text-sm text-white/75 capitalize">{today}</p>
           <h1 className="on-photo font-display text-3xl leading-tight font-semibold text-white sm:text-4xl">
-            {t("dashboard.greeting", { name: profile.firstName })}
+            {t("dashboard.greeting", { name: identity.first })}
           </h1>
           <p className="on-photo mt-2 max-w-xl text-white/75">{t("dashboard.subtitle")}</p>
           {/* Sa Hochschule, avec le drapeau du Land (rien si hors liste). */}

@@ -61,6 +61,7 @@ export const hi: PartialMessages = {
     quantity: "मात्रा",
   },
   common: {
+    student: "विद्यार्थी",
     email: "ईमेल",
     password: "पासवर्ड",
     firstName: "पहला नाम",
@@ -114,7 +115,7 @@ export const hi: PartialMessages = {
     toSignUp: "खाता नहीं है? पंजीकरण करें",
     toSignIn: "पहले से खाता है? साइन इन करें",
     signOut: "साइन आउट",
-    name: "नाम",
+    name: "पूरा नाम",
     errorGeneric: "साइन-इन विफल रहा। कृपया अपनी जानकारी जाँचें।",
   },
   settings: {

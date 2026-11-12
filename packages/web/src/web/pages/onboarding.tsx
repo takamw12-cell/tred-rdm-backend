@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useT } from "@/i18n";
+import { authClient } from "@/lib/auth";
 import { useUserStore, STUDY_LEVELS, type Profile } from "@/stores/user";
 
 interface FormValues extends Profile {
@@ -68,6 +69,9 @@ export default function OnboardingPage() {
       nativeLanguage: v.nativeLanguage,
       germanLevel: v.germanLevel,
     });
+    // Le nom rejoint aussi le compte : il suit l'étudiant sur tous ses appareils.
+    const fullName = `${v.firstName} ${v.lastName}`.trim();
+    if (fullName) void authClient.updateUser({ name: fullName }).catch(() => {});
     navigate("/dashboard");
   };
 

@@ -104,6 +104,7 @@ import {
 import { getStripe } from "./lib/stripe";
 import type Stripe from "stripe";
 import { PRIMARY_MODEL } from "./lib/ai-models";
+import { realName } from "./lib/display-name";
 
 // API features are oRPC procedures, one file per feature in ./routes/,
 // composed into this router — typed end-to-end via the clients
@@ -713,7 +714,8 @@ app.post("/api/agent/messages", async (c) => {
     })),
     contextLabel,
     locale: locale ?? storedLocale,
-    studentName: session.user.name,
+    // Sans nom saisi, `user.name` contenait l'e-mail : le tuteur ne le prononce pas.
+    studentName: realName(session.user.name, session.user.email),
     examMode: examMode === true,
     calcMode: calcMode === true,
     board: hoersaal === true,
@@ -1671,7 +1673,7 @@ app.post("/api/youtube/search", async (c) => {
   const topic = String(body.topic ?? "").slice(0, 8000);
   const question = String(body.question ?? "").slice(0, 1000);
   const locale = String(body.locale ?? "de");
-  const studentName = session.user.name ?? "";
+  const studentName = realName(session.user.name, session.user.email);
   // Kontextbewusst: ein kleines Modell formuliert die Suchanfrage aus der
   // letzten Antwort ("Kirchhoffsche Maschenregel Beispiel" statt
   // "Kirchhoff"). Fällt es aus, greift die Heuristik in lib/youtube.ts.

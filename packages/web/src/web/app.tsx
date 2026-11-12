@@ -13,7 +13,8 @@ import { LogoMark } from "./components/logo";
 import OnboardingPage from "./pages/onboarding";
 import LoginPage from "./pages/login";
 import DashboardPage from "./pages/dashboard";
-import { lazy, Suspense, useEffect, type ComponentType } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, type ComponentType } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { identifyUser } from "./lib/analytics";
 import { AnalyticsConsent } from "./components/analytics-consent";
 
@@ -146,11 +147,24 @@ function Gate() {
   // ID pseudonyme pour l'analyse (no-op sans consentement). Jamais l'e-mail.
   const userId = session?.user.id;
   useEffect(() => identifyUser(userId), [userId]);
+  // Le profil local (localStorage) est rattaché au compte connecté AVANT le
+  // premier rendu de l'app : un autre compte sur le même appareil repart d'un
+  // profil vide, et le cache des requêtes du compte précédent est jeté.
+  const email = session?.user.email;
+  const qc = useQueryClient();
+  const ownerId = useUserStore((s) => s.ownerId);
+  useLayoutEffect(() => {
+    if (!userId || ownerId === userId) return;
+    if (ownerId) qc.clear();
+    useUserStore.getState().claim(userId, email);
+  }, [userId, email, ownerId, qc]);
   // `/` sans session : la page d'accueil publique (robots et AdSense la
   // lisent aussi). Connecté : AuthedApp renvoie vers le Dashboard.
   const atRoot = location === "/";
   if (isPending) return atRoot && ROOT_PRERENDERED ? <LandingPage /> : <LoadingScreen />;
   if (!session) return atRoot ? <LandingPage /> : <LoginPage />;
+  // Tant que le profil local n'est pas rattaché à ce compte, on n'affiche rien de lui.
+  if (ownerId !== userId) return <LoadingScreen />;
   return <AuthedApp />;
 }
 

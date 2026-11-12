@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { subscriptionMeOptions } from "@/queries/subscriptions";
 import { Link, useLocation } from "wouter";
 import {
   Moon,
@@ -159,7 +161,9 @@ export default function SettingsPage() {
   const fontSize = useFontSizeStore((s) => s.size);
   const setFontSize = useFontSizeStore((s) => s.setSize);
 
-  const plan = useUserStore((s) => s.plan);
+  // Le plan vient du serveur, pas du navigateur.
+  const { data: sub } = useQuery(subscriptionMeOptions());
+  const plan = sub?.plan ?? "free";
   const germanMode = useUserStore((s) => s.germanMode);
   const setGermanMode = useUserStore((s) => s.setGermanMode);
 

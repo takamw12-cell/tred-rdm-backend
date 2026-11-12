@@ -61,6 +61,7 @@ export const ja: PartialMessages = {
     quantity: "数量",
   },
   common: {
+    student: "学生",
     email: "メールアドレス",
     password: "パスワード",
     firstName: "名",
@@ -114,7 +115,7 @@ export const ja: PartialMessages = {
     toSignUp: "アカウントがありませんか？登録",
     toSignIn: "アカウントをお持ちですか？ログイン",
     signOut: "ログアウト",
-    name: "名前",
+    name: "氏名",
     errorGeneric: "ログインに失敗しました。入力内容をご確認ください。",
   },
   settings: {

@@ -61,6 +61,7 @@ export const zh: PartialMessages = {
     quantity: "数量",
   },
   common: {
+    student: "同学",
     email: "电子邮箱",
     password: "密码",
     firstName: "名",

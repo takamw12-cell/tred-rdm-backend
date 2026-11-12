@@ -13,6 +13,7 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { authClient, googleAuthEnabled, appleAuthEnabled } from "@/lib/auth";
 import { useT } from "@/i18n";
+import { emailLocalPart } from "../../api/lib/display-name";
 
 export default function LoginPage() {
   const { t } = useT();
@@ -86,7 +87,8 @@ export default function LoginPage() {
         ? await authClient.signUp.email({
             email,
             password,
-            name: name || email,
+            // Jamais l'e-mail entier comme nom : il s'afficherait tel quel.
+            name: name.trim() || emailLocalPart(email),
             // Le lien de l'e-mail de bienvenue vérifie l'adresse, ouvre la
             // session et mène ici.
             callbackURL: "/dashboard",
@@ -203,6 +205,7 @@ export default function LoginPage() {
               <Label htmlFor="name">{t("auth.name")}</Label>
               <Input
                 id="name"
+                required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 autoComplete="name"

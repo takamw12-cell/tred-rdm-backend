@@ -61,6 +61,7 @@ export const ar: PartialMessages = {
     quantity: "الكمية",
   },
   common: {
+    student: "طالب",
     email: "البريد الإلكتروني",
     password: "كلمة المرور",
     firstName: "الاسم الأول",
@@ -114,7 +115,7 @@ export const ar: PartialMessages = {
     toSignUp: "ليس لديك حساب؟ أنشئ واحدًا",
     toSignIn: "لديك حساب؟ سجّل الدخول",
     signOut: "تسجيل الخروج",
-    name: "الاسم",
+    name: "الاسم الكامل",
     errorGeneric: "فشل تسجيل الدخول. تحقّق من بياناتك.",
   },
   settings: {
