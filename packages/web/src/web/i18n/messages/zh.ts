@@ -33,6 +33,10 @@ export const zh: PartialMessages = {
     enter: "禅模式：只显示背景",
   },
   explainer: {
+    stageHook: "问题",
+    stageStep: "步骤",
+    stageExample: "例子",
+    stageRecap: "小结",
     preparing: "TRED 正在为你准备专属视频 …",
     stepScript: "正在撰写脚本",
     stepVoice: "正在录制语音",

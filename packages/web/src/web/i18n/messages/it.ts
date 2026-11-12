@@ -33,6 +33,10 @@ export const it: PartialMessages = {
     enter: "Modalità zen: solo lo sfondo",
   },
   explainer: {
+    stageHook: "La domanda",
+    stageStep: "Passo",
+    stageExample: "Esempio",
+    stageRecap: "Riepilogo",
     preparing: "TRED sta preparando il tuo video personalizzato …",
     stepScript: "Scrittura del copione",
     stepVoice: "Registrazione della voce",

@@ -7,7 +7,7 @@ import { HologramProfessor } from "@/components/hologram-professor";
 import { parseBeamPayload, renderBeamSvg } from "@/lib/beam-svg";
 import { payloadToProblem, type BeamDiagramPayload } from "../../api/lib/beam-tool";
 import { solveMechanicsSafe } from "../../api/lib/mechanics-solver";
-import { BEAM_VISUALS, type ChartKey, type RealImageKey, type Visual } from "../../api/lib/video-visuals";
+import { BEAM_VISUALS, type ChartKey, type RealImageKey, type Stage, type Visual, type VisualCue } from "../../api/lib/video-visuals";
 import type { Professor } from "../../api/lib/professors";
 
 /**
@@ -33,6 +33,13 @@ import type { Professor } from "../../api/lib/professors";
  * arrivent flèche après flèche, le vrai schéma du solveur, une image du monde
  * réel, la formule en grand. Le visuel occupe le tableau ; l'explication est
  * dite par la voix et suivie par les sous-titres, en bas.
+ *
+ * ── Une mini-leçon, façon vidéo d'explication ─────────────────────────────
+ * Chaque scène porte sa place dans la leçon (`stage`) : la question mystère
+ * qui s'écrit en grand, l'explication pas à pas, l'exemple concret, puis le
+ * récapitulatif qui se coche point par point. Les visuels « de texte » se
+ * jouent sur un fond sombre à halos jaunes ; les sous-titres suivent la voix
+ * mot à mot, en bas.
  *
  * ── Rien n'est inventé à l'écran ──────────────────────────────────────────
  * Le modèle choisit un visuel, il ne dessine pas. La poutre vient d'un calcul
@@ -72,6 +79,10 @@ export interface ExplainerScene {
   keywords?: string[];
   /** Courbe de principe. */
   chart?: ChartKey | null;
+  /** La place dans la mini-leçon. Absent (anciennes vidéos) : aucune étiquette. */
+  stage?: Stage;
+  /** L'ordre visuel exécuté (draw_flowchart, write_equation, show_beam…). Informatif : `visual` décide. */
+  visual_cues?: VisualCue[];
 }
 
 export interface ExplainerWord {
@@ -95,6 +106,8 @@ export interface ExplainerLabels {
   sketch: string;
   /** Courbe d'offre et de demande : [offre, demande, prix, quantité]. */
   market: [string, string, string, string];
+  /** Les quatre temps de la leçon : « Die Frage », « Schritt », « Beispiel », « Merke ». */
+  stages?: Record<Stage, string>;
 }
 
 // `type` et non `interface` : Remotion exige des props assignables à Record<string, unknown>.
@@ -354,7 +367,11 @@ function BeamStage({ payload, draw, loads, comma, sketchLabel }: { payload: Beam
   );
 }
 
-/** Le vrai schéma du solveur (système, Q(x), M(x)), recalculé ici et révélé de haut en bas. */
+/**
+ * Le vrai schéma du solveur (système, Q(x), M(x)), recalculé ici. Les courbes
+ * se TRACENT de gauche à droite, comme au feutre : un trait jaune marque
+ * l'endroit où la pointe se trouve.
+ */
 function SolverPlot({ payload, reveal }: { payload: BeamDiagramPayload; reveal: number }) {
   const svg = useMemo(() => {
     const parsed = parseBeamPayload(JSON.stringify(payload));
@@ -364,11 +381,18 @@ function SolverPlot({ payload, reveal }: { payload: BeamDiagramPayload; reveal: 
   }, [payload]);
   if (!svg) return null;
   return (
-    <div
-      className="h-full w-full [&_svg]:mx-auto [&_svg]:block [&_svg]:h-full [&_svg]:max-w-full"
-      style={{ clipPath: `inset(0 0 ${(1 - reveal) * 100}% 0)` }}
-      dangerouslySetInnerHTML={{ __html: svg }}
-    />
+    <div className="relative h-full w-full">
+      <div
+        className="h-full w-full [&_svg]:mx-auto [&_svg]:block [&_svg]:h-full [&_svg]:max-w-full"
+        style={{ clipPath: `inset(0 ${(1 - reveal) * 100}% 0 0)` }}
+        dangerouslySetInnerHTML={{ __html: svg }}
+      />
+      {reveal > 0 && reveal < 1 && (
+        <span
+          style={{ position: "absolute", top: "4%", bottom: "4%", left: `${reveal * 100}%`, width: 3, borderRadius: 2, background: "#EAB308", boxShadow: "0 0 14px 3px rgb(234 179 8 / 0.65)" }}
+        />
+      )}
+    </div>
   );
 }
 
@@ -527,6 +551,104 @@ function MarketChart({ local, labels, dark }: { local: number; labels: [string, 
   );
 }
 
+/** Les halos jaunes du fond sombre : deux lueurs qui dérivent très lentement. */
+function Halos({ local }: { local: number }) {
+  const a = Math.sin(local / 38);
+  const b = Math.cos(local / 47);
+  return (
+    <>
+      <div style={{ position: "absolute", left: `${-20 + a * 4}%`, top: `${-34 + b * 4}%`, width: "72%", height: "92%", background: "radial-gradient(closest-side, rgb(234 179 8 / 0.5), rgb(234 179 8 / 0) 74%)" }} />
+      <div style={{ position: "absolute", right: `${-24 + b * 4}%`, bottom: `${-40 + a * 4}%`, width: "78%", height: "96%", background: "radial-gradient(closest-side, rgb(250 204 21 / 0.32), rgb(250 204 21 / 0) 74%)" }} />
+    </>
+  );
+}
+
+/**
+ * La question mystère : un grand point d'interrogation surgit, puis la
+ * question s'écrit lettre après lettre, comme à la machine, avec son curseur.
+ */
+function QuestionCard({ text, local, dur }: { text: string; local: number; dur: number }) {
+  const chars = [...text];
+  const mark = pop(local, 4, 9);
+  const typeEnd = Math.min(14 + chars.length * 1.35, Math.max(24, dur * 0.62));
+  const shown = Math.round(interpolate(local, [14, typeEnd], [0, chars.length], clamp));
+  const typing = shown < chars.length;
+  const caret = typing || Math.floor(local / 14) % 2 === 0 ? 1 : 0;
+  const breath = 0.5 + 0.5 * Math.sin(local / 9);
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center" style={{ gap: 14, padding: "0 10px" }}>
+      <span
+        style={{
+          display: "grid",
+          placeItems: "center",
+          width: 76,
+          height: 76,
+          borderRadius: 38,
+          background: "#EAB308",
+          color: "#0F172A",
+          fontSize: 50,
+          fontWeight: 900,
+          lineHeight: 1,
+          opacity: Math.min(1, mark * 1.5),
+          transform: `scale(${0.4 + 0.6 * mark}) rotate(${(1 - Math.min(1, mark)) * -24 + Math.sin(local / 16) * 3}deg)`,
+          boxShadow: `0 0 ${26 + 18 * breath}px ${4 + 6 * breath}px rgb(234 179 8 / 0.45)`,
+        }}
+      >
+        ?
+      </span>
+      <p className="font-hand" style={{ margin: 0, textAlign: "center", color: "#F8FAFC", fontSize: chars.length > 70 ? 27 : 33, fontWeight: 700, lineHeight: 1.18, minHeight: "2.4em" }}>
+        {chars.slice(0, shown).join("")}
+        <span style={{ display: "inline-block", width: 3, height: "0.95em", marginLeft: 3, verticalAlign: "-0.12em", borderRadius: 2, background: "#EAB308", opacity: local < 14 ? 0 : caret }} />
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Le récapitulatif : chaque point arrive quand la voix le dit, sa case se
+ * coche d'un trait jaune (le trait se trace), puis le texte s'écrit.
+ */
+function RecapList({ bullets, local, cues }: { bullets: string[]; local: number; cues: number[] }) {
+  const CHECK = 26;
+  return (
+    <div className="flex h-full w-full flex-col justify-center" style={{ gap: 14, padding: "0 6px" }}>
+      {bullets.map((b, i) => {
+        const at = cues[i] ?? 10 + i * 30;
+        const k = pop(local, at);
+        const tick = progress(local, at + 6, at + 20);
+        return (
+          <div key={i} className="flex items-center" style={{ gap: 14, opacity: Math.min(1, k * 1.4), transform: `translateX(${(1 - Math.min(1, k)) * -22}px)` }}>
+            <svg width={38} height={38} viewBox="0 0 38 38" style={{ flexShrink: 0 }}>
+              <circle cx={19} cy={19} r={16} fill={`rgb(234 179 8 / ${0.16 + 0.84 * tick})`} stroke="#EAB308" strokeWidth={2.5} />
+              <path d="M11 19.5 L17 25 L27.5 13.5" fill="none" stroke="#0F172A" strokeWidth={3.6} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={CHECK} strokeDashoffset={CHECK * (1 - tick)} />
+            </svg>
+            <p className="font-hand" style={{ margin: 0, color: "#F8FAFC", fontSize: 25, fontWeight: 700, lineHeight: 1.2, clipPath: `inset(-20% ${(1 - progress(local, at + 2, at + 18)) * 100}% -20% 0)` }}>
+              {b}
+            </p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** L'étiquette du temps de la leçon : « Die Frage », « Schritt 2 », « Beispiel », « Merke ». */
+function StageChip({ scenes, index, labels, opacity }: { scenes: ExplainerScene[]; index: number; labels: ExplainerLabels; opacity: number }) {
+  const stage = scenes[index]?.stage;
+  if (!stage || !labels.stages) return null;
+  const n = scenes.slice(0, index + 1).filter((sc) => sc.stage === "step").length;
+  return (
+    <span
+      className="rounded-full font-mono font-bold uppercase"
+      // `alignSelf` en style : dans la colonne du tableau, l'étiquette ne doit jamais s'étirer.
+      style={{ alignSelf: "flex-start", display: "inline-block", width: "fit-content", opacity, padding: "4px 11px", fontSize: 10.5, letterSpacing: "0.12em", background: "#0F172A", color: "#FACC15", boxShadow: "inset 0 0 0 1px rgb(234 179 8 / 0.5)" }}
+    >
+      {labels.stages[stage]}
+      {stage === "step" ? ` ${n}` : ""}
+    </span>
+  );
+}
+
 /** Une image du monde réel, avec un lent travelling. */
 function RealImage({ src, local }: { src: string; local: number }) {
   return (
@@ -540,10 +662,14 @@ function RealImage({ src, local }: { src: string; local: number }) {
 type SceneTiming = { from: number; to: number };
 type VisualProps = Pick<ExplainerProps, "beam" | "realImages" | "decimalComma" | "labels" | "backdrop" | "words">;
 
-/** Les visuels « de texte » se posent sur l'image de contexte, très sombre ; les schémas restent sur fond clair. */
-const DARK_VISUALS: readonly Visual[] = ["flowchart", "highlight", "formula", "chart"];
+/**
+ * Les visuels « de texte » se jouent sur un fond sombre à halos jaunes (avec,
+ * quand elle existe, l'image de contexte de la filière en dessous) ; les
+ * schémas techniques (poutre, courbes du solveur) restent sur fond clair.
+ */
+const DARK_VISUALS: readonly Visual[] = ["flowchart", "highlight", "formula", "chart", "question", "recap"];
 const backdropUrl = (props: VisualProps) => (props.backdrop ? props.realImages?.[props.backdrop] : undefined);
-const isDarkStage = (scene: ExplainerScene, props: VisualProps) => DARK_VISUALS.includes(scene.visual ?? "text") && !!backdropUrl(props);
+const isDarkStage = (scene: ExplainerScene, _props?: VisualProps) => DARK_VISUALS.includes(scene.visual ?? "text");
 
 /** Le visuel d'une scène, à l'image `frame`. `end` : son état final (pour le fondu de sortie). */
 function SceneVisual({
@@ -607,6 +733,11 @@ function SceneVisual({
       </div>
     );
   }
+  if (visual === "question") return <QuestionCard text={scene.heading} local={local} dur={to - from} />;
+  if (visual === "recap" && scene.bullets.length) {
+    const bullets = scene.bullets.slice(0, 3);
+    return <RecapList bullets={bullets} local={local} cues={cueFrames(bullets, props.words, from, to)} />;
+  }
   if (visual === "highlight" && scene.quote) return <HighlightText text={scene.quote} keywords={scene.keywords ?? []} local={local} dur={to - from} dark={dark} />;
   if (visual === "chart" && scene.chart === "supply_demand") return <MarketChart local={local} labels={props.labels.market} dark={dark} />;
   return null;
@@ -617,7 +748,7 @@ const sameVisual = (a: ExplainerScene | undefined, b: ExplainerScene | undefined
   !!a && !!b && BEAM_VISUALS.includes(a.visual ?? "text") && BEAM_VISUALS.includes(b.visual ?? "text");
 
 /** Une scène de texte : la feuille posée sur le tableau, qui se remplit au rythme de la voix. */
-function SceneNote({ scene, local, dur, labels, index, topGap }: { scene: ExplainerScene; local: number; dur: number; labels: ExplainerLabels; index: number; topGap: number }) {
+function SceneNote({ scene, scenes, local, dur, labels, index, topGap }: { scene: ExplainerScene; scenes: ExplainerScene[]; local: number; dur: number; labels: ExplainerLabels; index: number; topGap: number }) {
   const enter = progress(local, 0, 10);
   const exit = 1 - progress(local, dur - 7, dur);
   // Les points se répartissent sur les deux premiers tiers de la scène : la voix les amène.
@@ -626,7 +757,8 @@ function SceneNote({ scene, local, dur, labels, index, topGap }: { scene: Explai
   const formulaAt = at(scene.bullets.length);
   const isSolver = scene.sourceKind === "solver";
   return (
-    <div className="w-full" style={{ opacity: enter * exit, transform: `translateY(${(1 - enter) * 22}px)`, paddingTop: topGap }}>
+    <div className="flex w-full flex-col gap-2" style={{ opacity: enter * exit, transform: `translateY(${(1 - enter) * 22}px)`, paddingTop: topGap }}>
+      <StageChip scenes={scenes} index={index} labels={labels} opacity={1} />
       <PaperNote
         title={scene.heading}
         tilt={index % 2 ? 0.5 : -0.5}
@@ -754,15 +886,17 @@ function DemoScene({
   const isPhoto = scene.visual === "real_image";
   // Un diagramme de flux de plus de trois étapes a besoin de hauteur sur téléphone.
   const isTall = scene.visual === "flowchart" && (scene.steps?.length ?? 0) > 3;
-  // La citation surlignée EST le contenu : on n'en répète pas les points dessous.
-  const quiet = scene.visual === "highlight" || scene.visual === "flowchart";
+  const isQuestion = scene.visual === "question";
+  // La citation surlignée, la question et la liste cochée SONT le contenu : on n'en répète pas les points dessous.
+  const quiet = scene.visual === "highlight" || scene.visual === "flowchart" || isQuestion || scene.visual === "recap";
   const bullets = quiet ? [] : scene.bullets.slice(0, 2);
   const dark = isDarkStage(scene, props);
   const context = backdropUrl(props);
   const slot = ((to - from) * 0.55) / Math.max(1, bullets.length);
   return (
     <div className="flex w-full flex-col gap-3" style={{ paddingTop: landscape ? 0 : 30 }}>
-      <div className="flex items-center gap-3" style={{ opacity: textIn, paddingRight: landscape ? 0 : 96 }}>
+      <StageChip scenes={scenes} index={index} labels={props.labels} opacity={textIn} />
+      <div className="flex items-center gap-3" style={{ opacity: textIn, paddingRight: landscape ? 0 : 96, display: isQuestion ? "none" : undefined }}>
         <h2 className="font-hand font-bold" style={{ color: "#1B2A4A", fontSize: 34, lineHeight: 1, margin: 0 }}>
           {scene.heading}
         </h2>
@@ -776,10 +910,10 @@ function DemoScene({
         style={{
           position: "relative",
           width: "100%",
-          height: landscape ? 232 : isSolver ? 520 : isTall ? 430 : 330,
+          height: landscape ? 232 : isSolver ? 520 : isTall || isQuestion ? 430 : 330,
           borderRadius: 18,
           overflow: "hidden",
-          background: isPhoto || dark ? "#070B14" : "rgb(255 255 255 / 0.78)",
+          background: isPhoto ? "#070B14" : dark ? "linear-gradient(160deg, #0F172A, #070B14 70%)" : "rgb(255 255 255 / 0.78)",
           boxShadow: isPhoto ? "none" : "inset 0 0 0 1px rgb(27 42 74 / 0.08), 0 18px 36px -24px rgb(27 42 74 / 0.45)",
           padding: isPhoto ? 0 : 12,
         }}
@@ -791,6 +925,8 @@ function DemoScene({
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgb(7 11 20 / 0.86), rgb(7 11 20 / 0.74) 50%, rgb(7 11 20 / 0.9))" }} />
           </>
         )}
+        {/* Les halos jaunes, par-dessus le fond sombre et sous le visuel. */}
+        {dark && <Halos local={local} />}
         {!continued && prevIsDemo && fade < 1 && (
           <div style={{ position: "absolute", inset: isPhoto ? 0 : 12, opacity: 1 - fade }}>
             <SceneVisual scenes={scenes} index={index - 1} timings={timings} frame={timings[index - 1]!.to} landscape={landscape} props={props} />
@@ -861,7 +997,7 @@ export function DynamicExplanation({ audioUrl, title, scenes, words, sceneStarts
                   ))}
                 </div>
                 {scene && (scene.visual ?? "text") === "text" && (
-                  <SceneNote key={current} scene={scene} local={frame - from} dur={to - from} labels={labels} index={current} topGap={landscape ? 0 : 34} />
+                  <SceneNote key={current} scene={scene} scenes={scenes} local={frame - from} dur={to - from} labels={labels} index={current} topGap={landscape ? 0 : 34} />
                 )}
                 {scene && (scene.visual ?? "text") !== "text" && (
                   <DemoScene scenes={scenes} index={current} timings={timings} frame={frame} landscape={landscape} props={{ beam, realImages, decimalComma, labels, backdrop, words }} />

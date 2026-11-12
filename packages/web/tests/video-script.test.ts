@@ -31,6 +31,8 @@ const SOURCES: VideoSource[] = [
 const voice = (n: number) => Array.from({ length: n }, () => "wort").join(" ");
 
 const scene = (over: Partial<VideoScene> = {}): VideoScene => ({
+  stage: "step",
+  visual_cues: [],
   heading: "Lagerkräfte",
   bullets: ["Beide Lager teilen die Last"],
   formula: String.raw`A = B = \frac{q\,l}{2}`,

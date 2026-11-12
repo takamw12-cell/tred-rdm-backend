@@ -2,7 +2,8 @@ import { z } from "zod";
 import type { Language } from "./languages";
 import { runBalkenstatik, type BalkenstatikInput, type BeamDiagramPayload } from "./beam-tool";
 import { collectNumbers, type SolverRun } from "./solver-results";
-import { CHARTS, MAX_FLOW_STEPS, MAX_KEYWORDS, REAL_IMAGE_KEYS, VISUALS, resolveVisual, type ChartKey, type RealImageKey, type Visual } from "./video-visuals";
+import { cueOf } from "./video-visuals";
+import { CHARTS, MAX_FLOW_STEPS, MAX_KEYWORDS, REAL_IMAGE_KEYS, STAGES, VISUALS, VISUAL_CUES, lessonStages, resolveVisual, type ChartKey, type RealImageKey, type Stage, type Visual, type VisualCue } from "./video-visuals";
 
 /**
  * « Als Video erklären » — le script de la vidéo explicative, et son contrôle.
@@ -67,11 +68,18 @@ export const videoSceneSchema = z.object({
   kind: z
     .enum(["explanation", "analogy"])
     .describe("explanation : la scène explique le cours et cite sa source. analogy : un exemple de la vie courante, sans chiffre ni formule (deux au plus)."),
-  visual: z
-    .enum(VISUALS)
+  stage: z
+    .enum(STAGES)
+    .default("step")
+    .describe("La place de la scène dans la mini-leçon, dans cet ordre : hook (la question mystère, UNE scène, la première), step (l'explication pas à pas), example (l'exemple concret), recap (le récapitulatif, UNE scène, la dernière)."),
+  visual_cues: z
+    .array(z.enum(VISUAL_CUES))
+    .default([])
     .describe(
-      "Ce que la scène MONTRE. highlight : la phrase du cours avec ses mots-clés surlignés. flowchart : un enchaînement d'étapes. formula : la formule en grand, ligne par ligne. beam : la poutre se dessine. loads : les charges arrivent sur la poutre et elle fléchit. solver_plot : le schéma exact du solveur. chart : une courbe de principe. real_image : une image d'illustration. text : une feuille avec les points.",
+      "Ce que la scène MONTRE, sous forme d'ordre (un seul, exceptionnellement deux par priorité). ask_question : la question mystère s'écrit en grand. draw_flowchart : les cases apparaissent une par une. write_equation : la formule s'écrit comme à la machine. show_beam : la poutre se dessine. apply_loads : les charges arrivent et la poutre fléchit. plot_curves : les courbes du solveur se tracent. draw_chart : une courbe de principe se trace. highlight_text : la phrase du cours avec ses mots-clés surlignés. show_image : une image d'illustration. write_points : une feuille avec les points. check_recap : la liste à retenir se coche point par point.",
     ),
+  /** Ancien champ (vidéos et tests d'avant les visual_cues). Le modèle écrit `visual_cues`. */
+  visual: z.enum(VISUALS).optional(),
   steps: z.array(z.string()).describe(`Seulement pour visual = flowchart : 2 à ${MAX_FLOW_STEPS} étapes dans l'ordre, 1 à 4 mots chacune. Tableau vide sinon.`),
   keywords: z.array(z.string()).describe(`Seulement pour visual = highlight : 1 à ${MAX_KEYWORDS} mots-clés copiés tels quels de "quote". Tableau vide sinon.`),
   chart: z.string().describe(`Seulement pour visual = chart : ${CHARTS.join(", ")}. Chaîne vide sinon.`),
@@ -107,7 +115,11 @@ export type VideoScene = z.infer<typeof videoSceneSchema>;
 export type VideoScript = z.infer<typeof videoScriptSchema>;
 
 /** Une scène validée : la source est résolue (titre du document). */
-export interface ValidatedScene extends Omit<VideoScene, "visual" | "image" | "chart"> {
+export interface ValidatedScene extends Omit<VideoScene, "visual" | "image" | "chart" | "stage" | "visual_cues"> {
+  /** La place de la scène dans la leçon, recalculée après contrôle (lessonStages). */
+  stage: Stage;
+  /** L'ordre visuel réellement exécuté (video-visuals.ts, CUE_VISUAL). */
+  visual_cues: VisualCue[];
   sourceTitle: string;
   /** « document » : prouvée par une citation ; « solver » : par un calcul ; « analogy » : exemple du quotidien, sans chiffre. */
   sourceKind: "document" | "solver" | "analogy";
@@ -275,13 +287,16 @@ export function validateVideoScript(script: Pick<VideoScript, "title" | "scenes"
     // Un exemple du quotidien ne cite rien — donc il n'affirme rien de chiffré :
     // aucun nombre, aucune formule. Il éclaire, il ne remplace pas le cours.
     if (scene.kind === "analogy") {
-      if (analogies >= MAX_ANALOGIES) return void dropped.push({ index, reason: "too_many_analogies" });
+      // La question mystère qui ouvre la leçon n'affirme rien : elle ne compte
+      // pas parmi les exemples du quotidien (mais reste sans chiffre).
+      const isHook = index === 0 && scene.stage === "hook";
+      if (!isHook && analogies >= MAX_ANALOGIES) return void dropped.push({ index, reason: "too_many_analogies" });
       const figure = extractNumbers([scene.heading, ...scene.bullets, ...(scene.steps ?? []), scene.voiceover].join(" ")).find((n) => !isStructural(n));
       if (figure !== undefined) return void dropped.push({ index, reason: "number_in_analogy", detail: figure });
-      analogies++;
+      if (!isHook) analogies++;
       // Un exemple n'a ni citation à surligner, ni formule, ni calcul.
       const visual = shown.visual === "formula" || shown.visual === "solver_plot" || shown.visual === "highlight" ? "text" : shown.visual;
-      return void scenes.push({ ...scene, formula: "", quote: "", bullets: scene.bullets.slice(0, 3), sourceTitle: "", sourceKind: "analogy", ...shown, visual });
+      return void scenes.push({ ...scene, formula: "", quote: "", bullets: scene.bullets.slice(0, 3), sourceTitle: "", sourceKind: "analogy", ...shown, visual, visual_cues: [cueOf(visual)], stage: scene.stage ?? "step" });
     }
 
     // Le schéma du solveur se prouve par le calcul lui-même : la scène n'a pas à
@@ -314,7 +329,26 @@ export function validateVideoScript(script: Pick<VideoScript, "title" | "scenes"
       ...shown,
       // Un calcul de solveur n'a pas de phrase à surligner.
       visual: computed && shown.visual === "highlight" ? "text" : shown.visual,
+      visual_cues: [cueOf(computed && shown.visual === "highlight" ? "text" : shown.visual)],
+      stage: scene.stage ?? "step",
     });
+  });
+
+  // La structure de la leçon se lit sur les scènes qui RESTENT : question
+  // mystère, pas à pas, exemple, récapitulatif.
+  const stages = lessonStages(scenes);
+  scenes.forEach((sc, i) => {
+    sc.stage = stages[i]!;
+    // Le récapitulatif se coche point par point plutôt que de s'afficher en feuille.
+    if (sc.stage === "recap" && sc.visual === "text" && sc.bullets.some((b) => b.trim())) {
+      sc.visual = "recap";
+      sc.visual_cues = [cueOf("recap")];
+    }
+    // Une question mystère n'ouvre que la leçon : ailleurs, elle redevient une feuille.
+    if (sc.visual === "question" && sc.stage !== "hook") {
+      sc.visual = "text";
+      sc.visual_cues = [cueOf("text")];
+    }
   });
 
   const words = countWords(scriptVoiceText(scenes));
@@ -395,30 +429,38 @@ CHAQUE SCÈNE
 - "formula" : au plus UNE formule, en LaTeX pur sans dollars, copiée de l'extrait. Chaîne vide sinon.
 - "bullets" : 0 à 3 points de 8 mots au plus.
 
-CE QUE LA VIDÉO MONTRE — une démonstration, pas des diapositives
-Tu ne dessines rien toi-même : pour chaque scène tu CHOISIS "visual" dans la bibliothèque, et TRED dessine avec ses vrais outils. Varie les visuels : une suite de scènes "text" fait une mauvaise vidéo.
-- "highlight" : la phrase du cours ("quote") s'affiche en grand, et ses "keywords" se surlignent en jaune. Pour un texte de loi, une définition, une thèse.
-- "flowchart" : un enchaînement d'étapes ("steps", 2 à ${MAX_FLOW_STEPS}, CINQ MOTS AU PLUS chacune : un nom, pas une phrase) qui se construit. Pour des conditions à vérifier dans l'ordre, un processus, un cycle, un raisonnement.
-- "formula" : la formule en grand, qui s'écrit. Plusieurs lignes séparées par \\\\ s'écrivent l'une après l'autre.
-- "beam" : la poutre se dessine (appuis, portée). "loads" : les charges arrivent flèche après flèche et la poutre fléchit.
-- "solver_plot" : le schéma exact du solveur (système, effort tranchant Q(x), moment M(x)). Seulement si un calcul de poutre existe (source « solver » ou champ "beam").
-- "chart" : une courbe de principe sans valeurs, avec "chart" parmi : ${CHARTS.join(", ")} (offre et demande).
-- "real_image" : une image d'illustration, avec "image" parmi : ${REAL_IMAGE_KEYS.join(", ")}. Pour relier la théorie à ce que l'étudiant connaît.
-- "text" : une feuille avec les points. Pour la phrase à retenir.
+LA MINI-LEÇON — quatre temps, toujours dans cet ordre ("stage")
+1. "hook" (UNE scène, la première) : la QUESTION MYSTÈRE. Une vraie question, concrète et intrigante, née de ce qui bloque l'étudiant, à laquelle la leçon va répondre (« Pourquoi une poutre casse-t-elle au milieu, et pas près des appuis ? »). "heading" EST cette question (une phrase de 6 à 14 mots qui finit par un point d'interrogation), "visual_cues" vaut ["ask_question"], "kind" vaut "analogy" : la question n'affirme rien, donc aucune citation, aucun chiffre, aucune formule. La voix pose la question et annonce qu'on va y répondre, sans donner la réponse.
+2. "step" (une ou plusieurs scènes) : l'EXPLICATION PAS À PAS. Une idée par scène, dans l'ordre où il faut les comprendre. Chaque scène cite sa source et montre ce qu'elle explique.
+3. "example" (au moins une scène) : l'EXEMPLE CONCRET. Soit l'exemple chiffré du cours ou le calcul du solveur ("kind": "explanation", avec sa source), soit un exemple de la vie courante ("kind": "analogy", sans chiffre).
+4. "recap" (UNE scène, la dernière) : le RÉCAPITULATIF. Il répond en une phrase à la question mystère, puis rappelle 2 ou 3 points à retenir dans "bullets" (8 mots au plus chacun). "visual_cues" vaut ["check_recap"]. Il cite sa source comme une scène d'explication.
+
+CE QUE LA VIDÉO MONTRE — "visual_cues" : des ordres, pas des dessins
+Tu ne dessines rien toi-même : pour chaque scène tu donnes UN ordre dans "visual_cues" (un deuxième seulement comme solution de repli), et TRED l'exécute et l'anime avec ses vrais outils. Varie les ordres : une suite de "write_points" fait une mauvaise vidéo.
+- "ask_question" : la question mystère s'écrit en grand, lettre après lettre. Réservé à la scène "hook".
+- "draw_flowchart" : un enchaînement d'étapes ("steps", 2 à ${MAX_FLOW_STEPS}, CINQ MOTS AU PLUS chacune : un nom, pas une phrase). Les cases apparaissent UNE PAR UNE quand la voix les nomme : dis-les dans l'ordre. Pour des conditions à vérifier, un processus, un cycle, un raisonnement.
+- "write_equation" : la formule ("formula") s'écrit en grand, comme à la machine. Plusieurs lignes séparées par \\\\ s'écrivent l'une après l'autre.
+- "show_beam" : la poutre se dessine (appuis, portée). "apply_loads" : les charges arrivent flèche après flèche et la poutre fléchit.
+- "plot_curves" : les courbes exactes du solveur se tracent (système, effort tranchant Q(x), moment M(x)). Seulement si un calcul de poutre existe (source « solver » ou champ "beam").
+- "draw_chart" : une courbe de principe sans valeurs se trace, avec "chart" parmi : ${CHARTS.join(", ")} (offre et demande).
+- "highlight_text" : la phrase du cours ("quote") s'affiche en grand, et ses "keywords" se surlignent en jaune. Pour un texte de loi, une définition, une thèse.
+- "show_image" : une image d'illustration, avec "image" parmi : ${REAL_IMAGE_KEYS.join(", ")}. Pour relier la théorie à ce que l'étudiant connaît.
+- "write_points" : une feuille avec les points.
+- "check_recap" : les points à retenir se cochent un par un. Réservé à la scène "recap".
 "bullets" reste très court (2 points au plus quand il y a un visuel) : c'est la voix qui explique, l'écran montre.
 
 LE CONTEXTE ("backdrop")
 Une image de la matière reste en fond, très sombre, derrière les diagrammes et les textes : "courthouse" ou "gavel" pour le droit, "operating_room" ou "heart" pour la médecine, "bridge" pour le génie civil et la mécanique, "stock_market" pour l'économie, et ainsi de suite.
 
 SELON LA MATIÈRE
-- Droit, philosophie, sciences humaines : surtout "highlight" (le texte et ses mots-clés) et "flowchart" (les conditions, le raisonnement), avec une "real_image".
-- Médecine, biologie, psychologie : surtout "flowchart" (les phases, le mécanisme) et "real_image" (l'organe, le lieu).
-- Ingénierie, physique, mathématiques : surtout "formula", "beam", "loads", "solver_plot".
-- Économie, gestion : surtout "chart", "formula" et "flowchart".
+- Droit, philosophie, sciences humaines : surtout "highlight_text" (le texte et ses mots-clés) et "draw_flowchart" (les conditions, le raisonnement), avec un "show_image".
+- Médecine, biologie, psychologie : surtout "draw_flowchart" (les phases, le mécanisme) et "show_image" (l'organe, le lieu).
+- Ingénierie, physique, mathématiques : surtout "write_equation", "show_beam", "apply_loads", "plot_curves".
+- Économie, gestion : surtout "draw_chart", "write_equation" et "draw_flowchart".
 Tu ne décris jamais un schéma d'anatomie ni un dessin que TRED ne sait pas tracer : choisis dans la bibliothèque.
 
 EXEMPLES DU QUOTIDIEN ("kind": "analogy", ${MAX_ANALOGIES} au plus)
-Une comparaison avec la vie courante aide à comprendre (« comme un pont qui porte les voitures »). Dans une scène "analogy" : aucune citation, mais AUCUN chiffre et AUCUNE formule, et rien qui prétende venir du cours. Toutes les autres scènes sont "explanation" et citent leur source.
+Une comparaison avec la vie courante aide à comprendre (« comme un pont qui porte les voitures »). Dans une scène "analogy" : aucune citation, mais AUCUN chiffre et AUCUNE formule, et rien qui prétende venir du cours. La question mystère ("hook") ne compte pas dans cette limite. Toutes les autres scènes sont "explanation" et citent leur source.
 
 LA POUTRE ("beam")
 Si la question porte sur une poutre et qu'un extrait donne un exemple chiffré complet, recopie ses données dans "beam" : uniquement des valeurs qui figurent dans l'extrait, sans rien calculer. Le solveur de TRED fait le calcul. Sinon "beam" vaut null, et tu n'annonces aucun résultat chiffré.
@@ -427,7 +469,7 @@ DURÉE
 Elle dépend de la difficulté : de ${MIN_VOICE_WORDS} mots de voix (30 secondes) pour un point simple à ${MAX_VOICE_WORDS} mots (3 minutes) pour un raisonnement long. N'allonge pas pour allonger. Entre ${MIN_SCENES} et ${MAX_SCENES} scènes.
 
 PÉDAGOGIE
-Pars de ce que l'étudiant n'a pas compris, montre avant d'expliquer, avance pas à pas, relie la théorie à un exemple réel, et termine par la phrase à retenir.
+Pars de ce que l'étudiant n'a pas compris et fais-en la question mystère. Montre avant d'expliquer, avance pas à pas, relie la théorie à un exemple concret, et termine par le récapitulatif qui répond à la question du début. Ton de professeur qui explique à UN étudiant : phrases courtes, tutoiement, pas de jargon inutile.
 
 ${language.bottom}`;
 

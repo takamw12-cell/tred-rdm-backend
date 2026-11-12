@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { toPayload } from "../src/api/lib/beam-tool";
-import { REAL_IMAGES, VISUALS, resolveVisual } from "../src/api/lib/video-visuals";
+import { CUE_VISUAL, REAL_IMAGES, VISUALS, VISUAL_CUES, cueOf, lessonStages, resolveVisual, visualOfCues } from "../src/api/lib/video-visuals";
 import { buildVideoPrompt, resolveBeam, solverSource, validateVideoScript, type VideoScene, type VideoSource } from "../src/api/lib/video-script";
 import { langOf } from "../src/api/lib/languages";
 
@@ -19,6 +19,8 @@ const BEAM = { laenge: 4, lager: [{ x: 0, art: "festlager" as const, name: "A" }
 
 const voice = (n: number) => Array.from({ length: n }, () => "wort").join(" ");
 const scene = (over: Partial<VideoScene> = {}): VideoScene => ({
+  stage: "step",
+  visual_cues: [],
   kind: "explanation",
   visual: "text",
   image: "",
@@ -50,7 +52,8 @@ describe("la bibliothèque de visuels est une liste fermée", () => {
   });
   test("le prompt présente chaque visuel et guide le choix par matière", () => {
     const p = buildVideoPrompt({ language: langOf("fr"), sources: [DOC], question: "", answer: "" }).system;
-    for (const v of VISUALS) expect(p).toContain(`"${v}"`);
+    // Le modèle écrit des ordres (visual_cues) : chacun est présenté.
+    for (const cue of VISUAL_CUES) expect(p).toContain(`"${cue}"`);
     expect(p).toContain("Droit, philosophie");
     expect(p).toContain("Médecine, biologie");
     expect(p).toContain("Économie, gestion");
@@ -157,5 +160,89 @@ describe("exemples du quotidien", () => {
   test("un nombre dans une étape de diagramme de flux est contrôlé comme les autres", () => {
     const r = validateVideoScript({ title: "t", scenes: [scene({ visual: "flowchart", steps: ["Last 9,5 kN", "Moment"] }), scene(), scene()] }, [DOC]);
     expect(r.dropped[0]).toMatchObject({ reason: "number_not_in_sources", detail: "9.5" });
+  });
+});
+
+describe("visual_cues : des ordres que le code exécute", () => {
+  test("chaque visuel a son ordre, et un seul", () => {
+    for (const v of VISUALS) expect(CUE_VISUAL[cueOf(v)]).toBe(v);
+    expect(new Set(Object.values(CUE_VISUAL)).size).toBe(VISUALS.length);
+    expect(cueOf("flowchart")).toBe("draw_flowchart");
+    expect(cueOf("formula")).toBe("write_equation");
+    expect(cueOf("beam")).toBe("show_beam");
+  });
+
+  test("le premier ordre connu décide ; un ordre inconnu est ignoré", () => {
+    expect(visualOfCues(["draw_flowchart"])).toBe("flowchart");
+    expect(visualOfCues(["draw_a_heart_freehand", "write_equation"])).toBe("formula");
+    expect(visualOfCues(["nothing"])).toBeUndefined();
+    expect(visualOfCues("draw_flowchart")).toBeUndefined();
+  });
+
+  test("les garde-fous s'appliquent aux ordres comme aux visuels", () => {
+    expect(resolveVisual({ visual_cues: ["plot_curves"] }, { beam: false })).toMatchObject({ visual: "text", visual_cues: ["write_points"] });
+    expect(resolveVisual({ visual_cues: ["plot_curves"] }, { beam: true })).toMatchObject({ visual: "solver_plot", visual_cues: ["plot_curves"] });
+    expect(resolveVisual({ visual_cues: ["draw_flowchart"], steps: ["Tatbestand", "Rechtsfolge"] }, { beam: false })).toMatchObject({ visual: "flowchart", visual_cues: ["draw_flowchart"] });
+    expect(resolveVisual({ visual_cues: ["write_equation"], formula: "" }, { beam: false }).visual).toBe("text");
+    expect(resolveVisual({ visual_cues: ["ask_question"], heading: "Warum bricht der Balken in der Mitte?" }, { beam: false }).visual).toBe("question");
+    expect(resolveVisual({ visual_cues: ["ask_question"], heading: " " }, { beam: false }).visual).toBe("text");
+    expect(resolveVisual({ visual_cues: ["check_recap"], bullets: ["Die Last biegt den Balken"] }, { beam: false }).visual).toBe("recap");
+    expect(resolveVisual({ visual_cues: ["check_recap"], bullets: [] }, { beam: false }).visual).toBe("text");
+  });
+});
+
+describe("la mini-leçon : question mystère, pas à pas, exemple, récapitulatif", () => {
+  test("la structure se lit sur les scènes qui restent", () => {
+    expect(lessonStages([{}, {}, { stage: "example" }, {}])).toEqual(["hook", "step", "example", "recap"]);
+    expect(lessonStages([{}, { sourceKind: "analogy" }, {}])).toEqual(["hook", "example", "recap"]);
+    // Le modèle ne peut pas placer deux ouvertures ni conclure au milieu.
+    expect(lessonStages([{ stage: "recap" }, { stage: "hook" }, { stage: "recap" }, { stage: "step" }])).toEqual(["hook", "step", "step", "recap"]);
+    expect(lessonStages([{}, {}])).toEqual(["hook", "recap"]);
+  });
+
+  test("un script complet : la question ouvre, la liste cochée conclut", () => {
+    const r = validateVideoScript(
+      {
+        title: "t",
+        scenes: [
+          scene({ stage: "hook", kind: "analogy", visual: undefined, visual_cues: ["ask_question"], heading: "Warum bricht ein Balken in der Mitte?", quote: "", voiceover: "Warum bricht ein Balken eigentlich in der Mitte und nicht am Lager? " + voice(12) }),
+          scene({ stage: "step" }),
+          scene({ stage: "example", kind: "analogy", visual: "real_image", image: "bridge", quote: "", voiceover: "Stell dir eine Brücke vor, über die Autos fahren. " + voice(15) }),
+          scene({ stage: "recap", visual: undefined, visual_cues: ["check_recap"], bullets: ["Die Last biegt den Balken"] }),
+        ],
+      },
+      [DOC],
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.scenes.map((s) => s.stage)).toEqual(["hook", "step", "example", "recap"]);
+    expect(r.scenes[0]).toMatchObject({ visual: "question", visual_cues: ["ask_question"], sourceKind: "analogy", quote: "" });
+    expect(r.scenes[3]).toMatchObject({ visual: "recap", visual_cues: ["check_recap"], sourceKind: "document" });
+    for (const s of r.scenes) expect(s.visual_cues).toHaveLength(1);
+  });
+
+  test("la question mystère ne compte pas parmi les exemples, mais reste sans chiffre", () => {
+    const hook = scene({ stage: "hook", kind: "analogy", visual_cues: ["ask_question"], visual: undefined, heading: "Warum hält die Brücke?", quote: "", voiceover: "Warum hält die Brücke eigentlich? " + voice(10) });
+    const example = () => scene({ kind: "analogy", quote: "", voiceover: "Stell dir eine Brücke vor. " + voice(12) });
+    const r = validateVideoScript({ title: "t", scenes: [hook, example(), example(), scene(), scene()] }, [DOC]);
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.scenes.filter((s) => s.sourceKind === "analogy")).toHaveLength(3);
+    const chiffre = validateVideoScript({ title: "t", scenes: [{ ...hook, voiceover: "Warum trägt sie 4000 Tonnen? " + voice(10) }, scene(), scene()] }, [DOC]);
+    expect(chiffre.dropped.some((d) => d.reason === "number_in_analogy")).toBe(true);
+  });
+
+  test("un récapitulatif en feuille devient une liste cochée ; une question au milieu redevient une feuille", () => {
+    const r = validateVideoScript({ title: "t", scenes: [scene(), scene({ visual: undefined, visual_cues: ["ask_question"], heading: "Und warum?" }), scene({ bullets: ["Merke dir das"] })] }, [DOC]);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.scenes[1]).toMatchObject({ visual: "text", stage: "step" });
+    expect(r.scenes[2]).toMatchObject({ visual: "recap", stage: "recap", visual_cues: ["check_recap"] });
+  });
+
+  test("le prompt impose les quatre temps dans l'ordre", () => {
+    const p = buildVideoPrompt({ language: langOf("fr"), sources: [DOC], question: "", answer: "" }).system;
+    const at = ["QUESTION MYSTÈRE", "EXPLICATION PAS À PAS", "EXEMPLE CONCRET", "RÉCAPITULATIF"].map((x) => p.indexOf(x));
+    expect(at.every((i) => i > 0)).toBe(true);
+    expect([...at].sort((a, b) => a - b)).toEqual(at);
   });
 });

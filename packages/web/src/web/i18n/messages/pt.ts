@@ -33,6 +33,10 @@ export const pt: PartialMessages = {
     enter: "Modo zen: apenas o fundo",
   },
   explainer: {
+    stageHook: "A pergunta",
+    stageStep: "Passo",
+    stageExample: "Exemplo",
+    stageRecap: "Resumo",
     preparing: "O TRED está a preparar o teu vídeo personalizado …",
     stepScript: "A escrever o guião",
     stepVoice: "A gravar a voz",

@@ -45,6 +45,7 @@ export default function ExplainerPlayer({ video, orientation, autoPlay = true }:
         example: t("explainer.example"),
         sketch: t("explainer.sketch"),
         market: [t("explainer.supply"), t("explainer.demand"), t("explainer.price"), t("explainer.quantity")],
+        stages: { hook: t("explainer.stageHook"), step: t("explainer.stageStep"), example: t("explainer.stageExample"), recap: t("explainer.stageRecap") },
       },
       beam: video.beam ?? null,
       realImages: REAL_IMAGES,

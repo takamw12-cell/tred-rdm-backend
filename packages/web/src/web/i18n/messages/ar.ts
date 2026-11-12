@@ -33,6 +33,10 @@ export const ar: PartialMessages = {
     enter: "وضع الهدوء: الخلفية فقط",
   },
   explainer: {
+    stageHook: "السؤال",
+    stageStep: "الخطوة",
+    stageExample: "مثال",
+    stageRecap: "الخلاصة",
     preparing: "TRED يجهّز لك فيديو خاصًا بك …",
     stepScript: "كتابة النص",
     stepVoice: "تسجيل الصوت",

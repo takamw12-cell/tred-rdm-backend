@@ -9,7 +9,7 @@
  * Module pur, testé dans tests/video-visuals.test.ts.
  */
 
-export const VISUALS = ["text", "highlight", "flowchart", "formula", "beam", "loads", "solver_plot", "chart", "real_image"] as const;
+export const VISUALS = ["text", "highlight", "flowchart", "formula", "beam", "loads", "solver_plot", "chart", "real_image", "question", "recap"] as const;
 /**
  * La bibliothèque de visuels, pour toutes les filières :
  *
@@ -22,8 +22,73 @@ export const VISUALS = ["text", "highlight", "flowchart", "formula", "beam", "lo
  *   solver_plot  le vrai schéma du solveur : système, Q(x), M(x)              (mécanique)
  *   chart        une courbe de principe, sans valeurs (offre et demande)      (économie)
  *   real_image   une image d'illustration (pont, tribunal, cœur…), en fondu   (toutes)
+ *   question     la question mystère qui ouvre la leçon, tapée en grand       (toutes)
+ *   recap        la liste à retenir, cochée point par point                   (toutes)
  */
 export type Visual = (typeof VISUALS)[number];
+
+/**
+ * Les `visual_cues` : ce que le script DEMANDE à l'écran, sous forme d'ordres
+ * (« dessine le diagramme », « écris l'équation », « montre la poutre »).
+ * C'est le vocabulaire que le modèle écrit dans le JSON ; chaque ordre
+ * correspond à un visuel de la bibliothèque, dessiné et animé par du code.
+ */
+export const CUE_VISUAL = {
+  ask_question: "question",
+  write_points: "text",
+  highlight_text: "highlight",
+  draw_flowchart: "flowchart",
+  write_equation: "formula",
+  show_beam: "beam",
+  apply_loads: "loads",
+  plot_curves: "solver_plot",
+  draw_chart: "chart",
+  show_image: "real_image",
+  check_recap: "recap",
+} as const satisfies Record<string, Visual>;
+export type VisualCue = keyof typeof CUE_VISUAL;
+export const VISUAL_CUES = Object.keys(CUE_VISUAL) as [VisualCue, ...VisualCue[]];
+export const isVisualCue = (v: unknown): v is VisualCue => typeof v === "string" && v in CUE_VISUAL;
+
+/** L'ordre qui correspond à un visuel (pour le JSON de la vidéo). */
+export function cueOf(visual: Visual): VisualCue {
+  return (Object.keys(CUE_VISUAL) as VisualCue[]).find((cue) => CUE_VISUAL[cue] === visual)!;
+}
+
+/** Le visuel demandé par une liste d'ordres : le premier ordre connu. */
+export function visualOfCues(cues: unknown): Visual | undefined {
+  if (!Array.isArray(cues)) return undefined;
+  const first = cues.find(isVisualCue);
+  return first ? CUE_VISUAL[first] : undefined;
+}
+
+/**
+ * La structure d'une mini-leçon, dans l'ordre :
+ *   hook     la question mystère qui donne envie de savoir
+ *   step     l'explication, pas à pas
+ *   example  l'exemple concret
+ *   recap    le récapitulatif : ce qu'il faut retenir
+ */
+export const STAGES = ["hook", "step", "example", "recap"] as const;
+export type Stage = (typeof STAGES)[number];
+export const isStage = (v: unknown): v is Stage => typeof v === "string" && (STAGES as readonly string[]).includes(v);
+
+/**
+ * Remet les scènes VALIDÉES dans la structure de la leçon. Le modèle propose
+ * une étape par scène, mais des scènes peuvent avoir été supprimées par le
+ * contrôle : on ne se fie donc qu'à la position.
+ *   - la première scène ouvre (hook), la dernière conclut (recap) ;
+ *   - entre les deux : « example » si la scène l'annonce ou si c'est un
+ *     exemple du quotidien, sinon « step ».
+ */
+export function lessonStages(scenes: { stage?: unknown; sourceKind?: string }[]): Stage[] {
+  const n = scenes.length;
+  return scenes.map((sc, i) => {
+    if (i === 0) return "hook";
+    if (i === n - 1) return "recap";
+    return sc.stage === "example" || sc.sourceKind === "analogy" ? "example" : "step";
+  });
+}
 
 /** Les visuels qui montrent la même poutre : elle reste à l'écran de l'un à l'autre. */
 export const BEAM_VISUALS: readonly Visual[] = ["beam", "loads"];
@@ -88,6 +153,10 @@ export const isRealImageKey = (v: unknown): v is RealImageKey => typeof v === "s
  */
 export interface VisualInput {
   visual?: unknown;
+  /** Les ordres du script ; lus si `visual` est absent. */
+  visual_cues?: unknown;
+  heading?: string;
+  bullets?: string[];
   image?: unknown;
   chart?: unknown;
   formula?: string;
@@ -102,12 +171,25 @@ export interface ResolvedVisual {
   chart: ChartKey | null;
   steps: string[];
   keywords: string[];
+  /** L'ordre réellement exécuté à l'écran, garde-fous appliqués. */
+  visual_cues: VisualCue[];
 }
 
 export function resolveVisual(scene: VisualInput, has: { beam: boolean }): ResolvedVisual {
-  const wanted: Visual = isVisual(scene.visual) ? scene.visual : "text";
-  const plain: ResolvedVisual = { visual: "text", image: null, chart: null, steps: [], keywords: [] };
+  const r = resolveVisualKind(scene, has);
+  return { ...r, visual_cues: [cueOf(r.visual)] };
+}
+
+function resolveVisualKind(scene: VisualInput, has: { beam: boolean }): Omit<ResolvedVisual, "visual_cues"> {
+  const wanted: Visual = isVisual(scene.visual) ? scene.visual : (visualOfCues(scene.visual_cues) ?? "text");
+  const plain: Omit<ResolvedVisual, "visual_cues"> = { visual: "text", image: null, chart: null, steps: [], keywords: [] };
   switch (wanted) {
+    // La question mystère est le titre de la scène : sans titre, pas de question.
+    case "question":
+      return scene.heading?.trim() ? { ...plain, visual: "question" } : plain;
+    // Une liste à cocher a besoin d'au moins un point.
+    case "recap":
+      return (scene.bullets ?? []).some((b) => b.trim()) ? { ...plain, visual: "recap" } : plain;
     case "real_image":
       return isRealImageKey(scene.image) ? { ...plain, visual: "real_image", image: scene.image } : plain;
     case "solver_plot":

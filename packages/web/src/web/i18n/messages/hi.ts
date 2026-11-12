@@ -33,6 +33,10 @@ export const hi: PartialMessages = {
     enter: "ज़ेन मोड: केवल पृष्ठभूमि",
   },
   explainer: {
+    stageHook: "सवाल",
+    stageStep: "चरण",
+    stageExample: "उदाहरण",
+    stageRecap: "सार",
     preparing: "TRED आपका व्यक्तिगत वीडियो तैयार कर रहा है …",
     stepScript: "स्क्रिप्ट लिखी जा रही है",
     stepVoice: "आवाज़ रिकॉर्ड हो रही है",

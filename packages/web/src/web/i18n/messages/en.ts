@@ -100,6 +100,10 @@ export const en: Messages = {
     enter: "Zen mode: background only",
   },
   explainer: {
+    stageHook: "The question",
+    stageStep: "Step",
+    stageExample: "Example",
+    stageRecap: "Recap",
     preparing: "TRED is preparing your personal video …",
     stepScript: "Writing the script",
     stepVoice: "Recording the voice",

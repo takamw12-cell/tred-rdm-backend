@@ -33,6 +33,10 @@ export const ru: PartialMessages = {
     enter: "Режим дзен: только фон",
   },
   explainer: {
+    stageHook: "Вопрос",
+    stageStep: "Шаг",
+    stageExample: "Пример",
+    stageRecap: "Итог",
     preparing: "TRED готовит твоё персональное видео …",
     stepScript: "Пишем сценарий",
     stepVoice: "Записываем голос",

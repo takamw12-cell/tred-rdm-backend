@@ -99,6 +99,10 @@ export const de = {
     enter: "Zen-Modus: nur der Hintergrund",
   },
   explainer: {
+    stageHook: "Die Frage",
+    stageStep: "Schritt",
+    stageExample: "Beispiel",
+    stageRecap: "Merke",
     preparing: "TRED bereitet dein persönliches Video vor …",
     stepScript: "Drehbuch wird geschrieben",
     stepVoice: "Stimme wird aufgenommen",

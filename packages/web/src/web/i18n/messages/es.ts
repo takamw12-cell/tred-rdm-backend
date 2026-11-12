@@ -112,6 +112,10 @@ export const es: Messages = {
     enter: "Modo zen: solo el fondo",
   },
   explainer: {
+    stageHook: "La pregunta",
+    stageStep: "Paso",
+    stageExample: "Ejemplo",
+    stageRecap: "Resumen",
     preparing: "TRED está preparando tu vídeo personalizado …",
     stepScript: "Escribiendo el guion",
     stepVoice: "Grabando la voz",

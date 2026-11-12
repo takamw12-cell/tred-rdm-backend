@@ -33,6 +33,10 @@ export const ja: PartialMessages = {
     enter: "禅モード：背景のみ",
   },
   explainer: {
+    stageHook: "問い",
+    stageStep: "ステップ",
+    stageExample: "例",
+    stageRecap: "まとめ",
     preparing: "TRED があなた専用の動画を準備しています …",
     stepScript: "台本を作成中",
     stepVoice: "音声を収録中",

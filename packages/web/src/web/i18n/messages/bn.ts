@@ -33,6 +33,10 @@ export const bn: PartialMessages = {
     enter: "জেন মোড: শুধু পটভূমি",
   },
   explainer: {
+    stageHook: "প্রশ্ন",
+    stageStep: "ধাপ",
+    stageExample: "উদাহরণ",
+    stageRecap: "সারাংশ",
     preparing: "TRED আপনার ব্যক্তিগত ভিডিও তৈরি করছে …",
     stepScript: "স্ক্রিপ্ট লেখা হচ্ছে",
     stepVoice: "কণ্ঠ রেকর্ড করা হচ্ছে",

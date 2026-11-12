@@ -581,3 +581,14 @@ Si un prix Stripe ne correspond pas à la grille, la page affiche le prix Stripe
 **Migration à lancer une fois :** `node migre-trial.mjs` (ajoute `user_access.trial_ends_at`). Tant qu'elle n'a pas tourné, il n'y a pas d'essai et rien ne casse.
 
 **AGB.** Le § 4 (Testphase) a été réécrit : l'essai ne se transforme plus en abonnement. Le § 10 t'oblige à prévenir les comptes existants par e-mail ; fais relire le texte avant de l'envoyer.
+
+## « Als Video erklären » — mini-leçon animée (12 nov. 2026)
+
+Chaque vidéo suit désormais quatre temps, dans l'ordre : **la question mystère** (elle s'écrit en grand, lettre après lettre), **l'explication pas à pas**, **l'exemple concret**, **le récapitulatif** (les points se cochent un par un). Une étiquette (« Die Frage », « Schritt 2 », « Beispiel », « Merke ») indique où l'on en est.
+
+- Le script (JSON) porte pour chaque scène `stage` et `visual_cues` : des ordres comme `ask_question`, `draw_flowchart`, `write_equation`, `show_beam`, `apply_loads`, `plot_curves`, `check_recap`. Le modèle donne l'ordre ; c'est le code qui dessine et anime (liste fermée dans `packages/web/src/api/lib/video-visuals.ts`).
+- Animations : cases du diagramme une par une au moment où la voix les nomme, équations à la machine à écrire, poutre et courbes du solveur qui se tracent, fonds sombres à halos jaunes, sous-titres mot à mot en bas.
+- Le contrôle « zéro invention » est inchangé : chaque scène cite sa source, chaque nombre est vérifié. La question mystère ne cite rien, donc elle ne peut contenir aucun chiffre.
+- Les vidéos déjà enregistrées se lisent comme avant (sans étiquette d'étape).
+- Aperçu : dans `packages/video`, `npx remotion studio src/index.ts`, composition `DynamicExplanation`.
+- Je n'ai pas lancé d'essai avec le vrai modèle (il coûte un appel par question) : la première vraie vidéo générée est à regarder de près.
