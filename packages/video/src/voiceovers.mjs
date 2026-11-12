@@ -119,3 +119,22 @@ export const DEMO = [
   { id: "d5-de", language: "de", voiceId: "TX3LPaxmHKxFdv7VOQHJ", ...TALK, // Liam
     text: "Hier ist das Gesamtbild. Stelle eine Frage, erhalte eine interaktive Tafel, generiere eine Videoerklärung und verfolge deinen Fortschritt. Alles an einem Ort. Egal ob Jura, Medizin oder Luft- und Raumfahrttechnik. TRED ist die ultimative Universität für die Hosentasche. Starte heute smarter zu lernen." },
 ];
+
+// ── Campagne V4 « Studyflix » (2026-11-12), 30 s ────────────────────────
+// Textes du fondateur, mot pour mot. Très pédagogique : le curseur guide
+// l'œil, l'interface réagit à chaque clic. Mêmes voix conversationnelles et
+// mêmes réglages que CAMPAIGN (ton naturel).
+export const V4 = [
+  { id: "v-en1", language: "en", voiceId: "iP95p4xoKVk53GoZ742B", ...TALK, // Chris
+    text: "Stop scrolling through endless PDFs. TRED’s intelligent search actually understands your questions. Just type: 'Where is the formula for bending moment?' and TRED instantly finds the exact page and paragraph in your lecture notes. It even explains the context. Studying just got a whole lot faster." },
+  { id: "v-en2", language: "en", voiceId: "cgSgspJ2msm6clMCkdW9", ...TALK, // Jessica
+    text: "Sometimes a text explanation isn't enough. That's why we built the 'Explain as video' feature. Click it, and TRED generates a custom, animated video explaining the exact concept you're stuck on. Save it to your dashboard, and review it anytime, anywhere. It’s like having a private tutor on demand." },
+  { id: "v-en3", language: "en", voiceId: "bIHbv24MWmeRgasZH58o", ...TALK, // Will
+    text: "TRED is built for students, by students. You’re not just a user; you’re a co-creator. See that feedback button? Use it to tell us what’s missing or suggest new features. Join the beta, invite your friends, and let’s build the ultimate engineering companion together. Your feedback directly shapes V2." },
+  { id: "v-de1", language: "de", voiceId: "cjVigY5qzO86Huf0OWal", ...TALK, // Eric
+    text: "Die Suche nach der richtigen Altklausur war noch nie so einfach. Frag TRED einfach nach einer bestimmten Aufgabe. Die KI durchsucht all deine Dokumente und findet die exakte Aufgabe, inklusive der Schritt-für-Schritt-Lösung auf dem Whiteboard. So bist du perfekt auf die Prüfung vorbereitet." },
+  { id: "v-de2", language: "de", voiceId: "SAz9YHcvj6GT2YYXdXww", ...TALK, // River
+    text: "Konzentration ist der Schlüssel. Aktiviere den immersiven Modus und die gesamte Benutzeroberfläche verschwindet, sodass nur dein Fokus und dein Hintergrund bleiben. Wenn du rechnen musst, nutze unsere deterministischen Solver. Sie liefern dir 100% verlässliche Ergebnisse, ohne Halluzinationen. Lerne mit voller Konzentration." },
+  { id: "v-de3", language: "de", voiceId: "TX3LPaxmHKxFdv7VOQHJ", ...TALK, // Liam
+    text: "Werde Teil der Bewegung. Zeig TRED deiner Fachschaft, deinen Kommilitonen und deinen Freunden. Je mehr Studenten mitmachen, desto besser wird die KI. Dein Feedback hilft uns, die perfekte Lernplattform zu bauen. Zusammen machen wir das Studium einfacher. Starte jetzt und teile deine Erfahrungen." },
+];

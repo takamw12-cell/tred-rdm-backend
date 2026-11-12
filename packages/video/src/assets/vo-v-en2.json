@@ -1,0 +1,250 @@
+{
+ "id": "v-en2",
+ "words": [
+  {
+   "text": "Sometimes",
+   "startMs": 0,
+   "endMs": 560
+  },
+  {
+   "text": "a",
+   "startMs": 640,
+   "endMs": 800
+  },
+  {
+   "text": "text",
+   "startMs": 960,
+   "endMs": 1120
+  },
+  {
+   "text": "explanation",
+   "startMs": 1200,
+   "endMs": 1920
+  },
+  {
+   "text": "isn't",
+   "startMs": 2000,
+   "endMs": 2240
+  },
+  {
+   "text": "enough.",
+   "startMs": 2320,
+   "endMs": 2880
+  },
+  {
+   "text": "That's",
+   "startMs": 3200,
+   "endMs": 3413
+  },
+  {
+   "text": "why",
+   "startMs": 3467,
+   "endMs": 3520
+  },
+  {
+   "text": "we",
+   "startMs": 3600,
+   "endMs": 3680
+  },
+  {
+   "text": "built",
+   "startMs": 3800,
+   "endMs": 3920
+  },
+  {
+   "text": "the",
+   "startMs": 3960,
+   "endMs": 4000
+  },
+  {
+   "text": "'Explain",
+   "startMs": 4040,
+   "endMs": 4640
+  },
+  {
+   "text": "as",
+   "startMs": 4720,
+   "endMs": 4800
+  },
+  {
+   "text": "video'",
+   "startMs": 4960,
+   "endMs": 5280
+  },
+  {
+   "text": "feature.",
+   "startMs": 5360,
+   "endMs": 5760
+  },
+  {
+   "text": "Click",
+   "startMs": 6160,
+   "endMs": 6320
+  },
+  {
+   "text": "it,",
+   "startMs": 6400,
+   "endMs": 6640
+  },
+  {
+   "text": "and",
+   "startMs": 6680,
+   "endMs": 6720
+  },
+  {
+   "text": "TRED",
+   "startMs": 6880,
+   "endMs": 7120
+  },
+  {
+   "text": "generates",
+   "startMs": 7200,
+   "endMs": 7600
+  },
+  {
+   "text": "a",
+   "startMs": 7680,
+   "endMs": 7760
+  },
+  {
+   "text": "custom,",
+   "startMs": 8000,
+   "endMs": 8400
+  },
+  {
+   "text": "animated",
+   "startMs": 8640,
+   "endMs": 8880
+  },
+  {
+   "text": "video",
+   "startMs": 8960,
+   "endMs": 9280
+  },
+  {
+   "text": "explaining",
+   "startMs": 9360,
+   "endMs": 9840
+  },
+  {
+   "text": "the",
+   "startMs": 9920,
+   "endMs": 10000
+  },
+  {
+   "text": "exact",
+   "startMs": 10080,
+   "endMs": 10560
+  },
+  {
+   "text": "concept",
+   "startMs": 10640,
+   "endMs": 11040
+  },
+  {
+   "text": "you're",
+   "startMs": 11120,
+   "endMs": 11200
+  },
+  {
+   "text": "stuck",
+   "startMs": 11280,
+   "endMs": 11440
+  },
+  {
+   "text": "on.",
+   "startMs": 11520,
+   "endMs": 12000
+  },
+  {
+   "text": "Save",
+   "startMs": 12240,
+   "endMs": 12400
+  },
+  {
+   "text": "it",
+   "startMs": 12440,
+   "endMs": 12480
+  },
+  {
+   "text": "to",
+   "startMs": 12520,
+   "endMs": 12560
+  },
+  {
+   "text": "your",
+   "startMs": 12600,
+   "endMs": 12640
+  },
+  {
+   "text": "dashboard,",
+   "startMs": 12720,
+   "endMs": 13320
+  },
+  {
+   "text": "and",
+   "startMs": 13360,
+   "endMs": 13440
+  },
+  {
+   "text": "review",
+   "startMs": 13600,
+   "endMs": 13760
+  },
+  {
+   "text": "it",
+   "startMs": 13880,
+   "endMs": 14000
+  },
+  {
+   "text": "anytime,",
+   "startMs": 14160,
+   "endMs": 14800
+  },
+  {
+   "text": "anywhere.",
+   "startMs": 14920,
+   "endMs": 15560
+  },
+  {
+   "text": "It’s",
+   "startMs": 15760,
+   "endMs": 15880
+  },
+  {
+   "text": "like",
+   "startMs": 15920,
+   "endMs": 16000
+  },
+  {
+   "text": "having",
+   "startMs": 16080,
+   "endMs": 16320
+  },
+  {
+   "text": "a",
+   "startMs": 16373,
+   "endMs": 16427
+  },
+  {
+   "text": "private",
+   "startMs": 16480,
+   "endMs": 16800
+  },
+  {
+   "text": "tutor",
+   "startMs": 16880,
+   "endMs": 17200
+  },
+  {
+   "text": "on",
+   "startMs": 17280,
+   "endMs": 17360
+  },
+  {
+   "text": "demand.",
+   "startMs": 17440,
+   "endMs": 18240
+  }
+ ]
+}

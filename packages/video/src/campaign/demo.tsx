@@ -118,10 +118,10 @@ export function Cursor({ keys, hideAt }: { keys: CursorKey[]; hideAt?: number })
 /* ── L'écran de chat ──────────────────────────────────────────────────── */
 
 /** Position du champ et du bouton d'envoi (pour le curseur). */
-const INPUT = { x: 170, y: 905 };
-const SEND = { x: 472, y: 905 };
+export const INPUT = { x: 170, y: 905 };
+export const SEND = { x: 472, y: 905 };
 
-function ChatScreen({ lang, typed, sent, sentAt, hint }: { lang: Lang; typed: string; sent?: string; sentAt?: number; hint: string }) {
+export function ChatScreen({ lang, typed, sent, sentAt, hint }: { lang: Lang; typed: string; sent?: string; sentAt?: number; hint: string }) {
   const frame = useCurrentFrame();
   const ui = UI[lang];
   const at = sentAt ?? 0;
@@ -175,7 +175,7 @@ const BEAM_PAYLOAD = {
   units: { length: "m", force: "kN" },
 };
 
-function useBeamSvg() {
+export function useBeamSvg() {
   return useMemo(() => {
     const payload = parseBeamPayload(JSON.stringify(BEAM_PAYLOAD));
     if (!payload) throw new Error("Poutre de démonstration invalide");
@@ -191,7 +191,7 @@ const SOLVER = {
 };
 
 /** `at` : le croquis, Q(x) puis M(x) se tracent à ces images. `stampAt` : le tampon du solveur. */
-function SolverBeamBoard({ lang, at, stampAt, zoom = 0 }: { lang: Lang; at: { draws: number; calc: number; explains: number }; stampAt?: number; zoom?: number }) {
+export function SolverBeamBoard({ lang, at, stampAt, zoom = 0 }: { lang: Lang; at: { draws: number; calc: number; explains: number }; stampAt?: number; zoom?: number }) {
   const frame = useCurrentFrame();
   const svg = useBeamSvg();
   const t = SOLVER[lang];
@@ -425,7 +425,7 @@ const PLAYER_TOP = 118;
 // Le bouton et la carte « sauvegardé » restent au-dessus des sous-titres.
 const SAVE = { x: 270, y: 618 };
 
-function VideoFeature({ lang, f, dur, w }: { lang: Lang; f: CampCtx["f"]; dur: number; w: { button: string; click: string; generates: string; voice: string; visual: string; step: [string, number]; saves: string } }) {
+export function VideoFeature({ lang, f, dur, w, diagram = false }: { lang: Lang; f: CampCtx["f"]; dur: number; diagram?: boolean; w: { button: string; click: string; generates: string; voice: string; visual: string; step: [string, number]; saves: string } }) {
   const frame = useCurrentFrame();
   const t = D[lang];
   const button = f(w.button);
@@ -439,6 +439,8 @@ function VideoFeature({ lang, f, dur, w }: { lang: Lang; f: CampCtx["f"]; dur: n
   const stage = frame >= click + 12 + (playerAt - click - 12) / 2 ? 1 : 0;
   const badgeAt = [f(w.voice), f(w.visual), f(...w.step)];
   const glow = frame >= button && frame < click ? 0.5 + 0.5 * Math.sin((frame - button) / 3) : 0;
+  // Campagne V4 : la vidéo générée montre le schéma, qui se trace de gauche à droite.
+  const beamSvg = useBeamSvg();
   return (
     <AbsoluteFill>
       <BeamBoard lang={lang} at={-80} step={() => 4} />
@@ -493,9 +495,15 @@ function VideoFeature({ lang, f, dur, w }: { lang: Lang; f: CampCtx["f"]; dur: n
                 <Mic size={13} /> TRED
               </span>
               <p className="font-display" style={{ margin: 0, color: "#FFF", fontSize: 27, fontWeight: 650 }}>{t.playerTitle}</p>
-              <div style={{ padding: "12px 20px", borderRadius: 16, background: CREAM, color: INK }}>
-                <Tex tex={String.raw`A = B = \frac{q\,l}{2} = 4\,\mathrm{kN}`} reveal={progress(frame, playerAt + 14, playerAt + 50)} size={1.15} />
-              </div>
+              {diagram ? (
+                <div style={{ width: 400, height: 146, padding: "6px 10px", borderRadius: 16, background: CREAM, overflow: "hidden" }}>
+                  <div className="[&_svg]:h-auto [&_svg]:w-full" style={{ clipPath: `inset(0 ${(1 - progress(frame, playerAt + 12, playerAt + 70)) * 100}% 0 0)` }} dangerouslySetInnerHTML={{ __html: beamSvg }} />
+                </div>
+              ) : (
+                <div style={{ padding: "12px 20px", borderRadius: 16, background: CREAM, color: INK }}>
+                  <Tex tex={String.raw`A = B = \frac{q\,l}{2} = 4\,\mathrm{kN}`} reveal={progress(frame, playerAt + 14, playerAt + 50)} size={1.15} />
+                </div>
+              )}
               <span style={{ position: "absolute", bottom: 14, left: 16, width: 44, height: 44, borderRadius: 22, background: YELLOW, display: "grid", placeItems: "center" }}>
                 <Pause size={22} color={NIGHT} fill={NIGHT} />
               </span>
@@ -658,7 +666,7 @@ const BLOCKS = [
   { top: 554, height: 118 },
 ];
 
-function DashboardScreen({ lang, active, bg, label, labelAt = 0 }: { lang: Lang; active: number; bg: string; label?: string; labelAt?: number }) {
+export function DashboardScreen({ lang, active, bg, label, labelAt = 0 }: { lang: Lang; active: number; bg: string; label?: string; labelAt?: number }) {
   const frame = useCurrentFrame();
   const t = D[lang];
   const ui = UI[lang];
