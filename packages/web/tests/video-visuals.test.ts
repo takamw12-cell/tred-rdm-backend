@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { toPayload } from "../src/api/lib/beam-tool";
-import { CUE_VISUAL, REAL_IMAGES, VISUALS, VISUAL_CUES, cueOf, lessonStages, resolveVisual, visualOfCues } from "../src/api/lib/video-visuals";
+import { CUE_VISUAL, REAL_IMAGES, VISUALS, VISUAL_CUES, cueOf, lessonStages, resolveVisual, tiePunctuation, visualOfCues } from "../src/api/lib/video-visuals";
 import { buildVideoPrompt, resolveBeam, solverSource, validateVideoScript, type VideoScene, type VideoSource } from "../src/api/lib/video-script";
 import { langOf } from "../src/api/lib/languages";
 
@@ -247,5 +247,26 @@ describe("la mini-leçon : question mystère, pas à pas, exemple, récapitulati
     const at = ["QUESTION MYSTÈRE", "EXPLICATION PAS À PAS", "EXEMPLE CONCRET", "RÉCAPITULATIF"].map((x) => p.indexOf(x));
     expect(at.every((i) => i > 0)).toBe(true);
     expect([...at].sort((a, b) => a - b)).toEqual(at);
+  });
+});
+
+describe("pas de ponctuation orpheline dans les titres", () => {
+  test("le « ? » du récapitulatif reste collé à son mot", () => {
+    const titre = tiePunctuation("Récap : pourquoi ça casse au milieu ?");
+    expect(titre).toBe("Récap\u00A0: pourquoi ça casse au milieu\u00A0?");
+    // Aucun point de coupure juste avant un signe de ponctuation.
+    expect(/ [?!:;»]/.test(titre)).toBe(false);
+  });
+
+  test("le texte reste le même, à l'espace près ; l'allemand et l'anglais ne changent pas", () => {
+    const fr = "Pourquoi une poutre casse-t-elle au milieu et pas aux appuis ?";
+    expect(tiePunctuation(fr).replace(/\u00A0/g, " ")).toBe(fr);
+    expect(tiePunctuation("Warum bricht ein Balken in der Mitte?")).toBe("Warum bricht ein Balken in der Mitte?");
+    expect(tiePunctuation("« Merke »")).toBe("«\u00A0Merke\u00A0»");
+  });
+
+  test("la composition l'applique aux titres de scène et à la question mystère", () => {
+    const src = readFileSync(join(import.meta.dir, "../src/web/video/dynamic-explanation.tsx"), "utf8");
+    expect(src.match(/tiePunctuation\(scene\.heading\)/g)?.length).toBe(3);
   });
 });

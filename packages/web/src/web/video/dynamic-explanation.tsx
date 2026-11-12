@@ -7,7 +7,7 @@ import { HologramProfessor } from "@/components/hologram-professor";
 import { parseBeamPayload, renderBeamSvg } from "@/lib/beam-svg";
 import { payloadToProblem, type BeamDiagramPayload } from "../../api/lib/beam-tool";
 import { solveMechanicsSafe } from "../../api/lib/mechanics-solver";
-import { BEAM_VISUALS, type ChartKey, type RealImageKey, type Stage, type Visual, type VisualCue } from "../../api/lib/video-visuals";
+import { BEAM_VISUALS, tiePunctuation, type ChartKey, type RealImageKey, type Stage, type Visual, type VisualCue } from "../../api/lib/video-visuals";
 import type { Professor } from "../../api/lib/professors";
 
 /**
@@ -734,7 +734,7 @@ function SceneVisual({
       </div>
     );
   }
-  if (visual === "question") return <QuestionCard text={scene.heading} local={local} dur={to - from} />;
+  if (visual === "question") return <QuestionCard text={tiePunctuation(scene.heading)} local={local} dur={to - from} />;
   if (visual === "recap" && scene.bullets.length) {
     const bullets = scene.bullets.slice(0, 3);
     // Chaque point arrive quand la voix le dit, mais jamais trop tard : si la
@@ -765,7 +765,7 @@ function SceneNote({ scene, scenes, local, dur, labels, index, topGap }: { scene
     <div className="flex w-full flex-col gap-2" style={{ opacity: enter * exit, transform: `translateY(${(1 - enter) * 22}px)`, paddingTop: topGap }}>
       <StageChip scenes={scenes} index={index} labels={labels} opacity={1} />
       <PaperNote
-        title={scene.heading}
+        title={tiePunctuation(scene.heading)}
         tilt={index % 2 ? 0.5 : -0.5}
         highlight={isSolver}
         stamp={
@@ -904,7 +904,7 @@ function DemoScene({
       <StageChip scenes={scenes} index={index} labels={props.labels} opacity={textIn} />
       <div className="flex items-center gap-3" style={{ opacity: textIn, paddingRight: landscape ? 0 : 96, display: isQuestion ? "none" : undefined }}>
         <h2 className="font-hand font-bold" style={{ color: "#1B2A4A", fontSize: 34, lineHeight: 1, margin: 0 }}>
-          {scene.heading}
+          {tiePunctuation(scene.heading)}
         </h2>
         {scene.sourceKind === "analogy" && (
           <span className="shrink-0 rounded-full bg-[#EAB308] px-2.5 py-1 font-mono text-[10px] font-bold tracking-[0.1em] text-[#0F172A] uppercase">{props.labels.example}</span>

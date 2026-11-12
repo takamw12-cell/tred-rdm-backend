@@ -217,3 +217,14 @@ function resolveVisualKind(scene: VisualInput, has: { beam: boolean }): Omit<Res
       return { ...plain, visual: wanted };
   }
 }
+
+/**
+ * Empêche un signe de ponctuation de se retrouver seul à la ligne.
+ * En français, « milieu ? » s'écrit avec une espace avant le signe : sans
+ * précaution, le titre se coupait là et le « ? » passait seul à la ligne
+ * suivante (vu sur le récapitulatif du premier essai réel). L'espace devient
+ * insécable ; le texte lu et affiché reste le même.
+ */
+export function tiePunctuation(text: string): string {
+  return text.replace(/[ \u202F]+([?!:;»])/g, "\u00A0$1").replace(/(«)[ \u202F]+/g, "$1\u00A0");
+}
