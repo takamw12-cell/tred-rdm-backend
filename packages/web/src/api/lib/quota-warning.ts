@@ -1,8 +1,9 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 import { db } from "../database";
 import { purchasedCredits, usageCounter, userPlan } from "../database/schema";
 import { LIMITS, currentPeriod, type PlanId } from "./plan";
+import type { TrialDb } from "./trial";
 
 /**
  * L'avertissement « tu approches de ta limite ».
@@ -92,6 +93,19 @@ export async function quiEstPresqueAuBout(ids: string[]): Promise<AlerteQuota[]>
       .where(inArray(purchasedCredits.userId, ids)),
   ]);
 
+  // Les essais en cours : ces comptes sont « illimités », les prévenir d'une
+  // limite Free qu'ils n'ont pas serait faux. Colonne absente (migration non
+  // lancée) = aucun essai.
+  const enEssai = new Set<string>();
+  try {
+    const lignes = await (db as unknown as TrialDb).all<{ user_id: string }>(
+      sql`SELECT user_id FROM user_access WHERE trial_ends_at IS NOT NULL AND trial_ends_at > ${Date.now()}`,
+    );
+    for (const l of lignes) enEssai.add(l.user_id);
+  } catch {
+    /* pas encore migré */
+  }
+
   const chatParUtilisateur = new Map<string, number>();
   const dejaPrevenu = new Set<string>();
   for (const c of compteurs) {
@@ -113,6 +127,7 @@ export async function quiEstPresqueAuBout(ids: string[]): Promise<AlerteQuota[]>
   const alertes: AlerteQuota[] = [];
   for (const userId of ids) {
     if (dejaPrevenu.has(userId)) continue;
+    if (enEssai.has(userId)) continue;
     if ((soldeParUtilisateur.get(userId) ?? 0) > 0) continue;
 
     const plan = planParUtilisateur.get(userId) ?? "free";

@@ -2062,6 +2062,9 @@ export default function ChatPage() {
                               open={paywallOpen}
                               onClose={() => setPaywallDismissed(error ?? null)}
                               offer={echec.rewardedAd ?? null}
+                              metric="chat"
+                              used={echec.tokenCap ? undefined : echec.used}
+                              limit={echec.tokenCap ? undefined : echec.limit}
                               onUnlocked={() => {
                                 // +1 crédit en base : la question bloquée repart.
                                 void qc.invalidateQueries({ queryKey: creditsMeKey() });

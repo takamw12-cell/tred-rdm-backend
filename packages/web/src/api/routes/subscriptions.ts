@@ -12,7 +12,9 @@ import {
   trialDays,
 } from "../lib/billing";
 import { getStripe } from "../lib/stripe";
-import { getOutputTokens, getPlan, getUsage, LIMITS, OUTPUT_TOKEN_CAP } from "../lib/plan";
+import { CREDIT_COST, getOutputTokens, getPlan, getUsage, LIMITS, OUTPUT_TOKEN_CAP, PRICING, UNLIMITED_PLANS } from "../lib/plan";
+import { readTrial, startTrial, type TrialDb } from "../lib/trial";
+import { db } from "../database";
 
 /**
  * Tarif-Prozeduren (oRPC, erreichbar unter /api/rpc/subscriptions.*).
@@ -81,6 +83,15 @@ async function loadOffers(): Promise<PlanOffer[]> {
       const months = monthsForPrice(price);
       const amount = price.unit_amount ?? 0;
 
+      // La grille décidée (lib/plan.ts) fait référence. Un prix Stripe qui
+      // s'en écarte est affiché tel qu'il sera encaissé, mais signalé.
+      const attendu = PRICING[entry.interval];
+      if (amount !== attendu.amount || months !== attendu.months) {
+        console.error(
+          `[subscriptions] le prix Stripe ${entry.interval} (${amount} ct / ${months} mois) ne correspond pas à la grille (${attendu.amount} ct / ${attendu.months} mois)`,
+        );
+      }
+
       offers.push({
         interval: entry.interval,
         priceId: price.id,
@@ -111,10 +122,11 @@ export const subscriptions = {
    * die bei Stripe hinterlegten Formeln. Eine Runde statt drei.
    */
   me: authed.handler(async ({ context }) => {
-    const [plan, usage, row, tokensUsed, offers] = await Promise.all([
+    const [plan, usage, row, trial, tokensUsed, offers] = await Promise.all([
       getPlan(context.user.id),
       getUsage(context.user.id),
       getPlanRow(context.user.id),
+      readTrial(db as unknown as TrialDb, context.user.id).catch(() => null),
       getOutputTokens(context.user.id).catch(() => 0),
       loadOffers().catch((error) => {
         console.error("[subscriptions] loadOffers failed", error);
@@ -133,11 +145,46 @@ export const subscriptions = {
       manageable: !!row?.customerId,
       configured: knownPriceIds().length > 0,
       offers,
-      /** 0 = keine Testphase. Nur für Erstabonnenten (siehe createCheckout). */
+      /** Essai côté Stripe (désactivé par défaut, voir lib/billing.ts). */
       trialDays: trialDays(),
-      /** Hatte dieses Konto schon einmal ein Abo? Dann gibt es keine Testphase mehr. */
       trialUsed: !!row?.subscriptionId || plan !== "free",
+      /**
+       * L'essai de 14 jours géré par l'app (lib/trial.ts).
+       * `active` : bandeau « il te reste X jours ». `available` : le bouton
+       * « commencer l'essai » — jamais pour un abonné, il n'en a pas besoin.
+       */
+      trial: {
+        days: PRICING.trialDays,
+        active: plan === "trial",
+        daysLeft: plan === "trial" ? (trial?.daysLeft ?? 0) : 0,
+        endsAt: trial?.endsAt ?? null,
+        available: !!trial?.available && plan === "free",
+      },
+      /** Compteurs présentés comme illimités (essai). */
+      unlimited: UNLIMITED_PLANS.has(plan),
+      /** La grille de référence, pour afficher les prix même sans Stripe. */
+      pricing: PRICING,
+      limitsByPlan: { free: LIMITS.free, student: LIMITS.premium },
+      creditCost: CREDIT_COST,
     };
+  }),
+
+  /**
+   * Lance l'essai de 14 jours : sans carte, une seule fois par compte.
+   * Un abonné n'en a pas besoin ; un compte qui l'a déjà eu reçoit
+   * `started: false` et l'état réel.
+   */
+  startTrial: authed.handler(async ({ context }) => {
+    const plan = await getPlan(context.user.id);
+    if (plan !== "free") {
+      const etat = await readTrial(db as unknown as TrialDb, context.user.id);
+      return { started: false, active: plan === "trial", daysLeft: etat.daysLeft, endsAt: etat.endsAt };
+    }
+    const r = await startTrial(db as unknown as TrialDb, context.user.id);
+    if (!r.migrated) {
+      throw new ORPCError("SERVICE_UNAVAILABLE", { message: "trial_not_migrated" });
+    }
+    return { started: r.started, active: r.active, daysLeft: r.daysLeft, endsAt: r.endsAt };
   }),
 
   /** Startet den Bezahlvorgang und liefert die URL, die der Client öffnet. */

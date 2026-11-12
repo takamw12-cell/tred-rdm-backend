@@ -556,3 +556,28 @@ Filière, Hochschule, semestre, niveau et style d'apprentissage sont enregistré
 - **Règle** : à la connexion, le profil du serveur gagne. S'il n'y en a pas, celui du navigateur y est envoyé une fois (jamais l'ancien profil de démonstration). Détail dans `api/lib/stored-profile.ts`.
 - **Non synchronisés** : langue maternelle et niveau d'allemand saisis à l'onboarding (ils ne servent à rien d'autre pour l'instant).
 - Les nouvelles colonnes ne sont volontairement pas dans le schéma Drizzle : voir `api/lib/stored-profile-db.ts`.
+
+## Tarifs, essai et paiement (12 nov. 2026)
+
+**La grille** (une seule source dans le code : `packages/web/src/api/lib/plan.ts`, `PRICING` et `LIMITS`) :
+
+| Offre | Prix | Par mois |
+|---|---|---|
+| Free | 0 € | 50 chats, 5 vidéos, 10 exercices |
+| Étudiant mensuel | 14,99 € / mois | 1000 chats, 50 vidéos, 200 exercices |
+| Étudiant semestriel | 59,99 € / 6 mois (9,99 € / mois, badge « -30 % ») | idem |
+| Crédits à l'unité | 5 € = 50 crédits | 1 chat = 1 crédit, 1 exercice = 2, 1 vidéo = 10 |
+
+**L'essai de 14 jours.** Sans carte, une seule fois par compte. Un nouveau compte le commence à l'inscription ; un compte plus ancien le lance depuis `/pricing` ou depuis la fenêtre de limite. À la fin, le compte redevient Free tout seul : le serveur compare la date à chaque requête, aucune tâche planifiée. Pendant l'essai l'app affiche « illimité » ; un garde-fou anti-abus reste en place (3000 chats, 150 vidéos, 600 exercices et le plafond de tokens), qu'un étudiant n'atteint pas en 14 jours. Pour le changer : `LIMITS.trial` et `TOKEN_CAPS.trial`.
+
+**Ce que tu dois faire dans Stripe** (dashboard.stripe.com, je ne crée rien à ta place) :
+1. Catalogue de produits → produit « TRED Étudiant » avec deux prix récurrents : 14,99 € par mois, et 59,99 € tous les 6 mois.
+2. Produit « TRED Crédits » avec un prix **unique** de 5,00 €. Sur ce **prix**, ajoute la métadonnée `credits` = `50`. Sans elle, le paquet est ignoré.
+3. Développeurs → Webhooks → endpoint `https://www.tred-tutor.de/api/subscriptions/webhook`.
+4. Copie dans Railway : `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_PRO_MONTHLY`, `STRIPE_PRICE_PRO_SEMESTER`, `STRIPE_PRICE_CREDITS_SMALL`. Laisse `STRIPE_TRIAL_DAYS` à `0` (sinon Stripe ajoute son propre essai par-dessus celui de l'app).
+
+Si un prix Stripe ne correspond pas à la grille, la page affiche le prix Stripe (celui qui sera encaissé) et le serveur l'écrit dans les logs (`ne correspond pas à la grille`).
+
+**Migration à lancer une fois :** `node migre-trial.mjs` (ajoute `user_access.trial_ends_at`). Tant qu'elle n'a pas tourné, il n'y a pas d'essai et rien ne casse.
+
+**AGB.** Le § 4 (Testphase) a été réécrit : l'essai ne se transforme plus en abonnement. Le § 10 t'oblige à prévenir les comptes existants par e-mail ; fais relire le texte avant de l'envoyer.

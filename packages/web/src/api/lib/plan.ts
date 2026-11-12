@@ -8,9 +8,50 @@ import {
   SPEND_ORDER,
 } from "./credits";
 import { REWARD, rewardedEnabled } from "./ad-reward";
+import { readTrial, TRIAL_DAYS, type TrialDb } from "./trial";
 
-export type PlanId = "founder" | "free" | "standard" | "premium";
+/**
+ * "trial" = les 14 jours d'essai illimité (lib/trial.ts). Ce n'est jamais une
+ * valeur stockée dans `user_plan` : elle est calculée par `getPlan()`.
+ * "premium" = l'abonnement Étudiant (mensuel ou semestriel, mêmes droits).
+ */
+export type PlanId = "founder" | "free" | "trial" | "standard" | "premium";
 export type Metric = "chat" | "exercise" | "video" | "formulas";
+
+/**
+ * LA GRILLE TARIFAIRE (décision du fondateur, 12 nov. 2026).
+ *
+ *   Free                 0 €            50 chats, 5 vidéos, 10 exercices / mois
+ *   Étudiant mensuel     14,99 € / mois 1000 chats, 50 vidéos, 200 exercices / mois
+ *   Étudiant semestriel  59,99 € / 6 mois, soit 9,99 € / mois (badge « -30 % »)
+ *   Crédits à l'unité    5 € = 50 crédits = 50 chats ou 5 vidéos
+ *   Essai                14 jours illimités, une seule fois
+ *
+ * Les montants ENCAISSÉS restent ceux des prix Stripe (STRIPE_PRICE_*) : la
+ * page /pricing affiche ceux de Stripe dès qu'ils sont configurés. Cette
+ * grille est la référence : `subscriptions.me` signale dans les logs tout
+ * prix Stripe qui s'en écarte, pour qu'on ne facture jamais autre chose que
+ * ce qui a été décidé.
+ */
+export const PRICING = {
+  currency: "EUR",
+  monthly: { amount: 1499, months: 1 },
+  semester: { amount: 5999, months: 6, badge: "-30%" },
+  creditPack: { amount: 500, credits: 50 },
+  trialDays: TRIAL_DAYS,
+} as const;
+
+/**
+ * Ce que coûte une action payée en crédits achetés.
+ * 50 crédits = 50 chats ou 5 vidéos : une vidéo vaut donc 10 crédits.
+ * Un exercice ou une Formelsammlung (réponse longue) en vaut 2.
+ */
+export const CREDIT_COST: Record<Metric, number> = {
+  chat: 1,
+  exercise: 2,
+  formulas: 2,
+  video: 10,
+};
 
 /**
  * Monatliche Kontingente je Tarif, plus die Gesamtzahl speicherbarer Dokumente.
@@ -40,6 +81,10 @@ export const OUTPUT_TOKEN_CAP = 100_000;
  */
 export const TOKEN_CAPS: Record<PlanId, number | null> = {
   free: OUTPUT_TOKEN_CAP,
+  // Essai « illimité » : les compteurs ne bloquent pas, mais ce plafond en
+  // euros reste. Un essai sans carte et sans aucun plafond est une facture
+  // ouverte au premier script venu.
+  trial: 250_000,
   standard: 250_000,
   premium: 250_000,
   founder: null,
@@ -67,14 +112,21 @@ export const TOKEN_METRIC = "tokens_out";
  * stößt und deshalb nie zahlt.
  */
 export const LIMITS: Record<PlanId, Record<Metric | "documents", number>> = {
-  free: { chat: 20, exercise: 5, video: 2, formulas: 3, documents: 10 },
-  // Eine einzige zahlende Stufe (monatlich oder halbjährlich). "Fair use",
-  // nicht unbegrenzt: siehe OUTPUT_TOKEN_CAP.
-  standard: { chat: 500, exercise: 100, video: 40, formulas: 60, documents: 200 },
-  premium: { chat: 500, exercise: 100, video: 40, formulas: 60, documents: 200 },
-  founder: { chat: 500, exercise: 100, video: 40, formulas: 60, documents: 200 },
+  free: { chat: 50, exercise: 10, video: 5, formulas: 3, documents: 10 },
+  // Essai : affiché « illimité ». Les valeurs ci-dessous sont un garde-fou
+  // anti-abus (trois fois l'abonnement), pas une limite qu'un étudiant
+  // atteint en 14 jours. Voir aussi TOKEN_CAPS.trial.
+  trial: { chat: 3000, exercise: 600, video: 150, formulas: 180, documents: 200 },
+  // Une seule offre payante (mensuelle ou semestrielle), mêmes droits.
+  standard: { chat: 1000, exercise: 200, video: 50, formulas: 60, documents: 200 },
+  premium: { chat: 1000, exercise: 200, video: 50, formulas: 60, documents: 200 },
+  founder: { chat: 1000, exercise: 200, video: 50, formulas: 60, documents: 200 },
 };
 
+/** Les tarifs dont les compteurs sont présentés comme « illimités ». */
+export const UNLIMITED_PLANS: ReadonlySet<PlanId> = new Set<PlanId>(["trial"]);
+
+/** Les tarifs qui peuvent être STOCKÉS dans user_plan ("trial" ne l'est jamais). */
 const PLAN_IDS: PlanId[] = ["founder", "free", "standard", "premium"];
 
 /** Current billing period, e.g. "2026-07". Counters reset on the 1st. */
@@ -83,8 +135,31 @@ export function currentPeriod(now = new Date()): string {
 }
 
 /**
+ * Le tarif effectif, à partir de ce qui est stocké. Fonction pure (testée).
+ *
+ *   1. un abonnement payé et encore valable gagne toujours ;
+ *   2. sinon, un essai en cours donne "trial" ;
+ *   3. sinon "free" — y compris quand l'essai vient de finir : c'est ce
+ *      calcul, refait à chaque requête, qui « bascule » le compte en Free.
+ */
+export function effectivePlan(input: {
+  storedPlan?: string | null;
+  validUntil?: Date | null;
+  trialEndsAt?: number | null;
+  now?: number;
+}): PlanId {
+  const now = input.now ?? Date.now();
+  const stored = PLAN_IDS.includes(input.storedPlan as PlanId) ? (input.storedPlan as PlanId) : "free";
+  const paid = stored !== "free" && !(input.validUntil && input.validUntil.getTime() < now);
+  if (paid) return stored;
+  if (input.trialEndsAt != null && input.trialEndsAt > now) return "trial";
+  return "free";
+}
+
+/**
  * Effective plan for a user. Falls back to "free" when nothing is stored or
  * when a paid period has expired, so access can never be granted by accident.
+ * Vérifie l'essai à CHAQUE appel (donc à chaque requête facturable).
  */
 export async function getPlan(userId: string): Promise<PlanId> {
   const rows = await db
@@ -92,13 +167,17 @@ export async function getPlan(userId: string): Promise<PlanId> {
     .from(userPlan)
     .where(eq(userPlan.userId, userId))
     .limit(1);
-  if (rows.length === 0) return "free";
-
   const row = rows[0];
-  const plan = PLAN_IDS.includes(row.plan as PlanId) ? (row.plan as PlanId) : "free";
-  if (plan === "free") return "free";
-  if (row.validUntil && row.validUntil.getTime() < Date.now()) return "free";
-  return plan;
+  const sansEssai = effectivePlan({ storedPlan: row?.plan, validUntil: row?.validUntil });
+  if (sansEssai !== "free") return sansEssai;
+
+  // Une lecture de plus, seulement pour les comptes non payants. Une panne
+  // ici ne doit ouvrir aucun droit : on retombe sur Free.
+  const trial = await readTrial(db as unknown as TrialDb, userId).catch((error) => {
+    console.error("[plan] trial read failed", error);
+    return null;
+  });
+  return effectivePlan({ storedPlan: row?.plan, validUntil: row?.validUntil, trialEndsAt: trial?.endsAt ?? null });
 }
 
 export async function getUsage(
@@ -134,6 +213,8 @@ export interface QuotaResult {
   source?: "quota" | "credits";
   /** Verbleibende GEKAUFTE Credits (verfallen nicht). */
   creditsRemaining?: number;
+  /** Le compteur atteint : le paywall dit « vidéos », pas « quota ». */
+  metric?: Metric;
 }
 
 /**
@@ -203,11 +284,12 @@ export async function consume(
       description: `${metric} (Monatskontingent)`,
       source: "quota",
     });
-    return { ok: true, plan, used: used + 1, limit, source: "quota" };
+    return { ok: true, plan, used: used + 1, limit, source: "quota", metric };
   };
 
   const takeFromCredits = async (): Promise<QuotaResult | null> => {
-    const spent = await spendPurchasedCredits(userId, 1, `${metric} (gekaufte Credits)`);
+    // Une vidéo coûte plus qu'une question : voir CREDIT_COST.
+    const spent = await spendPurchasedCredits(userId, CREDIT_COST[metric], `${metric} (gekaufte Credits)`);
     if (!spent.ok) return null;
     return {
       ok: true,
@@ -216,6 +298,7 @@ export async function consume(
       limit,
       source: "credits",
       creditsRemaining: spent.remaining,
+      metric,
     };
   };
 
@@ -236,6 +319,7 @@ export async function consume(
     limit,
     source: "quota",
     creditsRemaining: await getPurchasedCredits(userId),
+    metric,
   };
 }
 
@@ -262,6 +346,10 @@ export function quotaError(r: QuotaResult) {
     used: r.used,
     limit: r.limit,
     creditsRemaining: r.creditsRemaining ?? 0,
+    /** Le compteur atteint (chat, exercise, video, formulas) ou "documents". */
+    metric: r.metric ?? (r.source === undefined ? ("documents" as const) : null),
+    /** Crédits nécessaires pour cette action (null : non payable en crédits). */
+    creditCost: r.metric ? CREDIT_COST[r.metric] : null,
     /**
      * Paywall intelligent : au lieu d'un simple mur, le client propose
      * « Premium » OU « une vidéo de 15 s pour 1 crédit ». La vidéo n'est
@@ -270,8 +358,11 @@ export function quotaError(r: QuotaResult) {
      */
     // `source` n'existe que pour un compteur payable en crédits (consume) :
     // un crédit ne lève pas la limite de DOCUMENTS (canAddDocument).
+    // Une vidéo publicitaire rapporte un crédit : elle n'est proposée que
+    // pour une action qui en coûte autant, sinon elle ne débloquerait rien.
     rewardedAd:
-      r.plan === "free" && r.source !== undefined && rewardedEnabled()
+      r.plan === "free" && r.source !== undefined && rewardedEnabled() &&
+      (r.metric ? CREDIT_COST[r.metric] <= REWARD.credits : true)
         ? { seconds: REWARD.seconds, credits: REWARD.credits }
         : null,
     message:

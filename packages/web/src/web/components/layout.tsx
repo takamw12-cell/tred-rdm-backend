@@ -25,6 +25,8 @@ import { SearchDialog, useSearchShortcut } from "@/components/search-dialog";
 import { InterstitialHost } from "@/components/InterstitialAdScreen";
 import { FeedbackFab, FeedbackHost } from "@/components/feedback-widget";
 import { Toaster } from "@/components/toaster";
+import { TrialBanner } from "@/components/trial-banner";
+import { PaywallHost } from "@/components/paywall-host";
 
 const PANEL_W = "17rem";
 
@@ -249,6 +251,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </header>
 
+        {/* Essai de 14 jours : « il te reste X jours ». Invisible hors essai. */}
+        <TrialBanner />
+
         {/* `min-w-0` plus haut : sans lui, un tableau ou un bloc de code large
             pousse la colonne et fait défiler la page entière de côté. */}
         {/* Le Hörsaal (/chat) gère lui-même la place de la barre de navigation
@@ -278,6 +283,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
           garde son entrée « Feedback »). */}
       <FeedbackFab />
       <FeedbackHost />
+      {/* La fenêtre de limite (vidéos, exercices, formules, documents). */}
+      <PaywallHost />
       <Toaster />
     </div>
   );

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type PlanId = "founder" | "free" | "standard" | "premium";
+export type PlanId = "founder" | "free" | "trial" | "standard" | "premium";
 
 /** Niveau d'études : le tuteur adapte profondeur et rythme (api/lib/study-profile.ts). */
 export const STUDY_LEVELS = ["school", "bachelor", "master", "phd"] as const;

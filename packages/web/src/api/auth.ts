@@ -17,6 +17,7 @@ import { expo } from "@better-auth/expo";
 import { db } from "./database";
 import { getAccess } from "./lib/access";
 import { isValidSignupName } from "./lib/display-name";
+import { startTrial, type TrialDb } from "./lib/trial";
 
 // Social logins are optional: each is enabled only when its env vars are set.
 const googleEnabled =
@@ -150,6 +151,18 @@ export const auth = betterAuth({
     }),
   },
   databaseHooks: {
+    // Tout nouveau compte commence par 14 jours illimités (lib/trial.ts).
+    // Une panne ici ne doit jamais empêcher une inscription : sans essai, le
+    // compte est simplement Free, et peut lancer l'essai depuis /pricing.
+    user: {
+      create: {
+        after: async (user) => {
+          await startTrial(db as unknown as TrialDb, user.id).catch((error) => {
+            console.error("[auth] trial start failed", error);
+          });
+        },
+      },
+    },
     session: {
       create: {
         before: async (session) => {

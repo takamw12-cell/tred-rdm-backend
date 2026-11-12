@@ -34,6 +34,8 @@ export type ChatFailure =
       limit?: number;
       /** Paywall intelligent : vidéo de N s contre M crédit(s), si proposée. */
       rewardedAd?: { seconds: number; credits: number } | null;
+      /** Vrai pour le plafond de tokens : ce n'est pas un compteur « 50 / 50 ». */
+      tokenCap?: boolean;
     }
   | {
       /** Trop vite. Se libère tout seul. */
@@ -82,6 +84,7 @@ export function readChatFailure(error: Error | undefined): ChatFailure {
             ? body.cap
             : undefined,
       rewardedAd: readRewarded(body.rewardedAd),
+      tokenCap: code === "TOKEN_CAP_REACHED",
     };
   }
 

@@ -1,5 +1,7 @@
 import type { ExplainerScene, ExplainerWord } from "@/video/dynamic-explanation";
 import type { BeamDiagramPayload } from "../../api/lib/beam-tool";
+import { readPaywallBody } from "@/lib/paywall";
+import { usePaywallStore } from "@/stores/paywall";
 
 /**
  * « Als Video erklären » côté navigateur : lancer la génération, suivre son
@@ -79,6 +81,8 @@ export async function runExplainerVideo(req: ExplainerRequest, onState: (s: Expl
     const body = (await res.json().catch(() => ({}))) as { id?: string; error?: string };
     if (res.status === 422 && body.error === "no_documents") return onState({ phase: "needDocs" });
     if (res.status === 503 || res.status === 404) return onState({ phase: "unavailable" });
+    // Limite du mois atteinte : la fenêtre de limite s'ouvre (essai, offre, crédits).
+    if (res.status === 402) usePaywallStore.getState().show(readPaywallBody(body, "video"));
     if (!res.ok || !body.id) return onState({ phase: "error", code: errorCodeOf(body.error, res.status) });
     id = body.id;
   } catch {

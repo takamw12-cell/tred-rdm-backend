@@ -2,6 +2,8 @@
  * Génération d'exercices et de Klausuren (serveur : /api/agent/exercise).
  * Partagé par la page Exercices et le Prüfungsmodus.
  */
+import { paywallFromResponse } from "@/lib/paywall";
+
 export interface GeneratedExercise {
   title: string;
   points: number;
@@ -22,6 +24,8 @@ export async function generateExercise(body: Record<string, unknown>): Promise<G
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
+  // Limite du mois : la fenêtre de limite s'ouvre à la place d'une erreur muette.
+  await paywallFromResponse(res, "exercise");
   if (!res.ok || !res.body) throw new Error("generation_failed");
 
   // The server streams NDJSON: repeated {"type":"ping"} heartbeats to keep the

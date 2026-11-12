@@ -382,9 +382,16 @@ Umsatzsteuer ausgewiesen.
 
 ## § 4 Testphase
 
-Neukunden erhalten eine kostenlose Testphase. Sie steht einmal je Konto zur
-Verfügung. Wird nicht vor Ablauf gekündigt, geht sie in das gewählte
-kostenpflichtige Abonnement über.
+Jedes Konto erhält einmalig eine kostenlose Testphase von 14 Tagen mit
+erweitertem Nutzungsumfang. Zum Schutz vor Missbrauch gelten dabei
+Fair-Use-Grenzen. Für die Testphase sind keine Zahlungsdaten erforderlich.
+
+Die Testphase endet automatisch. Danach gilt der kostenlose Tarif „Free". Ein
+kostenpflichtiges Abonnement entsteht nicht von selbst, sondern nur durch
+deine ausdrückliche Bestellung.
+
+Einzeln gekaufte Credits sind eine Einmalzahlung ohne Abonnement. Sie
+verfallen nicht.
 
 ## § 5 Laufzeit und Kündigung
 
@@ -447,7 +454,7 @@ angenommen. Auf diese Folge weisen wir in der Mitteilung gesondert hin.
 Es gilt deutsches Recht. Zwingende Verbraucherschutzvorschriften deines
 Aufenthaltsstaates bleiben unberührt.
 
-Stand: 01.09.2026 · Version 1.0`,
+Stand: 12.11.2026 · Version 1.1`,
 };
 
 /** Slugs des URL — ce sont ceux qu'attendent les lecteurs et les autorités. */

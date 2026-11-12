@@ -1,64 +1,54 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Loader2, AlertCircle, ShieldCheck, Sparkles } from "lucide-react";
+import { AlertCircle, ArrowRight, Check, Coins, Loader2, ShieldCheck, Sparkles } from "lucide-react";
 import { PageContainer, PageHeader, Reveal } from "@/components/page";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { WithdrawalConsent } from "@/components/consent";
-import { CreditPacks } from "@/components/credit-packs";
 import { Progress } from "@/components/ui/progress";
-import { useT } from "@/i18n";
 import { useUserStore, type PlanId } from "@/stores/user";
+import { useLocaleStore } from "@/stores/locale";
+import { useToastStore } from "@/stores/toast";
 import { client } from "@/lib/api";
+import { formatMoney, pricingCopy, resolvePrices } from "@/lib/pricing-copy";
+import { creditsMeKey, creditsMeOptions } from "@/queries/credits";
 import { subscriptionMeOptions, subscriptionMeKey } from "@/queries/subscriptions";
 import { cn } from "@/lib/utils";
 
-type Interval = "monthly" | "semester";
+/**
+ * /pricing — la grille tarifaire (décision du 12 nov. 2026).
+ *
+ *   Free · Étudiant mensuel · Étudiant semestriel (mis en avant, « -30 % »)
+ *   + les crédits à l'unité + l'essai de 14 jours illimités.
+ *
+ * Aucun montant n'est écrit ici : ils viennent de `subscriptions.me` (prix
+ * Stripe quand ils sont configurés, sinon la grille de api/lib/plan.ts). La
+ * carte ne peut donc pas afficher autre chose que ce que la caisse encaisse.
+ *
+ * Charte : crème / encre, et pour l'offre mise en avant le panneau navy
+ * #0F172A avec le jaune #EAB308.
+ */
 
 /** Verbrauchszähler, die der Server führt (siehe api/lib/plan.ts). */
-const METRICS = [
-  { key: "chat", label: "KI-Chat" },
-  { key: "exercise", label: "Übungen" },
-  { key: "video", label: "Videos" },
-  { key: "formulas", label: "Formelsammlungen" },
-] as const;
+const METRICS = ["chat", "exercise", "video", "formulas"] as const;
 
-const PRO_FEATURES = [
-  "500 KI-Chats pro Monat",
-  "100 Übungen & Klausuren pro Monat",
-  "Engineering DNA",
-  "Prüfungsmodus",
-  "Dokumenten-Import",
-  "Technisches Wörterbuch",
-  "Prioritäts-Support",
-];
-
-const FREE_FEATURES = [
-  "20 KI-Chats pro Monat",
-  "5 Übungen pro Monat",
-  "10 Dokumente",
-  "Technisches Wörterbuch",
-];
-
-function money(cents: number, currency: string) {
-  return new Intl.NumberFormat("de-DE", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
-  }).format(cents / 100);
-}
+const YELLOW_BUTTON =
+  "bg-[#EAB308] text-[#1A1A1A] font-bold shadow-[0_8px_30px_-8px_rgba(234,179,8,0.6)] hover:bg-[#EAB308] hover:brightness-105";
 
 export default function PricingPage() {
-  const { t } = useT();
+  const locale = useLocaleStore((s) => s.locale);
+  const c = pricingCopy(locale);
   const qc = useQueryClient();
+  const toast = useToastStore((s) => s.show);
   const setPlan = useUserStore((s) => s.setPlan);
   const [error, setError] = useState<string | null>(null);
-  const [interval, setInterval] = useState<Interval>("semester");
 
   const { data: sub, isLoading } = useQuery(subscriptionMeOptions());
+  const { data: credits } = useQuery(creditsMeOptions());
 
-  const currentPlan: PlanId = sub?.plan ?? "free";
+  const currentPlan: PlanId = (sub?.plan as PlanId | undefined) ?? "free";
   const isPaid = currentPlan === "standard" || currentPlan === "premium" || currentPlan === "founder";
 
   useEffect(() => {
@@ -84,25 +74,15 @@ export default function PricingPage() {
     return () => window.clearInterval(timer);
   }, [qc]);
 
-  const offers = sub?.offers ?? [];
-  const monthly = offers.find((o) => o.interval === "monthly");
-  const semester = offers.find((o) => o.interval === "semester");
-  const selected = interval === "semester" ? (semester ?? monthly) : (monthly ?? semester);
-
-  /** Ersparnis der Halbjahresformel gegenüber sechs Einzelmonaten. */
-  const savings = useMemo(() => {
-    if (!monthly || !semester) return 0;
-    return monthly.amount * semester.months - semester.amount;
-  }, [monthly, semester]);
-
-  const trialAvailable = !!sub && sub.trialDays > 0 && !sub.trialUsed;
+  const prices = sub ? resolvePrices(sub.pricing, sub.offers) : null;
+  const money = (cents: number) => formatMoney(cents, prices?.currency ?? "EUR", locale);
 
   const checkoutMut = useMutation({
     mutationFn: (priceId: string) => client.subscriptions.createCheckout({ priceId }),
     onSuccess: (res) => {
       window.location.href = res.url;
     },
-    onError: () => setError("Der Bezahlvorgang konnte nicht gestartet werden. Bitte später erneut versuchen."),
+    onError: () => setError(c.checkoutError),
   });
 
   const portalMut = useMutation({
@@ -110,10 +90,29 @@ export default function PricingPage() {
     onSuccess: (res) => {
       window.location.href = res.url;
     },
-    onError: () => setError("Das Kundenportal ist gerade nicht erreichbar."),
+    onError: () => setError(c.portalError),
   });
 
-  const busy = checkoutMut.isPending || portalMut.isPending;
+  const trialMut = useMutation({
+    mutationFn: () => client.subscriptions.startTrial(),
+    onSuccess: (res) => {
+      void qc.invalidateQueries({ queryKey: subscriptionMeKey() });
+      void qc.invalidateQueries({ queryKey: creditsMeKey() });
+      if (res.active) toast(c.trialStarted(res.daysLeft));
+      else setError(c.trialError);
+    },
+    onError: () => setError(c.trialError),
+  });
+
+  const packMut = useMutation({
+    mutationFn: (priceId: string) => client.credits.purchase({ priceId }),
+    onSuccess: (res) => {
+      window.location.href = res.url;
+    },
+    onError: () => setError(c.checkoutError),
+  });
+
+  const busy = checkoutMut.isPending || portalMut.isPending || trialMut.isPending || packMut.isPending;
 
   // § 356 Abs. 5 BGB : deux affirmations DISTINCTES, jamais précochées. Les
   // fusionner en une seule case annulerait l'effet — c'est précisément ce que
@@ -122,58 +121,301 @@ export default function PricingPage() {
   const [consentLose, setConsentLose] = useState(false);
   const [consentError, setConsentError] = useState(false);
   const consentOk = consentStart && consentLose;
+  const consentRef = useRef<HTMLDivElement>(null);
+
+  /** Lance le paiement d'une formule. Le bouton reste actif exprès : un bouton mort n'explique rien. */
+  function subscribe(priceId: string | null) {
+    setError(null);
+    if (!consentOk) {
+      setConsentError(true);
+      consentRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    if (!priceId) {
+      setError(c.checkoutError);
+      return;
+    }
+    checkoutMut.mutate(priceId);
+  }
+
+  const manage = () => {
+    setError(null);
+    portalMut.mutate();
+  };
+
+  const free = sub?.limitsByPlan.free;
+  const student = sub?.limitsByPlan.student;
+  const pack = credits?.packs?.[0] ?? null;
+  const packAmount = pack?.amount ?? sub?.pricing.creditPack.amount ?? 0;
+  const packCredits = pack?.credits ?? sub?.pricing.creditPack.credits ?? 0;
+  const videoCost = sub?.creditCost.video ?? 10;
 
   return (
     <PageContainer>
-      <PageHeader title={t("pricing.title")} subtitle={t("pricing.subtitle")} />
+      <PageHeader title={c.title} subtitle={c.subtitle} />
 
       {justPaid && !isPaid && (
         <Card className="mb-5 flex items-center gap-3 p-4">
-          <Loader2 className="size-4 animate-spin text-violet-500" />
-          <p className="text-sm">Zahlung erhalten. Dein Zugang wird gerade freigeschaltet …</p>
+          <Loader2 className="text-signature size-4 animate-spin" />
+          <p className="text-sm">{c.paid}</p>
         </Card>
       )}
 
       {error && (
-        <Card className="border-destructive/40 mb-5 flex items-center gap-3 p-4">
+        <Card className="border-destructive/40 mb-5 flex items-center gap-3 p-4" role="alert">
           <AlertCircle className="text-destructive size-4 shrink-0" />
           <p className="text-sm">{error}</p>
         </Card>
       )}
 
-      {sub && offers.length === 0 && (
-        <Card className="mb-5 flex items-center gap-3 p-4">
-          <AlertCircle className="text-muted-foreground size-4 shrink-0" />
-          <p className="text-muted-foreground text-sm">
-            Keine Preise gefunden. Prüfe <code>STRIPE_PRICE_PRO_MONTHLY</code> und{" "}
-            <code>STRIPE_PRICE_PRO_SEMESTER</code>.
-          </p>
-        </Card>
+      {/* ── L'essai : en cours, ou à lancer ─────────────────────────────── */}
+      {sub?.trial.active && (
+        <Reveal className="mb-6">
+          <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-[#0F172A] px-5 py-4 text-white" data-testid="trial-active">
+            <Sparkles className="size-5 shrink-0 text-[#EAB308]" aria-hidden />
+            <p className="text-sm font-medium">{c.trialActive(sub.trial.daysLeft)}</p>
+          </div>
+        </Reveal>
+      )}
+      {sub?.trial.available && (
+        <Reveal className="mb-6">
+          <div className="relative overflow-hidden rounded-2xl bg-[#0F172A] p-5 text-white sm:p-6" data-testid="trial-offer">
+            <div aria-hidden className="pointer-events-none absolute -right-16 -top-24 size-64 rounded-full bg-[#EAB308]/25 blur-3xl" />
+            <div className="relative flex flex-wrap items-center gap-4">
+              <div className="min-w-0 flex-1">
+                <p className="font-display text-xl font-extrabold tracking-tight">{c.trialCta(sub.trial.days)}</p>
+                <p className="mt-1 text-sm text-white/65">{c.trialNote}</p>
+              </div>
+              <Button
+                size="lg"
+                className={cn("h-12 gap-2 px-6", YELLOW_BUTTON)}
+                disabled={busy}
+                onClick={() => {
+                  setError(null);
+                  trialMut.mutate();
+                }}
+              >
+                {trialMut.isPending ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" aria-hidden />}
+                {c.trialCta(sub.trial.days)}
+              </Button>
+            </div>
+          </div>
+        </Reveal>
+      )}
+
+      {/* ── Les trois offres ────────────────────────────────────────────── */}
+      <div className="grid items-stretch gap-5 lg:grid-cols-3">
+        {/* Free */}
+        <PlanCard index={0} className="order-3 lg:order-1" current={currentPlan === "free"}>
+          <h3 className="font-display text-lg font-extrabold">{c.free}</h3>
+          <p className="text-muted-foreground mt-1 text-sm">{c.freeDesc}</p>
+          <Price big={money(0)} />
+          <Features
+            items={free ? [c.chats(free.chat), c.videos(free.video), c.exercises(free.exercise), c.documents(free.documents)] : []}
+          />
+          <div className="mt-auto pt-6">
+            <Button variant="outline" className="w-full" disabled>
+              {currentPlan === "free" ? c.currentPlan : c.free}
+            </Button>
+          </div>
+        </PlanCard>
+
+        {/* Étudiant mensuel */}
+        <PlanCard index={1} className="order-2" current={false}>
+          <h3 className="font-display text-lg font-extrabold">{c.monthly}</h3>
+          <p className="text-muted-foreground mt-1 text-sm">{c.monthlyDesc}</p>
+          <Price big={prices ? money(prices.monthly.amount) : "…"} unit={c.perMonth} />
+          <Features
+            items={student ? [c.chats(student.chat), c.videos(student.video), c.exercises(student.exercise), c.documents(student.documents), c.noAds] : []}
+          />
+          <div className="mt-auto pt-6">
+            {isPaid ? (
+              <Button variant="outline" className="w-full" disabled={busy || !sub?.manageable} onClick={manage}>
+                {c.manage}
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                className="border-foreground/25 w-full font-semibold"
+                disabled={busy || isLoading}
+                data-testid="choose-monthly"
+                onClick={() => subscribe(prices?.monthly.priceId ?? null)}
+              >
+                {checkoutMut.isPending && <Loader2 className="size-4 animate-spin" />}
+                {c.choose}
+              </Button>
+            )}
+            <p className="text-muted-foreground mt-3 flex items-center justify-center gap-1.5 text-xs">
+              <ShieldCheck className="size-3.5" aria-hidden />
+              {c.cancelAnytime}
+            </p>
+          </div>
+        </PlanCard>
+
+        {/* Étudiant semestriel — l'offre mise en avant */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.16, ease: [0.16, 1, 0.3, 1] }}
+          className="order-1 lg:order-3 lg:-my-3"
+          data-testid="plan-semester"
+        >
+          <div className="relative flex h-full flex-col overflow-hidden rounded-2xl bg-[#0F172A] p-6 text-white shadow-2xl ring-2 ring-[#EAB308] lg:py-9">
+            <div aria-hidden className="pointer-events-none absolute -right-20 -top-28 size-72 rounded-full bg-[#EAB308]/25 blur-3xl" />
+            <div className="relative flex h-full flex-col">
+              <div className="flex items-start justify-between gap-3">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#EAB308]/40 bg-[#EAB308]/10 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-[#FACC15]">
+                  <Sparkles className="size-3" aria-hidden />
+                  {c.bestValue}
+                </span>
+                {prices && (
+                  <span
+                    className="rounded-full bg-[#EAB308] px-3 py-1 text-sm font-extrabold text-[#1A1A1A] shadow-[0_6px_20px_-6px_rgba(234,179,8,0.8)]"
+                    data-testid="semester-badge"
+                  >
+                    {prices.semester.badge}
+                  </span>
+                )}
+              </div>
+              <h3 className="font-display mt-4 text-lg font-extrabold">{c.semester}</h3>
+              <p className="mt-1 text-sm text-white/65">{c.semesterDesc}</p>
+
+              <div className="mt-5">
+                <div className="flex items-baseline gap-2">
+                  <span className="font-display text-5xl font-extrabold tracking-tight tabular-nums">
+                    {prices ? money(prices.semester.perMonth) : "…"}
+                  </span>
+                  <span className="text-sm text-white/60">{c.perMonth}</span>
+                </div>
+                {prices && (
+                  <p className="mt-1.5 text-sm text-white/60 tabular-nums">
+                    {c.every6Months(money(prices.semester.amount))}
+                    <span className="ml-2 text-white/40 line-through">{money(prices.monthly.amount * prices.semester.months)}</span>
+                  </p>
+                )}
+              </div>
+
+              <ul className="mt-6 space-y-2.5">
+                {(student ? [c.chats(student.chat), c.videos(student.video), c.exercises(student.exercise), c.documents(student.documents), c.noAds] : []).map(
+                  (f) => (
+                    <li key={f} className="flex items-center gap-2.5 text-sm">
+                      <span className="grid size-5 shrink-0 place-items-center rounded-full bg-[#EAB308] text-[#1A1A1A]">
+                        <Check className="size-3" aria-hidden />
+                      </span>
+                      {f}
+                    </li>
+                  ),
+                )}
+              </ul>
+
+              <div className="mt-auto pt-7">
+                {isPaid ? (
+                  <Button className={cn("h-12 w-full", YELLOW_BUTTON)} disabled={busy || !sub?.manageable} onClick={manage}>
+                    {portalMut.isPending && <Loader2 className="size-4 animate-spin" />}
+                    {c.manage}
+                  </Button>
+                ) : (
+                  <Button
+                    className={cn("h-12 w-full gap-2 text-base", YELLOW_BUTTON)}
+                    disabled={busy || isLoading}
+                    data-testid="choose-semester"
+                    onClick={() => subscribe(prices?.semester.priceId ?? null)}
+                  >
+                    {checkoutMut.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+                    {c.choose}
+                    <ArrowRight className="size-4" aria-hidden />
+                  </Button>
+                )}
+                <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-white/55">
+                  <ShieldCheck className="size-3.5" aria-hidden />
+                  {c.cancelAnytime}
+                </p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Les deux consentements légaux, une fois, sous les offres payantes. */}
+      {!isPaid && (
+        <div ref={consentRef} className="mx-auto mt-6 max-w-2xl">
+          <WithdrawalConsent
+            start={consentStart}
+            lose={consentLose}
+            onStart={(v) => {
+              setConsentStart(v);
+              setConsentError(false);
+            }}
+            onLose={(v) => {
+              setConsentLose(v);
+              setConsentError(false);
+            }}
+            error={consentError}
+          />
+        </div>
+      )}
+
+      {/* ── Crédits à l'unité ───────────────────────────────────────────── */}
+      {sub && packAmount > 0 && (
+        <Reveal className="mt-8">
+          <Card className="flex flex-wrap items-center gap-4 p-5" data-testid="credits-offer">
+            <span className="bg-signature/15 text-signature grid size-11 shrink-0 place-items-center rounded-xl">
+              <Coins className="size-5" aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h2 className="font-display text-base font-bold">{c.creditsTitle}</h2>
+              <p className="mt-0.5 text-sm font-medium">
+                {c.creditsLine(money(packAmount), Math.floor(packCredits / videoCost), packCredits)}
+              </p>
+              <p className="text-muted-foreground mt-0.5 text-xs">{c.creditsNever}</p>
+            </div>
+            {pack ? (
+              <Button
+                variant="outline"
+                className="border-foreground/25 gap-2 font-semibold"
+                disabled={busy}
+                onClick={() => {
+                  setError(null);
+                  packMut.mutate(pack.priceId);
+                }}
+              >
+                {packMut.isPending && <Loader2 className="size-4 animate-spin" />}
+                {c.creditsBuy}
+              </Button>
+            ) : (
+              <Link href="/credits">
+                <Button variant="outline" className="border-foreground/25 gap-2 font-semibold">
+                  {c.creditsBuy}
+                </Button>
+              </Link>
+            )}
+          </Card>
+        </Reveal>
       )}
 
       {/* Verbrauch — macht das Limit sichtbar, bevor der Nutzer dagegenläuft. */}
       {sub && (
-        <Reveal className="mb-8">
+        <Reveal className="mt-8">
           <Card className="p-5">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-display text-sm font-bold">Dein Verbrauch diesen Monat</h2>
+              <h2 className="font-display text-sm font-bold">{c.usage}</h2>
               {sub.validUntil && (
                 <span className="text-muted-foreground text-xs">
-                  Aktiv bis {new Date(sub.validUntil).toLocaleDateString("de-DE")}
+                  {c.activeUntil(new Date(sub.validUntil).toLocaleDateString(locale))}
                 </span>
               )}
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {METRICS.map((m) => {
-                const used = sub.usage[m.key] ?? 0;
-                const limit = sub.limits[m.key] ?? 0;
-                const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+                const used = sub.usage[m] ?? 0;
+                const limit = sub.limits[m] ?? 0;
+                const pct = sub.unlimited ? 0 : limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
                 return (
-                  <div key={m.key}>
+                  <div key={m}>
                     <div className="mb-1.5 flex items-baseline justify-between text-xs">
-                      <span className="text-muted-foreground">{m.label}</span>
-                      <span className={cn("font-medium", used >= limit && "text-destructive")}>
-                        {used} / {limit}
+                      <span className="text-muted-foreground capitalize">{c.metric[m]}</span>
+                      <span className={cn("font-medium tabular-nums", !sub.unlimited && used >= limit && "text-destructive")}>
+                        {sub.unlimited ? `${used} · ${c.unlimited}` : `${used} / ${limit}`}
                       </span>
                     </div>
                     <Progress value={pct} />
@@ -185,226 +427,54 @@ export default function PricingPage() {
         </Reveal>
       )}
 
-      {/* Recharges. Placées APRÈS le compteur : on constate qu'on est à court,
-          puis on trouve la sortie. Dans l'autre ordre, c'est une boutique. */}
-      {sub && (
-        <Reveal className="mb-8">
-          <CreditPacks />
-        </Reveal>
-      )}
-
-      <div className="grid items-start gap-5 lg:grid-cols-[1fr_1.35fr]">
-        {/* ── Gratis ─────────────────────────────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <Card className={cn("flex h-full flex-col p-6", !isPaid && "ring-primary/40 ring-2")}>
-            <h3 className="font-display text-lg font-extrabold">Gratis</h3>
-            <div className="mt-2 flex items-baseline gap-1">
-              <span className="font-display text-3xl font-extrabold tracking-tight">0 €</span>
-            </div>
-            <p className="text-muted-foreground mt-2 text-sm">Zum Ausprobieren der Grundfunktionen.</p>
-
-            <ul className="mt-5 space-y-2.5">
-              {FREE_FEATURES.map((f) => (
-                <li key={f} className="text-muted-foreground flex items-center gap-2.5 text-sm">
-                  <Check className="size-4 shrink-0 opacity-60" />
-                  {f}
-                </li>
-              ))}
-            </ul>
-
-            <div className="mt-auto pt-6">
-              {!isPaid && (
-                <WithdrawalConsent
-                  start={consentStart}
-                  lose={consentLose}
-                  onStart={(v) => {
-                    setConsentStart(v);
-                    setConsentError(false);
-                  }}
-                  onLose={(v) => {
-                    setConsentLose(v);
-                    setConsentError(false);
-                  }}
-                  error={consentError}
-                />
-              )}
-              {isPaid ? (
-                <Button
-                  variant="ghost"
-                  className="text-muted-foreground w-full"
-                  disabled={busy || !sub?.manageable}
-                  onClick={() => {
-                    setError(null);
-                    portalMut.mutate();
-                  }}
-                >
-                  Zu Gratis wechseln
-                </Button>
-              ) : (
-                <Button variant="outline" className="w-full" disabled>
-                  Aktueller Tarif
-                </Button>
-              )}
-            </div>
-          </Card>
-        </motion.div>
-
-        {/* ── Premium ────────────────────────────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <Card
-            className={cn(
-              "relative flex h-full flex-col border-violet-500/50 p-6 shadow-lg",
-              isPaid && "ring-2 ring-violet-500/50",
-            )}
-          >
-            <div className="flex items-center gap-2">
-              <Sparkles className="size-4 text-violet-500" />
-              <h3 className="font-display text-lg font-extrabold">Premium</h3>
-            </div>
-            <p className="text-muted-foreground mt-2 text-sm">
-              Genug für ein ganzes Semester Prüfungsvorbereitung.
-            </p>
-
-            {/* Intervall-Auswahl */}
-            {monthly && semester && (
-              <div className="bg-muted/50 mt-5 grid grid-cols-2 gap-1 rounded-xl p-1">
-                <IntervalTab
-                  active={interval === "monthly"}
-                  onClick={() => setInterval("monthly")}
-                  label="Monatlich"
-                />
-                <IntervalTab
-                  active={interval === "semester"}
-                  onClick={() => setInterval("semester")}
-                  label="6 Monate"
-                  badge={savings > 0 ? `Spare ${money(savings, semester.currency)}` : undefined}
-                />
-              </div>
-            )}
-
-            {/* Preis */}
-            <div className="mt-6">
-              {selected ? (
-                <>
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-display text-4xl font-extrabold tracking-tight">
-                      {money(selected.amount, selected.currency)}
-                    </span>
-                    <span className="text-muted-foreground text-sm">
-                      {selected.interval === "semester" ? "/ 6 Monate" : "/ Monat"}
-                    </span>
-                  </div>
-                  {selected.interval === "semester" && (
-                    <p className="text-muted-foreground mt-1 text-sm">
-                      entspricht {money(selected.amountPerMonth, selected.currency)} pro Monat
-                    </p>
-                  )}
-                </>
-              ) : (
-                <div className="text-muted-foreground text-sm">
-                  {isLoading ? "Preise werden geladen …" : "Preis nicht verfügbar"}
-                </div>
-              )}
-            </div>
-
-            <ul className="mt-6 space-y-2.5">
-              {PRO_FEATURES.map((f) => (
-                <li key={f} className="flex items-center gap-2.5 text-sm">
-                  <span className="grid size-5 shrink-0 place-items-center rounded-full bg-violet-500/15 text-violet-500">
-                    <Check className="size-3" />
-                  </span>
-                  {f}
-                </li>
-              ))}
-            </ul>
-
-            <div className="mt-auto pt-6">
-              {isPaid ? (
-                <Button
-                  className="w-full bg-violet-600 text-white hover:bg-violet-700"
-                  disabled={busy || !sub?.manageable}
-                  onClick={() => {
-                    setError(null);
-                    portalMut.mutate();
-                  }}
-                >
-                  {busy && <Loader2 className="size-4 animate-spin" />}
-                  Abo verwalten
-                </Button>
-              ) : (
-                <Button
-                  className="w-full bg-violet-600 text-white shadow-md hover:bg-violet-700"
-                  disabled={busy || isLoading || !selected}
-                  onClick={() => {
-                    setError(null);
-                    // Le bouton reste actif exprès : un bouton mort n'explique
-                    // rien, un message rouge sous les cases, si.
-                    if (!consentOk) {
-                      setConsentError(true);
-                      return;
-                    }
-                    if (selected) checkoutMut.mutate(selected.priceId);
-                  }}
-                >
-                  {busy && <Loader2 className="size-4 animate-spin" />}
-                  {trialAvailable ? `${sub?.trialDays} Tage kostenlos testen` : "Premium freischalten"}
-                </Button>
-              )}
-
-              <p className="text-muted-foreground mt-3 flex items-center justify-center gap-1.5 text-center text-xs">
-                <ShieldCheck className="size-3.5" />
-                {trialAvailable && selected
-                  ? `Danach ${money(selected.amount, selected.currency)}. Jederzeit kündbar.`
-                  : "Jederzeit kündbar."}
-              </p>
-            </div>
-          </Card>
-        </motion.div>
-      </div>
-
       <Reveal className="mt-8 text-center">
-        <p className="text-muted-foreground text-xs">
-          {t("pricing.paymentMethods")}: Visa · Mastercard · Apple Pay · Klarna · SEPA
-        </p>
+        <p className="text-muted-foreground text-xs">{c.payments}: Visa · Mastercard · Apple Pay · Klarna · SEPA</p>
       </Reveal>
     </PageContainer>
   );
 }
 
-function IntervalTab({
-  active,
-  onClick,
-  label,
-  badge,
+function PlanCard({
+  index,
+  current,
+  className,
+  children,
 }: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-  badge?: string;
+  index: number;
+  current: boolean;
+  className?: string;
+  children: ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "relative rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-        active ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground",
-      )}
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: index * 0.08, ease: [0.16, 1, 0.3, 1] }}
+      className={className}
     >
-      {label}
-      {badge && (
-        <span className="ml-2 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-          {badge}
-        </span>
-      )}
-    </button>
+      <Card className={cn("flex h-full flex-col p-6", current && "ring-foreground/20 ring-2")}>{children}</Card>
+    </motion.div>
+  );
+}
+
+function Price({ big, unit }: { big: string; unit?: string }) {
+  return (
+    <div className="mt-5 flex items-baseline gap-2">
+      <span className="font-display text-4xl font-extrabold tracking-tight tabular-nums">{big}</span>
+      {unit && <span className="text-muted-foreground text-sm">{unit}</span>}
+    </div>
+  );
+}
+
+function Features({ items }: { items: string[] }) {
+  return (
+    <ul className="mt-6 space-y-2.5">
+      {items.map((f) => (
+        <li key={f} className="flex items-center gap-2.5 text-sm">
+          <Check className="text-signature size-4 shrink-0" aria-hidden />
+          {f}
+        </li>
+      ))}
+    </ul>
   );
 }

@@ -8,6 +8,7 @@ import { MarkdownContent } from "@/components/markdown-content";
 import { printElement } from "@/lib/pdf-print";
 import { useReconciledSemester } from "@/hooks/use-reconciled-semester";
 import { useT } from "@/i18n";
+import { paywallFromResponse } from "@/lib/paywall";
 
 type GeneratedFormulas = { title: string; content: string };
 
@@ -19,6 +20,8 @@ async function generate(body: Record<string, unknown>): Promise<GeneratedFormula
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
+  // Limite du mois : la fenêtre de limite s'ouvre à la place d'une erreur muette.
+  await paywallFromResponse(res, "formulas");
   if (!res.ok || !res.body) throw new Error("generation_failed");
 
   const reader = res.body.getReader();

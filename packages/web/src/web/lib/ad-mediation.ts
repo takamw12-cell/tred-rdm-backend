@@ -42,7 +42,8 @@ export type AdSurface =
 export const WORK_SURFACES: readonly AdSurface[] = ["hoersaal", "chat", "exam"];
 
 /** Tarifs payants : zéro publicité. */
-const PAID_PLANS = new Set(["standard", "premium", "founder"]);
+// "trial" : pas de publicité pendant les 14 jours d'essai illimité.
+const PAID_PLANS = new Set(["standard", "premium", "founder", "trial"]);
 
 /** Quel format a le droit de vivre sur quelle surface. */
 const FORMAT_FOR_SURFACE: Record<AdSurface, AdFormat | null> = {

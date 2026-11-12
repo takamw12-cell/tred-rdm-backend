@@ -25,9 +25,14 @@ import { extractId, getStripe, resolveCurrentPeriodEnd, stripeTimestampToDate } 
 export const PRICE_MONTHLY = () => process.env.STRIPE_PRICE_PRO_MONTHLY ?? null;
 export const PRICE_SEMESTER = () => process.env.STRIPE_PRICE_PRO_SEMESTER ?? null;
 
-/** Kostenlose Testphase in Tagen. 0 schaltet sie ab. */
+/**
+ * Essai côté STRIPE (carte exigée), en jours. Désactivé par défaut depuis le
+ * 12 nov. 2026 : l'essai de 14 jours est désormais géré par l'app, sans carte
+ * (lib/trial.ts). Garder les deux offrirait 28 jours. STRIPE_TRIAL_DAYS ne
+ * sert plus qu'à rouvrir volontairement l'essai Stripe.
+ */
 export function trialDays(): number {
-  const raw = Number(process.env.STRIPE_TRIAL_DAYS ?? 14);
+  const raw = Number(process.env.STRIPE_TRIAL_DAYS ?? 0);
   return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 0;
 }
 

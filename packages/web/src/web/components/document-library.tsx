@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { paywallFromResponse } from "@/lib/paywall";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -109,6 +110,8 @@ export function DocumentLibrary({
       });
 
       if (!res.ok) {
+        // Limite de documents du tarif : la fenêtre de limite s'ouvre.
+        await paywallFromResponse(res, "documents");
         const data = (await res.json().catch(() => ({}))) as { error?: string };
         track("upload_failed", { ext, reason: data.error ?? `http_${res.status}` });
         if (data.error === "unsupported_format") {
