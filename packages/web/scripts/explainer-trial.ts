@@ -83,7 +83,7 @@ for (const c of CASES.filter((x) => !only || x.id === only)) {
   const all = resolved.run ? [...c.sources, solverSource(resolved.run)] : c.sources;
   const checked = validateVideoScript(object, all, c.question, { beam: resolved.payload !== null });
   console.log(`\n── ${c.id} : « ${c.question} » (${Math.round((Date.now() - started) / 1000)} s)`);
-  console.log(`   écrites ${object.scenes.length} scènes · visuels demandés : ${object.scenes.map((s) => s.visual).join(", ")}`);
+  console.log(`   écrites ${object.scenes.length} scènes · ordres : ${object.scenes.map((s) => `${s.stage}:${s.visual_cues.join("+")}`).join(", ")}`);
   console.log(`   contexte : ${object.backdrop}`);
   console.log(`   poutre : ${resolved.payload ? "calculée par le solveur" : (resolved.rejected ?? "aucune")}`);
   console.log(`   rejetées : ${checked.dropped.map((d) => `#${d.index + 1} ${d.reason}${d.detail ? `(${d.detail})` : ""}`).join(", ") || "aucune"}`);
@@ -92,7 +92,7 @@ for (const c of CASES.filter((x) => !only || x.id === only)) {
     continue;
   }
   console.log(`   gardées ${checked.scenes.length} scènes, ${checked.words} mots · visuels : ${checked.scenes.map((s) => s.visual + (s.image ? `:${s.image}` : "")).join(", ")}`);
-  checked.scenes.forEach((s, i) => console.log(`     ${i + 1}. [${s.visual}] ${s.heading}${s.steps.length ? " → " + s.steps.join(" › ") : ""}${s.keywords.length ? " ★ " + s.keywords.join(", ") : ""}`));
+  checked.scenes.forEach((s, i) => console.log(`     ${i + 1}. [${s.stage} · ${s.visual_cues.join("+")}] ${s.heading}${s.steps.length ? " → " + s.steps.join(" › ") : ""}${s.keywords.length ? " ★ " + s.keywords.join(", ") : ""}`));
 
   // Pas de voix : 150 mots par minute, pour rendre des images.
   const words: VoiceWord[] = [];

@@ -184,6 +184,9 @@ describe("visual_cues : des ordres que le code exécute", () => {
     expect(resolveVisual({ visual_cues: ["plot_curves"] }, { beam: true })).toMatchObject({ visual: "solver_plot", visual_cues: ["plot_curves"] });
     expect(resolveVisual({ visual_cues: ["draw_flowchart"], steps: ["Tatbestand", "Rechtsfolge"] }, { beam: false })).toMatchObject({ visual: "flowchart", visual_cues: ["draw_flowchart"] });
     expect(resolveVisual({ visual_cues: ["write_equation"], formula: "" }, { beam: false }).visual).toBe("text");
+    // Poutre + charges demandées ensemble : une seule scène qui fait les deux.
+    expect(resolveVisual({ visual_cues: ["show_beam", "apply_loads"] }, { beam: false })).toMatchObject({ visual: "loads", visual_cues: ["apply_loads"] });
+    expect(resolveVisual({ visual_cues: ["show_beam"] }, { beam: false }).visual).toBe("beam");
     expect(resolveVisual({ visual_cues: ["ask_question"], heading: "Warum bricht der Balken in der Mitte?" }, { beam: false }).visual).toBe("question");
     expect(resolveVisual({ visual_cues: ["ask_question"], heading: " " }, { beam: false }).visual).toBe("text");
     expect(resolveVisual({ visual_cues: ["check_recap"], bullets: ["Die Last biegt den Balken"] }, { beam: false }).visual).toBe("recap");

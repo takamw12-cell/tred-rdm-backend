@@ -181,7 +181,10 @@ export function resolveVisual(scene: VisualInput, has: { beam: boolean }): Resol
 }
 
 function resolveVisualKind(scene: VisualInput, has: { beam: boolean }): Omit<ResolvedVisual, "visual_cues"> {
-  const wanted: Visual = isVisual(scene.visual) ? scene.visual : (visualOfCues(scene.visual_cues) ?? "text");
+  let wanted: Visual = isVisual(scene.visual) ? scene.visual : (visualOfCues(scene.visual_cues) ?? "text");
+  // « Montre la poutre » + « applique les charges » dans la même scène : la
+  // poutre se dessine, puis les charges arrivent (vu au premier essai réel).
+  if (wanted === "beam" && Array.isArray(scene.visual_cues) && scene.visual_cues.includes("apply_loads")) wanted = "loads";
   const plain: Omit<ResolvedVisual, "visual_cues"> = { visual: "text", image: null, chart: null, steps: [], keywords: [] };
   switch (wanted) {
     // La question mystère est le titre de la scène : sans titre, pas de question.

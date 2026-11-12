@@ -705,7 +705,8 @@ function SceneVisual({
       <BeamStage
         payload={beam}
         draw={interpolate(frame, [start + 4, start + 44], [0, 1], clamp)}
-        loads={loadsAt === null ? 0 : interpolate(frame, [loadsAt + 6, loadsAt + 70], [0, 1], clamp)}
+        // Poutre et charges dans la même scène : les charges attendent que la poutre soit dessinée.
+        loads={loadsAt === null ? 0 : interpolate(frame, [loadsAt + (loadsAt === start ? 50 : 6), loadsAt + (loadsAt === start ? 114 : 70)], [0, 1], clamp)}
         comma={props.decimalComma ?? true}
         sketchLabel={props.labels.sketch}
       />
@@ -736,7 +737,11 @@ function SceneVisual({
   if (visual === "question") return <QuestionCard text={scene.heading} local={local} dur={to - from} />;
   if (visual === "recap" && scene.bullets.length) {
     const bullets = scene.bullets.slice(0, 3);
-    return <RecapList bullets={bullets} local={local} cues={cueFrames(bullets, props.words, from, to)} />;
+    // Chaque point arrive quand la voix le dit, mais jamais trop tard : si la
+    // voix garde ses points pour la fin, le tableau ne reste pas vide en attendant.
+    const dur = to - from;
+    const cues = cueFrames(bullets, props.words, from, to).map((at, i) => Math.min(at, Math.round(dur * (0.22 + 0.18 * i))));
+    return <RecapList bullets={bullets} local={local} cues={cues} />;
   }
   if (visual === "highlight" && scene.quote) return <HighlightText text={scene.quote} keywords={scene.keywords ?? []} local={local} dur={to - from} dark={dark} />;
   if (visual === "chart" && scene.chart === "supply_demand") return <MarketChart local={local} labels={props.labels.market} dark={dark} />;
@@ -888,7 +893,8 @@ function DemoScene({
   const isTall = scene.visual === "flowchart" && (scene.steps?.length ?? 0) > 3;
   const isQuestion = scene.visual === "question";
   // La citation surlignée, la question et la liste cochée SONT le contenu : on n'en répète pas les points dessous.
-  const quiet = scene.visual === "highlight" || scene.visual === "flowchart" || isQuestion || scene.visual === "recap";
+  // Le schéma du solveur occupe toute la hauteur : des points dessous passeraient sous les sous-titres.
+  const quiet = scene.visual === "highlight" || scene.visual === "flowchart" || isQuestion || scene.visual === "recap" || isSolver;
   const bullets = quiet ? [] : scene.bullets.slice(0, 2);
   const dark = isDarkStage(scene, props);
   const context = backdropUrl(props);
