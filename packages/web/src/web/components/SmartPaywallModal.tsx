@@ -69,6 +69,14 @@ export function SmartPaywallModal({
     if (open) track("paywall_view", { metric });
   }, [open, metric]);
 
+  // Échap ferme la fenêtre, comme toute boîte de dialogue.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   const startTrial = useMutation({
     mutationFn: () => client.subscriptions.startTrial(),
     onSuccess: (res) => {

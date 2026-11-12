@@ -66,6 +66,9 @@ function monthsForPrice(price: Stripe.Price): number {
 
 async function loadOffers(): Promise<PlanOffer[]> {
   if (cache && Date.now() - cache.at < CACHE_TTL_MS) return cache.offers;
+  // Stripe pas encore configuré : aucune offre à lire, et rien à écrire dans
+  // les logs à chaque ouverture de /pricing (la page affiche alors la grille).
+  if (!process.env.STRIPE_SECRET_KEY) return [];
 
   const wanted: Array<{ interval: Interval; id: string | null }> = [
     { interval: "monthly", id: PRICE_MONTHLY() },

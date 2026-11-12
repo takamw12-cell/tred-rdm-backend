@@ -358,11 +358,13 @@ export default function PricingPage() {
       {/* ── Crédits à l'unité ───────────────────────────────────────────── */}
       {sub && packAmount > 0 && (
         <Reveal className="mt-8">
-          <Card className="flex flex-wrap items-center gap-4 p-5" data-testid="credits-offer">
+          <Card className="p-5" data-testid="credits-offer">
+            {/* La carte du thème empile son contenu : la rangée est portée par ce conteneur. */}
+            <div className="flex flex-wrap items-center gap-4">
             <span className="bg-signature/15 text-signature grid size-11 shrink-0 place-items-center rounded-xl">
               <Coins className="size-5" aria-hidden />
             </span>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-[13rem] flex-1">
               <h2 className="font-display text-base font-bold">{c.creditsTitle}</h2>
               <p className="mt-0.5 text-sm font-medium">
                 {c.creditsLine(money(packAmount), Math.floor(packCredits / videoCost), packCredits)}
@@ -389,6 +391,7 @@ export default function PricingPage() {
                 </Button>
               </Link>
             )}
+            </div>
           </Card>
         </Reveal>
       )}

@@ -4,7 +4,12 @@ import { createIdleTimer, type IdleTimer } from "@/lib/idle-timer";
 /** Délai d'inactivité avant que l'interface s'efface (ms). */
 export const IMMERSIVE_DELAY_MS = 15_000;
 
-const EVENTS = ["mousemove", "mousedown", "touchstart", "keydown", "wheel"] as const;
+/**
+ * Tout ce qui compte comme « l'étudiant est là », sur tous les appareils :
+ * souris et clavier (ordinateur), toucher et glisser (téléphone, tablette),
+ * stylet (`pointerdown`), molette, pavé tactile et défilement.
+ */
+const EVENTS = ["mousemove", "mousedown", "pointerdown", "touchstart", "touchmove", "keydown", "wheel", "scroll"] as const;
 
 /** Une boîte de dialogue ou un menu ouvert : on n'efface pas l'interface dessous. */
 function overlayOpen(): boolean {

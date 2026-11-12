@@ -53,6 +53,8 @@ let packCache: { at: number; packs: CreditPack[] } | null = null;
  */
 async function loadPacks(): Promise<CreditPack[]> {
   if (packCache && Date.now() - packCache.at < CACHE_TTL_MS) return packCache.packs;
+  // Stripe pas encore configuré : aucun paquet, sans erreur.
+  if (!process.env.STRIPE_SECRET_KEY) return [];
 
   const stripe = getStripe();
   const packs: CreditPack[] = [];
