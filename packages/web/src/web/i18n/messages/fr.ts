@@ -795,8 +795,8 @@ export const fr: Messages = {
       "{name} a été supprimée. {n} documents sont maintenant dans « Non classés » — aucun n'a été effacé.",
   },
   emptyStart: {
-    title: "Commence par tes cours",
-    body: "Dis quels cours tu suis — tu vois aussitôt ce que ta promotion y a déjà déposé. Tu peux poser ta première question avant même de téléverser quoi que ce soit.",
+    title: "Commence par tes propres documents",
+    body: "Dépose ton polycopié, une feuille d'exercices ou une ancienne épreuve. TRED te répond alors avec la page exacte. Tes documents restent privés : toi seul les vois.",
     orUpload: "Ou dépose ton propre polycopié.",
   },
   courses: {

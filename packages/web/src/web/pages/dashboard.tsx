@@ -18,10 +18,6 @@ import {
   ArrowRight,
   Loader2,
   Eye,
-  Share2,
-  Ticket,
-  Copy,
-  Check,
 } from "lucide-react";
 import { PageContainer, Reveal } from "@/components/page";
 import { Card, CardContent } from "@/components/ui/card";
@@ -63,7 +59,6 @@ import {
   documentRemoveManyOptions,
 } from "@/queries/documents";
 import { DocumentViewer } from "@/components/document-viewer";
-import { client } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 type DocKind = "vorlesung" | "uebung" | "klausur" | "other";
@@ -112,15 +107,6 @@ export default function DashboardPage() {
   const { data: subjectData } = useQuery(subjectsListOptions(activeId));
   const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null);
   const [viewerDocId, setViewerDocId] = useState<string | null>(null);
-  const [shareOpen, setShareOpen] = useState(false);
-  const [shareCode, setShareCode] = useState<string | null>(null);
-  const [shareCopied, setShareCopied] = useState(false);
-  const [redeemOpen, setRedeemOpen] = useState(false);
-  const [redeemCode, setRedeemCode] = useState("");
-  const [redeemBusy, setRedeemBusy] = useState(false);
-  const [redeemState, setRedeemState] = useState<
-    { kind: "idle" } | { kind: "invalid" } | { kind: "done"; name: string; count: number }
-  >({ kind: "idle" });
   const [confirmBulk, setConfirmBulk] = useState(false);
 
   function toggleDoc(id: string) {
@@ -229,50 +215,6 @@ export default function DashboardPage() {
     await qc.invalidateQueries({ queryKey: documentsListKey() });
   }
 
-  async function openShare() {
-    if (!activeId) return;
-    setShareOpen(true);
-    setShareCode(null);
-    setShareCopied(false);
-    try {
-      const r = await client.semesters.shareCreate({ id: activeId });
-      setShareCode(r.code);
-    } catch {
-      setShareOpen(false);
-    }
-  }
-
-  function copyShareCode() {
-    if (!shareCode) return;
-    void navigator.clipboard.writeText(shareCode).then(() => {
-      setShareCopied(true);
-      setTimeout(() => setShareCopied(false), 1500);
-    });
-  }
-
-  async function handleRedeem() {
-    const code = redeemCode.trim().toUpperCase();
-    if (code.length < 4 || redeemBusy) return;
-    setRedeemBusy(true);
-    setRedeemState({ kind: "idle" });
-    try {
-      const info = await client.semesters.shareInfo({ code });
-      if (!info.found) {
-        setRedeemState({ kind: "invalid" });
-        return;
-      }
-      const r = await client.semesters.shareRedeem({ code });
-      setRedeemState({ kind: "done", name: info.name, count: r.docCount });
-      setRedeemCode("");
-      await qc.invalidateQueries({ queryKey: semestersListKey() });
-      await qc.invalidateQueries({ queryKey: documentsListKey() });
-    } catch {
-      setRedeemState({ kind: "invalid" });
-    } finally {
-      setRedeemBusy(false);
-    }
-  }
-
   const today = useMemo(() => {
     try {
       return new Intl.DateTimeFormat(locale, {
@@ -352,16 +294,6 @@ export default function DashboardPage() {
               />
             ))
           )}
-          {activeId !== null && (
-            <Button variant="ghost" size="sm" className="on-photo gap-1.5 rounded-full text-white hover:bg-white/10 hover:text-white" onClick={() => void openShare()}>
-              <Share2 className="size-4" />
-              {t("share.button")}
-            </Button>
-          )}
-          <Button variant="ghost" size="sm" className="on-photo gap-1.5 rounded-full text-white hover:bg-white/10 hover:text-white" onClick={() => { setRedeemOpen(true); setRedeemState({ kind: "idle" }); }}>
-            <Ticket className="size-4" />
-            {t("share.redeemTitle")}
-          </Button>
         </div>
       </Reveal>
 
@@ -702,58 +634,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </Modal>
-      <Modal open={shareOpen} onClose={() => setShareOpen(false)} title={t("share.title")}>
-        <div className="space-y-4">
-          <p className="text-muted-foreground text-sm">{t("share.desc")}</p>
-          {shareCode ? (
-            <div className="flex items-center gap-2">
-              <code className="bg-secondary flex-1 rounded-lg px-4 py-3 text-center font-mono text-xl font-bold tracking-[0.3em]">
-                {shareCode}
-              </code>
-              <Button variant="outline" onClick={copyShareCode} className="gap-1.5">
-                {shareCopied ? <Check className="size-4" /> : <Copy className="size-4" />}
-                {shareCopied ? t("share.copied") : t("share.copy")}
-              </Button>
-            </div>
-          ) : (
-            <div className="text-muted-foreground flex items-center justify-center gap-2 py-4 text-sm">
-              <Loader2 className="size-4 animate-spin" />
-            </div>
-          )}
-        </div>
-      </Modal>
-
-      <Modal open={redeemOpen} onClose={() => setRedeemOpen(false)} title={t("share.redeemTitle")}>
-        <div className="space-y-4">
-          {redeemState.kind === "done" ? (
-            <>
-              <p className="text-sm font-medium">{t("share.redeemOk")}</p>
-              <p className="text-muted-foreground text-sm">
-                {t("share.preview", { name: redeemState.name, count: redeemState.count })}
-              </p>
-              <Button onClick={() => setRedeemOpen(false)}>{t("share.close")}</Button>
-            </>
-          ) : (
-            <>
-              <Input
-                value={redeemCode}
-                onChange={(e) => setRedeemCode(e.target.value.toUpperCase())}
-                placeholder={t("share.redeemPh")}
-                className="text-center font-mono text-lg tracking-[0.25em]"
-                maxLength={8}
-              />
-              {redeemState.kind === "invalid" && (
-                <p className="text-destructive text-sm">{t("share.invalid")}</p>
-              )}
-              <Button onClick={() => void handleRedeem()} disabled={redeemBusy} className="gap-2">
-                {redeemBusy && <Loader2 className="size-4 animate-spin" />}
-                {t("share.redeemBtn")}
-              </Button>
-            </>
-          )}
-        </div>
-      </Modal>
-
       <DocumentViewer docId={viewerDocId} onClose={() => setViewerDocId(null)} />
     </PageContainer>
   );

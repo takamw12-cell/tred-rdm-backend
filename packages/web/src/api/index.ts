@@ -34,7 +34,6 @@ import { fetchInstitutionLogo, isAllowedLogoDomain } from "./lib/institution-log
 import { db } from "./database";
 import {
   contentReport,
-  course,
   document,
   savedExercise,
   semester,
@@ -569,21 +568,9 @@ app.post("/api/agent/messages", async (c) => {
     if (!rows[0]) return c.json({ error: "document not found" }, 404);
     contextLabel = rows[0].title;
   } else if (courseId) {
-    // Tout un cours partagé — le Skript de la Vorlesung, ses Übungen et ses
-    // anciennes Klausuren, tels que la promotion les a déposés.
-    if (!mesCours.includes(courseId)) {
-      return c.json({ error: "course not found" }, 404);
-    }
-    rows = await db
-      .select()
-      .from(document)
-      .where(and(eq(document.courseId, courseId), eq(document.visibility, "course")));
-    const cours = await db
-      .select({ name: course.name })
-      .from(course)
-      .where(eq(course.id, courseId))
-      .limit(1);
-    contextLabel = cours[0]?.name ?? "Kurs";
+    // Les cours partagés sont fermés (12 nov. 2026, UrhG) : plus aucune
+    // question ne porte sur les documents d'un autre étudiant.
+    return c.json({ error: "Feature disabled" }, 403);
   } else if (subjectId) {
     // Un Fach : le script, les exercices et les anciennes klausuren ensemble.
     // C'est la portée que demande une vraie question de révision — « explique

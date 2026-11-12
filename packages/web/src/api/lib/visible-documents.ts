@@ -1,65 +1,33 @@
-import { and, eq, inArray, or, type SQL } from "drizzle-orm";
+import { eq, type SQL } from "drizzle-orm";
 
 import { document } from "../database/schema";
 
 /**
- * Ce qu'un étudiant a le droit de lire.
+ * Ce qu'un étudiant a le droit de lire : SES documents, et rien d'autre.
  *
- * ── Pourquoi cette fonction existe, et pourquoi elle est seule ────────────
+ * ── Décision du 12 nov. 2026 ──────────────────────────────────────────────
  *
- * Avant la bibliothèque partagée, la règle tenait en `eq(document.userId, moi)`
- * et elle était recopiée dans le chat, les exercices, les formules et la
- * recherche. Maintenant qu'un document peut aussi être visible parce qu'il est
- * publié dans un cours suivi, la règle a deux branches — et une règle à deux
- * branches recopiée à cinq endroits finit toujours par diverger.
+ * Le partage de cours est fermé (UrhG : un polycopié est une œuvre protégée).
+ * La règle redevient `eq(document.userId, moi)`, sans exception. Même un
+ * document resté par erreur en `visibility = "course"` n'est plus lisible que
+ * par son propriétaire : la colonne n'est plus consultée.
  *
- * Le jour où l'une des copies oublie la condition `visibility = "course"`,
- * chaque étudiant lit les documents privés de tous les autres. C'est la panne
- * dont on ne se relève pas : elle ne se voit pas, elle ne fait pas d'erreur,
- * et elle ne se découvre que de l'extérieur.
- *
- * D'où une fonction unique, testée, que tout appelant utilise.
- *
- * ── La règle ──────────────────────────────────────────────────────────────
- *
- *   je peux lire un document si
- *     il est à moi
- *     OU  il est publié (`visibility = "course"`) dans un cours dont je suis
- *         membre
- *
- * `visibility = "course"` n'est PAS redondant avec `courseId != null` : un
- * document retiré du partage garde son rattachement pour pouvoir y revenir
- * (voir le commentaire de la colonne). Sans cette condition, tout retrait
- * serait sans effet.
+ * La fonction reste l'unique point de passage (chat, exercices, formules,
+ * vidéo, Karteikarten, Klausur-Prognose) : le jour où une règle de partage
+ * revient, elle revient ici et nulle part ailleurs. Le paramètre `courseIds`
+ * est conservé pour ne pas toucher aux appelants ; il est ignoré.
  */
-export function visibleDocuments(userId: string, courseIds: string[]): SQL {
-  const mien = eq(document.userId, userId);
-  if (courseIds.length === 0) return mien;
-
-  const partage = and(
-    inArray(document.courseId, courseIds),
-    eq(document.visibility, "course"),
-  );
-
-  // `or` peut renvoyer undefined selon les surcharges de Drizzle ; le `??`
-  // garantit qu'un cas dégénéré retombe sur « seulement les miens », jamais
-  // sur « tout ». Se tromper dans ce sens ne fait perdre qu'un document.
-  return or(mien, partage) ?? mien;
+export function visibleDocuments(userId: string, _courseIds: string[] = []): SQL {
+  return eq(document.userId, userId);
 }
 
 /**
  * La même règle, appliquée à une ligne déjà lue.
- *
- * Sert aux vérifications ponctuelles — ouvrir un document par son identifiant,
- * par exemple — où l'on tient la ligne et non une requête.
  */
 export function canRead(
   row: { userId: string; courseId: string | null; visibility: string },
   userId: string,
-  courseIds: string[],
+  _courseIds: string[] = [],
 ): boolean {
-  if (row.userId === userId) return true;
-  if (row.visibility !== "course") return false;
-  if (row.courseId === null) return false;
-  return courseIds.includes(row.courseId);
+  return row.userId === userId;
 }

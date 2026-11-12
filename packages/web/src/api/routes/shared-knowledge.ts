@@ -3,7 +3,8 @@ import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { ORPCError } from "@orpc/server";
 import { authed } from "../middleware/auth";
 import { db } from "../database";
-import { courseMember, sharedKnowledge, sharedKnowledgeVote } from "../database/schema";
+import { featureDisabled } from "../lib/feature-disabled";
+import { sharedKnowledge, sharedKnowledgeVote } from "../database/schema";
 
 /**
  * Base de connaissances partagée d'un cours (V2 — Pilier 4, SQUELETTE).
@@ -16,13 +17,13 @@ import { courseMember, sharedKnowledge, sharedKnowledgeVote } from "../database/
  *               explicite par contribution, la modération et la mention dans
  *               la Datenschutzerklärung (docs/V2_ARCHITECTURE.md).
  */
-async function assertMember(userId: string, courseId: string) {
-  const [m] = await db
-    .select({ c: courseMember.courseId })
-    .from(courseMember)
-    .where(and(eq(courseMember.courseId, courseId), eq(courseMember.userId, userId)))
-    .limit(1);
-  if (!m) throw new ORPCError("FORBIDDEN");
+/**
+ * FERMÉ depuis le 12 nov. 2026 : la base partagée reposait sur l'appartenance
+ * à un cours, et les cours partagés sont coupés (UrhG). Toute lecture ou vote
+ * répond 403 « Feature disabled ». `course_member` n'est plus lue.
+ */
+async function assertMember(_userId: string, _courseId: string): Promise<never> {
+  return featureDisabled();
 }
 
 export const sharedKnowledgeRoutes = {

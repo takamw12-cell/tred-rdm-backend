@@ -794,8 +794,8 @@ export const de = {
       "{name} wurde gelöscht. {n} Unterlagen liegen jetzt unter „Nicht zugeordnet“ — gelöscht wurde nichts davon.",
   },
   emptyStart: {
-    title: "Fang mit deinen Vorlesungen an",
-    body: "Sag, welche Kurse du hörst — du siehst sofort, was deine Kommilitonen dort schon abgelegt haben. Dann kannst du fragen, bevor du selbst etwas hochlädst.",
+    title: "Fang mit deinen eigenen Unterlagen an",
+    body: "Lade dein Skript, ein Übungsblatt oder eine Altklausur hoch. TRED antwortet dann mit der genauen Seite. Deine Dokumente bleiben privat: Nur du siehst sie.",
     orUpload: "Oder lade dein eigenes Skript hoch.",
   },
   courses: {

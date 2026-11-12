@@ -63,68 +63,63 @@ describe("ce qui doit RESTER deux cours différents", () => {
   });
 });
 
-describe("qui a le droit de lire quoi", () => {
+/**
+ * Depuis le 12 nov. 2026, le partage est fermé (UrhG) : un document n'est
+ * lisible que par son propriétaire, quelles que soient les valeurs restées
+ * dans `courseId` et `visibility`.
+ */
+describe("qui a le droit de lire quoi : le propriétaire, et personne d'autre", () => {
   const MOI = "u-moi";
   const AUTRE = "u-autre";
   const MON_COURS = ["c-elektro"];
 
-  const prive = (userId: string) => ({
-    userId,
-    courseId: null,
-    visibility: "private",
-  });
-  const partage = (userId: string, courseId: string) => ({
-    userId,
-    courseId,
-    visibility: "course",
-  });
-
   test("mon document privé : oui", () => {
-    expect(canRead(prive(MOI), MOI, MON_COURS)).toBe(true);
+    expect(canRead({ userId: MOI, courseId: null, visibility: "private" }, MOI, MON_COURS)).toBe(true);
   });
 
   test("le document privé d'un autre : NON", () => {
-    expect(canRead(prive(AUTRE), MOI, MON_COURS)).toBe(false);
+    expect(canRead({ userId: AUTRE, courseId: null, visibility: "private" }, MOI, MON_COURS)).toBe(false);
   });
 
-  test("le document qu'un autre a partagé dans mon cours : oui", () => {
-    // Tout l'objet de la bibliothèque : le Skript déposé par quelqu'un d'autre.
-    expect(canRead(partage(AUTRE, "c-elektro"), MOI, MON_COURS)).toBe(true);
+  test("un document resté « partagé » dans mon ancien cours : NON", () => {
+    // La ligne que la migration n'aurait pas encore repassée en "private".
+    expect(canRead({ userId: AUTRE, courseId: "c-elektro", visibility: "course" }, MOI, MON_COURS)).toBe(false);
   });
 
-  test("un document partagé dans un cours que je NE suis PAS : non", () => {
-    expect(canRead(partage(AUTRE, "c-thermo"), MOI, MON_COURS)).toBe(false);
-  });
-
-  test("un étudiant sans aucun cours ne voit que les siens", () => {
-    expect(canRead(partage(AUTRE, "c-elektro"), MOI, [])).toBe(false);
-    expect(canRead(prive(MOI), MOI, [])).toBe(true);
-  });
-});
-
-describe("le retrait du partage doit être immédiat et total", () => {
-  const MOI = "u-moi";
-  const AUTRE = "u-autre";
-  const COURS = ["c-elektro"];
-
-  test("retiré, il redevient invisible même en gardant son rattachement", () => {
-    // `unshare` remet visibility à "private" SANS effacer courseId, pour
-    // pouvoir le remettre en ligne d'un geste. Si la lecture ne regardait que
-    // courseId, le retrait n'aurait aucun effet — et un retrait demandé par un
-    // professeur serait sans valeur.
-    const retire = { userId: AUTRE, courseId: "c-elektro", visibility: "private" };
-    expect(canRead(retire, MOI, COURS)).toBe(false);
-  });
-
-  test("mais son propriétaire continue de le lire", () => {
-    const retire = { userId: MOI, courseId: "c-elektro", visibility: "private" };
-    expect(canRead(retire, MOI, COURS)).toBe(true);
+  test("mon propre document resté « partagé » : je le lis toujours", () => {
+    expect(canRead({ userId: MOI, courseId: "c-elektro", visibility: "course" }, MOI, [])).toBe(true);
   });
 
   test("une visibilité inconnue ne donne aucun droit", () => {
-    // Défense en profondeur : si une valeur inattendue arrive un jour dans
-    // cette colonne, elle doit fermer, pas ouvrir.
-    const bizarre = { userId: AUTRE, courseId: "c-elektro", visibility: "public" };
-    expect(canRead(bizarre, MOI, COURS)).toBe(false);
+    expect(canRead({ userId: AUTRE, courseId: "c-elektro", visibility: "public" }, MOI, MON_COURS)).toBe(false);
+  });
+
+  test("la requête SQL ne regarde plus que le propriétaire", async () => {
+    const src = await Bun.file(new URL("../src/api/lib/visible-documents.ts", import.meta.url)).text();
+    const corps = src.slice(src.indexOf("export function visibleDocuments"));
+    expect(corps).toContain("return eq(document.userId, userId);");
+    expect(corps).not.toContain("inArray");
+    expect(corps).not.toContain("document.visibility");
+  });
+});
+
+describe("les routes de partage sont fermées", () => {
+  test("cours, semestre par code et base partagée répondent « Feature disabled »", async () => {
+    const lire = (f: string) => Bun.file(new URL(f, import.meta.url)).text();
+    const cours = await lire("../src/api/routes/courses.ts");
+    for (const route of ["mine", "search", "create", "join", "leave", "documents", "shareable", "share", "unshare"]) {
+      expect(cours).toContain(`  ${route}: ferme,`);
+    }
+    expect(cours).not.toContain("courseMember");
+    const semestres = await lire("../src/api/routes/semesters.ts");
+    for (const route of ["shareCreate", "shareInfo", "shareRedeem"]) {
+      expect(semestres).toContain(`${route}: authed.handler(() => featureDisabled())`);
+    }
+    expect(await lire("../src/api/lib/feature-disabled.ts")).toContain('new ORPCError("FORBIDDEN", { message: FEATURE_DISABLED })');
+  });
+
+  test("plus personne n'est membre d'un cours", async () => {
+    const { myCourseIds } = await import("../src/api/routes/courses");
+    expect(await myCourseIds("u-moi")).toEqual([]);
   });
 });

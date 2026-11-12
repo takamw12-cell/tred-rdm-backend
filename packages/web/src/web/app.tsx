@@ -55,7 +55,6 @@ const ExamPage = lazyPage(() => import("./pages/exam"));
 const SettingsPage = lazyPage(() => import("./pages/settings"));
 const PricingPage = lazyPage(() => import("./pages/pricing"));
 const CreditsPage = lazyPage(() => import("./pages/credits"));
-const CoursesPage = lazyPage(() => import("./pages/courses"));
 const AdminPage = lazyPage(() => import("./pages/admin"));
 const AdminAnalyticsPage = lazyPage(() => import("./pages/admin-analytics"));
 const AdminFeedbackPage = lazyPage(() => import("./pages/admin-feedback"));
@@ -116,7 +115,6 @@ function AuthedApp() {
             {/* Séparée de /pricing : le mur du quota tombe sur quelqu'un qui
                 révise, et qui veut dix questions ce soir — pas un abonnement. */}
             <Route path="/credits" component={CreditsPage} />
-            <Route path="/courses" component={CoursesPage} />
             <Route path="/professors" component={ProfessorsPage} />
             {/* Serverseitig durch die Admin-Rolle geschützt, nicht durch Verstecken. */}
             <Route path="/admin/analytics" component={AdminAnalyticsPage} />

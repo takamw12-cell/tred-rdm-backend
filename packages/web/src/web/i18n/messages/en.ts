@@ -795,8 +795,8 @@ export const en: Messages = {
       "{name} was deleted. {n} documents are now under \"Unassigned\" — none of them were deleted.",
   },
   emptyStart: {
-    title: "Start with your lectures",
-    body: "Tell us which courses you take — you will immediately see what your classmates have already put there. Then you can ask before uploading anything yourself.",
+    title: "Start with your own documents",
+    body: "Upload your lecture notes, an exercise sheet or a past exam. TRED then answers with the exact page. Your documents stay private: only you can see them.",
     orUpload: "Or upload your own script.",
   },
   courses: {

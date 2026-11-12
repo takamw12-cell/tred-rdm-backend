@@ -807,8 +807,8 @@ export const es: Messages = {
       "{name} se ha eliminado. {n} documentos están ahora en «Sin clasificar»: no se ha borrado ninguno.",
   },
   emptyStart: {
-    title: "Empieza por tus clases",
-    body: "Dinos qué cursos sigues: verás enseguida lo que tus compañeros ya han dejado ahí. Así puedes preguntar antes de subir nada.",
+    title: "Empieza con tus propios documentos",
+    body: "Sube tus apuntes, una hoja de ejercicios o un examen antiguo. TRED te responde entonces con la página exacta. Tus documentos son privados: solo tú los ves.",
     orUpload: "O sube tu propio material.",
   },
   courses: {
