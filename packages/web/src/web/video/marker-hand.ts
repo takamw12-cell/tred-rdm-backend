@@ -14,8 +14,14 @@ import type { Visual } from "../../api/lib/video-visuals";
 export const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
 const clamp01 = (t: number) => Math.max(0, Math.min(1, t));
 
-/** Les visuels où la main tient le feutre. Prototype : la poutre et ses charges. */
-export const HAND_VISUALS: readonly Visual[] = ["beam", "loads"];
+/**
+ * Les visuels où la main tient le feutre.
+ *   - poutre et charges : position calculée ici (`beamPen`), dans le repère du schéma ;
+ *   - les autres : la composition marque l'élément en cours d'écriture
+ *     (`data-pen`) et la main s'y pose (PenFollower).
+ * Sans main : l'image d'illustration (rien ne s'y trace) et la feuille de texte.
+ */
+export const HAND_VISUALS: readonly Visual[] = ["beam", "loads", "question", "highlight", "formula", "flowchart", "solver_plot", "recap"];
 
 export interface PenPoint {
   /** Position de la pointe, dans le repère du schéma (viewBox). */
@@ -111,16 +117,16 @@ export function loadCueFrame(words: { text: string; startMs: number }[], from: n
  * non-régression sur les scènes.
  */
 export const EFFECTS: Record<Visual, string> = {
-  question: "question tapée lettre à lettre",
+  question: "main-feutre : question écrite lettre à lettre",
   real_image: "image en fondu, lent travelling",
-  highlight: "citation, mots-clés surlignés au feutre",
-  formula: "formule en machine à écrire",
+  highlight: "main-feutre : citation écrite, mots-clés surlignés",
+  formula: "main-feutre : formule écrite caractère par caractère",
   beam: "main-feutre : poutre puis appuis",
   loads: "main-feutre : poutre, appuis, charges flèche après flèche",
-  solver_plot: "courbes du solveur tracées de gauche à droite",
-  flowchart: "cases une par une, flèches tracées",
+  solver_plot: "main-feutre : courbes du solveur tracées de gauche à droite",
+  flowchart: "main-feutre : cases une par une, flèches tracées",
   chart: "courbe de principe tracée",
-  recap: "points cochés un par un",
+  recap: "main-feutre : points cochés un par un",
   text: "feuille qui se remplit",
 };
 

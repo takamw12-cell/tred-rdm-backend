@@ -132,7 +132,9 @@ describe("animations — la composition", () => {
   });
   test("la formule s'écrit caractère par caractère, sur le rendu de KaTeX", () => {
     expect(src).toContain('output: "html"');
-    expect(src).toMatch(/i\+\+ < shown \? 1 : 0/);
+    // Chaque glyphe s'allume à son tour ; le dernier allumé porte la main-feutre.
+    expect(src).toMatch(/index < shown \? 1 : 0/);
+    expect(src).toContain("index === shown - 1");
   });
   test("l'image de contexte vient de la bibliothèque, jamais d'une adresse du script", () => {
     expect(src).toContain("props.realImages?.[props.backdrop]");

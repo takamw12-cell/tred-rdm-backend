@@ -61,11 +61,17 @@ describe("les 8 scènes du script réel, après passage par la main-feutre", () 
     expect([...fixture.sceneStartsMs].sort((a, b) => a - b)).toEqual(fixture.sceneStartsMs);
   });
 
-  test("un effet par scène ; la main ne tient le feutre que sur la poutre (prototype)", () => {
-    expect(plan.filter((p) => p.hand).map((p) => p.index + 1)).toEqual([5]);
+  test("un effet par scène ; la main tient le feutre partout où quelque chose se trace", () => {
+    // Toutes les scènes sauf l'image d'illustration (scène 2), où rien ne se trace.
+    expect(plan.filter((p) => p.hand).map((p) => p.index + 1)).toEqual([1, 3, 4, 5, 6, 7, 8]);
     for (const p of plan) expect(p.effect).toBe(EFFECTS[p.visual]);
     for (const v of VISUALS) expect(EFFECTS[v].length).toBeGreaterThan(5);
-    expect(HAND_VISUALS).toEqual(["beam", "loads"]);
+    expect(HAND_VISUALS).toContain("loads");
+    expect(HAND_VISUALS).not.toContain("real_image");
+    // Chaque visuel « à main » marque dans la composition l'élément que la main suit.
+    const src = readFileSync(join(import.meta.dir, "../src/web/video/dynamic-explanation.tsx"), "utf8");
+    expect(src.match(/"data-pen": ""|data-pen\b(?!-)/g)?.length).toBeGreaterThanOrEqual(7);
+    expect(src).toContain("<PenFollower frame={frame} />");
   });
 
   test("le titre du récapitulatif ne laisse plus de « ? » seul", () => {

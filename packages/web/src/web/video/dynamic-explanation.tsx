@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import katex from "katex";
 import { AbsoluteFill, Audio, Img, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { BoardStatus, GlassBoard, PaperNote, SolverStamp } from "@/components/hoersaal";
@@ -192,7 +192,12 @@ function Formula({ tex, reveal, color }: { tex: string; reveal: number; color?: 
     .map((piece, k) => {
       const glyphs = parsed.glyphs[k];
       if (!glyphs) return piece;
-      return `>${glyphs.map((g) => `<span style="opacity:${i++ < shown ? 1 : 0}">${g}</span>`).join("")}<`;
+      // `data-pen` : le dernier caractère tapé, que la main-feutre suit (PenFollower).
+      return `>${glyphs.map((g) => {
+        const index = i++;
+        const pen = shown > 0 && shown < parsed.total && index === shown - 1 ? " data-pen" : "";
+        return `<span${pen} style="opacity:${index < shown ? 1 : 0}">${g}</span>`;
+      }).join("")}<`;
     })
     .join("");
   return (
@@ -278,6 +283,62 @@ function MarkerHand({ pen, frame }: { pen: PenPoint; frame: number }) {
         <path d="M 100 -11 L 106 -9 L 97 31 L 92 30 Z" fill="#EAB308" />
       </g>
     </g>
+  );
+}
+
+/**
+ * La main-feutre sur les visuels qui ne sont pas des schémas SVG (question,
+ * citation, formule, diagramme de flux, courbes, récapitulatif).
+ *
+ * Chaque visuel marque d'un attribut `data-pen` l'élément qu'il est en train
+ * d'écrire ou de tracer ; ce composant lit sa position À CETTE IMAGE et y pose
+ * la pointe du feutre. Sans état d'une image à l'autre : chaque image se rend
+ * seule, dans n'importe quel ordre (rendu en parallèle).
+ *   data-pen-k : où se trouve la pointe sur la largeur de l'élément (0 → 1, défaut 1)
+ *   data-pen-v : "mid" pour le milieu de la hauteur (défaut : le bas)
+ */
+function PenFollower({ frame }: { frame: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [pen, setPen] = useState<{ x: number; y: number; frame: number } | null>(null);
+  useLayoutEffect(() => {
+    const host = ref.current;
+    const stage = host?.parentElement;
+    if (!host || !stage) return;
+    const targets = stage.querySelectorAll("[data-pen]");
+    const el = targets[targets.length - 1];
+    if (!el) return void setPen(null);
+    const h = host.getBoundingClientRect();
+    // Le rendu peut être mis à l'échelle (--scale, lecteur) : on revient aux points de la composition.
+    const scale = h.width / host.offsetWidth || 1;
+    const k = Number(el.getAttribute("data-pen-k") ?? 1);
+    const v = el.getAttribute("data-pen-v") === "mid" ? 0.5 : 0.9;
+    // Un texte qui passe à la ligne a une boîte par ligne : la pointe avance
+    // le long des lignes, l'une après l'autre, et non sur leur boîte englobante.
+    const lines = [...el.getClientRects()].filter((r) => r.width > 0);
+    const rects = lines.length > 0 ? lines : [el.getBoundingClientRect()];
+    let left = rects.reduce((sum, r) => sum + r.width, 0) * k;
+    let r = rects[rects.length - 1]!;
+    for (const line of rects) {
+      if (left <= line.width) {
+        r = line;
+        break;
+      }
+      left -= line.width;
+    }
+    left = Math.min(left, r.width);
+    setPen({ x: (r.left + left - h.left) / scale, y: (r.top + r.height * v - h.top) / scale, frame });
+  }, [frame]);
+  return (
+    <div ref={ref} style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 5 }}>
+      {pen && pen.frame === frame && (
+        <svg width="100%" height="100%" style={{ position: "absolute", inset: 0, overflow: "visible" }}>
+          {/* Un peu plus petite que sur les schémas : elle passe sur du texte, elle doit le cacher le moins possible. */}
+          <g transform={`translate(${pen.x} ${pen.y}) scale(0.8) translate(${-pen.x} ${-pen.y})`}>
+            <MarkerHand pen={{ x: pen.x, y: pen.y, opacity: 1, phase: "beam" }} frame={frame} />
+          </g>
+        </svg>
+      )}
+    </div>
   );
 }
 
@@ -433,6 +494,8 @@ function SolverPlot({ payload, reveal }: { payload: BeamDiagramPayload; reveal: 
       />
       {reveal > 0 && reveal < 1 && (
         <span
+          data-pen
+          data-pen-v="mid"
           style={{ position: "absolute", top: "4%", bottom: "4%", left: `${reveal * 100}%`, width: 3, borderRadius: 2, background: "#EAB308", boxShadow: "0 0 14px 3px rgb(234 179 8 / 0.65)" }}
         />
       )}
@@ -469,6 +532,8 @@ function Flowchart({ steps, local, cues, landscape }: { steps: string[]; local: 
         return (
           <div key={i} className="flex items-center" style={{ flexDirection: horizontal ? "row" : "column", flex: horizontal ? "1 1 0" : undefined, minWidth: 0 }}>
             <div
+              // La main-feutre accompagne la case qui vient d'arriver, puis la flèche qui en part.
+              {...(local >= at && local < at + 22 ? { "data-pen": "", "data-pen-k": String(Math.min(1, 0.25 + (local - at) / 22)) } : {})}
               style={{
                 position: "relative",
                 opacity: Math.min(1, k * 1.4),
@@ -530,7 +595,8 @@ function HighlightText({ text, keywords, local, dur, dark }: { text: string; key
           if (part.key < 0) {
             return (
               <span key={i}>
-                {shown}
+                {/* La main suit le texte pendant qu'il s'écrit. */}
+                <span {...(visible > 0 && visible < part.text.length ? { "data-pen": "" } : {})}>{shown}</span>
                 <span style={{ opacity: 0 }}>{hidden}</span>
               </span>
             );
@@ -541,6 +607,8 @@ function HighlightText({ text, keywords, local, dur, dark }: { text: string; key
           return (
             <span
               key={i}
+              // Le coup de surligneur : la main suit le bord du jaune.
+              {...(k > 0 && k < 1 ? { "data-pen": "", "data-pen-k": String(k) } : {})}
               style={{
                 display: "inline",
                 fontWeight: 700,
@@ -642,7 +710,7 @@ function QuestionCard({ text, local, dur }: { text: string; local: number; dur: 
       </span>
       <p className="font-hand" style={{ margin: 0, textAlign: "center", color: "#F8FAFC", fontSize: chars.length > 70 ? 27 : 33, fontWeight: 700, lineHeight: 1.18, minHeight: "2.4em" }}>
         {chars.slice(0, shown).join("")}
-        <span style={{ display: "inline-block", width: 3, height: "0.95em", marginLeft: 3, verticalAlign: "-0.12em", borderRadius: 2, background: "#EAB308", opacity: local < 14 ? 0 : caret }} />
+        <span {...(typing && local >= 14 ? { "data-pen": "" } : {})} style={{ display: "inline-block", width: 3, height: "0.95em", marginLeft: 3, verticalAlign: "-0.12em", borderRadius: 2, background: "#EAB308", opacity: local < 14 ? 0 : caret }} />
       </p>
     </div>
   );
@@ -662,7 +730,7 @@ function RecapList({ bullets, local, cues }: { bullets: string[]; local: number;
         const tick = progress(local, at + 6, at + 20);
         return (
           <div key={i} className="flex items-center" style={{ gap: 14, opacity: Math.min(1, k * 1.4), transform: `translateX(${(1 - Math.min(1, k)) * -22}px)` }}>
-            <svg width={38} height={38} viewBox="0 0 38 38" style={{ flexShrink: 0 }}>
+            <svg {...(tick > 0 && tick < 1 ? { "data-pen": "", "data-pen-k": String(0.3 + 0.5 * tick), "data-pen-v": "mid" } : {})} width={38} height={38} viewBox="0 0 38 38" style={{ flexShrink: 0 }}>
               <circle cx={19} cy={19} r={16} fill={`rgb(234 179 8 / ${0.16 + 0.84 * tick})`} stroke="#EAB308" strokeWidth={2.5} />
               <path d="M11 19.5 L17 25 L27.5 13.5" fill="none" stroke="#0F172A" strokeWidth={3.6} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={CHECK} strokeDashoffset={CHECK * (1 - tick)} />
             </svg>
@@ -993,6 +1061,8 @@ function DemoScene({
         <div style={{ position: "absolute", inset: isPhoto ? 0 : 12, opacity: fade }}>
           <SceneVisual scenes={scenes} index={index} timings={timings} frame={frame} landscape={landscape} props={props} />
         </div>
+        {/* La main-feutre des visuels non SVG : elle suit l'élément marqué `data-pen`. */}
+        {!BEAM_VISUALS.includes(scene.visual ?? "text") && !isPhoto && <PenFollower frame={frame} />}
         {isSolver && (
           <span style={{ position: "absolute", right: 14, top: 12, display: "inline-flex", opacity: progress(local, 30, 40), transform: `scale(${2 - progress(local, 30, 42)})`, ["--board-stamp" as string]: "#1D4ED8" }}>
             <SolverStamp label={props.labels.solver[0]} sublabel={props.labels.solver[1]} />
