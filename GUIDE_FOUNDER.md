@@ -627,3 +627,18 @@ Choix validé : rester dans Remotion (aucun nouvel outil, aucune dépendance) pl
 - La main ne calcule rien et ne lit aucune valeur : `packages/web/src/web/video/marker-hand.ts` ne fait que suivre le tracé existant. Positions et valeurs restent celles du solveur ; le contrôle anti-invention n'est pas touché.
 - Non-régression : `tests/marker-hand.test.ts` vérifie, sur le script réel de référence (`tests/fixtures/explainer-flexion.json`), que les 8 scènes sont là, dans l'ordre, avec le même texte.
 - Pour étendre la main à d'autres visuels (courbes du solveur, formules) : `HAND_VISUALS` dans `marker-hand.ts`, puis une fonction de position par visuel.
+
+## Compte de test en production (à supprimer avant l'ouverture publique)
+
+Créé le 12 nov. 2026 pour valider « Als Video erklären » de bout en bout sur tred-tutor.de, à ta demande. Ce n'est pas ton compte.
+
+- **Nom affiché :** « Test Pipeline ». **Adresse :** une boîte jetable `tredtest…@fldubai.com` (service mail.tm).
+- **Identifiants :** dans `C:\Users\HP\AppData\Local\Temp\tred-perf\prod-test\creds.json` sur ton PC (adresse, mot de passe du compte TRED, mot de passe de la boîte jetable). Ce fichier n'est pas dans le dépôt et ne doit jamais y entrer. Le dossier `prod-test\profile` à côté contient la session du navigateur de test. Attention : c'est un dossier temporaire de Windows ; si tu veux garder le compte longtemps, copie `creds.json` dans ton gestionnaire de mots de passe.
+- **Ce qu'il contient en production :** un document (`TM2_Testskript_Biegung`, un chapitre écrit pour le test) et une vidéo explicative (« Biegung eines Balkens – Schritt für Schritt »).
+- **Ses droits :** un compte étudiant ordinaire (tarif « beta »). Il n'est pas dans `ADMIN_EMAILS` et n'a aucun accès à l'administration.
+
+**Pour le supprimer le moment venu**, au choix :
+1. Te connecter avec ce compte (identifiants de `creds.json`), puis Einstellungen → « Konto löschen » et taper `LÖSCHEN`. C'est le parcours RGPD normal : le compte, son document, sa vidéo et le fichier audio sont effacés.
+2. Ou demander à Claude Code : « supprime le compte de test de production » ; il utilisera le même parcours avec la session gardée dans `prod-test\profile`.
+
+Ensuite, supprime le dossier `C:\Users\HP\AppData\Local\Temp\tred-perf\prod-test`. La boîte jetable disparaît d'elle-même.
