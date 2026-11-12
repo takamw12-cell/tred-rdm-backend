@@ -1,4 +1,5 @@
 import app from "./api";
+import { adminPageDenial } from "./api/lib/admin-guard";
 
 const port = Number(process.env.PORT ?? 3000);
 const distDir = `${import.meta.dir}/../dist`;
@@ -50,6 +51,12 @@ async function handle(request: Request): Promise<Response> {
   if (url.pathname.startsWith("/api")) {
     return app.fetch(request);
   }
+
+  // /admin et /admin/* : vérifié ICI, avant de servir le moindre octet. Un
+  // visiteur ou un étudiant reçoit un 404, comme si la page n'existait pas
+  // (lib/admin-guard.ts : e-mail dans ADMIN_EMAILS ET rôle admin).
+  const denied = await adminPageDenial(request);
+  if (denied) return denied;
 
   // Pages publiques pré-rendues (scripts/prerender.mjs) : le HTML complet,
   // lisible par les robots (Google, AdSense) sans exécuter JavaScript.

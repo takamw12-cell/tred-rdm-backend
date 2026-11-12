@@ -20,7 +20,7 @@ import { unconfigured } from "./pipeline";
 
 type AdminGuard = (c: {
   req: { raw: Request };
-}) => Promise<{ ok: true; userId: string } | { ok: false; status: 401 | 403 }>;
+}) => Promise<{ ok: true; userId: string } | { ok: false; status: 401 | 404 }>;
 
 export function registerAvatarRoutes(app: Hono, requireAdmin: AdminGuard) {
   /**
@@ -55,7 +55,7 @@ export function registerAvatarRoutes(app: Hono, requireAdmin: AdminGuard) {
    */
   app.post("/api/storage/upload", async (c) => {
     const guard = await requireAdmin(c);
-    if (!guard.ok) return c.json({ error: "FORBIDDEN" }, guard.status);
+    if (!guard.ok) return c.json({ error: "NOT_FOUND" }, guard.status);
     if (!mediaStorageConfigured()) return c.json({ error: "not_configured" }, 503);
 
     const declared = Number(c.req.header("content-length") ?? 0);

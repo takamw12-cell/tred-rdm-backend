@@ -176,7 +176,7 @@ describe("Câblage", () => {
 
   test("web : boîte de réception sur le tableau de bord, page /admin/retention ; mobile : tap = ouverte", () => {
     expect(read("src/web/pages/dashboard.tsx")).toContain("<NotificationInbox />");
-    expect(read("src/web/app.tsx")).toContain('<Route path="/admin/retention" component={AdminRetentionPage} />');
+    expect(read("src/web/app.tsx")).toContain('<Route path="/admin/retention">{() => <AdminGate><AdminRetentionPage /></AdminGate>}</Route>');
     expect(existsSync(join(import.meta.dir, "../src/web/pages/admin-retention.tsx"))).toBe(true);
     const mobile = readFileSync(join(import.meta.dir, "../../mobile/hooks/use-notifications.ts"), "utf8");
     expect(mobile).toContain("client.retention.open({ id: data.notificationId })");

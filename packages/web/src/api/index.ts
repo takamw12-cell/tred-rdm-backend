@@ -28,6 +28,7 @@ import { feedbackRoutes } from "./routes/feedback";
 import { subjects } from "./routes/subjects";
 import { courses, myCourseIds } from "./routes/courses";
 import { visibleDocuments } from "./lib/visible-documents";
+import { adminDenialStatus, checkAdmin } from "./lib/admin-guard";
 import { auth } from "./auth";
 import { rateLimitMiddleware } from "./middleware/rate-limit";
 import { fetchInstitutionLogo, isAllowedLogoDomain } from "./lib/institution-logo";
@@ -416,15 +417,26 @@ app.get("/api/config", (c) =>
 
 // ── Admin ─────────────────────────────────────────────────────────────────
 // Rolle kommt aus user_access; erste Vergabe über ADMIN_EMAILS in der Umgebung.
+// Une seule règle, dans lib/admin-guard.ts : e-mail dans ADMIN_EMAILS ET rôle
+// admin en base. Sans session : 401. Tout autre compte : 404 (jamais 403).
 async function requireAdmin(c: {
   req: { raw: Request };
-}): Promise<{ ok: true; userId: string } | { ok: false; status: 401 | 403 }> {
-  const session = await auth.api.getSession({ headers: c.req.raw.headers });
-  if (!session) return { ok: false, status: 401 };
-  const access = await getAccess(session.user.id, session.user.email);
-  if (access.role !== "admin" || !access.isActive) return { ok: false, status: 403 };
-  return { ok: true, userId: session.user.id };
+}): Promise<{ ok: true; userId: string } | { ok: false; status: 401 | 404 }> {
+  const check = await checkAdmin(c.req.raw.headers);
+  if (check.state === "admin") return { ok: true, userId: check.userId };
+  return { ok: false, status: adminDenialStatus(check) };
 }
+
+/** Le corps d'un refus : rien qui dise ce qui se trouve derrière. */
+const ADMIN_DENIED = { error: "NOT_FOUND" } as const;
+
+// L'interface demande ICI si elle peut afficher l'administration, avant de
+// charger la moindre page ou donnée (web/components/admin-gate.tsx).
+app.get("/api/admin/session", async (c) => {
+  const guard = await requireAdmin(c);
+  if (!guard.ok) return c.json(ADMIN_DENIED, guard.status);
+  return c.json({ ok: true });
+});
 
 // Professeur virtuel : LiveKit + stockage des médias. Répond 503 sans clés.
 registerAvatarRoutes(app, requireAdmin);
@@ -442,13 +454,13 @@ registerVisionRoutes(app);
 
 app.get("/api/admin/users", async (c) => {
   const guard = await requireAdmin(c);
-  if (!guard.ok) return c.json({ error: "FORBIDDEN" }, guard.status);
+  if (!guard.ok) return c.json(ADMIN_DENIED, guard.status);
   return c.json({ users: await listUsers() });
 });
 
 app.post("/api/admin/users/access", async (c) => {
   const guard = await requireAdmin(c);
-  if (!guard.ok) return c.json({ error: "FORBIDDEN" }, guard.status);
+  if (!guard.ok) return c.json(ADMIN_DENIED, guard.status);
 
   const body = (await c.req.json().catch(() => ({}))) as {
     userId?: string;
@@ -475,13 +487,13 @@ app.post("/api/admin/users/access", async (c) => {
  */
 app.get("/api/admin/reports", async (c) => {
   const guard = await requireAdmin(c);
-  if (!guard.ok) return c.json({ error: "FORBIDDEN" }, guard.status);
+  if (!guard.ok) return c.json(ADMIN_DENIED, guard.status);
   return c.json({ reports: await listOpenReports() });
 });
 
 app.post("/api/admin/reports/resolve", async (c) => {
   const guard = await requireAdmin(c);
-  if (!guard.ok) return c.json({ error: "FORBIDDEN" }, guard.status);
+  if (!guard.ok) return c.json(ADMIN_DENIED, guard.status);
   const body = (await c.req.json().catch(() => ({}))) as { id?: string };
   if (!body.id) return c.json({ error: "invalid body" }, 400);
   await resolveReport(body.id);

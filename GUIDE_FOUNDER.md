@@ -605,3 +605,15 @@ Chaque vidéo suit désormais quatre temps, dans l'ordre : **la question mystèr
 - Les vidéos déjà enregistrées se lisent comme avant (sans étiquette d'étape).
 - Aperçu : dans `packages/video`, `npx remotion studio src/index.ts`, composition `DynamicExplanation`.
 - Je n'ai pas lancé d'essai avec le vrai modèle (il coûte un appel par question) : la première vraie vidéo générée est à regarder de près.
+
+## Administration : réservée à ton compte (12 nov. 2026)
+
+`/admin` et toutes les données d'administration ne s'ouvrent que si DEUX conditions sont remplies, vérifiées sur le serveur (`packages/web/src/api/lib/admin-guard.ts`) :
+1. l'e-mail de la session figure exactement dans `ADMIN_EMAILS` (Railway → Variables) ;
+2. le compte a le rôle `admin` en base (attribué automatiquement à la prochaine connexion d'une adresse de la liste) et il est actif.
+
+- `ADMIN_EMAILS` vide ou mal écrite : personne n'entre, toi compris. Vérifie qu'elle contient bien l'e-mail de ton compte.
+- Retirer une adresse de la liste ferme son accès tout de suite, même si son rôle est resté en base.
+- Un visiteur reçoit 404 sur la page et 401 sur l'API ; un étudiant connecté reçoit 404 partout (jamais 403, qui confirmerait que la page existe).
+- Quand la vérification des adresses par e-mail est active (clé Resend), l'adresse doit être confirmée.
+- Le test `tests/admin-guard.test.ts` échoue si une route `/api/admin/*` est ajoutée sans garde.

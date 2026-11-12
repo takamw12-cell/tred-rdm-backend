@@ -22,7 +22,7 @@ import { computeCoreMetrics, isoDay, type ActivityRow, type SignupRow } from "./
  * Zahlen ändern sich nicht im Sekundentakt, und PostHog begrenzt Abfragen.
  */
 
-type Guard = (c: { req: { raw: Request } }) => Promise<{ ok: true; userId: string } | { ok: false; status: 401 | 403 }>;
+type Guard = (c: { req: { raw: Request } }) => Promise<{ ok: true; userId: string } | { ok: false; status: 401 | 404 }>;
 
 const CACHE_MS = 5 * 60_000;
 let cache: { at: number; body: unknown } | null = null;
@@ -165,7 +165,7 @@ async function dbMetrics() {
 export function registerAnalyticsRoutes(app: Hono, requireAdmin: Guard) {
   app.get("/api/admin/analytics", async (c) => {
     const guard = await requireAdmin(c);
-    if (!guard.ok) return c.json({ error: "FORBIDDEN" }, guard.status);
+    if (!guard.ok) return c.json({ error: "NOT_FOUND" }, guard.status);
     if (cache && Date.now() - cache.at < CACHE_MS && c.req.query("refresh") !== "1") {
       return c.json(cache.body);
     }

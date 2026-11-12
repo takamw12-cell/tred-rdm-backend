@@ -70,6 +70,8 @@ if (process.env.NODE_ENV === "production" && !process.env.WEBSITE_URL) {
  * lien ne partirait jamais (incident du 5 nov. 2026, adresse de test Resend).
  */
 const verifyByMail = mailCanReachAnyone();
+/** Ce serveur confirme-t-il les adresses par e-mail ? Lu par la garde d'administration. */
+export const emailVerificationActive = verifyByMail;
 if (process.env.NODE_ENV === "production" && !verifyByMail) {
   console.warn(
     mailConfigured()

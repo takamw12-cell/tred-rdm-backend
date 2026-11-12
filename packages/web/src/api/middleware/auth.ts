@@ -2,6 +2,7 @@ import { ORPCError } from "@orpc/server";
 import { base } from "../__core/app";
 import { auth } from "../auth";
 import { getAccess } from "../lib/access";
+import { checkAdmin } from "../lib/admin-guard";
 
 /** Optional auth — `context.user` is the session user or null. */
 export const withUser = base.use(async ({ context, next }) => {
@@ -27,12 +28,13 @@ export const authed = base.use(async ({ context, next }) => {
 });
 
 /**
- * Procédures réservées au rôle admin. Même source de vérité que la garde REST
- * `requireAdmin()` d'api/index.ts : `getAccess` (table user_access, puis
- * ADMIN_EMAILS). Un compte non admin reçoit FORBIDDEN — jamais les données.
+ * Procédures réservées à l'administration. Même règle que la garde REST et
+ * que la page : lib/admin-guard.ts (e-mail dans ADMIN_EMAILS ET rôle admin).
+ * Un compte qui n'est pas admin reçoit NOT_FOUND — jamais FORBIDDEN, qui
+ * confirmerait que la procédure existe — et jamais les données.
  */
 export const adminOnly = authed.use(async ({ context, next }) => {
-  // Lu une seule fois, par `authed` (compte actif déjà vérifié).
-  if (context.access.role !== "admin" || !context.access.isActive) throw new ORPCError("FORBIDDEN");
+  const check = await checkAdmin(context.headers);
+  if (check.state !== "admin") throw new ORPCError("NOT_FOUND");
   return next();
 });

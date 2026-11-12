@@ -15,6 +15,7 @@ import LoginPage from "./pages/login";
 import DashboardPage from "./pages/dashboard";
 import { lazy, Suspense, useEffect, useLayoutEffect, useState, type ComponentType } from "react";
 import { hydrateProfile } from "./lib/profile-sync";
+import { AdminGate } from "./components/admin-gate";
 import { useQueryClient } from "@tanstack/react-query";
 import { identifyUser } from "./lib/analytics";
 import { AnalyticsConsent } from "./components/analytics-consent";
@@ -117,10 +118,11 @@ function AuthedApp() {
             <Route path="/credits" component={CreditsPage} />
             <Route path="/professors" component={ProfessorsPage} />
             {/* Serverseitig durch die Admin-Rolle geschützt, nicht durch Verstecken. */}
-            <Route path="/admin/analytics" component={AdminAnalyticsPage} />
-            <Route path="/admin/feedback" component={AdminFeedbackPage} />
-            <Route path="/admin/retention" component={AdminRetentionPage} />
-            <Route path="/admin" component={AdminPage} />
+            {/* Rien de l'administration n'est monté avant le « oui » du serveur (AdminGate). */}
+            <Route path="/admin/analytics">{() => <AdminGate><AdminAnalyticsPage /></AdminGate>}</Route>
+            <Route path="/admin/feedback">{() => <AdminGate><AdminFeedbackPage /></AdminGate>}</Route>
+            <Route path="/admin/retention">{() => <AdminGate><AdminRetentionPage /></AdminGate>}</Route>
+            <Route path="/admin">{() => <AdminGate><AdminPage /></AdminGate>}</Route>
             <Route component={RootRedirect} />
           </Switch>
           </ErrorBoundary>
