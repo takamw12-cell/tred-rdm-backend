@@ -62,7 +62,8 @@ export function beamPen(input: BeamPenInput): PenPoint {
   const { draw, loads, x0, x1, y, supportXs, loadLine, arrows } = input;
   const length = x1 - x0;
   if (draw <= 0) return { x: x0, y, opacity: 0, phase: "idle" };
-  const fadeIn = clamp01(draw / 0.05);
+  // Fondus : un quart du tracé de la poutre (10 images, 0,33 s).
+  const fadeIn = clamp01(draw / 0.25);
 
   if (loads <= 0) {
     // 1. La poutre : la pointe est exactement au bout du trait (même formule que stroke-dashoffset).
@@ -74,7 +75,7 @@ export function beamPen(input: BeamPenInput): PenPoint {
     const k = easeOutCubic(t - i);
     const a = stops[i]!;
     const b = stops[i + 1]!;
-    return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, opacity: draw >= 1 ? 0 : 1 - clamp01((draw - 0.92) / 0.08), phase: draw >= 1 ? "done" : "supports" };
+    return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, opacity: draw >= 1 ? 0 : 1 - clamp01((draw - 0.75) / 0.25), phase: draw >= 1 ? "done" : "supports" };
   }
 
   // 3. Le trait des charges réparties.
@@ -82,18 +83,18 @@ export function beamPen(input: BeamPenInput): PenPoint {
   const v = loads * (arrows.length + 4) * 0.6;
   const started = arrows.findIndex((_, i) => clamp01(v - i * 0.55) > 0);
   if (loadLine && lineK < 1 && started < 0) {
-    return { x: loadLine.from + (loadLine.to - loadLine.from) * lineK, y: loadLine.top, opacity: clamp01(loads / 0.04), phase: "load-line" };
+    return { x: loadLine.from + (loadLine.to - loadLine.from) * lineK, y: loadLine.top, opacity: clamp01(loads / 0.16), phase: "load-line" };
   }
   // 4. Les flèches : la main suit celle qui est en train de tomber (la plus à droite commencée).
   let current = -1;
   arrows.forEach((_, i) => {
     if (clamp01(v - i * 0.55) > 0) current = i;
   });
-  if (current < 0) return { x: loadLine?.from ?? x0, y: loadLine?.top ?? y, opacity: clamp01(loads / 0.04), phase: "load-line" };
+  if (current < 0) return { x: loadLine?.from ?? x0, y: loadLine?.top ?? y, opacity: clamp01(loads / 0.16), phase: "load-line" };
   const arrow = arrows[current]!;
   const k = easeOutCubic(clamp01(v - current * 0.55));
   const finished = current === arrows.length - 1 && k >= 1;
-  return { x: arrow.x, y: arrow.top + (arrow.tip - arrow.top) * k, opacity: finished ? (loads >= 1 ? 0 : 1 - clamp01((loads - 0.9) / 0.1)) : 1, phase: finished && loads >= 1 ? "done" : "arrows" };
+  return { x: arrow.x, y: arrow.top + (arrow.tip - arrow.top) * k, opacity: finished ? (loads >= 1 ? 0 : 1 - clamp01((loads - 0.84) / 0.16)) : clamp01(loads / 0.16), phase: finished && loads >= 1 ? "done" : "arrows" };
 }
 
 /**

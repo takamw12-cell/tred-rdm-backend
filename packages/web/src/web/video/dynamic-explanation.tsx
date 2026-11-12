@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import katex from "katex";
-import { AbsoluteFill, Audio, Img, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Audio, Img, continueRender, delayRender, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { BoardStatus, GlassBoard, PaperNote, SolverStamp } from "@/components/hoersaal";
 import { HoersaalStage } from "@/components/hoersaal-stage";
 import { HologramProfessor } from "@/components/hologram-professor";
@@ -164,6 +164,13 @@ function Backgrounds({ images }: { images: string[] }) {
   );
 }
 
+/** Fondu de la main-feutre : 10 images (0,33 s) à l'apparition et à la disparition. */
+const PEN_FADE = 10;
+const penFade = (local: number, from: number, to: number) => Math.max(0, Math.min(1, (local - from) / PEN_FADE, (to - local) / PEN_FADE));
+/** Les attributs que lit PenFollower ; rien si la main n'est pas visible. */
+const penAttrs = (opacity: number, k = 1, extra: Record<string, string> = {}) =>
+  opacity > 0 ? { "data-pen": "", "data-pen-o": opacity.toFixed(3), "data-pen-k": String(k), ...extra } : {};
+
 /** Rebond d'apparition (pop-in), piloté par `spring` de Remotion. */
 const pop = (frame: number, at: number, damping = 13) => (frame < at ? 0 : spring({ frame: frame - at, fps: EXPLAINER_FPS, config: { damping, stiffness: 150, mass: 0.7 } }));
 
@@ -195,7 +202,9 @@ function Formula({ tex, reveal, color }: { tex: string; reveal: number; color?: 
       // `data-pen` : le dernier caractère tapé, que la main-feutre suit (PenFollower).
       return `>${glyphs.map((g) => {
         const index = i++;
-        const pen = shown > 0 && shown < parsed.total && index === shown - 1 ? " data-pen" : "";
+        // Fondu en début et en fin d'écriture (un quart de la frappe, environ 0,35 s).
+        const o = Math.max(0, Math.min(1, reveal / 0.25, (1 - reveal) / 0.25));
+        const pen = shown > 0 && index === shown - 1 && o > 0 ? ` data-pen data-pen-o="${o.toFixed(3)}"` : "";
         return `<span${pen} style="opacity:${index < shown ? 1 : 0}">${g}</span>`;
       }).join("")}<`;
     })
@@ -262,20 +271,20 @@ const LENGTH = { m: 1, cm: 0.01, mm: 0.001 } as const;
  * `pen`. Dessinée dans le repère du schéma ; elle tremble très légèrement,
  * comme une main qui écrit. Purement décorative : elle ne trace rien.
  */
-function MarkerHand({ pen, frame }: { pen: PenPoint; frame: number }) {
+function MarkerHand({ pen, frame, angle = 38 }: { pen: PenPoint; frame: number; angle?: number }) {
   if (pen.opacity <= 0) return null;
   const wobble = Math.sin(frame / 2.3) * 1.2;
   return (
     <g transform={`translate(${pen.x} ${pen.y}) rotate(${wobble})`} opacity={pen.opacity} style={{ filter: "drop-shadow(0 5px 6px rgb(15 23 42 / 0.28))" }}>
       {/* Le feutre : pointe à l'origine, corps vers le bas à droite. */}
-      <g transform="rotate(38)">
+      <g transform={`rotate(${angle})`}>
         <path d="M 0 0 L 9 -3.4 L 9 3.4 Z" fill="#0F172A" />
         <rect x={9} y={-5.2} width={10} height={10.4} rx={1.6} fill="#EAB308" />
         <rect x={19} y={-6.4} width={78} height={12.8} rx={5} fill="#1B2A4A" />
         <rect x={19} y={-6.4} width={78} height={4} rx={2} fill="#33466F" />
       </g>
       {/* La main : le poing qui tient le feutre, puis le poignet et la manche. */}
-      <g transform="rotate(38)">
+      <g transform={`rotate(${angle})`}>
         <path d="M 34 -13 C 44 -19, 60 -18, 66 -9 C 72 -2, 72 10, 64 17 C 54 25, 38 24, 31 16 C 26 10, 27 -6, 34 -13 Z" fill="#F1C7A0" stroke="#B98A63" strokeWidth={1.2} />
         <path d="M 37 -8 C 43 -11, 50 -11, 55 -7 M 36 -1 C 42 -4, 50 -4, 56 0 M 36 6 C 42 4, 49 4, 55 8" fill="none" stroke="#B98A63" strokeWidth={1.1} strokeLinecap="round" />
         <path d="M 60 -12 C 74 -16, 96 -12, 118 -4 L 110 30 C 92 30, 74 26, 62 16 Z" fill="#F1C7A0" stroke="#B98A63" strokeWidth={1.2} />
@@ -295,23 +304,39 @@ function MarkerHand({ pen, frame }: { pen: PenPoint; frame: number }) {
  * la pointe du feutre. Sans état d'une image à l'autre : chaque image se rend
  * seule, dans n'importe quel ordre (rendu en parallèle).
  *   data-pen-k : où se trouve la pointe sur la largeur de l'élément (0 → 1, défaut 1)
- *   data-pen-v : "mid" pour le milieu de la hauteur (défaut : le bas)
+ *   data-pen-v : "mid" pour le milieu de la hauteur ; "under" pour SOUS l'élément
+ *                (texte, case) : le feutre arrive alors par-dessous, presque à
+ *                la verticale, et ne recouvre pas ce qu'il suit
+ *   data-pen-o : opacité (fondu d'apparition et de disparition, calculé par le visuel)
+ * Si plusieurs éléments sont marqués, le plus visible l'emporte.
  */
 function PenFollower({ frame }: { frame: number }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [pen, setPen] = useState<{ x: number; y: number; frame: number } | null>(null);
+  const [pen, setPen] = useState<{ x: number; y: number; o: number; under: boolean; frame: number } | null>(null);
   useLayoutEffect(() => {
     const host = ref.current;
     const stage = host?.parentElement;
     if (!host || !stage) return;
-    const targets = stage.querySelectorAll("[data-pen]");
-    const el = targets[targets.length - 1];
+    // La position est lue APRÈS la mise en page de cette image (une image
+    // d'animation plus tard), et le rendu attend cette lecture : mesurée trop
+    // tôt, la case d'un diagramme n'est pas encore à sa place (vu à l'essai).
+    const handle = delayRender("main-feutre : position de la pointe");
+    const raf = requestAnimationFrame(() => {
+      measure();
+      continueRender(handle);
+    });
+    function measure() {
+      if (!host || !stage) return;
+    const opacityOf = (t: Element) => Number(t.getAttribute("data-pen-o") ?? 1);
+    // Le plus visible ; à égalité, le dernier (celui qui vient d'arriver).
+    const el = [...stage.querySelectorAll("[data-pen]")].reduce<Element | null>((best, t) => (!best || opacityOf(t) >= opacityOf(best) ? t : best), null);
     if (!el) return void setPen(null);
     const h = host.getBoundingClientRect();
     // Le rendu peut être mis à l'échelle (--scale, lecteur) : on revient aux points de la composition.
     const scale = h.width / host.offsetWidth || 1;
     const k = Number(el.getAttribute("data-pen-k") ?? 1);
-    const v = el.getAttribute("data-pen-v") === "mid" ? 0.5 : 0.9;
+    const under = el.getAttribute("data-pen-v") === "under";
+    const v = el.getAttribute("data-pen-v") === "mid" ? 0.5 : under ? 1.04 : 0.9;
     // Un texte qui passe à la ligne a une boîte par ligne : la pointe avance
     // le long des lignes, l'une après l'autre, et non sur leur boîte englobante.
     const lines = [...el.getClientRects()].filter((r) => r.width > 0);
@@ -326,15 +351,22 @@ function PenFollower({ frame }: { frame: number }) {
       left -= line.width;
     }
     left = Math.min(left, r.width);
-    setPen({ x: (r.left + left - h.left) / scale, y: (r.top + r.height * v - h.top) / scale, frame });
+      setPen({ x: (r.left + left - h.left) / scale, y: (r.top + r.height * v - h.top) / scale, o: opacityOf(el), under, frame });
+    }
+    return () => {
+      cancelAnimationFrame(raf);
+      continueRender(handle);
+    };
   }, [frame]);
   return (
     <div ref={ref} style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 5 }}>
       {pen && pen.frame === frame && (
         <svg width="100%" height="100%" style={{ position: "absolute", inset: 0, overflow: "visible" }}>
-          {/* Un peu plus petite que sur les schémas : elle passe sur du texte, elle doit le cacher le moins possible. */}
-          <g transform={`translate(${pen.x} ${pen.y}) scale(0.8) translate(${-pen.x} ${-pen.y})`}>
-            <MarkerHand pen={{ x: pen.x, y: pen.y, opacity: 1, phase: "beam" }} frame={frame} />
+          {/* Sur du texte : plus petite, et le feutre arrive par-dessous, presque à la
+              verticale — la pointe touche le bas de la ligne, la main reste en dessous
+              et ne recouvre pas ce qu'elle suit. */}
+          <g transform={`translate(${pen.x} ${pen.y}) scale(${pen.under ? 0.66 : 0.8}) translate(${-pen.x} ${-pen.y})`}>
+            <MarkerHand pen={{ x: pen.x, y: pen.y, opacity: pen.o, phase: "beam" }} frame={frame} angle={pen.under ? 78 : 38} />
           </g>
         </svg>
       )}
@@ -494,8 +526,7 @@ function SolverPlot({ payload, reveal }: { payload: BeamDiagramPayload; reveal: 
       />
       {reveal > 0 && reveal < 1 && (
         <span
-          data-pen
-          data-pen-v="mid"
+          {...penAttrs(Math.max(0, Math.min(1, reveal / 0.1, (1 - reveal) / 0.1)), 1, { "data-pen-v": "mid" })}
           style={{ position: "absolute", top: "4%", bottom: "4%", left: `${reveal * 100}%`, width: 3, borderRadius: 2, background: "#EAB308", boxShadow: "0 0 14px 3px rgb(234 179 8 / 0.65)" }}
         />
       )}
@@ -533,7 +564,8 @@ function Flowchart({ steps, local, cues, landscape }: { steps: string[]; local: 
           <div key={i} className="flex items-center" style={{ flexDirection: horizontal ? "row" : "column", flex: horizontal ? "1 1 0" : undefined, minWidth: 0 }}>
             <div
               // La main-feutre accompagne la case qui vient d'arriver, puis la flèche qui en part.
-              {...(local >= at && local < at + 22 ? { "data-pen": "", "data-pen-k": String(Math.min(1, 0.25 + (local - at) / 22)) } : {})}
+              // Jamais avant que la case soit visible (4 images après son arrivée).
+              {...penAttrs(penFade(local, at + 4, at + 40), Math.min(1, 0.3 + Math.max(0, local - at - 4) / 30), { "data-pen-v": "under" })}
               style={{
                 position: "relative",
                 opacity: Math.min(1, k * 1.4),
@@ -580,7 +612,8 @@ function HighlightText({ text, keywords, local, dur, dark }: { text: string; key
   const slot = (dur * 0.6) / Math.max(1, keywords.length);
   const size = text.length > 220 ? 17 : text.length > 130 ? 20 : 24;
   // Le texte arrive mot par mot, puis les mots-clés s'allument.
-  const typed = interpolate(local, [3, Math.min(dur * 0.3, 50)], [0, text.length], clamp);
+  const typeEnd = Math.min(dur * 0.3, 50);
+  const typed = interpolate(local, [3, typeEnd], [0, text.length], clamp);
   let seen = 0;
   return (
     <div className="grid h-full w-full place-items-center">
@@ -596,7 +629,7 @@ function HighlightText({ text, keywords, local, dur, dark }: { text: string; key
             return (
               <span key={i}>
                 {/* La main suit le texte pendant qu'il s'écrit. */}
-                <span {...(visible > 0 && visible < part.text.length ? { "data-pen": "" } : {})}>{shown}</span>
+                <span {...(visible > 0 && visible < part.text.length ? penAttrs(penFade(local, 3, typeEnd), 1, { "data-pen-v": "under" }) : {})}>{shown}</span>
                 <span style={{ opacity: 0 }}>{hidden}</span>
               </span>
             );
@@ -608,7 +641,7 @@ function HighlightText({ text, keywords, local, dur, dark }: { text: string; key
             <span
               key={i}
               // Le coup de surligneur : la main suit le bord du jaune.
-              {...(k > 0 && k < 1 ? { "data-pen": "", "data-pen-k": String(k) } : {})}
+              {...penAttrs(penFade(local, at - 8, at + 24), k, { "data-pen-v": "under" })}
               style={{
                 display: "inline",
                 fontWeight: 700,
@@ -710,7 +743,7 @@ function QuestionCard({ text, local, dur }: { text: string; local: number; dur: 
       </span>
       <p className="font-hand" style={{ margin: 0, textAlign: "center", color: "#F8FAFC", fontSize: chars.length > 70 ? 27 : 33, fontWeight: 700, lineHeight: 1.18, minHeight: "2.4em" }}>
         {chars.slice(0, shown).join("")}
-        <span {...(typing && local >= 14 ? { "data-pen": "" } : {})} style={{ display: "inline-block", width: 3, height: "0.95em", marginLeft: 3, verticalAlign: "-0.12em", borderRadius: 2, background: "#EAB308", opacity: local < 14 ? 0 : caret }} />
+        <span {...penAttrs(penFade(local, 14, typeEnd + 8), 1, { "data-pen-v": "under" })} style={{ display: "inline-block", width: 3, height: "0.95em", marginLeft: 3, verticalAlign: "-0.12em", borderRadius: 2, background: "#EAB308", opacity: local < 14 ? 0 : caret }} />
       </p>
     </div>
   );
@@ -730,7 +763,7 @@ function RecapList({ bullets, local, cues }: { bullets: string[]; local: number;
         const tick = progress(local, at + 6, at + 20);
         return (
           <div key={i} className="flex items-center" style={{ gap: 14, opacity: Math.min(1, k * 1.4), transform: `translateX(${(1 - Math.min(1, k)) * -22}px)` }}>
-            <svg {...(tick > 0 && tick < 1 ? { "data-pen": "", "data-pen-k": String(0.3 + 0.5 * tick), "data-pen-v": "mid" } : {})} width={38} height={38} viewBox="0 0 38 38" style={{ flexShrink: 0 }}>
+            <svg {...penAttrs(penFade(local, at + 2, at + 34), 0.3 + 0.5 * tick, { "data-pen-v": "mid" })} width={38} height={38} viewBox="0 0 38 38" style={{ flexShrink: 0 }}>
               <circle cx={19} cy={19} r={16} fill={`rgb(234 179 8 / ${0.16 + 0.84 * tick})`} stroke="#EAB308" strokeWidth={2.5} />
               <path d="M11 19.5 L17 25 L27.5 13.5" fill="none" stroke="#0F172A" strokeWidth={3.6} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={CHECK} strokeDashoffset={CHECK * (1 - tick)} />
             </svg>

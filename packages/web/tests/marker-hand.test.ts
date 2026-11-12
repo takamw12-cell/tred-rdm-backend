@@ -70,7 +70,10 @@ describe("les 8 scènes du script réel, après passage par la main-feutre", () 
     expect(HAND_VISUALS).not.toContain("real_image");
     // Chaque visuel « à main » marque dans la composition l'élément que la main suit.
     const src = readFileSync(join(import.meta.dir, "../src/web/video/dynamic-explanation.tsx"), "utf8");
-    expect(src.match(/"data-pen": ""|data-pen\b(?!-)/g)?.length).toBeGreaterThanOrEqual(7);
+    // question, citation (texte + mot-clé), diagramme, courbes, récapitulatif ; la formule écrit son attribut elle-même.
+    expect(src.match(/\{\.\.\.(?:\([^)]*\? )?penAttrs\(/g)?.length ?? 0).toBeGreaterThanOrEqual(5);
+    expect(src.match(/penAttrs\(/g)?.length ?? 0).toBeGreaterThanOrEqual(6);
+    expect(src).toContain('` data-pen data-pen-o="${o.toFixed(3)}"`');
     expect(src).toContain("<PenFollower frame={frame} />");
   });
 
@@ -168,5 +171,39 @@ describe("calée sur la voix", () => {
     const hand = readFileSync(join(import.meta.dir, "../src/web/video/marker-hand.ts"), "utf8");
     // Module pur : ni React, ni Remotion, ni solveur.
     expect(/from "(react|remotion)"|from "[^"]*solver/.test(hand)).toBe(false);
+  });
+});
+
+describe("les trois corrections du 12 nov. 2026", () => {
+  const src = readFileSync(join(import.meta.dir, "../src/web/video/dynamic-explanation.tsx"), "utf8");
+
+  test("fondu : la main apparaît et disparaît en 0,3 à 0,5 s, sur la poutre comme ailleurs", () => {
+    // Poutre : le tracé dure 40 images ; le fondu en prend un quart (10 images, 0,33 s).
+    expect(beamPen({ ...base, draw: 0.05, loads: 0 }).opacity).toBeCloseTo(0.2, 6);
+    expect(beamPen({ ...base, draw: 0.125, loads: 0 }).opacity).toBeCloseTo(0.5, 6);
+    expect(beamPen({ ...base, draw: 0.25, loads: 0 }).opacity).toBe(1);
+    const sortie = [0.8, 0.9, 0.99].map((draw) => beamPen({ ...base, draw, loads: 0 }).opacity);
+    expect(sortie[0]!).toBeGreaterThan(sortie[1]!);
+    expect(sortie[1]!).toBeGreaterThan(sortie[2]!);
+    // Charges : entrée et sortie progressives aussi.
+    expect(beamPen({ ...base, draw: 1, loads: 0.08 }).opacity).toBeCloseTo(0.5, 6);
+    const fin = beamPen({ ...base, draw: 1, loads: 0.95 }).opacity;
+    expect(fin).toBeGreaterThan(0);
+    expect(fin).toBeLessThan(1);
+    // Les autres visuels : 10 images à 30 images par seconde.
+    expect(src).toContain("const PEN_FADE = 10;");
+    expect(src).toContain("(local - from) / PEN_FADE, (to - local) / PEN_FADE");
+  });
+
+  test("diagramme : la main n'arrive jamais avant la case", () => {
+    expect(src).toContain("penFade(local, at + 4, at + 40)");
+    expect(src).not.toContain("local >= at && local < at + 22");
+  });
+
+  test("texte : le feutre arrive par-dessous, la main reste sous la ligne qu'elle suit", () => {
+    // Citation (texte et mot-clé), question et diagramme demandent la position « under ».
+    expect(src.match(/"data-pen-v": "under"/g)?.length).toBe(4);
+    expect(src).toContain("under ? 1.04 : 0.9");
+    expect(src).toContain("angle={pen.under ? 78 : 38}");
   });
 });
