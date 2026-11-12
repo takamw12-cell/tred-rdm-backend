@@ -2,7 +2,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 
 import { db } from "../database";
 import { purchasedCredits, usageCounter, userPlan } from "../database/schema";
-import { LIMITS, currentPeriod, type PlanId } from "./plan";
+import { LIMITS, betaFree, currentPeriod, type PlanId } from "./plan";
 import type { TrialDb } from "./trial";
 
 /**
@@ -130,7 +130,9 @@ export async function quiEstPresqueAuBout(ids: string[]): Promise<AlerteQuota[]>
     if (enEssai.has(userId)) continue;
     if ((soldeParUtilisateur.get(userId) ?? 0) > 0) continue;
 
-    const plan = planParUtilisateur.get(userId) ?? "free";
+    const stocke = planParUtilisateur.get(userId) ?? "free";
+    // Bêta gratuite : un compte non abonné a les compteurs de la bêta, pas ceux de Free.
+    const plan: PlanId = stocke === "free" && betaFree() ? "beta" : stocke;
     const limite = LIMITS[plan].chat;
     const used = chatParUtilisateur.get(userId) ?? 0;
     if (limite <= 0) continue;

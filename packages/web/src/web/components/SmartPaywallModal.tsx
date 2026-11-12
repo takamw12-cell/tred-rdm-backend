@@ -100,7 +100,9 @@ export function SmartPaywallModal({
     onError: () => setError(c.checkoutError),
   });
 
-  const isFree = plan === null || plan === "free";
+  // Bêta gratuite : aucune offre payante n'est proposée, seulement l'explication.
+  const beta = sub?.beta ?? plan === "beta";
+  const isFree = !beta && (plan === null || plan === "free");
   const trialAvailable = isFree && !!sub?.trial.available;
   const prices = sub ? resolvePrices(sub.pricing, sub.offers) : null;
   const money = (cents: number) => formatMoney(cents, prices?.currency ?? "EUR", locale);
@@ -163,9 +165,19 @@ export function SmartPaywallModal({
                       </span>
                     )}
                     <h2 id="paywall-title" className="font-display mt-3 pr-8 text-2xl font-extrabold leading-tight tracking-tight">
-                      {c.wallTitle(metric)}
+                      {beta ? c.wallBetaTitle : c.wallTitle(metric)}
                     </h2>
-                    <p className="mt-2 text-sm text-white/70">{isFree ? c.wallBody : c.wallPaidBody}</p>
+                    <p className="mt-2 text-sm text-white/70">{beta ? c.wallBetaBody : isFree ? c.wallBody : c.wallPaidBody}</p>
+                    {beta && (
+                      <button
+                        type="button"
+                        onClick={onClose}
+                        data-testid="paywall-primary"
+                        className="mt-5 flex w-full items-center justify-center rounded-xl bg-[#EAB308] px-4 py-3.5 text-[15px] font-bold text-[#1A1A1A] transition-transform hover:brightness-105 active:scale-[0.99]"
+                      >
+                        {c.ok}
+                      </button>
+                    )}
 
                     {/* L'offre mise en avant : le semestriel, ramené au mois. */}
                     {isFree && prices && student && (
@@ -194,7 +206,7 @@ export function SmartPaywallModal({
                       </div>
                     )}
 
-                    <div className="mt-5 space-y-2.5">
+                    <div className="mt-5 space-y-2.5" hidden={beta}>
                       {/* A. Essai gratuit s'il existe encore, sinon l'abonnement. */}
                       {trialAvailable && sub ? (
                         <>
@@ -245,7 +257,7 @@ export function SmartPaywallModal({
                       )}
 
                       {/* B. Crédits à l'unité. Les documents ne se paient pas en crédits. */}
-                      {metric !== "documents" && packAmount > 0 && (
+                      {!beta && metric !== "documents" && packAmount > 0 && (
                         <CreditsChoice
                           primary={!isFree}
                           busy={busy}
@@ -263,7 +275,7 @@ export function SmartPaywallModal({
                       )}
 
                       {/* C. Vidéo publicitaire contre un crédit. */}
-                      {showVideo && (
+                      {!beta && showVideo && (
                         <button
                           type="button"
                           onClick={() => {

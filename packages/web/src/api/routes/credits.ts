@@ -6,7 +6,7 @@ import { authed } from "../middleware/auth";
 import { getPurchasedCredits, listTransactions } from "../lib/credits";
 import { getOrCreateCustomer } from "../lib/billing";
 import { getStripe } from "../lib/stripe";
-import { getPlan, getUsage, LIMITS } from "../lib/plan";
+import { betaFree, getPlan, getUsage, LIMITS } from "../lib/plan";
 
 /**
  * Credits (oRPC, erreichbar unter /api/rpc/credits.*).
@@ -149,6 +149,8 @@ export const credits = {
       }),
     )
     .handler(async ({ input, context }) => {
+      // Bêta gratuite : aucun achat de crédits, même par appel direct.
+      if (betaFree()) throw new ORPCError("FORBIDDEN", { message: "beta_free" });
       const packs = await loadPacks();
       const pack = packs.find((p) => p.priceId === input.priceId);
 

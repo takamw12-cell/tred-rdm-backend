@@ -15,7 +15,24 @@ import { readTrial, TRIAL_DAYS, type TrialDb } from "./trial";
  * valeur stockée dans `user_plan` : elle est calculée par `getPlan()`.
  * "premium" = l'abonnement Étudiant (mensuel ou semestriel, mêmes droits).
  */
-export type PlanId = "founder" | "free" | "trial" | "standard" | "premium";
+export type PlanId = "founder" | "free" | "beta" | "trial" | "standard" | "premium";
+
+/**
+ * MODE BÊTA (décision du fondateur, 12 nov. 2026) : TRED est 100 % gratuit
+ * pour tous les testeurs. Les prix sont prêts mais PAS activés ; ils le
+ * seront (et seront revus) au lancement sur l'App Store et le Play Store.
+ *
+ * Tant que `BILLING_ENABLED` ne vaut pas "true" :
+ *   - tout compte non abonné a le tarif "beta" : compteurs illimités en
+ *     pratique (mêmes garde-fous anti-abus que l'essai) ;
+ *   - aucun paiement ne peut démarrer (abonnement, crédits) ;
+ *   - l'essai de 14 jours ne commence pas : il est gardé pour le lancement.
+ *
+ * Pour activer la facturation : `BILLING_ENABLED=true` dans Railway. Rien
+ * d'autre à changer dans le code.
+ */
+export const betaFree = (): boolean => process.env.BILLING_ENABLED !== "true";
+
 export type Metric = "chat" | "exercise" | "video" | "formulas";
 
 /**
@@ -85,6 +102,8 @@ export const TOKEN_CAPS: Record<PlanId, number | null> = {
   // euros reste. Un essai sans carte et sans aucun plafond est une facture
   // ouverte au premier script venu.
   trial: 250_000,
+  // Bêta gratuite : même plafond de sécurité que l'essai et l'abonnement.
+  beta: 250_000,
   standard: 250_000,
   premium: 250_000,
   founder: null,
@@ -117,6 +136,9 @@ export const LIMITS: Record<PlanId, Record<Metric | "documents", number>> = {
   // anti-abus (trois fois l'abonnement), pas une limite qu'un étudiant
   // atteint en 14 jours. Voir aussi TOKEN_CAPS.trial.
   trial: { chat: 3000, exercise: 600, video: 150, formulas: 180, documents: 200 },
+  // Bêta gratuite : illimité en pratique pour un testeur, avec le même
+  // garde-fou anti-abus que l'essai.
+  beta: { chat: 3000, exercise: 600, video: 150, formulas: 180, documents: 200 },
   // Une seule offre payante (mensuelle ou semestrielle), mêmes droits.
   standard: { chat: 1000, exercise: 200, video: 50, formulas: 60, documents: 200 },
   premium: { chat: 1000, exercise: 200, video: 50, formulas: 60, documents: 200 },
@@ -124,7 +146,7 @@ export const LIMITS: Record<PlanId, Record<Metric | "documents", number>> = {
 };
 
 /** Les tarifs dont les compteurs sont présentés comme « illimités ». */
-export const UNLIMITED_PLANS: ReadonlySet<PlanId> = new Set<PlanId>(["trial"]);
+export const UNLIMITED_PLANS: ReadonlySet<PlanId> = new Set<PlanId>(["trial", "beta"]);
 
 /** Les tarifs qui peuvent être STOCKÉS dans user_plan ("trial" ne l'est jamais). */
 const PLAN_IDS: PlanId[] = ["founder", "free", "standard", "premium"];
@@ -138,6 +160,7 @@ export function currentPeriod(now = new Date()): string {
  * Le tarif effectif, à partir de ce qui est stocké. Fonction pure (testée).
  *
  *   1. un abonnement payé et encore valable gagne toujours ;
+ *   1 bis. sinon, en mode bêta (`beta`), tout le monde est "beta" ;
  *   2. sinon, un essai en cours donne "trial" ;
  *   3. sinon "free" — y compris quand l'essai vient de finir : c'est ce
  *      calcul, refait à chaque requête, qui « bascule » le compte en Free.
@@ -147,11 +170,14 @@ export function effectivePlan(input: {
   validUntil?: Date | null;
   trialEndsAt?: number | null;
   now?: number;
+  /** Mode bêta gratuit (voir `betaFree`). */
+  beta?: boolean;
 }): PlanId {
   const now = input.now ?? Date.now();
   const stored = PLAN_IDS.includes(input.storedPlan as PlanId) ? (input.storedPlan as PlanId) : "free";
   const paid = stored !== "free" && !(input.validUntil && input.validUntil.getTime() < now);
   if (paid) return stored;
+  if (input.beta) return "beta";
   if (input.trialEndsAt != null && input.trialEndsAt > now) return "trial";
   return "free";
 }
@@ -168,7 +194,7 @@ export async function getPlan(userId: string): Promise<PlanId> {
     .where(eq(userPlan.userId, userId))
     .limit(1);
   const row = rows[0];
-  const sansEssai = effectivePlan({ storedPlan: row?.plan, validUntil: row?.validUntil });
+  const sansEssai = effectivePlan({ storedPlan: row?.plan, validUntil: row?.validUntil, beta: betaFree() });
   if (sansEssai !== "free") return sansEssai;
 
   // Une lecture de plus, seulement pour les comptes non payants. Une panne
@@ -365,8 +391,12 @@ export function quotaError(r: QuotaResult) {
       (r.metric ? CREDIT_COST[r.metric] <= REWARD.credits : true)
         ? { seconds: REWARD.seconds, credits: REWARD.credits }
         : null,
+    /** Mode bêta : la fenêtre de limite ne propose aucun paiement. */
+    beta: betaFree(),
     message:
-      r.plan === "free"
+      r.plan === "beta"
+        ? "Du hast die Sicherheitsgrenze der Beta für diesen Monat erreicht. Sie wird am 1. zurückgesetzt."
+        : r.plan === "free"
         ? "Dein Freikontingent für diesen Monat ist aufgebraucht."
         : "Dein Monatskontingent ist aufgebraucht.",
   };

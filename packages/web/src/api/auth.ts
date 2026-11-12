@@ -18,6 +18,7 @@ import { db } from "./database";
 import { getAccess } from "./lib/access";
 import { isValidSignupName } from "./lib/display-name";
 import { startTrial, type TrialDb } from "./lib/trial";
+import { betaFree } from "./lib/plan";
 
 // Social logins are optional: each is enabled only when its env vars are set.
 const googleEnabled =
@@ -157,6 +158,8 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user) => {
+          // Bêta gratuite : tout est déjà ouvert, l'essai est gardé pour le lancement.
+          if (betaFree()) return;
           await startTrial(db as unknown as TrialDb, user.id).catch((error) => {
             console.error("[auth] trial start failed", error);
           });

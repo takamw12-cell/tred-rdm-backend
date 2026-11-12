@@ -564,6 +564,14 @@ Filière, Hochschule, semestre, niveau et style d'apprentissage sont enregistré
 
 ## Tarifs, essai et paiement (12 nov. 2026)
 
+> **MODE BÊTA GRATUIT (décision du 12 nov. 2026, pour environ 2 mois).** La grille ci-dessous est prête mais **pas activée**. Tant que la variable `BILLING_ENABLED` ne vaut pas `true` dans Railway :
+> - tous les comptes non abonnés ont le tarif « beta » : compteurs illimités en pratique (garde-fou anti-abus : 3000 chats, 150 vidéos, 600 exercices par mois, plus le plafond de tokens) ;
+> - aucun paiement ne peut démarrer, ni abonnement ni crédits, même par appel direct à l'API ;
+> - l'essai de 14 jours ne commence pas : il est gardé intact pour le lancement ;
+> - `/pricing` affiche « Phase de Bêta : TRED est 100% gratuit… », les boutons sont grisés (« Au lancement officiel »), et le bandeau « Il te reste X jours d'essai » est masqué.
+>
+> **Le jour du lancement :** revois les montants dans `PRICING` (`packages/web/src/api/lib/plan.ts`), crée les prix Stripe, puis mets `BILLING_ENABLED=true`. Rien d'autre à changer. Tu n'as donc **pas** besoin de configurer Stripe maintenant.
+
 **La grille** (une seule source dans le code : `packages/web/src/api/lib/plan.ts`, `PRICING` et `LIMITS`) :
 
 | Offre | Prix | Par mois |

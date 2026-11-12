@@ -50,6 +50,8 @@ export default function PricingPage() {
 
   const currentPlan: PlanId = (sub?.plan as PlanId | undefined) ?? "free";
   const isPaid = currentPlan === "standard" || currentPlan === "premium" || currentPlan === "founder";
+  // Bêta gratuite : les offres sont montrées, mais rien ne peut être acheté.
+  const beta = sub?.beta ?? false;
 
   useEffect(() => {
     if (sub?.plan) setPlan(sub.plan as PlanId);
@@ -168,8 +170,21 @@ export default function PricingPage() {
         </Card>
       )}
 
+      {/* ── Bêta gratuite : le message, avant tout le reste ─────────────── */}
+      {beta && (
+        <Reveal className="mb-6">
+          <div className="relative overflow-hidden rounded-2xl bg-[#0F172A] p-5 text-white sm:p-6" data-testid="beta-banner" role="status">
+            <div aria-hidden className="pointer-events-none absolute -right-16 -top-24 size-64 rounded-full bg-[#EAB308]/25 blur-3xl" />
+            <p className="relative flex items-start gap-3 text-base font-semibold leading-snug sm:text-lg">
+              <Sparkles className="mt-0.5 size-5 shrink-0 text-[#EAB308]" aria-hidden />
+              {c.betaBanner}
+            </p>
+          </div>
+        </Reveal>
+      )}
+
       {/* ── L'essai : en cours, ou à lancer ─────────────────────────────── */}
-      {sub?.trial.active && (
+      {!beta && sub?.trial.active && (
         <Reveal className="mb-6">
           <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-[#0F172A] px-5 py-4 text-white" data-testid="trial-active">
             <Sparkles className="size-5 shrink-0 text-[#EAB308]" aria-hidden />
@@ -177,7 +192,7 @@ export default function PricingPage() {
           </div>
         </Reveal>
       )}
-      {sub?.trial.available && (
+      {!beta && sub?.trial.available && (
         <Reveal className="mb-6">
           <div className="relative overflow-hidden rounded-2xl bg-[#0F172A] p-5 text-white sm:p-6" data-testid="trial-offer">
             <div aria-hidden className="pointer-events-none absolute -right-16 -top-24 size-64 rounded-full bg-[#EAB308]/25 blur-3xl" />
@@ -215,7 +230,7 @@ export default function PricingPage() {
           />
           <div className="mt-auto pt-6">
             <Button variant="outline" className="w-full" disabled>
-              {currentPlan === "free" ? c.currentPlan : c.free}
+              {currentPlan === "free" && !beta ? c.currentPlan : c.free}
             </Button>
           </div>
         </PlanCard>
@@ -237,12 +252,12 @@ export default function PricingPage() {
               <Button
                 variant="outline"
                 className="border-foreground/25 w-full font-semibold"
-                disabled={busy || isLoading}
+                disabled={busy || isLoading || beta}
                 data-testid="choose-monthly"
                 onClick={() => subscribe(prices?.monthly.priceId ?? null)}
               >
                 {checkoutMut.isPending && <Loader2 className="size-4 animate-spin" />}
-                {c.choose}
+                {beta ? c.atLaunch : c.choose}
               </Button>
             )}
             <p className="text-muted-foreground mt-3 flex items-center justify-center gap-1.5 text-xs">
@@ -316,14 +331,14 @@ export default function PricingPage() {
                   </Button>
                 ) : (
                   <Button
-                    className={cn("h-12 w-full gap-2 text-base", YELLOW_BUTTON)}
-                    disabled={busy || isLoading}
+                    className={cn("h-12 w-full gap-2 text-base", beta ? "bg-white/15 font-semibold text-white disabled:opacity-100" : YELLOW_BUTTON)}
+                    disabled={busy || isLoading || beta}
                     data-testid="choose-semester"
                     onClick={() => subscribe(prices?.semester.priceId ?? null)}
                   >
                     {checkoutMut.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
-                    {c.choose}
-                    <ArrowRight className="size-4" aria-hidden />
+                    {beta ? c.atLaunch : c.choose}
+                    {!beta && <ArrowRight className="size-4" aria-hidden />}
                   </Button>
                 )}
                 <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-white/55">
@@ -337,7 +352,7 @@ export default function PricingPage() {
       </div>
 
       {/* Les deux consentements légaux, une fois, sous les offres payantes. */}
-      {!isPaid && (
+      {!isPaid && !beta && (
         <div ref={consentRef} className="mx-auto mt-6 max-w-2xl">
           <WithdrawalConsent
             start={consentStart}
@@ -371,7 +386,11 @@ export default function PricingPage() {
               </p>
               <p className="text-muted-foreground mt-0.5 text-xs">{c.creditsNever}</p>
             </div>
-            {pack ? (
+            {beta ? (
+              <Button variant="outline" className="border-foreground/25 font-semibold" disabled>
+                {c.atLaunch}
+              </Button>
+            ) : pack ? (
               <Button
                 variant="outline"
                 className="border-foreground/25 gap-2 font-semibold"

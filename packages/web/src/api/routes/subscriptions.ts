@@ -12,7 +12,7 @@ import {
   trialDays,
 } from "../lib/billing";
 import { getStripe } from "../lib/stripe";
-import { CREDIT_COST, getOutputTokens, getPlan, getUsage, LIMITS, OUTPUT_TOKEN_CAP, PRICING, UNLIMITED_PLANS } from "../lib/plan";
+import { betaFree, CREDIT_COST, getOutputTokens, getPlan, getUsage, LIMITS, OUTPUT_TOKEN_CAP, PRICING, UNLIMITED_PLANS } from "../lib/plan";
 import { readTrial, startTrial, type TrialDb } from "../lib/trial";
 import { db } from "../database";
 
@@ -163,6 +163,8 @@ export const subscriptions = {
         endsAt: trial?.endsAt ?? null,
         available: !!trial?.available && plan === "free",
       },
+      /** Mode bêta gratuit : aucun paiement, aucun essai, bandeau sur /pricing. */
+      beta: betaFree(),
       /** Compteurs présentés comme illimités (essai). */
       unlimited: UNLIMITED_PLANS.has(plan),
       /** La grille de référence, pour afficher les prix même sans Stripe. */
@@ -178,6 +180,8 @@ export const subscriptions = {
    * `started: false` et l'état réel.
    */
   startTrial: authed.handler(async ({ context }) => {
+    // Bêta gratuite : l'essai est gardé intact pour le lancement officiel.
+    if (betaFree()) throw new ORPCError("FORBIDDEN", { message: "beta_free" });
     const plan = await getPlan(context.user.id);
     if (plan !== "free") {
       const etat = await readTrial(db as unknown as TrialDb, context.user.id);
@@ -200,6 +204,8 @@ export const subscriptions = {
       }),
     )
     .handler(async ({ input, context }) => {
+      // Bêta gratuite : aucun abonnement ne peut démarrer, même par appel direct.
+      if (betaFree()) throw new ORPCError("FORBIDDEN", { message: "beta_free" });
       // Ohne Schlüssel würde getStripe() werfen und der catch unten daraus
       // ein 502 machen. 503 sagt ehrlich: noch nicht konfiguriert.
       if (!process.env.STRIPE_SECRET_KEY) {

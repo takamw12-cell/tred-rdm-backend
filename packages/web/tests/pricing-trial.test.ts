@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 process.env.DATABASE_URL ??= "file::memory:";
-const { CREDIT_COST, LIMITS, PRICING, TOKEN_CAPS, UNLIMITED_PLANS, effectivePlan, quotaError } = await import("../src/api/lib/plan");
+const { CREDIT_COST, LIMITS, PRICING, TOKEN_CAPS, UNLIMITED_PLANS, betaFree, effectivePlan, quotaError } = await import("../src/api/lib/plan");
 const { TRIAL_DAYS, readTrial, startTrial, trialState } = await import("../src/api/lib/trial");
 import type { TrialDb } from "../src/api/lib/trial";
 import { formatMoney, pricingCopy, resolvePrices } from "../src/web/lib/pricing-copy";
@@ -218,5 +218,52 @@ describe("les textes", () => {
   test("la fenêtre nomme le compteur atteint", () => {
     expect(pricingCopy("fr").wallTitle("video")).toContain("vidéos");
     expect(pricingCopy("de").wallUsed(5, 5, "video")).toBe("5 / 5 Videos");
+  });
+});
+
+describe("mode bêta : 100 % gratuit, aucun paiement", () => {
+  test("par défaut la facturation est coupée ; BILLING_ENABLED=true la rouvre", () => {
+    const avant = process.env.BILLING_ENABLED;
+    delete process.env.BILLING_ENABLED;
+    expect(betaFree()).toBe(true);
+    process.env.BILLING_ENABLED = "false";
+    expect(betaFree()).toBe(true);
+    process.env.BILLING_ENABLED = "true";
+    expect(betaFree()).toBe(false);
+    if (avant === undefined) delete process.env.BILLING_ENABLED;
+    else process.env.BILLING_ENABLED = avant;
+  });
+
+  test("en bêta, tout compte non abonné est « beta », essai ou non", () => {
+    const now = Date.UTC(2026, 10, 12);
+    expect(effectivePlan({ beta: true, now })).toBe("beta");
+    expect(effectivePlan({ beta: true, trialEndsAt: now - 1, now })).toBe("beta");
+    expect(effectivePlan({ beta: true, trialEndsAt: now + DAY, now })).toBe("beta");
+    expect(effectivePlan({ beta: true, storedPlan: "premium", validUntil: new Date(now - DAY), now })).toBe("beta");
+    // Un abonné ou un fondateur garde son tarif.
+    expect(effectivePlan({ beta: true, storedPlan: "founder", now })).toBe("founder");
+  });
+
+  test("les compteurs de la bêta sont illimités en pratique, avec un plafond de sécurité", () => {
+    expect(UNLIMITED_PLANS.has("beta")).toBe(true);
+    expect(LIMITS.beta.chat).toBeGreaterThanOrEqual(LIMITS.premium.chat);
+    expect(LIMITS.beta.video).toBeGreaterThanOrEqual(LIMITS.premium.video);
+    expect(LIMITS.beta.exercise).toBeGreaterThanOrEqual(LIMITS.premium.exercise);
+    expect(TOKEN_CAPS.beta).not.toBeNull();
+  });
+
+  test("aucun paiement ni essai ne peut démarrer, même par appel direct", () => {
+    const subs = lire("api/routes/subscriptions.ts");
+    expect(subs.match(/if \(betaFree\(\)\) throw new ORPCError\("FORBIDDEN", \{ message: "beta_free" \}\)/g)?.length).toBe(2);
+    expect(lire("api/routes/credits.ts")).toContain('if (betaFree()) throw new ORPCError("FORBIDDEN", { message: "beta_free" })');
+    // L'essai de 14 jours n'est pas entamé pendant la bêta.
+    expect(lire("api/auth.ts")).toContain("if (betaFree()) return;");
+  });
+
+  test("le bandeau de /pricing porte le texte décidé, et le bandeau d'essai se tait", () => {
+    expect(pricingCopy("fr").betaBanner).toBe("Phase de Bêta : TRED est 100% gratuit pour tous les étudiants. Les abonnements seront disponibles au lancement officiel.");
+    expect(lire("web/pages/pricing.tsx")).toContain('data-testid="beta-banner"');
+    expect(lire("web/components/trial-banner.tsx")).toContain("data.beta");
+    expect(lire("web/components/SmartPaywallModal.tsx")).toContain("c.wallBetaTitle");
   });
 });

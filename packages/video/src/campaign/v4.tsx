@@ -657,7 +657,7 @@ function SolveNow({ f }: { f: CampCtx["f"] }) {
   return (
     <AbsoluteFill>
       <AbsoluteFill style={{ clipPath: `circle(${open * 135}% at 50% 49%)` }}>
-        <SolverBeamBoard lang="de" at={{ draws: click + 4, calc: click + 8, explains: click + 12 }} stampAt={Math.max(stamp, click + 40)} />
+        <SolverBeamBoard lang="de" at={{ draws: click + 4, calc: click + 20, explains: click + 36 }} stampAt={Math.max(stamp, click + 40)} />
       </AbsoluteFill>
       {open < 1 && (
         <AbsoluteFill style={{ opacity: 1 - open }}>

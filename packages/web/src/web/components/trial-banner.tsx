@@ -16,7 +16,8 @@ import { useLocaleStore } from "@/stores/locale";
 export function TrialBanner() {
   const locale = useLocaleStore((s) => s.locale);
   const { data } = useQuery({ ...subscriptionMeOptions(), staleTime: 60_000 });
-  if (!data?.trial.active || data.trial.daysLeft <= 0) return null;
+  // Bêta gratuite : aucun compte à rebours, tout est ouvert.
+  if (!data || data.beta || !data.trial.active || data.trial.daysLeft <= 0) return null;
   const c = pricingCopy(locale);
   // Les trois derniers jours, le bandeau passe en jaune plein.
   const urgent = data.trial.daysLeft <= 3;

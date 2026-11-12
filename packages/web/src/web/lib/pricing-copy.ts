@@ -62,6 +62,12 @@ export interface PricingCopy {
   wallCreditsSub: (videos: number, chats: number) => string;
   wallWatch: (credits: number) => string;
   wallLater: string;
+  /** Mode bêta gratuit. */
+  betaBanner: string;
+  atLaunch: string;
+  wallBetaTitle: string;
+  wallBetaBody: string;
+  ok: string;
 }
 
 const de: PricingCopy = {
@@ -123,6 +129,11 @@ const de: PricingCopy = {
   wallCreditsSub: (v, c) => `${v} Videos oder ${c} Chats. Verfallen nie.`,
   wallWatch: (c) => `Video ansehen, ${c} Credit erhalten`,
   wallLater: "Später",
+  betaBanner: "Beta-Phase: TRED ist für alle Studierenden 100 % kostenlos. Abonnements gibt es zum offiziellen Start.",
+  atLaunch: "Zum offiziellen Start",
+  wallBetaTitle: "Sicherheitsgrenze der Beta erreicht",
+  wallBetaBody: "TRED ist in der Beta kostenlos. Diese Grenze schützt nur vor Missbrauch und wird am 1. des Monats zurückgesetzt. Schreib uns über „Feedback“, wenn du mehr brauchst.",
+  ok: "Verstanden",
 };
 
 const en: PricingCopy = {
@@ -184,6 +195,11 @@ const en: PricingCopy = {
   wallCreditsSub: (v, c) => `${v} videos or ${c} chats. They never expire.`,
   wallWatch: (c) => `Watch a video, get ${c} credit`,
   wallLater: "Later",
+  betaBanner: "Beta phase: TRED is 100% free for all students. Subscriptions will be available at the official launch.",
+  atLaunch: "At the official launch",
+  wallBetaTitle: "Beta safety limit reached",
+  wallBetaBody: "TRED is free during the beta. This limit only protects against abuse and resets on the 1st of the month. Tell us through “Feedback” if you need more.",
+  ok: "Got it",
 };
 
 const fr: PricingCopy = {
@@ -245,6 +261,11 @@ const fr: PricingCopy = {
   wallCreditsSub: (v, c) => `${v} vidéos ou ${c} chats. Ils n'expirent jamais.`,
   wallWatch: (c) => `Regarder une vidéo, recevoir ${c} crédit`,
   wallLater: "Plus tard",
+  betaBanner: "Phase de Bêta : TRED est 100% gratuit pour tous les étudiants. Les abonnements seront disponibles au lancement officiel.",
+  atLaunch: "Au lancement officiel",
+  wallBetaTitle: "Limite de sécurité de la bêta atteinte",
+  wallBetaBody: "TRED est gratuit pendant la bêta. Cette limite protège seulement contre les abus et repart à zéro le 1er du mois. Écris-nous via « Feedback » si tu as besoin de plus.",
+  ok: "Compris",
 };
 
 export function pricingCopy(locale: string): PricingCopy {
