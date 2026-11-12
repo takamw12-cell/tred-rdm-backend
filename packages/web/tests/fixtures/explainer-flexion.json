@@ -1,0 +1,1796 @@
+{
+ "_": "Script réel du 12 nov. 2026 (vrai modèle, « Explique-moi la flexion d'une poutre »), 8 scènes gardées par le contrôle. Sert de référence de non-régression.",
+ "durationMs": 129400,
+ "sceneStartsMs": [
+  300,
+  10300,
+  23500,
+  40300,
+  56300,
+  71100,
+  88700,
+  105100
+ ],
+ "scenes": [
+  {
+   "kind": "analogy",
+   "stage": "hook",
+   "visual_cues": [
+    "ask_question"
+   ],
+   "visual": "question",
+   "steps": [],
+   "keywords": [],
+   "chart": null,
+   "image": null,
+   "heading": "Pourquoi une poutre casse-t-elle au milieu et pas aux appuis ?",
+   "bullets": [],
+   "formula": "",
+   "sourceIndex": 1,
+   "quote": "",
+   "voiceover": "Pourquoi une poutre se rompt-elle toujours au milieu, et jamais près de ses appuis ? C'est exactement ce qu'on va comprendre ensemble dans cette leçon.",
+   "sourceTitle": "",
+   "sourceKind": "analogy"
+  },
+  {
+   "kind": "analogy",
+   "stage": "example",
+   "visual_cues": [
+    "show_image"
+   ],
+   "visual": "real_image",
+   "steps": [],
+   "keywords": [],
+   "chart": null,
+   "image": "bridge",
+   "heading": "La poutre : un pont entre deux appuis",
+   "bullets": [
+    "Charge appliquée perpendiculairement",
+    "La poutre se courbe"
+   ],
+   "formula": "",
+   "sourceIndex": 1,
+   "quote": "",
+   "voiceover": "Imagine un pont entre deux rives. Quand une voiture passe dessus, le pont se courbe légèrement. C'est exactement ce que fait une poutre : elle reçoit des charges de côté et elle fléchit.",
+   "sourceTitle": "",
+   "sourceKind": "analogy"
+  },
+  {
+   "kind": "explanation",
+   "stage": "step",
+   "visual_cues": [
+    "highlight_text"
+   ],
+   "visual": "highlight",
+   "steps": [],
+   "keywords": [
+    "neutrale Faser"
+   ],
+   "chart": null,
+   "image": null,
+   "heading": "Ce qui se passe à l'intérieur",
+   "bullets": [
+    "Fibres du dessus : comprimées",
+    "Fibres du dessous : étirées",
+    "Fibre neutre : inchangée"
+   ],
+   "formula": "",
+   "sourceIndex": 1,
+   "quote": "die oberen Fasern werden gestaucht, die unteren Fasern werden gedehnt. Dazwischen liegt die neutrale Faser, die ihre Länge nicht ändert.",
+   "voiceover": "À l'intérieur de la poutre, les fibres du haut sont comprimées, et les fibres du bas sont étirées. Entre les deux se trouve la fibre neutre, qui ne change pas de longueur. C'est cette différence de comportement qui crée les contraintes dangereuses.",
+   "sourceTitle": "TM2_Skript_Kapitel3.pdf",
+   "sourceKind": "document"
+  },
+  {
+   "kind": "explanation",
+   "stage": "step",
+   "visual_cues": [
+    "write_equation"
+   ],
+   "visual": "formula",
+   "steps": [],
+   "keywords": [],
+   "chart": null,
+   "image": null,
+   "heading": "Effort tranchant et moment fléchissant",
+   "bullets": [
+    "Q(x) : effort tranchant",
+    "M(x) : moment fléchissant"
+   ],
+   "formula": "M_{max} \\text{ là où } Q(x) = 0",
+   "sourceIndex": 1,
+   "quote": "Das Biegemoment ist dort am größten, wo die Querkraft null wird.",
+   "voiceover": "La charge crée deux grandeurs internes : l'effort tranchant Q de x, et le moment fléchissant M de x. La règle clé : le moment est maximum là où l'effort tranchant est nul. C'est souvent au milieu de la poutre.",
+   "sourceTitle": "TM2_Skript_Kapitel3.pdf",
+   "sourceKind": "document"
+  },
+  {
+   "kind": "explanation",
+   "stage": "step",
+   "visual_cues": [
+    "apply_loads"
+   ],
+   "visual": "loads",
+   "steps": [],
+   "keywords": [],
+   "chart": null,
+   "image": null,
+   "heading": "La poutre sous charge répartie",
+   "bullets": [
+    "Appui fixe en A, appui glissant en B",
+    "Charge répartie q sur toute la longueur"
+   ],
+   "formula": "",
+   "sourceIndex": 1,
+   "quote": "Ein Balken der Länge l = 4 m liegt auf einem Festlager A und einem Loslager B.",
+   "voiceover": "Prenons l'exemple du cours : une poutre de quatre mètres, posée sur un appui fixe en A et un appui glissant en B. Elle supporte une charge répartie de deux kilonewtons par mètre sur toute sa longueur.",
+   "sourceTitle": "TM2_Skript_Kapitel3.pdf",
+   "sourceKind": "document"
+  },
+  {
+   "kind": "explanation",
+   "stage": "example",
+   "visual_cues": [
+    "plot_curves"
+   ],
+   "visual": "solver_plot",
+   "steps": [],
+   "keywords": [],
+   "chart": null,
+   "image": null,
+   "heading": "Les courbes Q(x) et M(x)",
+   "bullets": [
+    "Q s'annule au milieu",
+    "M est maximal au milieu"
+   ],
+   "formula": "M_{max} = \\frac{q \\cdot l^2}{8}",
+   "sourceIndex": 1,
+   "quote": "",
+   "voiceover": "Le solveur trace l'effort tranchant et le moment fléchissant. On voit que Q s'annule exactement au milieu, et c'est là que M est maximal, égal à q fois l carré divisé par huit. Voilà pourquoi la poutre est la plus sollicitée en son centre.",
+   "sourceTitle": "Solver · balkenstatik",
+   "sourceKind": "solver"
+  },
+  {
+   "kind": "explanation",
+   "stage": "step",
+   "visual_cues": [
+    "write_equation"
+   ],
+   "visual": "formula",
+   "steps": [],
+   "keywords": [],
+   "chart": null,
+   "image": null,
+   "heading": "La contrainte de flexion",
+   "bullets": [
+    "sigma max aux bords du profil"
+   ],
+   "formula": "\\sigma = \\frac{M}{W}",
+   "sourceIndex": 1,
+   "quote": "Die Biegespannung ergibt sich aus dem Biegemoment und dem Widerstandsmoment: sigma = M / W.",
+   "voiceover": "La contrainte de flexion sigma est égale au moment M divisé par le module de résistance W. Elle est maximale aux bords du profil, en haut et en bas, là où les fibres sont le plus comprimées ou le plus étirées.",
+   "sourceTitle": "TM2_Skript_Kapitel3.pdf",
+   "sourceKind": "document"
+  },
+  {
+   "kind": "explanation",
+   "stage": "recap",
+   "visual_cues": [
+    "check_recap"
+   ],
+   "visual": "recap",
+   "steps": [],
+   "keywords": [],
+   "chart": null,
+   "image": null,
+   "heading": "Récap : pourquoi ça casse au milieu ?",
+   "bullets": [
+    "M est max là où Q vaut zéro",
+    "sigma = M divisé par W, max aux bords"
+   ],
+   "formula": "",
+   "sourceIndex": 1,
+   "quote": "Die Biegespannung ergibt sich aus dem Biegemoment und dem Widerstandsmoment: sigma = M / W.",
+   "voiceover": "Réponse à notre question du début : la poutre cède au milieu parce que c'est là que le moment fléchissant est maximum. Et c'est aux bords du profil que la contrainte sigma est la plus grande. Retiens deux choses : le moment est max là où l'effort tranchant s'annule, et la contrainte vaut M divisé par W.",
+   "sourceTitle": "TM2_Skript_Kapitel3.pdf",
+   "sourceKind": "document"
+  }
+ ],
+ "words": [
+  {
+   "text": "Pourquoi",
+   "startMs": 300,
+   "endMs": 630
+  },
+  {
+   "text": "une",
+   "startMs": 700,
+   "endMs": 1030
+  },
+  {
+   "text": "poutre",
+   "startMs": 1100,
+   "endMs": 1430
+  },
+  {
+   "text": "se",
+   "startMs": 1500,
+   "endMs": 1830
+  },
+  {
+   "text": "rompt-elle",
+   "startMs": 1900,
+   "endMs": 2230
+  },
+  {
+   "text": "toujours",
+   "startMs": 2300,
+   "endMs": 2630
+  },
+  {
+   "text": "au",
+   "startMs": 2700,
+   "endMs": 3030
+  },
+  {
+   "text": "milieu,",
+   "startMs": 3100,
+   "endMs": 3430
+  },
+  {
+   "text": "et",
+   "startMs": 3500,
+   "endMs": 3830
+  },
+  {
+   "text": "jamais",
+   "startMs": 3900,
+   "endMs": 4230
+  },
+  {
+   "text": "près",
+   "startMs": 4300,
+   "endMs": 4630
+  },
+  {
+   "text": "de",
+   "startMs": 4700,
+   "endMs": 5030
+  },
+  {
+   "text": "ses",
+   "startMs": 5100,
+   "endMs": 5430
+  },
+  {
+   "text": "appuis",
+   "startMs": 5500,
+   "endMs": 5830
+  },
+  {
+   "text": "?",
+   "startMs": 5900,
+   "endMs": 6230
+  },
+  {
+   "text": "C'est",
+   "startMs": 6300,
+   "endMs": 6630
+  },
+  {
+   "text": "exactement",
+   "startMs": 6700,
+   "endMs": 7030
+  },
+  {
+   "text": "ce",
+   "startMs": 7100,
+   "endMs": 7430
+  },
+  {
+   "text": "qu'on",
+   "startMs": 7500,
+   "endMs": 7830
+  },
+  {
+   "text": "va",
+   "startMs": 7900,
+   "endMs": 8230
+  },
+  {
+   "text": "comprendre",
+   "startMs": 8300,
+   "endMs": 8630
+  },
+  {
+   "text": "ensemble",
+   "startMs": 8700,
+   "endMs": 9030
+  },
+  {
+   "text": "dans",
+   "startMs": 9100,
+   "endMs": 9430
+  },
+  {
+   "text": "cette",
+   "startMs": 9500,
+   "endMs": 9830
+  },
+  {
+   "text": "leçon.",
+   "startMs": 9900,
+   "endMs": 10230
+  },
+  {
+   "text": "Imagine",
+   "startMs": 10300,
+   "endMs": 10630
+  },
+  {
+   "text": "un",
+   "startMs": 10700,
+   "endMs": 11030
+  },
+  {
+   "text": "pont",
+   "startMs": 11100,
+   "endMs": 11430
+  },
+  {
+   "text": "entre",
+   "startMs": 11500,
+   "endMs": 11830
+  },
+  {
+   "text": "deux",
+   "startMs": 11900,
+   "endMs": 12230
+  },
+  {
+   "text": "rives.",
+   "startMs": 12300,
+   "endMs": 12630
+  },
+  {
+   "text": "Quand",
+   "startMs": 12700,
+   "endMs": 13030
+  },
+  {
+   "text": "une",
+   "startMs": 13100,
+   "endMs": 13430
+  },
+  {
+   "text": "voiture",
+   "startMs": 13500,
+   "endMs": 13830
+  },
+  {
+   "text": "passe",
+   "startMs": 13900,
+   "endMs": 14230
+  },
+  {
+   "text": "dessus,",
+   "startMs": 14300,
+   "endMs": 14630
+  },
+  {
+   "text": "le",
+   "startMs": 14700,
+   "endMs": 15030
+  },
+  {
+   "text": "pont",
+   "startMs": 15100,
+   "endMs": 15430
+  },
+  {
+   "text": "se",
+   "startMs": 15500,
+   "endMs": 15830
+  },
+  {
+   "text": "courbe",
+   "startMs": 15900,
+   "endMs": 16230
+  },
+  {
+   "text": "légèrement.",
+   "startMs": 16300,
+   "endMs": 16630
+  },
+  {
+   "text": "C'est",
+   "startMs": 16700,
+   "endMs": 17030
+  },
+  {
+   "text": "exactement",
+   "startMs": 17100,
+   "endMs": 17430
+  },
+  {
+   "text": "ce",
+   "startMs": 17500,
+   "endMs": 17830
+  },
+  {
+   "text": "que",
+   "startMs": 17900,
+   "endMs": 18230
+  },
+  {
+   "text": "fait",
+   "startMs": 18300,
+   "endMs": 18630
+  },
+  {
+   "text": "une",
+   "startMs": 18700,
+   "endMs": 19030
+  },
+  {
+   "text": "poutre",
+   "startMs": 19100,
+   "endMs": 19430
+  },
+  {
+   "text": ":",
+   "startMs": 19500,
+   "endMs": 19830
+  },
+  {
+   "text": "elle",
+   "startMs": 19900,
+   "endMs": 20230
+  },
+  {
+   "text": "reçoit",
+   "startMs": 20300,
+   "endMs": 20630
+  },
+  {
+   "text": "des",
+   "startMs": 20700,
+   "endMs": 21030
+  },
+  {
+   "text": "charges",
+   "startMs": 21100,
+   "endMs": 21430
+  },
+  {
+   "text": "de",
+   "startMs": 21500,
+   "endMs": 21830
+  },
+  {
+   "text": "côté",
+   "startMs": 21900,
+   "endMs": 22230
+  },
+  {
+   "text": "et",
+   "startMs": 22300,
+   "endMs": 22630
+  },
+  {
+   "text": "elle",
+   "startMs": 22700,
+   "endMs": 23030
+  },
+  {
+   "text": "fléchit.",
+   "startMs": 23100,
+   "endMs": 23430
+  },
+  {
+   "text": "À",
+   "startMs": 23500,
+   "endMs": 23830
+  },
+  {
+   "text": "l'intérieur",
+   "startMs": 23900,
+   "endMs": 24230
+  },
+  {
+   "text": "de",
+   "startMs": 24300,
+   "endMs": 24630
+  },
+  {
+   "text": "la",
+   "startMs": 24700,
+   "endMs": 25030
+  },
+  {
+   "text": "poutre,",
+   "startMs": 25100,
+   "endMs": 25430
+  },
+  {
+   "text": "les",
+   "startMs": 25500,
+   "endMs": 25830
+  },
+  {
+   "text": "fibres",
+   "startMs": 25900,
+   "endMs": 26230
+  },
+  {
+   "text": "du",
+   "startMs": 26300,
+   "endMs": 26630
+  },
+  {
+   "text": "haut",
+   "startMs": 26700,
+   "endMs": 27030
+  },
+  {
+   "text": "sont",
+   "startMs": 27100,
+   "endMs": 27430
+  },
+  {
+   "text": "comprimées,",
+   "startMs": 27500,
+   "endMs": 27830
+  },
+  {
+   "text": "et",
+   "startMs": 27900,
+   "endMs": 28230
+  },
+  {
+   "text": "les",
+   "startMs": 28300,
+   "endMs": 28630
+  },
+  {
+   "text": "fibres",
+   "startMs": 28700,
+   "endMs": 29030
+  },
+  {
+   "text": "du",
+   "startMs": 29100,
+   "endMs": 29430
+  },
+  {
+   "text": "bas",
+   "startMs": 29500,
+   "endMs": 29830
+  },
+  {
+   "text": "sont",
+   "startMs": 29900,
+   "endMs": 30230
+  },
+  {
+   "text": "étirées.",
+   "startMs": 30300,
+   "endMs": 30630
+  },
+  {
+   "text": "Entre",
+   "startMs": 30700,
+   "endMs": 31030
+  },
+  {
+   "text": "les",
+   "startMs": 31100,
+   "endMs": 31430
+  },
+  {
+   "text": "deux",
+   "startMs": 31500,
+   "endMs": 31830
+  },
+  {
+   "text": "se",
+   "startMs": 31900,
+   "endMs": 32230
+  },
+  {
+   "text": "trouve",
+   "startMs": 32300,
+   "endMs": 32630
+  },
+  {
+   "text": "la",
+   "startMs": 32700,
+   "endMs": 33030
+  },
+  {
+   "text": "fibre",
+   "startMs": 33100,
+   "endMs": 33430
+  },
+  {
+   "text": "neutre,",
+   "startMs": 33500,
+   "endMs": 33830
+  },
+  {
+   "text": "qui",
+   "startMs": 33900,
+   "endMs": 34230
+  },
+  {
+   "text": "ne",
+   "startMs": 34300,
+   "endMs": 34630
+  },
+  {
+   "text": "change",
+   "startMs": 34700,
+   "endMs": 35030
+  },
+  {
+   "text": "pas",
+   "startMs": 35100,
+   "endMs": 35430
+  },
+  {
+   "text": "de",
+   "startMs": 35500,
+   "endMs": 35830
+  },
+  {
+   "text": "longueur.",
+   "startMs": 35900,
+   "endMs": 36230
+  },
+  {
+   "text": "C'est",
+   "startMs": 36300,
+   "endMs": 36630
+  },
+  {
+   "text": "cette",
+   "startMs": 36700,
+   "endMs": 37030
+  },
+  {
+   "text": "différence",
+   "startMs": 37100,
+   "endMs": 37430
+  },
+  {
+   "text": "de",
+   "startMs": 37500,
+   "endMs": 37830
+  },
+  {
+   "text": "comportement",
+   "startMs": 37900,
+   "endMs": 38230
+  },
+  {
+   "text": "qui",
+   "startMs": 38300,
+   "endMs": 38630
+  },
+  {
+   "text": "crée",
+   "startMs": 38700,
+   "endMs": 39030
+  },
+  {
+   "text": "les",
+   "startMs": 39100,
+   "endMs": 39430
+  },
+  {
+   "text": "contraintes",
+   "startMs": 39500,
+   "endMs": 39830
+  },
+  {
+   "text": "dangereuses.",
+   "startMs": 39900,
+   "endMs": 40230
+  },
+  {
+   "text": "La",
+   "startMs": 40300,
+   "endMs": 40630
+  },
+  {
+   "text": "charge",
+   "startMs": 40700,
+   "endMs": 41030
+  },
+  {
+   "text": "crée",
+   "startMs": 41100,
+   "endMs": 41430
+  },
+  {
+   "text": "deux",
+   "startMs": 41500,
+   "endMs": 41830
+  },
+  {
+   "text": "grandeurs",
+   "startMs": 41900,
+   "endMs": 42230
+  },
+  {
+   "text": "internes",
+   "startMs": 42300,
+   "endMs": 42630
+  },
+  {
+   "text": ":",
+   "startMs": 42700,
+   "endMs": 43030
+  },
+  {
+   "text": "l'effort",
+   "startMs": 43100,
+   "endMs": 43430
+  },
+  {
+   "text": "tranchant",
+   "startMs": 43500,
+   "endMs": 43830
+  },
+  {
+   "text": "Q",
+   "startMs": 43900,
+   "endMs": 44230
+  },
+  {
+   "text": "de",
+   "startMs": 44300,
+   "endMs": 44630
+  },
+  {
+   "text": "x,",
+   "startMs": 44700,
+   "endMs": 45030
+  },
+  {
+   "text": "et",
+   "startMs": 45100,
+   "endMs": 45430
+  },
+  {
+   "text": "le",
+   "startMs": 45500,
+   "endMs": 45830
+  },
+  {
+   "text": "moment",
+   "startMs": 45900,
+   "endMs": 46230
+  },
+  {
+   "text": "fléchissant",
+   "startMs": 46300,
+   "endMs": 46630
+  },
+  {
+   "text": "M",
+   "startMs": 46700,
+   "endMs": 47030
+  },
+  {
+   "text": "de",
+   "startMs": 47100,
+   "endMs": 47430
+  },
+  {
+   "text": "x.",
+   "startMs": 47500,
+   "endMs": 47830
+  },
+  {
+   "text": "La",
+   "startMs": 47900,
+   "endMs": 48230
+  },
+  {
+   "text": "règle",
+   "startMs": 48300,
+   "endMs": 48630
+  },
+  {
+   "text": "clé",
+   "startMs": 48700,
+   "endMs": 49030
+  },
+  {
+   "text": ":",
+   "startMs": 49100,
+   "endMs": 49430
+  },
+  {
+   "text": "le",
+   "startMs": 49500,
+   "endMs": 49830
+  },
+  {
+   "text": "moment",
+   "startMs": 49900,
+   "endMs": 50230
+  },
+  {
+   "text": "est",
+   "startMs": 50300,
+   "endMs": 50630
+  },
+  {
+   "text": "maximum",
+   "startMs": 50700,
+   "endMs": 51030
+  },
+  {
+   "text": "là",
+   "startMs": 51100,
+   "endMs": 51430
+  },
+  {
+   "text": "où",
+   "startMs": 51500,
+   "endMs": 51830
+  },
+  {
+   "text": "l'effort",
+   "startMs": 51900,
+   "endMs": 52230
+  },
+  {
+   "text": "tranchant",
+   "startMs": 52300,
+   "endMs": 52630
+  },
+  {
+   "text": "est",
+   "startMs": 52700,
+   "endMs": 53030
+  },
+  {
+   "text": "nul.",
+   "startMs": 53100,
+   "endMs": 53430
+  },
+  {
+   "text": "C'est",
+   "startMs": 53500,
+   "endMs": 53830
+  },
+  {
+   "text": "souvent",
+   "startMs": 53900,
+   "endMs": 54230
+  },
+  {
+   "text": "au",
+   "startMs": 54300,
+   "endMs": 54630
+  },
+  {
+   "text": "milieu",
+   "startMs": 54700,
+   "endMs": 55030
+  },
+  {
+   "text": "de",
+   "startMs": 55100,
+   "endMs": 55430
+  },
+  {
+   "text": "la",
+   "startMs": 55500,
+   "endMs": 55830
+  },
+  {
+   "text": "poutre.",
+   "startMs": 55900,
+   "endMs": 56230
+  },
+  {
+   "text": "Prenons",
+   "startMs": 56300,
+   "endMs": 56630
+  },
+  {
+   "text": "l'exemple",
+   "startMs": 56700,
+   "endMs": 57030
+  },
+  {
+   "text": "du",
+   "startMs": 57100,
+   "endMs": 57430
+  },
+  {
+   "text": "cours",
+   "startMs": 57500,
+   "endMs": 57830
+  },
+  {
+   "text": ":",
+   "startMs": 57900,
+   "endMs": 58230
+  },
+  {
+   "text": "une",
+   "startMs": 58300,
+   "endMs": 58630
+  },
+  {
+   "text": "poutre",
+   "startMs": 58700,
+   "endMs": 59030
+  },
+  {
+   "text": "de",
+   "startMs": 59100,
+   "endMs": 59430
+  },
+  {
+   "text": "quatre",
+   "startMs": 59500,
+   "endMs": 59830
+  },
+  {
+   "text": "mètres,",
+   "startMs": 59900,
+   "endMs": 60230
+  },
+  {
+   "text": "posée",
+   "startMs": 60300,
+   "endMs": 60630
+  },
+  {
+   "text": "sur",
+   "startMs": 60700,
+   "endMs": 61030
+  },
+  {
+   "text": "un",
+   "startMs": 61100,
+   "endMs": 61430
+  },
+  {
+   "text": "appui",
+   "startMs": 61500,
+   "endMs": 61830
+  },
+  {
+   "text": "fixe",
+   "startMs": 61900,
+   "endMs": 62230
+  },
+  {
+   "text": "en",
+   "startMs": 62300,
+   "endMs": 62630
+  },
+  {
+   "text": "A",
+   "startMs": 62700,
+   "endMs": 63030
+  },
+  {
+   "text": "et",
+   "startMs": 63100,
+   "endMs": 63430
+  },
+  {
+   "text": "un",
+   "startMs": 63500,
+   "endMs": 63830
+  },
+  {
+   "text": "appui",
+   "startMs": 63900,
+   "endMs": 64230
+  },
+  {
+   "text": "glissant",
+   "startMs": 64300,
+   "endMs": 64630
+  },
+  {
+   "text": "en",
+   "startMs": 64700,
+   "endMs": 65030
+  },
+  {
+   "text": "B.",
+   "startMs": 65100,
+   "endMs": 65430
+  },
+  {
+   "text": "Elle",
+   "startMs": 65500,
+   "endMs": 65830
+  },
+  {
+   "text": "supporte",
+   "startMs": 65900,
+   "endMs": 66230
+  },
+  {
+   "text": "une",
+   "startMs": 66300,
+   "endMs": 66630
+  },
+  {
+   "text": "charge",
+   "startMs": 66700,
+   "endMs": 67030
+  },
+  {
+   "text": "répartie",
+   "startMs": 67100,
+   "endMs": 67430
+  },
+  {
+   "text": "de",
+   "startMs": 67500,
+   "endMs": 67830
+  },
+  {
+   "text": "deux",
+   "startMs": 67900,
+   "endMs": 68230
+  },
+  {
+   "text": "kilonewtons",
+   "startMs": 68300,
+   "endMs": 68630
+  },
+  {
+   "text": "par",
+   "startMs": 68700,
+   "endMs": 69030
+  },
+  {
+   "text": "mètre",
+   "startMs": 69100,
+   "endMs": 69430
+  },
+  {
+   "text": "sur",
+   "startMs": 69500,
+   "endMs": 69830
+  },
+  {
+   "text": "toute",
+   "startMs": 69900,
+   "endMs": 70230
+  },
+  {
+   "text": "sa",
+   "startMs": 70300,
+   "endMs": 70630
+  },
+  {
+   "text": "longueur.",
+   "startMs": 70700,
+   "endMs": 71030
+  },
+  {
+   "text": "Le",
+   "startMs": 71100,
+   "endMs": 71430
+  },
+  {
+   "text": "solveur",
+   "startMs": 71500,
+   "endMs": 71830
+  },
+  {
+   "text": "trace",
+   "startMs": 71900,
+   "endMs": 72230
+  },
+  {
+   "text": "l'effort",
+   "startMs": 72300,
+   "endMs": 72630
+  },
+  {
+   "text": "tranchant",
+   "startMs": 72700,
+   "endMs": 73030
+  },
+  {
+   "text": "et",
+   "startMs": 73100,
+   "endMs": 73430
+  },
+  {
+   "text": "le",
+   "startMs": 73500,
+   "endMs": 73830
+  },
+  {
+   "text": "moment",
+   "startMs": 73900,
+   "endMs": 74230
+  },
+  {
+   "text": "fléchissant.",
+   "startMs": 74300,
+   "endMs": 74630
+  },
+  {
+   "text": "On",
+   "startMs": 74700,
+   "endMs": 75030
+  },
+  {
+   "text": "voit",
+   "startMs": 75100,
+   "endMs": 75430
+  },
+  {
+   "text": "que",
+   "startMs": 75500,
+   "endMs": 75830
+  },
+  {
+   "text": "Q",
+   "startMs": 75900,
+   "endMs": 76230
+  },
+  {
+   "text": "s'annule",
+   "startMs": 76300,
+   "endMs": 76630
+  },
+  {
+   "text": "exactement",
+   "startMs": 76700,
+   "endMs": 77030
+  },
+  {
+   "text": "au",
+   "startMs": 77100,
+   "endMs": 77430
+  },
+  {
+   "text": "milieu,",
+   "startMs": 77500,
+   "endMs": 77830
+  },
+  {
+   "text": "et",
+   "startMs": 77900,
+   "endMs": 78230
+  },
+  {
+   "text": "c'est",
+   "startMs": 78300,
+   "endMs": 78630
+  },
+  {
+   "text": "là",
+   "startMs": 78700,
+   "endMs": 79030
+  },
+  {
+   "text": "que",
+   "startMs": 79100,
+   "endMs": 79430
+  },
+  {
+   "text": "M",
+   "startMs": 79500,
+   "endMs": 79830
+  },
+  {
+   "text": "est",
+   "startMs": 79900,
+   "endMs": 80230
+  },
+  {
+   "text": "maximal,",
+   "startMs": 80300,
+   "endMs": 80630
+  },
+  {
+   "text": "égal",
+   "startMs": 80700,
+   "endMs": 81030
+  },
+  {
+   "text": "à",
+   "startMs": 81100,
+   "endMs": 81430
+  },
+  {
+   "text": "q",
+   "startMs": 81500,
+   "endMs": 81830
+  },
+  {
+   "text": "fois",
+   "startMs": 81900,
+   "endMs": 82230
+  },
+  {
+   "text": "l",
+   "startMs": 82300,
+   "endMs": 82630
+  },
+  {
+   "text": "carré",
+   "startMs": 82700,
+   "endMs": 83030
+  },
+  {
+   "text": "divisé",
+   "startMs": 83100,
+   "endMs": 83430
+  },
+  {
+   "text": "par",
+   "startMs": 83500,
+   "endMs": 83830
+  },
+  {
+   "text": "huit.",
+   "startMs": 83900,
+   "endMs": 84230
+  },
+  {
+   "text": "Voilà",
+   "startMs": 84300,
+   "endMs": 84630
+  },
+  {
+   "text": "pourquoi",
+   "startMs": 84700,
+   "endMs": 85030
+  },
+  {
+   "text": "la",
+   "startMs": 85100,
+   "endMs": 85430
+  },
+  {
+   "text": "poutre",
+   "startMs": 85500,
+   "endMs": 85830
+  },
+  {
+   "text": "est",
+   "startMs": 85900,
+   "endMs": 86230
+  },
+  {
+   "text": "la",
+   "startMs": 86300,
+   "endMs": 86630
+  },
+  {
+   "text": "plus",
+   "startMs": 86700,
+   "endMs": 87030
+  },
+  {
+   "text": "sollicitée",
+   "startMs": 87100,
+   "endMs": 87430
+  },
+  {
+   "text": "en",
+   "startMs": 87500,
+   "endMs": 87830
+  },
+  {
+   "text": "son",
+   "startMs": 87900,
+   "endMs": 88230
+  },
+  {
+   "text": "centre.",
+   "startMs": 88300,
+   "endMs": 88630
+  },
+  {
+   "text": "La",
+   "startMs": 88700,
+   "endMs": 89030
+  },
+  {
+   "text": "contrainte",
+   "startMs": 89100,
+   "endMs": 89430
+  },
+  {
+   "text": "de",
+   "startMs": 89500,
+   "endMs": 89830
+  },
+  {
+   "text": "flexion",
+   "startMs": 89900,
+   "endMs": 90230
+  },
+  {
+   "text": "sigma",
+   "startMs": 90300,
+   "endMs": 90630
+  },
+  {
+   "text": "est",
+   "startMs": 90700,
+   "endMs": 91030
+  },
+  {
+   "text": "égale",
+   "startMs": 91100,
+   "endMs": 91430
+  },
+  {
+   "text": "au",
+   "startMs": 91500,
+   "endMs": 91830
+  },
+  {
+   "text": "moment",
+   "startMs": 91900,
+   "endMs": 92230
+  },
+  {
+   "text": "M",
+   "startMs": 92300,
+   "endMs": 92630
+  },
+  {
+   "text": "divisé",
+   "startMs": 92700,
+   "endMs": 93030
+  },
+  {
+   "text": "par",
+   "startMs": 93100,
+   "endMs": 93430
+  },
+  {
+   "text": "le",
+   "startMs": 93500,
+   "endMs": 93830
+  },
+  {
+   "text": "module",
+   "startMs": 93900,
+   "endMs": 94230
+  },
+  {
+   "text": "de",
+   "startMs": 94300,
+   "endMs": 94630
+  },
+  {
+   "text": "résistance",
+   "startMs": 94700,
+   "endMs": 95030
+  },
+  {
+   "text": "W.",
+   "startMs": 95100,
+   "endMs": 95430
+  },
+  {
+   "text": "Elle",
+   "startMs": 95500,
+   "endMs": 95830
+  },
+  {
+   "text": "est",
+   "startMs": 95900,
+   "endMs": 96230
+  },
+  {
+   "text": "maximale",
+   "startMs": 96300,
+   "endMs": 96630
+  },
+  {
+   "text": "aux",
+   "startMs": 96700,
+   "endMs": 97030
+  },
+  {
+   "text": "bords",
+   "startMs": 97100,
+   "endMs": 97430
+  },
+  {
+   "text": "du",
+   "startMs": 97500,
+   "endMs": 97830
+  },
+  {
+   "text": "profil,",
+   "startMs": 97900,
+   "endMs": 98230
+  },
+  {
+   "text": "en",
+   "startMs": 98300,
+   "endMs": 98630
+  },
+  {
+   "text": "haut",
+   "startMs": 98700,
+   "endMs": 99030
+  },
+  {
+   "text": "et",
+   "startMs": 99100,
+   "endMs": 99430
+  },
+  {
+   "text": "en",
+   "startMs": 99500,
+   "endMs": 99830
+  },
+  {
+   "text": "bas,",
+   "startMs": 99900,
+   "endMs": 100230
+  },
+  {
+   "text": "là",
+   "startMs": 100300,
+   "endMs": 100630
+  },
+  {
+   "text": "où",
+   "startMs": 100700,
+   "endMs": 101030
+  },
+  {
+   "text": "les",
+   "startMs": 101100,
+   "endMs": 101430
+  },
+  {
+   "text": "fibres",
+   "startMs": 101500,
+   "endMs": 101830
+  },
+  {
+   "text": "sont",
+   "startMs": 101900,
+   "endMs": 102230
+  },
+  {
+   "text": "le",
+   "startMs": 102300,
+   "endMs": 102630
+  },
+  {
+   "text": "plus",
+   "startMs": 102700,
+   "endMs": 103030
+  },
+  {
+   "text": "comprimées",
+   "startMs": 103100,
+   "endMs": 103430
+  },
+  {
+   "text": "ou",
+   "startMs": 103500,
+   "endMs": 103830
+  },
+  {
+   "text": "le",
+   "startMs": 103900,
+   "endMs": 104230
+  },
+  {
+   "text": "plus",
+   "startMs": 104300,
+   "endMs": 104630
+  },
+  {
+   "text": "étirées.",
+   "startMs": 104700,
+   "endMs": 105030
+  },
+  {
+   "text": "Réponse",
+   "startMs": 105100,
+   "endMs": 105430
+  },
+  {
+   "text": "à",
+   "startMs": 105500,
+   "endMs": 105830
+  },
+  {
+   "text": "notre",
+   "startMs": 105900,
+   "endMs": 106230
+  },
+  {
+   "text": "question",
+   "startMs": 106300,
+   "endMs": 106630
+  },
+  {
+   "text": "du",
+   "startMs": 106700,
+   "endMs": 107030
+  },
+  {
+   "text": "début",
+   "startMs": 107100,
+   "endMs": 107430
+  },
+  {
+   "text": ":",
+   "startMs": 107500,
+   "endMs": 107830
+  },
+  {
+   "text": "la",
+   "startMs": 107900,
+   "endMs": 108230
+  },
+  {
+   "text": "poutre",
+   "startMs": 108300,
+   "endMs": 108630
+  },
+  {
+   "text": "cède",
+   "startMs": 108700,
+   "endMs": 109030
+  },
+  {
+   "text": "au",
+   "startMs": 109100,
+   "endMs": 109430
+  },
+  {
+   "text": "milieu",
+   "startMs": 109500,
+   "endMs": 109830
+  },
+  {
+   "text": "parce",
+   "startMs": 109900,
+   "endMs": 110230
+  },
+  {
+   "text": "que",
+   "startMs": 110300,
+   "endMs": 110630
+  },
+  {
+   "text": "c'est",
+   "startMs": 110700,
+   "endMs": 111030
+  },
+  {
+   "text": "là",
+   "startMs": 111100,
+   "endMs": 111430
+  },
+  {
+   "text": "que",
+   "startMs": 111500,
+   "endMs": 111830
+  },
+  {
+   "text": "le",
+   "startMs": 111900,
+   "endMs": 112230
+  },
+  {
+   "text": "moment",
+   "startMs": 112300,
+   "endMs": 112630
+  },
+  {
+   "text": "fléchissant",
+   "startMs": 112700,
+   "endMs": 113030
+  },
+  {
+   "text": "est",
+   "startMs": 113100,
+   "endMs": 113430
+  },
+  {
+   "text": "maximum.",
+   "startMs": 113500,
+   "endMs": 113830
+  },
+  {
+   "text": "Et",
+   "startMs": 113900,
+   "endMs": 114230
+  },
+  {
+   "text": "c'est",
+   "startMs": 114300,
+   "endMs": 114630
+  },
+  {
+   "text": "aux",
+   "startMs": 114700,
+   "endMs": 115030
+  },
+  {
+   "text": "bords",
+   "startMs": 115100,
+   "endMs": 115430
+  },
+  {
+   "text": "du",
+   "startMs": 115500,
+   "endMs": 115830
+  },
+  {
+   "text": "profil",
+   "startMs": 115900,
+   "endMs": 116230
+  },
+  {
+   "text": "que",
+   "startMs": 116300,
+   "endMs": 116630
+  },
+  {
+   "text": "la",
+   "startMs": 116700,
+   "endMs": 117030
+  },
+  {
+   "text": "contrainte",
+   "startMs": 117100,
+   "endMs": 117430
+  },
+  {
+   "text": "sigma",
+   "startMs": 117500,
+   "endMs": 117830
+  },
+  {
+   "text": "est",
+   "startMs": 117900,
+   "endMs": 118230
+  },
+  {
+   "text": "la",
+   "startMs": 118300,
+   "endMs": 118630
+  },
+  {
+   "text": "plus",
+   "startMs": 118700,
+   "endMs": 119030
+  },
+  {
+   "text": "grande.",
+   "startMs": 119100,
+   "endMs": 119430
+  },
+  {
+   "text": "Retiens",
+   "startMs": 119500,
+   "endMs": 119830
+  },
+  {
+   "text": "deux",
+   "startMs": 119900,
+   "endMs": 120230
+  },
+  {
+   "text": "choses",
+   "startMs": 120300,
+   "endMs": 120630
+  },
+  {
+   "text": ":",
+   "startMs": 120700,
+   "endMs": 121030
+  },
+  {
+   "text": "le",
+   "startMs": 121100,
+   "endMs": 121430
+  },
+  {
+   "text": "moment",
+   "startMs": 121500,
+   "endMs": 121830
+  },
+  {
+   "text": "est",
+   "startMs": 121900,
+   "endMs": 122230
+  },
+  {
+   "text": "max",
+   "startMs": 122300,
+   "endMs": 122630
+  },
+  {
+   "text": "là",
+   "startMs": 122700,
+   "endMs": 123030
+  },
+  {
+   "text": "où",
+   "startMs": 123100,
+   "endMs": 123430
+  },
+  {
+   "text": "l'effort",
+   "startMs": 123500,
+   "endMs": 123830
+  },
+  {
+   "text": "tranchant",
+   "startMs": 123900,
+   "endMs": 124230
+  },
+  {
+   "text": "s'annule,",
+   "startMs": 124300,
+   "endMs": 124630
+  },
+  {
+   "text": "et",
+   "startMs": 124700,
+   "endMs": 125030
+  },
+  {
+   "text": "la",
+   "startMs": 125100,
+   "endMs": 125430
+  },
+  {
+   "text": "contrainte",
+   "startMs": 125500,
+   "endMs": 125830
+  },
+  {
+   "text": "vaut",
+   "startMs": 125900,
+   "endMs": 126230
+  },
+  {
+   "text": "M",
+   "startMs": 126300,
+   "endMs": 126630
+  },
+  {
+   "text": "divisé",
+   "startMs": 126700,
+   "endMs": 127030
+  },
+  {
+   "text": "par",
+   "startMs": 127100,
+   "endMs": 127430
+  },
+  {
+   "text": "W.",
+   "startMs": 127500,
+   "endMs": 127830
+  }
+ ]
+}

@@ -617,3 +617,13 @@ Chaque vidéo suit désormais quatre temps, dans l'ordre : **la question mystèr
 - Un visiteur reçoit 404 sur la page et 401 sur l'API ; un étudiant connecté reçoit 404 partout (jamais 403, qui confirmerait que la page existe).
 - Quand la vérification des adresses par e-mail est active (clé Resend), l'adresse doit être confirmée.
 - Le test `tests/admin-guard.test.ts` échoue si une route `/api/admin/*` est ajoutée sans garde.
+
+## « Als Video erklären » — la main-feutre (prototype, 12 nov. 2026)
+
+Choix validé : rester dans Remotion (aucun nouvel outil, aucune dépendance) plutôt qu'un post-traitement sur images. Une main qui tient un feutre suit le bout du trait pendant que le schéma se dessine.
+
+- Prototype sur la scène de la poutre (`beam`, `loads`) : la main trace la poutre, passe sur les appuis, puis accompagne chaque flèche de charge.
+- Calée sur la voix : quand poutre et charges sont dans la même scène, les charges arrivent au moment où la voix dit « charge » / « Last » / « load ».
+- La main ne calcule rien et ne lit aucune valeur : `packages/web/src/web/video/marker-hand.ts` ne fait que suivre le tracé existant. Positions et valeurs restent celles du solveur ; le contrôle anti-invention n'est pas touché.
+- Non-régression : `tests/marker-hand.test.ts` vérifie, sur le script réel de référence (`tests/fixtures/explainer-flexion.json`), que les 8 scènes sont là, dans l'ordre, avec le même texte.
+- Pour étendre la main à d'autres visuels (courbes du solveur, formules) : `HAND_VISUALS` dans `marker-hand.ts`, puis une fonction de position par visuel.

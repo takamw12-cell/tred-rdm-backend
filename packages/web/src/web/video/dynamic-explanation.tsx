@@ -9,6 +9,7 @@ import { payloadToProblem, type BeamDiagramPayload } from "../../api/lib/beam-to
 import { solveMechanicsSafe } from "../../api/lib/mechanics-solver";
 import { BEAM_VISUALS, tiePunctuation, type ChartKey, type RealImageKey, type Stage, type Visual, type VisualCue } from "../../api/lib/video-visuals";
 import type { Professor } from "../../api/lib/professors";
+import { beamPen, loadCueFrame, type PenPoint } from "./marker-hand";
 
 /**
  * « Als Video erklären » — la composition de la vidéo explicative.
@@ -251,7 +252,36 @@ const LENGTH = { m: 1, cm: 0.01, mm: 0.001 } as const;
  * poutre. Avec `payload`, positions et valeurs sont celles du solveur ; sans
  * lui, un croquis de principe (q, l) sans aucun nombre.
  */
-function BeamStage({ payload, draw, loads, comma, sketchLabel }: { payload: BeamDiagramPayload | null; draw: number; loads: number; comma: boolean; sketchLabel: string }) {
+/**
+ * La main-feutre : un feutre tenu par une main, dont la pointe est posée sur
+ * `pen`. Dessinée dans le repère du schéma ; elle tremble très légèrement,
+ * comme une main qui écrit. Purement décorative : elle ne trace rien.
+ */
+function MarkerHand({ pen, frame }: { pen: PenPoint; frame: number }) {
+  if (pen.opacity <= 0) return null;
+  const wobble = Math.sin(frame / 2.3) * 1.2;
+  return (
+    <g transform={`translate(${pen.x} ${pen.y}) rotate(${wobble})`} opacity={pen.opacity} style={{ filter: "drop-shadow(0 5px 6px rgb(15 23 42 / 0.28))" }}>
+      {/* Le feutre : pointe à l'origine, corps vers le bas à droite. */}
+      <g transform="rotate(38)">
+        <path d="M 0 0 L 9 -3.4 L 9 3.4 Z" fill="#0F172A" />
+        <rect x={9} y={-5.2} width={10} height={10.4} rx={1.6} fill="#EAB308" />
+        <rect x={19} y={-6.4} width={78} height={12.8} rx={5} fill="#1B2A4A" />
+        <rect x={19} y={-6.4} width={78} height={4} rx={2} fill="#33466F" />
+      </g>
+      {/* La main : le poing qui tient le feutre, puis le poignet et la manche. */}
+      <g transform="rotate(38)">
+        <path d="M 34 -13 C 44 -19, 60 -18, 66 -9 C 72 -2, 72 10, 64 17 C 54 25, 38 24, 31 16 C 26 10, 27 -6, 34 -13 Z" fill="#F1C7A0" stroke="#B98A63" strokeWidth={1.2} />
+        <path d="M 37 -8 C 43 -11, 50 -11, 55 -7 M 36 -1 C 42 -4, 50 -4, 56 0 M 36 6 C 42 4, 49 4, 55 8" fill="none" stroke="#B98A63" strokeWidth={1.1} strokeLinecap="round" />
+        <path d="M 60 -12 C 74 -16, 96 -12, 118 -4 L 110 30 C 92 30, 74 26, 62 16 Z" fill="#F1C7A0" stroke="#B98A63" strokeWidth={1.2} />
+        <path d="M 100 -11 L 150 6 L 138 44 L 92 30 Z" fill="#0F172A" />
+        <path d="M 100 -11 L 106 -9 L 97 31 L 92 30 Z" fill="#EAB308" />
+      </g>
+    </g>
+  );
+}
+
+function BeamStage({ payload, draw, loads, comma, sketchLabel, frame = 0 }: { payload: BeamDiagramPayload | null; draw: number; loads: number; comma: boolean; sketchLabel: string; frame?: number }) {
   const X0 = 56;
   const X1 = 424;
   const Y = 132;
@@ -284,6 +314,18 @@ function BeamStage({ payload, draw, loads, comma, sketchLabel }: { payload: Beam
   arrows.sort((u, v) => u.x - v.x);
 
   const supportsIn = ease(Math.max(0, (draw - 0.55) / 0.45));
+  // La main-feutre suit le bout du trait : mêmes positions que le tracé ci-dessous.
+  const firstLoad = distributed[0];
+  const pen = beamPen({
+    draw,
+    loads,
+    x0: X0,
+    x1: X1,
+    y: Y,
+    supportXs: supports.map((sp) => sx(sp.x)),
+    loadLine: firstLoad ? { from: sx(firstLoad.from), to: sx(firstLoad.to), top: 62 } : undefined,
+    arrows: arrows.map((a) => ({ x: sx(a.x), top: a.top, tip: yAt(a.x) - 5 })),
+  });
   return (
     <svg viewBox="0 0 480 236" style={{ width: "100%", height: "100%", overflow: "visible" }} fontFamily="Inter, ui-sans-serif, system-ui, sans-serif">
       {/* Charges réparties : le trait du haut, puis les flèches. */}
@@ -363,6 +405,8 @@ function BeamStage({ payload, draw, loads, comma, sketchLabel }: { payload: Beam
           {sketchLabel.toUpperCase()}
         </text>
       )}
+      {/* Par-dessus tout le reste : la main qui tient le feutre. */}
+      <MarkerHand pen={pen} frame={frame} />
     </svg>
   );
 }
@@ -701,12 +745,19 @@ function SceneVisual({
     let loadsAt: number | null = null;
     for (let j = first; j <= index; j++) if (scenes[j]!.visual === "loads" && loadsAt === null) loadsAt = timings[j]!.from;
     const start = timings[first]!.from;
+    // Poutre et charges dans la même scène : les charges arrivent quand la VOIX
+    // en parle (au plus tôt une fois la poutre et ses appuis dessinés), et non
+    // à une image fixe. Sans mot repère, elles suivent le tracé de la poutre.
+    const sameScene = loadsAt === start;
+    const sceneEnd = timings[index]!.to;
+    const cue = sameScene ? loadCueFrame(props.words, start, sceneEnd, EXPLAINER_FPS) : undefined;
+    const loadsFrom = loadsAt === null ? 0 : sameScene ? start + Math.min(Math.max(50, cue ?? 50), Math.max(50, sceneEnd - start - 90)) : loadsAt + 6;
     return (
       <BeamStage
         payload={beam}
+        frame={frame}
         draw={interpolate(frame, [start + 4, start + 44], [0, 1], clamp)}
-        // Poutre et charges dans la même scène : les charges attendent que la poutre soit dessinée.
-        loads={loadsAt === null ? 0 : interpolate(frame, [loadsAt + (loadsAt === start ? 50 : 6), loadsAt + (loadsAt === start ? 114 : 70)], [0, 1], clamp)}
+        loads={loadsAt === null ? 0 : interpolate(frame, [loadsFrom, loadsFrom + 64], [0, 1], clamp)}
         comma={props.decimalComma ?? true}
         sketchLabel={props.labels.sketch}
       />
@@ -918,7 +969,8 @@ function DemoScene({
           width: "100%",
           height: landscape ? 232 : isSolver ? 520 : isTall || isQuestion ? 430 : 330,
           borderRadius: 18,
-          overflow: "hidden",
+          // La main-feutre dépasse du cadre quand elle trace près du bord, comme une vraie main.
+          overflow: BEAM_VISUALS.includes(scene.visual ?? "text") ? "visible" : "hidden",
           background: isPhoto ? "#070B14" : dark ? "linear-gradient(160deg, #0F172A, #070B14 70%)" : "rgb(255 255 255 / 0.78)",
           boxShadow: isPhoto ? "none" : "inset 0 0 0 1px rgb(27 42 74 / 0.08), 0 18px 36px -24px rgb(27 42 74 / 0.45)",
           padding: isPhoto ? 0 : 12,
