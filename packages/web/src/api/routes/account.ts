@@ -12,6 +12,8 @@ import { DEFAULT_LEARNING_STYLE, LEARNING_STYLES } from "../lib/learning-style";
 import { readLearningStyle } from "../lib/learning-style-store";
 import { PROFESSOR_IDS } from "../lib/professors";
 import { readProfessor } from "../lib/professor-store";
+import { profileUpdateSchema } from "../lib/stored-profile";
+import { readStoredProfile, saveStoredProfile, type ProfileDb } from "../lib/stored-profile-db";
 
 /**
  * Konto: Sprache, Auskunft, Löschung.
@@ -106,6 +108,19 @@ export const account = {
         });
       return { professorId: input.professorId };
     }),
+
+  /**
+   * Le profil d'études complet du compte connecté : filière, Hochschule,
+   * semestre, niveau, style d'apprentissage. Il suit l'étudiant sur tous ses
+   * appareils. `migrated: false` tant que migre-profil-complet.mjs n'a pas
+   * tourné : le navigateur garde alors son profil local, comme avant.
+   */
+  getProfile: authed.handler(async ({ context }) => readStoredProfile(db as unknown as ProfileDb, context.user.id)),
+
+  /** Enregistre le profil d'études. L'identifiant vient de la session, jamais de la requête. */
+  updateProfile: authed
+    .input(profileUpdateSchema)
+    .handler(async ({ input, context }) => saveStoredProfile(db as unknown as ProfileDb, context.user.id, input)),
 
   /** DSGVO Art. 15 & 20 — Auskunft und Datenübertragbarkeit. */
   dataExport: authed.handler(async ({ context }) => {

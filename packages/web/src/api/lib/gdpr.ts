@@ -23,6 +23,7 @@ import {
 } from "../database/schema";
 import { account, session, user } from "../database/auth-schema";
 import { ancillaryErasureSteps, exportAncillaryData } from "./gdpr-ancillary";
+import { readStoredProfile, type ProfileDb } from "./stored-profile-db";
 
 /**
  * DSGVO Art. 15/20 (Auskunft und Datenübertragbarkeit) und Art. 17
@@ -120,6 +121,10 @@ export async function exportUserData(userId: string) {
   ]);
 
   const nebentabellen = await exportAncillaryData(db, userId);
+  // Profil d'études (colonnes hors schéma Drizzle : lib/stored-profile-db.ts).
+  const studienprofil = await readStoredProfile(db as unknown as ProfileDb, userId)
+    .then((p) => (p.migrated ? { ...p.profile, gespeichert: p.saved, geaendertAm: p.updatedAt } : null))
+    .catch(() => null);
 
   const [semesters, documents, exercises, tokens, transactions, luecken] =
     await Promise.all([
@@ -138,6 +143,7 @@ export async function exportUserData(userId: string) {
       "Diese Datei enthält alle zu deinem Konto gespeicherten Daten. " +
       "Zahlungsdaten (Kartennummer, Rechnungen) liegen bei Stripe und sind " +
       "über das Kundenportal abrufbar — TRED speichert sie nicht.",
+    studienprofil,
     profil: profile
       ? {
           id: profile.id,

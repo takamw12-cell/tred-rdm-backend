@@ -34,6 +34,12 @@ interface UserState {
   setProfile: (profile: Profile) => void;
   setPlan: (plan: PlanId) => void;
   setGermanMode: (v: boolean) => void;
+  /**
+   * Applique le profil d'études venu du serveur (lib/profile-sync.ts). Le
+   * serveur fait foi : un étudiant qui a déjà un profil n'a plus à refaire
+   * l'onboarding sur un nouvel appareil.
+   */
+  applyServerStudy: (study: Pick<Profile, "degree" | "university" | "semester"> & { studyLevel: StudyLevel | "" }) => void;
   /** À appeler dès que la session est connue : rattache ou vide le profil. */
   claim: (userId: string, email?: string | null) => void;
   reset: () => void;
@@ -116,6 +122,7 @@ export const useUserStore = create<UserState>()(
       setProfile: (profile) => set({ profile, onboarded: true }),
       setPlan: (plan) => set({ plan }),
       setGermanMode: (germanMode) => set({ germanMode }),
+      applyServerStudy: (study) => set((state) => ({ onboarded: true, profile: { ...state.profile, ...study } })),
       claim: (userId, email) => set((state) => claimProfile(state, userId, email)),
       reset: () => set({ onboarded: false, profile: EMPTY_PROFILE, plan: "free", ownerId: null }),
     }),

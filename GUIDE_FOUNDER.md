@@ -546,3 +546,13 @@ Tout est dans **`MAINTENANCE.md`** : ce qui tourne tout seul (Dependabot chaque 
 - **Rotation :** toutes les 10 s, fondu d'1 s, ordre aléatoire re-tiré à chaque tour, image suivante préchargée. Bouton Pause discret au-dessus du bouton de retours ; en pause par défaut si l'appareil demande « moins d'animations ». Test rapide : `?bg=3` dans l'URL.
 - **Cache :** `/backgrounds/*.webp` est servi avec `Cache-Control: public, max-age=31536000, immutable`. Conséquence : **ne jamais remplacer une image sous le même nom**, toujours lui en donner un nouveau.
 - **Nouvelles filières reconnues :** Biologie, Psychologie, Philosophie, Sprachen/Übersetzen, Geschichte (fond général en attendant leurs images).
+
+## Profil d'études synchronisé (12 nov. 2026)
+
+Filière, Hochschule, semestre, niveau et style d'apprentissage sont enregistrés dans `user_access` et suivent l'étudiant sur tous ses appareils. Aucun compte à créer, aucune clé, aucun coût.
+
+- **À lancer une fois** : `node C:\dev\tred-rdm\aerostudy-ai\migre-profil-complet.mjs` (idempotent). Tant qu'il n'a pas tourné, le profil reste dans le navigateur, comme avant, et rien ne casse.
+- **Routes** : `account.getProfile` et `account.updateProfile` (`api/routes/account.ts`).
+- **Règle** : à la connexion, le profil du serveur gagne. S'il n'y en a pas, celui du navigateur y est envoyé une fois (jamais l'ancien profil de démonstration). Détail dans `api/lib/stored-profile.ts`.
+- **Non synchronisés** : langue maternelle et niveau d'allemand saisis à l'onboarding (ils ne servent à rien d'autre pour l'instant).
+- Les nouvelles colonnes ne sont volontairement pas dans le schéma Drizzle : voir `api/lib/stored-profile-db.ts`.

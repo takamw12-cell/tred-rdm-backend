@@ -437,6 +437,9 @@ export const userAccess = sqliteTable("user_access", {
   learningStyle: text("learning_style").notNull().default("interactive"),
     // Professeur choisi (lib/professors.ts). Ajoutée par migre-professeur.mjs.
     professorId: text("professor_id").notNull().default("genius"),
+  // Profil d'études : studiengang, universitaet, semester, niveau,
+  // profile_updated_at existent en base (migre-profil-complet.mjs) mais ne
+  // sont PAS déclarées ici, exprès : voir lib/stored-profile-db.ts.
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
