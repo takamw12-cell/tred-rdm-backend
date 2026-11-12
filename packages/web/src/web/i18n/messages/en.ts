@@ -611,6 +611,7 @@ export const en: Messages = {
     toSignIn: "Already have an account? Sign in",
     signOut: "Sign out",
     name: "Full name",
+    nameRequired: "Please enter your full name.",
     errorGeneric: "Sign-in failed. Please check your details.",
   },
   dictionary: {

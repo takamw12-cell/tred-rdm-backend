@@ -26,6 +26,16 @@ export function realName(name: string | null | undefined, email?: string | null)
   return n;
 }
 
+/**
+ * Le nom complet saisi à l'inscription est-il acceptable ? Il est obligatoire :
+ * au moins deux lettres, et jamais une adresse e-mail. Même règle dans le
+ * formulaire (pages/login.tsx) et sur le serveur (auth.ts).
+ */
+export function isValidSignupName(name: string | null | undefined, email?: string | null): boolean {
+  const n = realName(name, email);
+  return (n.match(/\p{L}/gu) ?? []).length >= 2;
+}
+
 export interface Identity {
   /** Nom complet à afficher (barre latérale). */
   full: string;

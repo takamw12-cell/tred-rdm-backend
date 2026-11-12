@@ -623,6 +623,7 @@ export const es: Messages = {
     toSignIn: "¿Ya tienes cuenta? Inicia sesión",
     signOut: "Cerrar sesión",
     name: "Nombre completo",
+    nameRequired: "Escribe tu nombre completo.",
     errorGeneric: "No se ha podido iniciar sesión. Revisa tus datos.",
   },
   dictionary: {

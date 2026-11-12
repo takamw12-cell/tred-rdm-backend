@@ -116,6 +116,7 @@ export const ar: PartialMessages = {
     toSignIn: "لديك حساب؟ سجّل الدخول",
     signOut: "تسجيل الخروج",
     name: "الاسم الكامل",
+    nameRequired: "يرجى إدخال اسمك الكامل.",
     errorGeneric: "فشل تسجيل الدخول. تحقّق من بياناتك.",
   },
   settings: {

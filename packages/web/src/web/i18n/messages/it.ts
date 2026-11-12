@@ -116,6 +116,7 @@ export const it: PartialMessages = {
     toSignIn: "Hai già un account? Accedi",
     signOut: "Esci",
     name: "Nome completo",
+    nameRequired: "Inserisci il tuo nome completo.",
     errorGeneric: "Accesso non riuscito. Controlla i tuoi dati.",
   },
   settings: {

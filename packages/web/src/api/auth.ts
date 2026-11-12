@@ -1,5 +1,5 @@
 import { betterAuth } from "better-auth";
-import { APIError } from "better-auth/api";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { eq } from "drizzle-orm";
 import {
   mailCanReachAnyone,
@@ -16,6 +16,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { expo } from "@better-auth/expo";
 import { db } from "./database";
 import { getAccess } from "./lib/access";
+import { isValidSignupName } from "./lib/display-name";
 
 // Social logins are optional: each is enabled only when its env vars are set.
 const googleEnabled =
@@ -133,6 +134,21 @@ export const auth = betterAuth({
   // sans cela il se reconnectait, et seule la garde par requête le retenait.
   // En cas de panne de la base, on n'empêche pas TOUT LE MONDE de se
   // connecter : la garde par requête (authed, « Sperre ») reste en place.
+  // Le nom complet est OBLIGATOIRE à l'inscription par e-mail (décision du
+  // 12 nov. 2026). Vérifié ici aussi : un client qui contourne le formulaire
+  // ne peut pas créer un compte sans nom. Les connexions Google / Apple ne
+  // passent pas par cette route : leur nom vient du fournisseur.
+  hooks: {
+    before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path !== "/sign-up/email") return;
+      const body = (ctx.body ?? {}) as { name?: unknown; email?: unknown };
+      const name = typeof body.name === "string" ? body.name : "";
+      const email = typeof body.email === "string" ? body.email : "";
+      if (!isValidSignupName(name, email)) {
+        throw new APIError("BAD_REQUEST", { message: "NAME_REQUIRED", code: "NAME_REQUIRED" });
+      }
+    }),
+  },
   databaseHooks: {
     session: {
       create: {

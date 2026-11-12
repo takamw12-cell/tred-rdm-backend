@@ -116,6 +116,7 @@ export const ru: PartialMessages = {
     toSignIn: "Уже есть аккаунт? Войдите",
     signOut: "Выйти",
     name: "Полное имя",
+    nameRequired: "Укажи своё полное имя.",
     errorGeneric: "Не удалось войти. Проверьте введённые данные.",
   },
   settings: {

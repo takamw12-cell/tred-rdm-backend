@@ -84,3 +84,14 @@ export async function hydrateProfile(userId: string): Promise<void> {
   hydratedFor = userId;
   if (decision.action === "push") await push(userId, decision.study);
 }
+
+/**
+ * À la déconnexion : annule tout envoi en attente et oublie le compte lu.
+ * La prochaine connexion relira le profil sur le serveur, même si c'est le
+ * même compte.
+ */
+export function forgetProfile(): void {
+  clearTimeout(timer);
+  hydratedFor = null;
+  synced = null;
+}

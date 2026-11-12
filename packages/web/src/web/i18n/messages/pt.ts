@@ -116,6 +116,7 @@ export const pt: PartialMessages = {
     toSignIn: "Já tens conta? Inicia sessão",
     signOut: "Terminar sessão",
     name: "Nome completo",
+    nameRequired: "Indica o teu nome completo.",
     errorGeneric: "Início de sessão falhou. Verifica os teus dados.",
   },
   settings: {

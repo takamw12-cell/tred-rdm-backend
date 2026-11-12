@@ -116,6 +116,7 @@ export const ja: PartialMessages = {
     toSignIn: "アカウントをお持ちですか？ログイン",
     signOut: "ログアウト",
     name: "氏名",
+    nameRequired: "氏名を入力してください。",
     errorGeneric: "ログインに失敗しました。入力内容をご確認ください。",
   },
   settings: {

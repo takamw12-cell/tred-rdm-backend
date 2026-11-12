@@ -23,7 +23,7 @@ import { useIdentity } from "@/hooks/use-identity";
 import { subscriptionMeOptions } from "@/queries/subscriptions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TrustBadge } from "@/components/trust-badge";
-import { authClient } from "@/lib/auth";
+import { signOutEverywhere } from "@/lib/sign-out";
 import { cn } from "@/lib/utils";
 import { useFeedbackUi } from "@/stores/feedback";
 
@@ -133,7 +133,7 @@ export function SidebarContent({
             onClick={() => {
               // Le cache des requêtes (cours, documents) ne doit pas survivre
               // à la déconnexion : le compte suivant ne doit rien en voir.
-              void authClient.signOut().finally(() => qc.clear());
+              void signOutEverywhere(qc);
             }}
             className="shrink-0 text-white/60 transition-colors hover:text-red-400"
             aria-label={t("auth.signOut")}

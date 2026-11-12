@@ -116,6 +116,7 @@ export const hi: PartialMessages = {
     toSignIn: "पहले से खाता है? साइन इन करें",
     signOut: "साइन आउट",
     name: "पूरा नाम",
+    nameRequired: "कृपया अपना पूरा नाम लिखो।",
     errorGeneric: "साइन-इन विफल रहा। कृपया अपनी जानकारी जाँचें।",
   },
   settings: {

@@ -40,6 +40,7 @@ import { restartGuide } from "@/components/onboarding-guide";
 import { LIGHT_ONLY, useThemeStore, type Theme } from "@/stores/theme";
 import { useFontSizeStore, type FontSize } from "@/stores/font-size";
 import { useUserStore } from "@/stores/user";
+import { clearLocalAccount } from "@/lib/sign-out";
 import { client } from "@/lib/api";
 import { AnalyticsToggle } from "@/components/analytics-consent";
 import { TrustBadge } from "@/components/trust-badge";
@@ -209,6 +210,8 @@ export default function SettingsPage() {
     setDeleting(true);
     try {
       await client.account.deleteAccount({ confirm: "LÖSCHEN" });
+      // Le compte n'existe plus : son profil local ne doit pas lui survivre.
+      clearLocalAccount();
       window.location.href = "/";
     } catch {
       setError(t("settings.deleteFailed"));

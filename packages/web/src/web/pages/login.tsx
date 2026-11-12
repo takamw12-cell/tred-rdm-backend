@@ -13,7 +13,7 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { authClient, googleAuthEnabled, appleAuthEnabled } from "@/lib/auth";
 import { useT } from "@/i18n";
-import { emailLocalPart } from "../../api/lib/display-name";
+import { isValidSignupName } from "../../api/lib/display-name";
 
 export default function LoginPage() {
   const { t } = useT();
@@ -81,14 +81,18 @@ export default function LoginPage() {
   async function handleEmail(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    // Le nom complet est obligatoire : ni vide, ni des espaces, ni un e-mail.
+    if (isSignup && !isValidSignupName(name, email)) {
+      setError(t("auth.nameRequired"));
+      return;
+    }
     setBusy(true);
     try {
       const res = isSignup
         ? await authClient.signUp.email({
             email,
             password,
-            // Jamais l'e-mail entier comme nom : il s'afficherait tel quel.
-            name: name.trim() || emailLocalPart(email),
+            name: name.trim().replace(/\s+/g, " "),
             // Le lien de l'e-mail de bienvenue vérifie l'adresse, ouvre la
             // session et mène ici.
             callbackURL: "/dashboard",
@@ -100,6 +104,8 @@ export default function LoginPage() {
         if (err.code === "EMAIL_NOT_VERIFIED" || (!isSignup && err.status === 403)) {
           setVerifySent(email.trim());
           setError(t("auth.verifyRequired"));
+        } else if (err.code === "NAME_REQUIRED" || err.message === "NAME_REQUIRED") {
+          setError(t("auth.nameRequired"));
         } else {
           setError(err.message ?? t("auth.errorGeneric"));
         }
@@ -206,6 +212,9 @@ export default function LoginPage() {
               <Input
                 id="name"
                 required
+                minLength={2}
+                maxLength={80}
+                aria-required="true"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 autoComplete="name"

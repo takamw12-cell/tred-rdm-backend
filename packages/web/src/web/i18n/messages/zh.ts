@@ -116,6 +116,7 @@ export const zh: PartialMessages = {
     toSignIn: "已有账号？登录",
     signOut: "退出登录",
     name: "姓名",
+    nameRequired: "请输入你的全名。",
     errorGeneric: "登录失败，请检查你的信息。",
   },
   settings: {

@@ -116,6 +116,7 @@ export const bn: PartialMessages = {
     toSignIn: "অ্যাকাউন্ট আছে? সাইন ইন করুন",
     signOut: "সাইন আউট",
     name: "পুরো নাম",
+    nameRequired: "তোমার পুরো নাম লেখো।",
     errorGeneric: "সাইন-ইন ব্যর্থ। তথ্য যাচাই করুন।",
   },
   settings: {

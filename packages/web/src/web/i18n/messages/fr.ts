@@ -611,6 +611,7 @@ export const fr: Messages = {
     toSignIn: "Déjà un compte ? Se connecter",
     signOut: "Se déconnecter",
     name: "Nom complet",
+    nameRequired: "Indique ton nom complet.",
     errorGeneric: "Échec de la connexion. Vérifie tes informations.",
   },
   dictionary: {

@@ -610,6 +610,7 @@ export const de = {
     toSignIn: "Bereits ein Konto? Anmelden",
     signOut: "Abmelden",
     name: "Vollständiger Name",
+    nameRequired: "Bitte gib deinen vollständigen Namen ein.",
     errorGeneric: "Anmeldung fehlgeschlagen. Bitte prüfe deine Angaben.",
   },
   dictionary: {
