@@ -1,0 +1,295 @@
+{
+ "id": "k-en1",
+ "words": [
+  {
+   "text": "It's",
+   "startMs": 0,
+   "endMs": 240
+  },
+  {
+   "text": "2",
+   "startMs": 360,
+   "endMs": 480
+  },
+  {
+   "text": "AM.",
+   "startMs": 560,
+   "endMs": 960
+  },
+  {
+   "text": "The",
+   "startMs": 1360,
+   "endMs": 1400
+  },
+  {
+   "text": "exam",
+   "startMs": 1440,
+   "endMs": 1840
+  },
+  {
+   "text": "is",
+   "startMs": 1920,
+   "endMs": 2000
+  },
+  {
+   "text": "tomorrow.",
+   "startMs": 2120,
+   "endMs": 2840
+  },
+  {
+   "text": "And",
+   "startMs": 3040,
+   "endMs": 3200
+  },
+  {
+   "text": "you're",
+   "startMs": 3280,
+   "endMs": 3520
+  },
+  {
+   "text": "stuck.",
+   "startMs": 3600,
+   "endMs": 4160
+  },
+  {
+   "text": "You",
+   "startMs": 4640,
+   "endMs": 4800
+  },
+  {
+   "text": "upload",
+   "startMs": 5000,
+   "endMs": 5200
+  },
+  {
+   "text": "your",
+   "startMs": 5240,
+   "endMs": 5280
+  },
+  {
+   "text": "lecture",
+   "startMs": 5360,
+   "endMs": 5600
+  },
+  {
+   "text": "notes.",
+   "startMs": 5680,
+   "endMs": 6200
+  },
+  {
+   "text": "You",
+   "startMs": 6400,
+   "endMs": 6480
+  },
+  {
+   "text": "ask",
+   "startMs": 6560,
+   "endMs": 6800
+  },
+  {
+   "text": "one",
+   "startMs": 6960,
+   "endMs": 7120
+  },
+  {
+   "text": "question.",
+   "startMs": 7200,
+   "endMs": 7680
+  },
+  {
+   "text": "And",
+   "startMs": 8080,
+   "endMs": 8240
+  },
+  {
+   "text": "TRED",
+   "startMs": 8320,
+   "endMs": 8560
+  },
+  {
+   "text": "doesn't",
+   "startMs": 8640,
+   "endMs": 8880
+  },
+  {
+   "text": "just",
+   "startMs": 8960,
+   "endMs": 9120
+  },
+  {
+   "text": "give",
+   "startMs": 9280,
+   "endMs": 9360
+  },
+  {
+   "text": "you",
+   "startMs": 9440,
+   "endMs": 9520
+  },
+  {
+   "text": "the",
+   "startMs": 9560,
+   "endMs": 9600
+  },
+  {
+   "text": "answer.",
+   "startMs": 9680,
+   "endMs": 10080
+  },
+  {
+   "text": "It",
+   "startMs": 10400,
+   "endMs": 10560
+  },
+  {
+   "text": "draws",
+   "startMs": 10720,
+   "endMs": 10960
+  },
+  {
+   "text": "it.",
+   "startMs": 11040,
+   "endMs": 11280
+  },
+  {
+   "text": "Step",
+   "startMs": 11600,
+   "endMs": 11920
+  },
+  {
+   "text": "by",
+   "startMs": 12000,
+   "endMs": 12080
+  },
+  {
+   "text": "step.",
+   "startMs": 12240,
+   "endMs": 12640
+  },
+  {
+   "text": "On",
+   "startMs": 12880,
+   "endMs": 12960
+  },
+  {
+   "text": "an",
+   "startMs": 13040,
+   "endMs": 13120
+  },
+  {
+   "text": "interactive",
+   "startMs": 13200,
+   "endMs": 13760
+  },
+  {
+   "text": "whiteboard.",
+   "startMs": 13880,
+   "endMs": 14320
+  },
+  {
+   "text": "Then",
+   "startMs": 14800,
+   "endMs": 15040
+  },
+  {
+   "text": "you",
+   "startMs": 15080,
+   "endMs": 15120
+  },
+  {
+   "text": "click",
+   "startMs": 15200,
+   "endMs": 15440
+  },
+  {
+   "text": "'Explain",
+   "startMs": 15600,
+   "endMs": 16080
+  },
+  {
+   "text": "as",
+   "startMs": 16160,
+   "endMs": 16240
+  },
+  {
+   "text": "video'.",
+   "startMs": 16320,
+   "endMs": 17120
+  },
+  {
+   "text": "And",
+   "startMs": 17200,
+   "endMs": 17280
+  },
+  {
+   "text": "a",
+   "startMs": 17320,
+   "endMs": 17360
+  },
+  {
+   "text": "private",
+   "startMs": 17440,
+   "endMs": 17760
+  },
+  {
+   "text": "lesson",
+   "startMs": 17840,
+   "endMs": 18080
+  },
+  {
+   "text": "is",
+   "startMs": 18160,
+   "endMs": 18240
+  },
+  {
+   "text": "generated,",
+   "startMs": 18320,
+   "endMs": 19040
+  },
+  {
+   "text": "just",
+   "startMs": 19120,
+   "endMs": 19280
+  },
+  {
+   "text": "for",
+   "startMs": 19360,
+   "endMs": 19440
+  },
+  {
+   "text": "you.",
+   "startMs": 19520,
+   "endMs": 20240
+  },
+  {
+   "text": "TRED.",
+   "startMs": 20280,
+   "endMs": 20720
+  },
+  {
+   "text": "The",
+   "startMs": 21120,
+   "endMs": 21200
+  },
+  {
+   "text": "university",
+   "startMs": 21280,
+   "endMs": 21840
+  },
+  {
+   "text": "in",
+   "startMs": 22000,
+   "endMs": 22080
+  },
+  {
+   "text": "your",
+   "startMs": 22160,
+   "endMs": 22240
+  },
+  {
+   "text": "pocket.",
+   "startMs": 22280,
+   "endMs": 22880
+  }
+ ]
+}

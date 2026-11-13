@@ -138,3 +138,40 @@ export const V4 = [
   { id: "v-de3", language: "de", voiceId: "TX3LPaxmHKxFdv7VOQHJ", ...TALK, // Liam
     text: "Werde Teil der Bewegung. Zeig TRED deiner Fachschaft, deinen Kommilitonen und deinen Freunden. Je mehr Studenten mitmachen, desto besser wird die KI. Dein Feedback hilft uns, die perfekte Lernplattform zu bauen. Zusammen machen wir das Studium einfacher. Starte jetzt und teile deine Erfahrungen." },
 ];
+
+// ── Courts-métrages « Cinematic » (2026-11-13), 30–45 s, 2.35:1 ─────────
+// Série A : l'étudiant au centre. Textes du fondateur, mot pour mot. Ton posé,
+// narratif (stabilité un peu plus haute que TALK, style léger).
+const FILM = { model: "eleven_v4", settings: { stability: 0.42, similarity_boost: 0.78, style: 0.3, use_speaker_boost: true } };
+export const CINE_A = [
+  { id: "k-en1", language: "en", voiceId: "nPczCjzI2devNBz1zQrb", ...FILM, // Brian — grave, calme
+    text: "It's 2 AM. The exam is tomorrow. And you're stuck. You upload your lecture notes. You ask one question. And TRED doesn't just give you the answer. It draws it. Step by step. On an interactive whiteboard. Then you click 'Explain as video'. And a private lesson is generated, just for you. TRED. The university in your pocket." },
+  { id: "k-en2", language: "en", voiceId: "cgSgspJ2msm6clMCkdW9", ...FILM, // Jessica — vive
+    text: "Group projects are chaos. Unless you have the right tool. One screen. One question. TRED solves the mechanics, draws the curves, and explains every step. No more arguments about who's right. Just the exact answer, every time. TRED. Built for engineers." },
+  { id: "k-en3", language: "en", voiceId: "JBFqnCBsd6RMkjVDRZzb", ...FILM, // George — chaleureux
+    text: "New country. New language. Same struggle. You have the lecture notes, but you don't understand a word. TRED translates the concept, not just the text. It explains in your language, with your professor's voice. So you can finally focus on what matters: learning. TRED. Universal by design." },
+  { id: "k-de1", language: "de", voiceId: "cjVigY5qzO86Huf0OWal", ...FILM, // Eric
+    text: "Es ist 2 Uhr nachts. Die Klausur ist morgen. Und du kommst nicht weiter. Du lädst deine Altklausur hoch. Du stellst eine Frage. TRED zeichnet die Lösung. Schritt für Schritt. Auf einer interaktiven Tafel. Dann klickst du auf 'Als Video erklären'. Und eine private Nachhilfestunde wird für dich generiert. TRED. Die Uni in deiner Hosentasche." },
+  { id: "k-de2", language: "de", voiceId: "SAz9YHcvj6GT2YYXdXww", ...FILM, // River
+    text: "Lerngruppen sind Chaos. Es sei denn, du hast das richtige Tool. Ein Bildschirm. Eine Frage. TRED löst die Thermodynamik, zeichnet die Kurven und erklärt jeden Schritt. Keine Diskussionen mehr darüber, wer recht hat. Nur die exakte Antwort, jedes Mal. TRED. Für Ingenieure gebaut." },
+  { id: "k-de3", language: "de", voiceId: "TX3LPaxmHKxFdv7VOQHJ", ...FILM, // Liam
+    text: "Neues Land. Neue Sprache. Gleicher Kampf. Du hast die Skripte, aber du verstehst kein Wort. TRED übersetzt das Konzept, nicht nur den Text. Es erklärt in deiner Sprache, mit der Stimme deines Professors. Damit du dich endlich auf das konzentrieren kannst, was zählt: Lernen. TRED. Universell by Design." },
+];
+
+// Série B « Tech Premium » : la puissance et le design de TRED. Six voix
+// nouvelles ; réglages demandés par le fondateur (stabilité 0,35, clarté 0,75).
+const TECH = { model: "eleven_v4", settings: { stability: 0.35, similarity_boost: 0.75, style: 0.3, use_speaker_boost: true } };
+export const CINE_B = [
+  { id: "b-en1", language: "en", voiceId: "EXAVITQu4vr4xnSDxMaL", ...TECH, // Sarah
+    text: "Stop reading endless walls of text. See that button? 'Explain as video'. Click it, and TRED turns your confusing lecture notes into a custom, animated video lesson in seconds. It's like having a Hollywood studio in your browser. Try it on tred-tutor.de." },
+  { id: "b-en2", language: "en", voiceId: "onwK4e9ZLuTAKqWW03F9", ...TECH, // Daniel
+    text: "Tired of AI making up math formulas? Yeah, me too. TRED doesn't guess. It uses deterministic solvers. Every calculation, every unit, is 100% verified. You can finally trust your grades to an AI. Pure math. Zero hallucinations." },
+  { id: "b-en3", language: "en", voiceId: "XB0fDUnXU5powFXDhCwa", ...TECH, // Charlotte
+    text: "Law, Medicine, Engineering. TRED adapts to your major. Upload your PDFs, and watch as the tutor switches from legal case studies to circuit diagrams in seconds. The ultimate university in your pocket. One app. Every subject." },
+  { id: "b-de1", language: "de", voiceId: "XrExE9yKIg1WjnnlVkGX", ...TECH, // Matilda
+    text: "Schluss mit endlosen Textwüsten. Siehst du diesen Button? 'Als Video erklären'. Ein Klick, und TRED verwandelt deine verwirrenden Skripte in Sekundenschnelle in eine individuelle, animierte Videolektion. Wie ein Hollywood-Studio in deinem Browser. Probier es aus." },
+  { id: "b-de2", language: "de", voiceId: "pqHfZKP75CvOlQylNhV4", ...TECH, // Bill
+    text: "Keine Lust mehr auf KI, die sich Mathe-Formeln ausdenkt? Ja, ich auch nicht. TRED rät nicht. Es nutzt deterministische Solver. Jede Berechnung, jede Einheit ist 100% verifiziert. Du kannst der KI endlich deine Noten anvertrauen. Reine Mathematik. Null Halluzinationen." },
+  { id: "b-de3", language: "de", voiceId: "pFZP5JQG7iQjIQuC4Bku", ...TECH, // Lily
+    text: "Jura, Medizin, Ingenieurwesen. TRED passt sich deinem Studiengang an. Lade deine PDFs hoch und sieh zu, wie der Tutor in Sekundenschnelle von juristischen Fällen zu Schaltplänen wechselt. Die ultimative Universität für die Hosentasche. Eine App. Jedes Fach." },
+];

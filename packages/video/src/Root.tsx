@@ -11,6 +11,9 @@ import { CAMPAIGN_IDS } from "./campaign/videos";
 import { DEMO_IDS } from "./campaign/demo";
 import { V4_IDS } from "./campaign/v4";
 import { DynamicExplanationCompositions } from "./dynamic";
+import { FILM } from "./cinematic/engine";
+import { CINEMATIC_A } from "./cinematic/series-a";
+import { CINEMATIC_B } from "./cinematic/series-b";
 import "./style.css";
 
 /**
@@ -57,6 +60,18 @@ export function Root() {
       <Folder name="V4-Studyflix-30s">
         {V4_IDS.map(([id, component]) => (
           <Composition key={id} id={id} component={component} durationInFrames={CAMPAIGN_FRAMES} {...PHONE} />
+        ))}
+      </Folder>
+      {/* Courts-métrages « Cinematic » (2026-11-13) : 1920 × 1080, 2.35:1, étalonnage + grain + light leaks. Durée = celle de la voix. */}
+      <Folder name="Cinematic-A-Etudiant">
+        {CINEMATIC_A.map(([id, component, frames]) => (
+          <Composition key={id} id={id} component={component} durationInFrames={frames} {...FILM} />
+        ))}
+      </Folder>
+      {/* Série B « Tech Premium » : la puissance et le design de TRED (mode sombre, néon jaune). */}
+      <Folder name="Cinematic-B-Tech-Premium">
+        {CINEMATIC_B.map(([id, component, frames]) => (
+          <Composition key={id} id={id} component={component} durationInFrames={frames} {...FILM} />
         ))}
       </Folder>
     </>

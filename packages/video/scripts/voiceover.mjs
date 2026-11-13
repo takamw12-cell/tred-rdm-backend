@@ -9,7 +9,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { CAMPAIGN, DEMO, V4, VOICEOVERS } from "../src/voiceovers.mjs";
+import { CAMPAIGN, CINE_A, CINE_B, DEMO, V4, VOICEOVERS } from "../src/voiceovers.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const assets = join(here, "../src/assets");
@@ -45,9 +45,9 @@ function toWords(al) {
 
 const [only, flag] = process.argv.slice(2);
 const key = apiKey();
-for (const vo of [...VOICEOVERS, ...CAMPAIGN, ...DEMO, ...V4]) {
-  // « c » = toute la campagne de 30 s, « d » = la campagne de démonstration, « v » = la campagne V4 ; sinon un id exact.
-  if (only && only !== vo.id && !((only === "c" || only === "d" || only === "v") && vo.id.startsWith(only))) continue;
+for (const vo of [...VOICEOVERS, ...CAMPAIGN, ...DEMO, ...V4, ...CINE_A, ...CINE_B]) {
+  // « c » = toute la campagne de 30 s, « d » = la campagne de démonstration, « v » = la campagne V4, « k » = Cinematic série A, « b » = Cinematic série B ; sinon un id exact.
+  if (only && only !== vo.id && !((only === "c" || only === "d" || only === "v" || only === "k" || only === "b") && vo.id.startsWith(only))) continue;
   const mp3 = join(assets, `vo-${vo.id}.mp3`);
   const json = join(assets, `vo-${vo.id}.json`);
   if (existsSync(mp3) && existsSync(json) && flag !== "--force") {

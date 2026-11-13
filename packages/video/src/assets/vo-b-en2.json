@@ -1,0 +1,190 @@
+{
+ "id": "b-en2",
+ "words": [
+  {
+   "text": "Tired",
+   "startMs": 0,
+   "endMs": 320
+  },
+  {
+   "text": "of",
+   "startMs": 400,
+   "endMs": 560
+  },
+  {
+   "text": "AI",
+   "startMs": 640,
+   "endMs": 960
+  },
+  {
+   "text": "making",
+   "startMs": 1040,
+   "endMs": 1280
+  },
+  {
+   "text": "up",
+   "startMs": 1360,
+   "endMs": 1520
+  },
+  {
+   "text": "math",
+   "startMs": 1600,
+   "endMs": 1840
+  },
+  {
+   "text": "formulas?",
+   "startMs": 1920,
+   "endMs": 2720
+  },
+  {
+   "text": "Yeah,",
+   "startMs": 2960,
+   "endMs": 3440
+  },
+  {
+   "text": "me",
+   "startMs": 3520,
+   "endMs": 3600
+  },
+  {
+   "text": "too.",
+   "startMs": 3760,
+   "endMs": 4080
+  },
+  {
+   "text": "TRED",
+   "startMs": 4560,
+   "endMs": 4960
+  },
+  {
+   "text": "doesn't",
+   "startMs": 5040,
+   "endMs": 5440
+  },
+  {
+   "text": "guess.",
+   "startMs": 5520,
+   "endMs": 6000
+  },
+  {
+   "text": "It",
+   "startMs": 6320,
+   "endMs": 6480
+  },
+  {
+   "text": "uses",
+   "startMs": 6560,
+   "endMs": 6880
+  },
+  {
+   "text": "deterministic",
+   "startMs": 6920,
+   "endMs": 7760
+  },
+  {
+   "text": "solvers.",
+   "startMs": 7920,
+   "endMs": 8720
+  },
+  {
+   "text": "Every",
+   "startMs": 8960,
+   "endMs": 9200
+  },
+  {
+   "text": "calculation,",
+   "startMs": 9280,
+   "endMs": 10240
+  },
+  {
+   "text": "every",
+   "startMs": 10320,
+   "endMs": 10560
+  },
+  {
+   "text": "unit,",
+   "startMs": 10720,
+   "endMs": 11280
+  },
+  {
+   "text": "is",
+   "startMs": 11400,
+   "endMs": 11520
+  },
+  {
+   "text": "100%",
+   "startMs": 11600,
+   "endMs": 12080
+  },
+  {
+   "text": "verified.",
+   "startMs": 12160,
+   "endMs": 13520
+  },
+  {
+   "text": "You",
+   "startMs": 13760,
+   "endMs": 13840
+  },
+  {
+   "text": "can",
+   "startMs": 13920,
+   "endMs": 14080
+  },
+  {
+   "text": "finally",
+   "startMs": 14240,
+   "endMs": 14640
+  },
+  {
+   "text": "trust",
+   "startMs": 14720,
+   "endMs": 14960
+  },
+  {
+   "text": "your",
+   "startMs": 15040,
+   "endMs": 15120
+  },
+  {
+   "text": "grades",
+   "startMs": 15200,
+   "endMs": 15600
+  },
+  {
+   "text": "to",
+   "startMs": 15640,
+   "endMs": 15680
+  },
+  {
+   "text": "an",
+   "startMs": 15760,
+   "endMs": 15920
+  },
+  {
+   "text": "AI.",
+   "startMs": 16000,
+   "endMs": 16480
+  },
+  {
+   "text": "Pure",
+   "startMs": 16960,
+   "endMs": 17200
+  },
+  {
+   "text": "math.",
+   "startMs": 17280,
+   "endMs": 17760
+  },
+  {
+   "text": "Zero",
+   "startMs": 18160,
+   "endMs": 18560
+  },
+  {
+   "text": "hallucinations.",
+   "startMs": 18640,
+   "endMs": 19920
+  }
+ ]
+}

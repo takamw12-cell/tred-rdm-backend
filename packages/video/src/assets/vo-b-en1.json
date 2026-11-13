@@ -1,0 +1,215 @@
+{
+ "id": "b-en1",
+ "words": [
+  {
+   "text": "Stop",
+   "startMs": 0,
+   "endMs": 350
+  },
+  {
+   "text": "reading",
+   "startMs": 400,
+   "endMs": 754
+  },
+  {
+   "text": "endless",
+   "startMs": 800,
+   "endMs": 1360
+  },
+  {
+   "text": "walls",
+   "startMs": 1440,
+   "endMs": 1760
+  },
+  {
+   "text": "of",
+   "startMs": 1800,
+   "endMs": 1840
+  },
+  {
+   "text": "text.",
+   "startMs": 1920,
+   "endMs": 2480
+  },
+  {
+   "text": "See",
+   "startMs": 2880,
+   "endMs": 2960
+  },
+  {
+   "text": "that",
+   "startMs": 3040,
+   "endMs": 3120
+  },
+  {
+   "text": "button?",
+   "startMs": 3200,
+   "endMs": 3680
+  },
+  {
+   "text": "'Explain",
+   "startMs": 3840,
+   "endMs": 4400
+  },
+  {
+   "text": "as",
+   "startMs": 4480,
+   "endMs": 4640
+  },
+  {
+   "text": "video'.",
+   "startMs": 4720,
+   "endMs": 5200
+  },
+  {
+   "text": "Click",
+   "startMs": 5600,
+   "endMs": 5760
+  },
+  {
+   "text": "it,",
+   "startMs": 5840,
+   "endMs": 6160
+  },
+  {
+   "text": "and",
+   "startMs": 6200,
+   "endMs": 6240
+  },
+  {
+   "text": "TRED",
+   "startMs": 6320,
+   "endMs": 6640
+  },
+  {
+   "text": "turns",
+   "startMs": 6720,
+   "endMs": 6960
+  },
+  {
+   "text": "your",
+   "startMs": 7000,
+   "endMs": 7040
+  },
+  {
+   "text": "confusing",
+   "startMs": 7120,
+   "endMs": 7680
+  },
+  {
+   "text": "lecture",
+   "startMs": 7760,
+   "endMs": 8080
+  },
+  {
+   "text": "notes",
+   "startMs": 8160,
+   "endMs": 8400
+  },
+  {
+   "text": "into",
+   "startMs": 8480,
+   "endMs": 8640
+  },
+  {
+   "text": "a",
+   "startMs": 8720,
+   "endMs": 8800
+  },
+  {
+   "text": "custom,",
+   "startMs": 8880,
+   "endMs": 9440
+  },
+  {
+   "text": "animated",
+   "startMs": 9680,
+   "endMs": 9920
+  },
+  {
+   "text": "video",
+   "startMs": 10000,
+   "endMs": 10320
+  },
+  {
+   "text": "lesson",
+   "startMs": 10400,
+   "endMs": 10720
+  },
+  {
+   "text": "in",
+   "startMs": 10800,
+   "endMs": 10960
+  },
+  {
+   "text": "seconds.",
+   "startMs": 11120,
+   "endMs": 11680
+  },
+  {
+   "text": "It's",
+   "startMs": 12080,
+   "endMs": 12200
+  },
+  {
+   "text": "like",
+   "startMs": 12240,
+   "endMs": 12320
+  },
+  {
+   "text": "having",
+   "startMs": 12400,
+   "endMs": 12640
+  },
+  {
+   "text": "a",
+   "startMs": 12680,
+   "endMs": 12720
+  },
+  {
+   "text": "Hollywood",
+   "startMs": 12800,
+   "endMs": 13200
+  },
+  {
+   "text": "studio",
+   "startMs": 13280,
+   "endMs": 13680
+  },
+  {
+   "text": "in",
+   "startMs": 13760,
+   "endMs": 13840
+  },
+  {
+   "text": "your",
+   "startMs": 13880,
+   "endMs": 13920
+  },
+  {
+   "text": "browser.",
+   "startMs": 14000,
+   "endMs": 14560
+  },
+  {
+   "text": "Try",
+   "startMs": 15040,
+   "endMs": 15280
+  },
+  {
+   "text": "it",
+   "startMs": 15360,
+   "endMs": 15520
+  },
+  {
+   "text": "on",
+   "startMs": 15600,
+   "endMs": 15760
+  },
+  {
+   "text": "tred-tutor.de.",
+   "startMs": 15840,
+   "endMs": 18080
+  }
+ ]
+}

@@ -1,0 +1,280 @@
+{
+ "id": "k-de1",
+ "words": [
+  {
+   "text": "Es",
+   "startMs": 0,
+   "endMs": 160
+  },
+  {
+   "text": "ist",
+   "startMs": 280,
+   "endMs": 400
+  },
+  {
+   "text": "2",
+   "startMs": 480,
+   "endMs": 720
+  },
+  {
+   "text": "Uhr",
+   "startMs": 800,
+   "endMs": 960
+  },
+  {
+   "text": "nachts.",
+   "startMs": 1040,
+   "endMs": 1600
+  },
+  {
+   "text": "Die",
+   "startMs": 1760,
+   "endMs": 1840
+  },
+  {
+   "text": "Klausur",
+   "startMs": 1920,
+   "endMs": 2400
+  },
+  {
+   "text": "ist",
+   "startMs": 2480,
+   "endMs": 2560
+  },
+  {
+   "text": "morgen.",
+   "startMs": 2640,
+   "endMs": 3040
+  },
+  {
+   "text": "Und",
+   "startMs": 3360,
+   "endMs": 3440
+  },
+  {
+   "text": "du",
+   "startMs": 3520,
+   "endMs": 3600
+  },
+  {
+   "text": "kommst",
+   "startMs": 3640,
+   "endMs": 3920
+  },
+  {
+   "text": "nicht",
+   "startMs": 3960,
+   "endMs": 4160
+  },
+  {
+   "text": "weiter.",
+   "startMs": 4240,
+   "endMs": 4840
+  },
+  {
+   "text": "Du",
+   "startMs": 5040,
+   "endMs": 5120
+  },
+  {
+   "text": "lädst",
+   "startMs": 5200,
+   "endMs": 5440
+  },
+  {
+   "text": "deine",
+   "startMs": 5480,
+   "endMs": 5680
+  },
+  {
+   "text": "Altklausur",
+   "startMs": 5760,
+   "endMs": 6480
+  },
+  {
+   "text": "hoch.",
+   "startMs": 6520,
+   "endMs": 7120
+  },
+  {
+   "text": "Du",
+   "startMs": 7160,
+   "endMs": 7200
+  },
+  {
+   "text": "stellst",
+   "startMs": 7320,
+   "endMs": 7520
+  },
+  {
+   "text": "eine",
+   "startMs": 7600,
+   "endMs": 7680
+  },
+  {
+   "text": "Frage.",
+   "startMs": 7840,
+   "endMs": 8440
+  },
+  {
+   "text": "TRED",
+   "startMs": 8640,
+   "endMs": 8960
+  },
+  {
+   "text": "zeichnet",
+   "startMs": 9040,
+   "endMs": 9440
+  },
+  {
+   "text": "die",
+   "startMs": 9480,
+   "endMs": 9520
+  },
+  {
+   "text": "Lösung.",
+   "startMs": 9600,
+   "endMs": 10160
+  },
+  {
+   "text": "Schritt",
+   "startMs": 10320,
+   "endMs": 10640
+  },
+  {
+   "text": "für",
+   "startMs": 10720,
+   "endMs": 10880
+  },
+  {
+   "text": "Schritt.",
+   "startMs": 10960,
+   "endMs": 11440
+  },
+  {
+   "text": "Auf",
+   "startMs": 11600,
+   "endMs": 11680
+  },
+  {
+   "text": "einer",
+   "startMs": 11760,
+   "endMs": 12000
+  },
+  {
+   "text": "interaktiven",
+   "startMs": 12160,
+   "endMs": 12640
+  },
+  {
+   "text": "Tafel.",
+   "startMs": 12720,
+   "endMs": 13200
+  },
+  {
+   "text": "Dann",
+   "startMs": 13520,
+   "endMs": 13680
+  },
+  {
+   "text": "klickst",
+   "startMs": 13760,
+   "endMs": 14000
+  },
+  {
+   "text": "du",
+   "startMs": 14080,
+   "endMs": 14160
+  },
+  {
+   "text": "auf",
+   "startMs": 14240,
+   "endMs": 14480
+  },
+  {
+   "text": "'Als",
+   "startMs": 14640,
+   "endMs": 14880
+  },
+  {
+   "text": "Video",
+   "startMs": 14960,
+   "endMs": 15280
+  },
+  {
+   "text": "erklären'.",
+   "startMs": 15360,
+   "endMs": 16000
+  },
+  {
+   "text": "Und",
+   "startMs": 16160,
+   "endMs": 16240
+  },
+  {
+   "text": "eine",
+   "startMs": 16320,
+   "endMs": 16400
+  },
+  {
+   "text": "private",
+   "startMs": 16480,
+   "endMs": 16960
+  },
+  {
+   "text": "Nachhilfestunde",
+   "startMs": 17040,
+   "endMs": 17840
+  },
+  {
+   "text": "wird",
+   "startMs": 17880,
+   "endMs": 18000
+  },
+  {
+   "text": "für",
+   "startMs": 18080,
+   "endMs": 18160
+  },
+  {
+   "text": "dich",
+   "startMs": 18240,
+   "endMs": 18400
+  },
+  {
+   "text": "generiert.",
+   "startMs": 18480,
+   "endMs": 19040
+  },
+  {
+   "text": "TRED.",
+   "startMs": 19440,
+   "endMs": 20040
+  },
+  {
+   "text": "Die",
+   "startMs": 20240,
+   "endMs": 20320
+  },
+  {
+   "text": "Uni",
+   "startMs": 20480,
+   "endMs": 20720
+  },
+  {
+   "text": "in",
+   "startMs": 20800,
+   "endMs": 20880
+  },
+  {
+   "text": "deiner",
+   "startMs": 20960,
+   "endMs": 21200
+  },
+  {
+   "text": "Hosentasche.",
+   "startMs": 21280,
+   "endMs": 22240
+  }
+ ]
+}
