@@ -546,6 +546,14 @@ export const es: Messages = {
     generatedKlausur: "Klausur de prueba generada",
   },
   library: {
+    wait: {
+      title: "Importando tu documento",
+      uploading: "Subiendo …",
+      pending: "En la cola …",
+      processing: "TRED está leyendo tu documento …",
+      done: "Listo.",
+      hide: "Ocultar",
+    },
     title: "Mis cursos",
     allScope: "Todos los materiales",
     allScopeSub: "Chatear con todos los documentos",

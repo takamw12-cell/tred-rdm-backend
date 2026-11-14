@@ -534,6 +534,14 @@ export const fr: Messages = {
     generatedKlausur: "Klausur blanche générée",
   },
   library: {
+    wait: {
+      title: "Import de ton document",
+      uploading: "Envoi en cours …",
+      pending: "Dans la file d'attente …",
+      processing: "TRED lit ton document …",
+      done: "Terminé.",
+      hide: "Masquer",
+    },
     title: "Mes cours",
     allScope: "Tous les documents",
     allScopeSub: "Discuter sur l'ensemble des documents",

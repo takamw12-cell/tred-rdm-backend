@@ -679,3 +679,10 @@ Ensuite, supprime le dossier `C:\Users\HP\AppData\Local\Temp\tred-perf\prod-test
 | `REDIS_URL` | web + worker | active la file |
 | `WORKER_IMPORT_CONCURRENCY` | worker | imports en parallèle par réplique (défaut 2) |
 
+
+### Le film d'attente pendant un import
+
+Pendant qu'un import tourne, l'écran de chargement montre un film TRED de 10 s en boucle, muet (ses sous-titres sont dans l'image), et une barre qui suit l'état du travail. Dès que le travail est `done`, l'écran disparaît. « Ausblenden » ou Échap le masque sans arrêter l'import.
+
+- Fichier : `packages/web/public/videos/import-wait-v1.mp4` (1,7 Mo, 1280×720) et son image `import-wait-v1.webp`. Source : `Cine-B-DE-1-Der-magische-Button.mp4`, de 9,6 s à 19,6 s.
+- **Changer de film** : exporte 10 s en 720p sans piste son, nomme-le `import-wait-v2.mp4` (le numéro compte : le fichier est mis en cache un an) et change les deux constantes en tête de `web/components/import-wait-overlay.tsx`.

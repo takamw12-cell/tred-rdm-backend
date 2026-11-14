@@ -534,6 +534,14 @@ export const en: Messages = {
     generatedKlausur: "Generated mock Klausur",
   },
   library: {
+    wait: {
+      title: "Importing your document",
+      uploading: "Uploading …",
+      pending: "Waiting in the queue …",
+      processing: "TRED is reading your document …",
+      done: "Done.",
+      hide: "Hide",
+    },
     title: "My courses",
     allScope: "All materials",
     allScopeSub: "Chat across all documents",

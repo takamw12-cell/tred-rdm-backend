@@ -1,4 +1,5 @@
 import { followImportJob } from "@/lib/import-job";
+import { ImportWaitOverlay, type ImportWaitState } from "./import-wait-overlay";
 import { useRef, useState } from "react";
 import { paywallFromResponse } from "@/lib/paywall";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -76,6 +77,10 @@ export function DocumentLibrary({
   const inputRef = useRef<HTMLInputElement>(null);
   const [progress, setProgress] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  // L'écran d'attente (film + barre). `waitHidden` : l'étudiant l'a masqué,
+  // l'import continue et le bouton garde son indicateur.
+  const [wait, setWait] = useState<ImportWaitState | null>(null);
+  const [waitHidden, setWaitHidden] = useState(false);
   const [viewerDocId, setViewerDocId] = useState<string | null>(null);
 
   const { data: docs = [], isLoading } = useQuery(documentsListOptions(semesterId));
@@ -99,6 +104,8 @@ export function DocumentLibrary({
     try {
       setProgress(t("library.processing"));
       const cleanTitle = file.name.replace(/\.[a-z0-9]{1,5}$/i, "");
+      setWaitHidden(false);
+      setWait({ status: "uploading", progress: null, title: cleanTitle });
       const form = new FormData();
       form.append("file", file);
       form.append("title", cleanTitle);
@@ -132,7 +139,8 @@ export function DocumentLibrary({
       const body = (await res.json()) as { id?: string; jobId?: string };
       let id = body.id;
       if (!id && body.jobId) {
-        const outcome = await followImportJob(body.jobId, () => {});
+        setWait({ status: "pending", progress: 8, title: cleanTitle });
+        const outcome = await followImportJob(body.jobId, (p) => setWait({ ...p, title: cleanTitle }));
         if (!outcome.ok) {
           showFailure(outcome.error, "extraction_failed");
           return;
@@ -154,6 +162,7 @@ export function DocumentLibrary({
       setUploadError(t("library.uploadFailed", { msg }));
     } finally {
       setProgress(null);
+      setWait(null);
       if (inputRef.current) inputRef.current.value = "";
     }
   }
@@ -169,6 +178,7 @@ export function DocumentLibrary({
 
   return (
     <div className="flex h-full flex-col">
+      <ImportWaitOverlay state={waitHidden ? null : wait} onHide={() => setWaitHidden(true)} />
       <div className="border-border flex h-12 items-center gap-2 border-b px-4">
         <FileText className="text-primary size-4" />
         <span className="text-sm font-semibold">{t("library.title")}</span>

@@ -533,6 +533,14 @@ export const de = {
     generatedKlausur: "Generierte Übungsklausur",
   },
   library: {
+    wait: {
+      title: "Dein Dokument wird importiert",
+      uploading: "Wird hochgeladen …",
+      pending: "In der Warteschlange …",
+      processing: "TRED liest dein Dokument …",
+      done: "Fertig.",
+      hide: "Ausblenden",
+    },
     title: "Meine Kurse",
     allScope: "Alle Materialien",
     allScopeSub: "Über alle Unterlagen chatten",

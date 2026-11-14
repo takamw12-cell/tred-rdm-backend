@@ -126,6 +126,22 @@ async function serveFile(
     "Cache-Control": immutable ? "public, max-age=31536000, immutable" : "no-cache",
     Vary: "Accept-Encoding",
   });
+  // Vidéos : Safari (iOS surtout) ne lit un <video> que si le serveur répond
+  // aux demandes de plage d'octets (Range → 206).
+  headers.set("Accept-Ranges", "bytes");
+  const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.get("range") ?? "");
+  if (range && (range[1] || range[2]) && !COMPRESSIBLE.test(filePath)) {
+    const size = file.size;
+    // « bytes=-500 » : les 500 derniers octets.
+    const start = range[1] ? Number(range[1]) : Math.max(0, size - Number(range[2]));
+    const end = range[1] && range[2] ? Math.min(Number(range[2]), size - 1) : size - 1;
+    if (start > end || start >= size) {
+      return new Response(null, { status: 416, headers: { "Content-Range": `bytes */${size}` } });
+    }
+    headers.set("Content-Range", `bytes ${start}-${end}/${size}`);
+    headers.set("Content-Length", String(end - start + 1));
+    return new Response(file.slice(start, end + 1), { status: 206, headers });
+  }
   const acceptsGzip = /\bgzip\b/.test(request.headers.get("accept-encoding") ?? "");
   if (acceptsGzip && file.size > 1024 && COMPRESSIBLE.test(filePath)) {
     let gz = gzCache.get(filePath);
@@ -147,7 +163,12 @@ async function serveFile(
  * revaliderait chaque image à chaque passage.
  */
 function isImmutablePath(pathname: string): boolean {
-  return pathname.startsWith("/assets/") || /^\/backgrounds\/[a-z]+\/[a-z0-9-]+\.webp$/.test(pathname);
+  return (
+    pathname.startsWith("/assets/") ||
+    /^\/backgrounds\/[a-z]+\/[a-z0-9-]+\.webp$/.test(pathname) ||
+    // Films de l'interface : la version est dans le nom (import-wait-v1.mp4).
+    /^\/videos\/[a-z0-9-]+-v\d+\.(mp4|webp)$/.test(pathname)
+  );
 }
 
 function getPrerenderedPath(pathname: string): string | null {
