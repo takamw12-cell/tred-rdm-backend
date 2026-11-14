@@ -27,7 +27,11 @@ const BOARD_ONLY = process.argv.includes("--board");
 // Le mot de passe du compte de démonstration LOCAL n'est jamais écrit ici.
 const PASSWORD = process.env.CINE_PASSWORD;
 if (!PASSWORD) throw new Error("CINE_PASSWORD manquant : le mot de passe du compte de démonstration local (demo@tred.test)");
-const SCALE = 1.5; // 1920 × 1080 CSS → 2880 × 1620 px : net jusqu'à un zoom de 1,5
+// 1920 × 1080 CSS → 2880 × 1620 px : net jusqu'à un zoom de 1,5. CINE_SCALE=3 pour les vidéos verticales, qui zooment fort sur le tableau.
+const SCALE = Number(process.env.CINE_SCALE) || 1.5;
+// CINE_VIEWPORT=1000x1500 : fenêtre étroite — la Tafel replie ses lignes, ce qui se lit mieux dans une vidéo verticale.
+const [VW, VH] = (process.env.CINE_VIEWPORT ?? "1920x1080").split("x").map(Number);
+const VIEWPORT = { width: VW || 1920, height: VH || 1080 };
 mkdirSync(OUT, { recursive: true });
 
 /* ── Courbes (calculées ici, jamais « dessinées ») ────────────────────── */
@@ -96,6 +100,22 @@ const stressStrain = {
     { label: "R_m = 360 MPa", data: [{ x: 0, y: 360 }, { x: 26, y: 360 }] },
   ],
 };
+
+// TikTok « Physik verstehen » — le compresseur d'un turboréacteur, idéal (isentrope), air = gaz parfait.
+// T1 = 288 K, π = p2/p1 = 30, κ = 1,4 → T2 = T1·π^((κ−1)/κ) = 761 K ; w_t12 = c_p·(T2 − T1) = 1,005·473 = 475 kJ/kg.
+const AIR = { T1: 288, pi: 30, kappa: 1.4, cp: 1.005 };
+const compT = (pi) => AIR.T1 * pi ** ((AIR.kappa - 1) / AIR.kappa);
+const compressor = {
+  type: "line",
+  title: "Isentrope Verdichtung der Luft",
+  xLabel: "p₂/p₁ [–]",
+  yLabel: "T [K]",
+  series: [{ label: "T = T₁ · (p₂/p₁)^((κ−1)/κ)", data: range(1, AIR.pi, 58).map((pi) => ({ x: r3(pi), y: r3(compT(pi)) })) }],
+};
+// Les nombres écrits au tableau sont recalculés ici : une faute de frappe arrête le script.
+const de = (v, digits = 0) => v.toFixed(digits).replace(".", ",");
+const COMP = { exp: de((AIR.kappa - 1) / AIR.kappa, 3), T2: de(compT(AIR.pi)), dT: de(compT(AIR.pi) - AIR.T1), w: de(AIR.cp * (compT(AIR.pi) - AIR.T1)) };
+if (JSON.stringify(COMP) !== JSON.stringify({ exp: "0,286", T2: "761", dT: "473", w: "475" })) throw new Error(`Verdichter : valeurs inattendues ${JSON.stringify(COMP)}`);
 
 // EN 2 — poutre sur deux appuis, L = 6 m, F = 12 kN en x = 2 m, q = 2 kN/m.
 // A = 14 kN, B = 10 kN ; Q change de signe sous F → M_max = 14·2 − 2·2·1 = 24 kNm.
@@ -240,6 +260,34 @@ const SCENARIOS = {
         scene("recap", "recap", "check_recap", "Remember", "Remember these three points.", { bullets: ["Energy is conserved along a streamline", "Faster flow means lower pressure", "Staudruck is the dynamic pressure"] }),
       ],
     },
+  },
+  // Campagne TikTok « Survive Your Klausur », vidéo 2 (2026-11-14) : le tableau seul, thème sombre.
+  sk2: {
+    lang: "de",
+    professor: "genius",
+    boardOnly: true,
+    docs: [{ title: "Thermodynamik_1_Skript", kind: "vorlesung", pages: 168 }],
+    question: "Warum wird die Luft im Verdichter eines Triebwerks heiß, obwohl noch gar nichts verbrennt?",
+    answer: [
+      '[[TAFEL schritt="Joule-Prozess (Brayton) · der Verdichter"]]',
+      "Der Verdichter **verrichtet Arbeit an der Luft**. Bei der idealen, isentropen Verdichtung steigen Druck **und** Temperatur – ganz ohne Verbrennung.",
+      "",
+      "| Größe | Wert |",
+      "|---|---|",
+      "| $T_1$ | 288 K |",
+      "| $p_2/p_1$ | 30 |",
+      "| $\\kappa$ | 1,4 |",
+      "[[/TAFEL]]",
+      "[[REASONING]]",
+      "@@STEP: Isentrope Verdichtung",
+      `$$T_2 = T_1 \\left(\\frac{p_2}{p_1}\\right)^{\\frac{\\kappa-1}{\\kappa}} = 288\\,\\mathrm{K} \\cdot 30^{${COMP.exp.replace(",", "{,}")}} = ${COMP.T2}\\,\\mathrm{K}$$`,
+      fence("chart", compressor),
+      "@@STEP: Arbeit des Verdichters",
+      "$$w_{t,12} = c_p\\,(T_2 - T_1)$$",
+      "@@STEP: Ergebnis",
+      `$$w_{t,12} = 1{,}005\\,\\tfrac{\\mathrm{kJ}}{\\mathrm{kg\\,K}} \\cdot ${COMP.dT}\\,\\mathrm{K} = ${COMP.w}\\,\\tfrac{\\mathrm{kJ}}{\\mathrm{kg}}$$`,
+      "[[/REASONING]]",
+    ].join("\n"),
   },
   de1: {
     lang: "de",
@@ -477,10 +525,12 @@ function stream(text, step = 28) {
 async function run(browser, id) {
   const sc = SCENARIOS[id];
   const report = { id, rects: {} };
-  const ctx = await browser.newContext({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: SCALE, locale: sc.lang === "de" ? "de-DE" : "en-GB", timezoneId: "Europe/Berlin" });
+  const ctx = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: SCALE, locale: sc.lang === "de" ? "de-DE" : "en-GB", timezoneId: "Europe/Berlin" });
   await ctx.addInitScript(({ lang, dark }) => {
     localStorage.setItem("tred-analytics-consent", "denied");
     localStorage.setItem("tred-professor-autospeak", "0");
+    // Le guide de première visite est déjà vu : en fenêtre étroite il revenait par-dessus le tableau.
+    localStorage.setItem("tred.guide.v1", new Date().toISOString());
     localStorage.setItem("aerostudy-locale", JSON.stringify({ state: { locale: lang }, version: 0 }));
     if (dark) {
       localStorage.setItem("aerostudy-theme", JSON.stringify({ state: { theme: "dark" }, version: 1 }));

@@ -262,6 +262,52 @@ def sfx_type() -> np.ndarray:
     return np.stack([x, x]) * 0.35
 
 
+# ── Campagne TikTok « Survive Your Klausur » ─────────────────────────────
+def sfx_alarm() -> np.ndarray:
+    """Réveil numérique : une salve de quatre bips (la voix commence juste après). Synthétisé, donc sans droit d'auteur."""
+    out = np.zeros(int(0.8 * SR))
+    t = t_axis(0.075)
+    # Un bip : fondamentale à 2 kHz, un peu d'harmonique impaire (timbre de buzzer piézo).
+    beep = (np.sin(2 * np.pi * 2050 * t) + 0.3 * np.sin(2 * np.pi * 6150 * t)) * adsr(len(t), 0.003, 0.0, 1.0, 0.012)
+    for k in range(4):
+        place(out, beep, k * 0.125, 0.5)
+    return reverb(out, 0.5, 0.12, seed=5) * 0.8
+
+
+def sfx_slash() -> np.ndarray:
+    """Le « slash » orange : souffle très bref qui monte, pointe métallique, puis coup sourd."""
+    t = t_axis(0.42)
+    u = t / t[-1]
+    n = rng.standard_normal(len(t))
+    air = (lowpass_fft(n, 1200) * (1 - u) + highpass_fft(n, 3000) * u) * u**2.2
+    shing = np.sin(2 * np.pi * np.cumsum(2600 + 5200 * u**2) / SR) * np.exp(-(1 - u) * 9) * 0.22
+    x = (air * 0.75 + shing) * adsr(len(t), 0.01, 0.0, 1.0, 0.02)
+    out = np.zeros(int(0.95 * SR))
+    place(out, x, 0.0)
+    place(out, kick(0.4, 1.2), 0.40, 0.9)  # l'impact, au moment où l'image se fige
+    stereo = np.stack([out, out])
+    stereo[0, : len(t)] *= 1 - u * 0.5  # le souffle traverse de gauche à droite
+    stereo[1, : len(t)] *= 0.5 + u * 0.5
+    return stereo * 0.9
+
+
+def sfx_tred_ui() -> np.ndarray:
+    """Le son de l'interface TRED : deux notes douces qui montent (ré – la), comme une tuile qui s'ouvre."""
+    out = np.zeros(int(1.3 * SR))
+    place(out, bell(86, 0.9), 0.0, 0.42)
+    place(out, bell(93, 1.1), 0.11, 0.5)
+    place(out, pluck(midi(62), 0.8, 0.6), 0.0, 0.22)  # un fond chaud, une octave et demie plus bas
+    return reverb(out, 1.0, 0.28, seed=11) * 0.9
+
+
+TIKTOK = {
+    # Une nappe discrète par pilote (la plupart des créateurs ajoutent un son TikTok par-dessus).
+    "t-de1": (124, [[50, 53, 57, 62], [46, 53, 58, 62], [48, 55, 60, 64], [45, 52, 57, 61]], "drive", 20.5),  # ré mineur, urgence
+    "t-de2": (88, [[45, 52, 57, 60], [41, 53, 57, 60], [48, 52, 55, 60], [43, 50, 55, 59]], "cine", 20.5),    # la mineur, posé
+    "t-de3": (96, [[53, 57, 60, 64], [50, 57, 62, 65], [46, 53, 58, 62], [48, 55, 60, 64]], "warm", 25.5),   # fa majeur, sincère
+}
+
+
 def write(name: str, x: np.ndarray) -> None:
     if x.ndim == 1:
         x = np.stack([x, x])
@@ -305,6 +351,13 @@ if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "campaign":
         for key, (bpm, chords, style) in CAMPAIGN.items():
             write(f"music-{key}.wav", song(bpm, 30.5, chords, style))
+        raise SystemExit
+    if len(sys.argv) > 1 and sys.argv[1] == "tiktok":
+        write("sfx-alarm.wav", sfx_alarm())
+        write("sfx-slash.wav", sfx_slash())
+        write("sfx-tred-ui.wav", sfx_tred_ui())
+        for key, (bpm, chords, style, sec) in TIKTOK.items():
+            write(f"music-{key}.wav", song(bpm, sec, chords, style))
         raise SystemExit
     if len(sys.argv) > 1 and sys.argv[1] == "series":
         for key, (bpm, chords, style) in SERIES.items():

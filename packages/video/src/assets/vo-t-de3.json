@@ -1,0 +1,355 @@
+{
+ "id": "t-de3",
+ "words": [
+  {
+   "text": "Ich",
+   "startMs": 0,
+   "endMs": 160
+  },
+  {
+   "text": "studiere",
+   "startMs": 280,
+   "endMs": 640
+  },
+  {
+   "text": "Luft-",
+   "startMs": 720,
+   "endMs": 1040
+  },
+  {
+   "text": "und",
+   "startMs": 1080,
+   "endMs": 1120
+  },
+  {
+   "text": "Raumfahrttechnik",
+   "startMs": 1200,
+   "endMs": 2080
+  },
+  {
+   "text": "in",
+   "startMs": 2120,
+   "endMs": 2160
+  },
+  {
+   "text": "Deutschland.",
+   "startMs": 2240,
+   "endMs": 3000
+  },
+  {
+   "text": "Und",
+   "startMs": 3200,
+   "endMs": 3360
+  },
+  {
+   "text": "manchmal",
+   "startMs": 3440,
+   "endMs": 3840
+  },
+  {
+   "text": "sitze",
+   "startMs": 3920,
+   "endMs": 4160
+  },
+  {
+   "text": "ich",
+   "startMs": 4240,
+   "endMs": 4320
+  },
+  {
+   "text": "stundenlang",
+   "startMs": 4400,
+   "endMs": 5040
+  },
+  {
+   "text": "vor",
+   "startMs": 5120,
+   "endMs": 5200
+  },
+  {
+   "text": "einem",
+   "startMs": 5253,
+   "endMs": 5360
+  },
+  {
+   "text": "Skript",
+   "startMs": 5440,
+   "endMs": 5760
+  },
+  {
+   "text": "und",
+   "startMs": 5800,
+   "endMs": 5840
+  },
+  {
+   "text": "denke",
+   "startMs": 5920,
+   "endMs": 6160
+  },
+  {
+   "text": "mir:",
+   "startMs": 6280,
+   "endMs": 6640
+  },
+  {
+   "text": "Warum",
+   "startMs": 6880,
+   "endMs": 7200
+  },
+  {
+   "text": "ist",
+   "startMs": 7280,
+   "endMs": 7360
+  },
+  {
+   "text": "das",
+   "startMs": 7440,
+   "endMs": 7520
+  },
+  {
+   "text": "alles",
+   "startMs": 7600,
+   "endMs": 7840
+  },
+  {
+   "text": "so",
+   "startMs": 7920,
+   "endMs": 8000
+  },
+  {
+   "text": "kompliziert",
+   "startMs": 8080,
+   "endMs": 8640
+  },
+  {
+   "text": "erklärt?",
+   "startMs": 8720,
+   "endMs": 9840
+  },
+  {
+   "text": "Also",
+   "startMs": 10000,
+   "endMs": 10160
+  },
+  {
+   "text": "habe",
+   "startMs": 10200,
+   "endMs": 10320
+  },
+  {
+   "text": "ich",
+   "startMs": 10400,
+   "endMs": 10480
+  },
+  {
+   "text": "angefangen,",
+   "startMs": 10560,
+   "endMs": 11120
+  },
+  {
+   "text": "selbst",
+   "startMs": 11200,
+   "endMs": 11520
+  },
+  {
+   "text": "eine",
+   "startMs": 11573,
+   "endMs": 11680
+  },
+  {
+   "text": "Lern-App",
+   "startMs": 11760,
+   "endMs": 12080
+  },
+  {
+   "text": "zu",
+   "startMs": 12160,
+   "endMs": 12240
+  },
+  {
+   "text": "entwickeln.",
+   "startMs": 12320,
+   "endMs": 13120
+  },
+  {
+   "text": "Sie",
+   "startMs": 13200,
+   "endMs": 13280
+  },
+  {
+   "text": "heißt",
+   "startMs": 13320,
+   "endMs": 13600
+  },
+  {
+   "text": "TRED.",
+   "startMs": 13680,
+   "endMs": 14080
+  },
+  {
+   "text": "Die",
+   "startMs": 14480,
+   "endMs": 14560
+  },
+  {
+   "text": "Idee:",
+   "startMs": 14640,
+   "endMs": 15200
+  },
+  {
+   "text": "Lade",
+   "startMs": 15440,
+   "endMs": 15680
+  },
+  {
+   "text": "dein",
+   "startMs": 15720,
+   "endMs": 15840
+  },
+  {
+   "text": "Skript",
+   "startMs": 15920,
+   "endMs": 16240
+  },
+  {
+   "text": "hoch",
+   "startMs": 16280,
+   "endMs": 16560
+  },
+  {
+   "text": "und",
+   "startMs": 16640,
+   "endMs": 16800
+  },
+  {
+   "text": "lass",
+   "startMs": 16880,
+   "endMs": 16960
+  },
+  {
+   "text": "dir",
+   "startMs": 17040,
+   "endMs": 17200
+  },
+  {
+   "text": "schwierige",
+   "startMs": 17240,
+   "endMs": 17600
+  },
+  {
+   "text": "Themen",
+   "startMs": 17680,
+   "endMs": 18000
+  },
+  {
+   "text": "verständlicher",
+   "startMs": 18080,
+   "endMs": 18720
+  },
+  {
+   "text": "erklären.",
+   "startMs": 18800,
+   "endMs": 19600
+  },
+  {
+   "text": "Das",
+   "startMs": 19680,
+   "endMs": 19760
+  },
+  {
+   "text": "Projekt",
+   "startMs": 19880,
+   "endMs": 20160
+  },
+  {
+   "text": "ist",
+   "startMs": 20240,
+   "endMs": 20320
+  },
+  {
+   "text": "noch",
+   "startMs": 20400,
+   "endMs": 20480
+  },
+  {
+   "text": "in",
+   "startMs": 20520,
+   "endMs": 20560
+  },
+  {
+   "text": "der",
+   "startMs": 20600,
+   "endMs": 20640
+  },
+  {
+   "text": "Entwicklung.",
+   "startMs": 20720,
+   "endMs": 21600
+  },
+  {
+   "text": "Wenn",
+   "startMs": 21680,
+   "endMs": 21760
+  },
+  {
+   "text": "du",
+   "startMs": 21800,
+   "endMs": 21840
+  },
+  {
+   "text": "studierst,",
+   "startMs": 21920,
+   "endMs": 22640
+  },
+  {
+   "text": "probier",
+   "startMs": 22720,
+   "endMs": 22880
+  },
+  {
+   "text": "TRED",
+   "startMs": 23040,
+   "endMs": 23280
+  },
+  {
+   "text": "aus",
+   "startMs": 23440,
+   "endMs": 23600
+  },
+  {
+   "text": "und",
+   "startMs": 23680,
+   "endMs": 23840
+  },
+  {
+   "text": "sag",
+   "startMs": 23893,
+   "endMs": 24000
+  },
+  {
+   "text": "mir,",
+   "startMs": 24080,
+   "endMs": 24213
+  },
+  {
+   "text": "was",
+   "startMs": 24267,
+   "endMs": 24320
+  },
+  {
+   "text": "ich",
+   "startMs": 24360,
+   "endMs": 24400
+  },
+  {
+   "text": "verbessern",
+   "startMs": 24480,
+   "endMs": 24880
+  },
+  {
+   "text": "soll.",
+   "startMs": 24960,
+   "endMs": 25440
+  }
+ ]
+}

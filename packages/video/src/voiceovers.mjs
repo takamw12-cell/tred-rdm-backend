@@ -175,3 +175,19 @@ export const CINE_B = [
   { id: "b-de3", language: "de", voiceId: "pFZP5JQG7iQjIQuC4Bku", ...TECH, // Lily
     text: "Jura, Medizin, Ingenieurwesen. TRED passt sich deinem Studiengang an. Lade deine PDFs hoch und sieh zu, wie der Tutor in Sekundenschnelle von juristischen Fällen zu Schaltplänen wechselt. Die ultimative Universität für die Hosentasche. Eine App. Jedes Fach." },
 ];
+
+// ── Campagne TikTok / Snapchat « Survive Your Klausur » (2026-11-14) ────
+// Trois pilotes verticaux, textes du fondateur mot pour mot. Une voix par
+// ton demandé : jeune et dynamique, pédagogique et calme, intime et sincère.
+// `speed` : débit de la voix (1 = normal) ; refusé par un modèle, il est retiré.
+export const TIKTOK = [
+  { id: "t-de1", language: "de", voiceId: "TX3LPaxmHKxFdv7VOQHJ", model: "eleven_v4", // Liam — jeune, énergique
+    settings: { stability: 0.3, similarity_boost: 0.75, style: 0.4, use_speaker_boost: true, speed: 1.06 },
+    text: "Morgen Klausur. 80 Seiten Skript. Und ich verstehe... nichts. Statt weiter zu raten, lade ich die Aufgabe in TRED. Schau mal! Hier wird mir der Rechenweg Schritt für Schritt erklärt. Welche Vorlesung macht dich gerade fertig? TRED — Link im Profil." },
+  { id: "t-de2", language: "de", voiceId: "JBFqnCBsd6RMkjVDRZzb", model: "eleven_v4", // George — posé, chaleureux (la voix de Prof. Ren)
+    settings: { stability: 0.5, similarity_boost: 0.8, style: 0.15, use_speaker_boost: true, speed: 1.0 },
+    text: "Warum wird die Luft in einem Flugzeugtriebwerk heißer, noch bevor sie verbrannt wird? Die Antwort steckt im Verdichter. Er verrichtet Arbeit an der Luft. Dadurch steigen Druck und Temperatur. Genau so will ich Physik lernen: verstehen statt auswendig lernen. Das ist die Idee hinter TRED." },
+  { id: "t-de3", language: "de", voiceId: "SAz9YHcvj6GT2YYXdXww", model: "eleven_v4", // River — détendu, neutre : en attendant la vraie voix du fondateur
+    settings: { stability: 0.45, similarity_boost: 0.8, style: 0.2, use_speaker_boost: true, speed: 1.06 },
+    text: "Ich studiere Luft- und Raumfahrttechnik in Deutschland. Und manchmal sitze ich stundenlang vor einem Skript und denke mir: Warum ist das alles so kompliziert erklärt? Also habe ich angefangen, selbst eine Lern-App zu entwickeln. Sie heißt TRED. Die Idee: Lade dein Skript hoch und lass dir schwierige Themen verständlicher erklären. Das Projekt ist noch in der Entwicklung. Wenn du studierst, probier TRED aus und sag mir, was ich verbessern soll." },
+];

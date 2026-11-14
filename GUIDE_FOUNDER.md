@@ -799,3 +799,49 @@ Repères : avec 1 réplique, 100 imports de PDF texte déposés au même instant
 
 Le test garde les limites de la production (10 imports par heure, 5 vidéos par jour et par compte) : il utilise dix comptes, et un `429` inattendu le fait échouer.
 
+## Campagne TikTok / Snapchat « Survive Your Klausur » — 3 pilotes verticaux (14 nov. 2026)
+
+Trois vidéos 1080 × 1920 (9:16), en allemand, livrées dans `C:\Users\HP\Downloads\TRED-TikTok-Campaign\` :
+
+| Fichier | Durée | Fil |
+|---|---|---|
+| `SK-1-Die-Klausur-morgen.mp4` | 20 s | panique → 80 pages qui défilent → freeze + trait orange → la question dans TRED → la Tafel pas à pas → soulagement, « Link im Profil » |
+| `SK-2-Physik-verstehen.mp4` | 20 s | turboréacteur → schéma animé du compresseur (pression, température) → freeze + trait orange → la Tafel : 288 K → 761 K, 475 kJ/kg |
+| `SK-3-Founder-Story.mp4` | 25 s | face caméra (carton en attendant ton clip) → bureau, code → freeze + trait orange → démo (Tafel, « Als Video erklären », lecteur) → « Ich baue TRED. » |
+
+**L'univers de la campagne** : bleu nuit `#0A0E27`, orange `#FF5722`, jaune doré `#FFC107`. Il ne concerne que ces vidéos : l'app garde ses couleurs. **La signature** : au moment où l'on passe de « je ne comprends pas » à « TRED m'explique », l'image se fige, un trait orange la traverse, elle se fend en deux et l'écran de TRED apparaît dessous (avec un son). **Les sous-titres** : deux ou trois mots à la fois, très gros, le mot prononcé sur un aplat orange.
+
+**Tout ce qu'on voit de TRED est la vraie interface**, capturée en mode sombre dans une fenêtre verticale (1000 × 1778) : la réponse entière de la Tafel tient alors sur un écran 9:16. Les nombres du tableau sont calculés par le script de capture (compresseur idéal, rapport de pression 30, κ = 1,4), pas tapés à la main.
+
+### Où est quoi (`packages/video`)
+
+- `src/tiktok/` : `kit.tsx` (palette, plans, étiquettes), `captions.tsx` (sous-titres), `slash.tsx` (la signature, une transition `@remotion/transitions`), `scenes.tsx` (caméra sur les captures, PDF qui défile, compresseur, éditeur de code, cartes de fin), `engine.tsx`, `videos.tsx` (les trois vidéos, calées sur la voix).
+- `src/voiceovers.mjs` → `TIKTOK` : tes textes, mot pour mot, et la voix de chacun.
+- `src/assets/tiktok/` : les 4 plans Replicate et les captures de l'app.
+
+### Refaire un rendu (depuis WSL, dans `packages/video`)
+
+```
+TIKTOK_DELIVER="/mnt/c/Users/HP/Downloads/TRED-TikTok-Campaign" npm run render:tiktok
+```
+
+Environ 5 à 7 minutes par vidéo. Le script rend en `crf 18`, preset `veryslow`, puis écrit dans le dossier une copie prête à publier (son à −15 LUFS, en-tête en début de fichier pour une lecture immédiate). Sans `ffmpeg` dans le PATH de WSL : `FFMPEG=/chemin/vers/ffmpeg.exe`.
+
+| Pour changer… | Commande |
+|---|---|
+| un texte ou une voix | modifier `TIKTOK` dans `src/voiceovers.mjs`, puis `node scripts/voiceover.mjs t-de1 --force` (facturé par ElevenLabs au caractère ; les 3 voix actuelles = 983 caractères) |
+| un plan d'ambiance | modifier le texte dans `scripts/tiktok-broll.mjs`, puis `node scripts/tiktok-broll.mjs turbine --force` (facturé par Replicate, 6 s par plan) |
+| les sons (alarme, trait, son d'interface) | `npm run audio:tiktok` (synthétisés par code, libres de droits) ; les nappes sortent en WAV, à convertir en MP3 avec ffmpeg |
+| une capture de l'app | serveur local + `scripts/cinematic-captures.mjs sk2 de1 --dark --board` avec `CINE_VIEWPORT=1000x1778 CINE_SCALE=2.5` |
+
+### Ton clip face caméra (vidéo 3)
+
+Les 5 premières secondes montrent un carton « FACE CAM ». Filme-toi 5 secondes à la verticale pendant que la voix dit « Ich studiere Luft- und Raumfahrttechnik in Deutschland. », pose le fichier dans `src/assets/tiktok/founder.mp4`, puis dans `src/tiktok/videos.tsx` remplace `const FOUNDER_CLIP: string | null = null;` par `const FOUNDER_CLIP: string | null = media("founder.mp4");` et relance le rendu. La voix de cette vidéo est une voix ElevenLabs neutre, en attendant : l'idéal est d'enregistrer la tienne.
+
+### Avant de publier
+
+- **Étiquette « contenu généré par IA »** : les plans de l'étudiant, du turboréacteur et du bureau sont générés (Replicate), les voix aussi (ElevenLabs). TikTok demande de l'indiquer quand une vidéo montre des scènes réalistes générées : active l'option au moment de publier.
+- **Le turboréacteur généré est stylisé** (aubes épaisses, peu nombreuses). Devant des étudiants en aéronautique, un vrai plan serait plus crédible : remplace `broll-turbine.mp4` par une séquence à toi, ou relance la génération.
+- **Lien** : voir « Suivi des campagnes » plus haut (un seul lien de profil sur TikTok).
+- Zones sûres : les textes évitent le haut (barre TikTok), la droite (boutons) et le dernier quart (légende).
+

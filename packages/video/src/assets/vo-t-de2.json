@@ -1,0 +1,230 @@
+{
+ "id": "t-de2",
+ "words": [
+  {
+   "text": "Warum",
+   "startMs": 0,
+   "endMs": 400
+  },
+  {
+   "text": "wird",
+   "startMs": 480,
+   "endMs": 640
+  },
+  {
+   "text": "die",
+   "startMs": 680,
+   "endMs": 720
+  },
+  {
+   "text": "Luft",
+   "startMs": 800,
+   "endMs": 1120
+  },
+  {
+   "text": "in",
+   "startMs": 1160,
+   "endMs": 1200
+  },
+  {
+   "text": "einem",
+   "startMs": 1280,
+   "endMs": 1440
+  },
+  {
+   "text": "Flugzeugtriebwerk",
+   "startMs": 1600,
+   "endMs": 2560
+  },
+  {
+   "text": "heißer,",
+   "startMs": 2640,
+   "endMs": 3280
+  },
+  {
+   "text": "noch",
+   "startMs": 3360,
+   "endMs": 3440
+  },
+  {
+   "text": "bevor",
+   "startMs": 3520,
+   "endMs": 3760
+  },
+  {
+   "text": "sie",
+   "startMs": 3840,
+   "endMs": 4000
+  },
+  {
+   "text": "verbrannt",
+   "startMs": 4080,
+   "endMs": 4400
+  },
+  {
+   "text": "wird?",
+   "startMs": 4480,
+   "endMs": 4800
+  },
+  {
+   "text": "Die",
+   "startMs": 5360,
+   "endMs": 5440
+  },
+  {
+   "text": "Antwort",
+   "startMs": 5520,
+   "endMs": 6000
+  },
+  {
+   "text": "steckt",
+   "startMs": 6080,
+   "endMs": 6320
+  },
+  {
+   "text": "im",
+   "startMs": 6400,
+   "endMs": 6480
+  },
+  {
+   "text": "Verdichter.",
+   "startMs": 6560,
+   "endMs": 7200
+  },
+  {
+   "text": "Er",
+   "startMs": 7600,
+   "endMs": 7760
+  },
+  {
+   "text": "verrichtet",
+   "startMs": 7840,
+   "endMs": 8320
+  },
+  {
+   "text": "Arbeit",
+   "startMs": 8400,
+   "endMs": 8800
+  },
+  {
+   "text": "an",
+   "startMs": 8840,
+   "endMs": 8880
+  },
+  {
+   "text": "der",
+   "startMs": 8960,
+   "endMs": 9040
+  },
+  {
+   "text": "Luft.",
+   "startMs": 9120,
+   "endMs": 9560
+  },
+  {
+   "text": "Dadurch",
+   "startMs": 9760,
+   "endMs": 10240
+  },
+  {
+   "text": "steigen",
+   "startMs": 10320,
+   "endMs": 10640
+  },
+  {
+   "text": "Druck",
+   "startMs": 10720,
+   "endMs": 11040
+  },
+  {
+   "text": "und",
+   "startMs": 11120,
+   "endMs": 11200
+  },
+  {
+   "text": "Temperatur.",
+   "startMs": 11280,
+   "endMs": 12320
+  },
+  {
+   "text": "Genau",
+   "startMs": 12640,
+   "endMs": 13040
+  },
+  {
+   "text": "so",
+   "startMs": 13120,
+   "endMs": 13280
+  },
+  {
+   "text": "will",
+   "startMs": 13360,
+   "endMs": 13440
+  },
+  {
+   "text": "ich",
+   "startMs": 13520,
+   "endMs": 13600
+  },
+  {
+   "text": "Physik",
+   "startMs": 13720,
+   "endMs": 14000
+  },
+  {
+   "text": "lernen:",
+   "startMs": 14200,
+   "endMs": 14720
+  },
+  {
+   "text": "verstehen",
+   "startMs": 14800,
+   "endMs": 15360
+  },
+  {
+   "text": "statt",
+   "startMs": 15520,
+   "endMs": 15760
+  },
+  {
+   "text": "auswendig",
+   "startMs": 15840,
+   "endMs": 16320
+  },
+  {
+   "text": "lernen.",
+   "startMs": 16400,
+   "endMs": 16800
+  },
+  {
+   "text": "Das",
+   "startMs": 17280,
+   "endMs": 17520
+  },
+  {
+   "text": "ist",
+   "startMs": 17600,
+   "endMs": 17760
+  },
+  {
+   "text": "die",
+   "startMs": 17800,
+   "endMs": 17840
+  },
+  {
+   "text": "Idee",
+   "startMs": 17920,
+   "endMs": 18240
+  },
+  {
+   "text": "hinter",
+   "startMs": 18280,
+   "endMs": 18560
+  },
+  {
+   "text": "TRED.",
+   "startMs": 18640,
+   "endMs": 19360
+  }
+ ]
+}

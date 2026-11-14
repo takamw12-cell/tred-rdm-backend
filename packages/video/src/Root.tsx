@@ -14,6 +14,7 @@ import { DynamicExplanationCompositions } from "./dynamic";
 import { FILM } from "./cinematic/engine";
 import { CINEMATIC_A } from "./cinematic/series-a";
 import { CINEMATIC_B } from "./cinematic/series-b";
+import { SURVIVE } from "./tiktok/videos";
 import "./style.css";
 
 /**
@@ -72,6 +73,12 @@ export function Root() {
       <Folder name="Cinematic-B-Tech-Premium">
         {CINEMATIC_B.map(([id, component, frames]) => (
           <Composition key={id} id={id} component={component} durationInFrames={frames} {...FILM} />
+        ))}
+      </Folder>
+      {/* Campagne TikTok / Snapchat « Survive Your Klausur » (2026-11-14) : 3 pilotes verticaux, freeze + slash orange, gros sous-titres. */}
+      <Folder name="TikTok-Survive-Your-Klausur">
+        {SURVIVE.map(([id, component, frames]) => (
+          <Composition key={id} id={id} component={component} durationInFrames={frames} {...PHONE} />
         ))}
       </Folder>
     </>
