@@ -32,6 +32,9 @@ import { adminDenialStatus, checkAdmin } from "./lib/admin-guard";
 import { auth } from "./auth";
 import { rateLimitMiddleware, userRateBump, userRateLimit, USER_LIMITS } from "./middleware/rate-limit";
 import { BATCH_MAX_BYTES, BATCH_MAX_FILES, checkBatch, declaredBatchTooLarge, runBatch } from "./lib/import-batch";
+import { docsByTitle, verifyCitation } from "./lib/citations";
+import { ownedDocumentFile } from "./lib/document-owner";
+import { streamDocument } from "./lib/document-stream";
 import { contentMatchesExtension, declaredTooLarge, MAX_UPLOAD_BYTES } from "./lib/upload-guard";
 import { saveAttribution, type AttributionDb } from "./lib/attribution";
 import { requestSession } from "./lib/request-session";
@@ -47,7 +50,7 @@ import {
   subject,
   userAccess,
 } from "./database/schema";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { buildTutorAgent } from "./agent";
 import { domainHint } from "./lib/solvers/domain";
@@ -79,7 +82,7 @@ import { extractInBackground } from "./lib/extract-queue";
 import { importQueue, newImportJobId, queueConfigured, queueDepths, queueReady, warmQueues } from "./lib/queue";
 import { registerJobRoutes } from "./routes/jobs";
 import { renderTikz } from "./lib/tikz";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { s3, S3_BUCKET } from "./lib/s3";
 import { selectRelevantContext } from "./lib/retrieval";
 import { chercherDansDocuments } from "./lib/document-search";
@@ -180,7 +183,7 @@ startRetentionHeartbeat();
 // Chaque aller-retour vers la base coûte une cinquantaine de millisecondes en
 // production (mesuré le 14 nov. 2026) : les enchaîner un à un ferait dépasser
 // la demi-seconde au simple dépôt d'un fichier.
-for (const p of ["/api/documents/upload", "/api/documents/upload-batch", "/api/jobs/*", "/api/video/*"]) {
+for (const p of ["/api/documents/upload", "/api/documents/upload-batch", "/api/documents/:id/stream", "/api/documents/citations/*", "/api/jobs/*", "/api/video/*"]) {
   app.use(p, (c, next) => {
     if ((c.req.header("cookie") ?? "").includes("session_token")) void requestSession(c.req.raw).catch(() => {});
     return next();
@@ -205,6 +208,11 @@ app.use(
   "/api/documents/upload",
   rateLimitMiddleware({ limit: 10, scope: "upload", windowMs: 5 * 60_000 }),
 );
+// Original d'un document (lecteur PDF) : pdf.js le lit par plages d'octets,
+// donc plusieurs requêtes par ouverture. Vérification des citations : une
+// requête par réponse du tuteur.
+app.use("/api/documents/:id/stream", rateLimitMiddleware({ limit: 300, scope: "doc-stream" }));
+app.use("/api/documents/citations/*", rateLimitMiddleware({ limit: 60, scope: "citations" }));
 // Import par lot (5 fichiers au plus par envoi) : la rafale est bornée ici, le
 // nombre d'imports par compte dans la route, fichier par fichier.
 app.use("/api/documents/upload-batch", rateLimitMiddleware({ limit: 4, scope: "upload-batch", windowMs: 5 * 60_000 }));
@@ -2135,6 +2143,99 @@ app.post("/api/documents/upload-batch", async (c) => {
   );
 
   return c.json({ results, jobIds: results.flatMap((r) => (r.jobId ? [r.jobId] : [])) }, 202);
+});
+
+// ── L'original d'un document, pour son propriétaire ───────────────────────
+// Le lecteur PDF de l'app lit le fichier ICI, sur notre origine : la session
+// décide, et pour qui n'est pas le propriétaire le document n'existe pas (404,
+// comme un identifiant inventé). Voir lib/document-stream.ts.
+/** Au-delà, une plage d'octets n'est plus gardée en mémoire : elle part en flux. */
+const STREAM_BUFFER_MAX = 4 * 1024 * 1024;
+
+app.get("/api/documents/:id/stream", async (c) => {
+  const session = await requestSession(c.req.raw);
+  return streamDocument(
+    { userId: session?.user.id ?? null, documentId: c.req.param("id"), range: c.req.header("range") },
+    {
+      findOwned: (documentId, userId) => ownedDocumentFile(db, documentId, userId),
+      getObject: async (fileKey, range) => {
+        const obj = await s3.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: fileKey, ...(range ? { Range: range } : {}) }));
+        if (!obj.Body) throw Object.assign(new Error("original vide"), { name: "NoSuchKey" });
+        // Une plage de lecteur (256 Ko, quelques Mo au plus) part en octets :
+        // sa taille est annoncée. Un fichier entier ou une très grande plage
+        // part en flux, sans jamais tenir en mémoire.
+        const small = Boolean(range) && (obj.ContentLength ?? Number.POSITIVE_INFINITY) <= STREAM_BUFFER_MAX;
+        const body = small ? await obj.Body.transformToByteArray() : (obj.Body.transformToWebStream() as ReadableStream<Uint8Array>);
+        return { body, contentLength: obj.ContentLength, contentRange: obj.ContentRange };
+      },
+      mime: storageMime,
+    },
+  );
+});
+
+// ── Citations du tuteur : vérifiées contre les documents de l'étudiant ────
+// Le navigateur envoie les [[QUELLE doc=… seite=…]]phrase[[/QUELLE]] d'une
+// réponse ; on répond, pour chacune : le document existe-t-il chez CET
+// étudiant, la phrase y est-elle, et sur quelle page (lib/citations.ts).
+// Lecture seule, sans modèle, sans coût.
+const CitationsBody = z.object({
+  citations: z
+    .array(
+      z.object({
+        doc: z.string().max(300).nullable().optional(),
+        page: z.number().int().positive().max(100_000).nullable().optional(),
+        excerpt: z.string().min(1).max(2_000),
+      }),
+    )
+    .min(1)
+    .max(12),
+  // La portée de la conversation : la même que celle de la question.
+  documentId: z.string().max(128).nullable().optional(),
+  subjectId: z.string().max(128).nullable().optional(),
+  semesterId: z.string().max(128).nullable().optional(),
+});
+/** Au-delà, on ne relit pas tout le texte d'un compte pour une citation dont le titre ne désigne rien. */
+const CITATION_SCAN_DOCS = 60;
+
+app.post("/api/documents/citations/verify", async (c) => {
+  const session = await requestSession(c.req.raw);
+  if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);
+  const parsed = CitationsBody.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: "invalid body" }, 400);
+  const { citations, documentId, subjectId, semesterId } = parsed.data;
+  const userId = session.user.id;
+
+  // Les documents de CE compte, dans la portée de la conversation. D'abord
+  // sans leur texte : titre, pages, original.
+  const mine = eq(document.userId, userId);
+  const scope = documentId ? and(mine, eq(document.id, documentId)) : subjectId ? and(mine, eq(document.subjectId, subjectId)) : semesterId ? and(mine, eq(document.semesterId, semesterId)) : mine;
+  const light = await db
+    .select({ id: document.id, title: document.title, pageCount: document.pageCount, fileKey: document.fileKey })
+    .from(document)
+    .where(scope)
+    .orderBy(desc(document.createdAt));
+
+  // Le texte n'est lu que pour les documents que les titres désignent. Si un
+  // titre ne désigne rien, la phrase est cherchée dans les plus récents.
+  const wanted = new Set<string>();
+  let scanAll = false;
+  for (const cit of citations) {
+    const named = docsByTitle(light, cit.doc ?? null);
+    if (named.length === 0) scanAll = true;
+    for (const d of named) wanted.add(d.id);
+  }
+  const ids = scanAll ? [...new Set([...wanted, ...light.slice(0, CITATION_SCAN_DOCS).map((d) => d.id)])] : [...wanted];
+  const texts = ids.length > 0 ? await db.select({ id: document.id, textContent: document.textContent }).from(document).where(and(mine, inArray(document.id, ids))) : [];
+  const textOf = new Map(texts.map((t) => [t.id, t.textContent]));
+  const docs = light.filter((d) => textOf.has(d.id)).map((d) => ({ id: d.id, title: d.title, pageCount: d.pageCount, textContent: textOf.get(d.id) ?? "" }));
+
+  const results = citations.map((cit) => {
+    const verdict = verifyCitation({ doc: cit.doc ?? null, page: cit.page ?? null, excerpt: cit.excerpt }, docs);
+    const fileKey = light.find((d) => d.id === verdict.documentId)?.fileKey ?? null;
+    // `pdf` : l'original est un PDF, donc lisible page par page dans le lecteur.
+    return { ...verdict, original: Boolean(fileKey), pdf: Boolean(fileKey && /\.pdf$/i.test(fileKey)) };
+  });
+  return c.json({ results });
 });
 
 export default app;

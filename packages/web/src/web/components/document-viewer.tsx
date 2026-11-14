@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, FileText, FileType, ExternalLink, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PDFViewer } from "@/components/pdf-viewer";
 import { documentGetOptions, documentFileUrlOptions } from "@/queries/documents";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
@@ -69,15 +70,20 @@ function splitPages(textContent: string): Page[] {
 export function DocumentViewer({
   docId,
   highlight = null,
+  page = null,
   onClose,
 }: {
   docId: string | null;
   highlight?: string | null;
+  /** La page citée (vérifiée par le serveur) : l'original s'ouvre dessus. */
+  page?: number | null;
   onClose: () => void;
 }) {
   const { t } = useT();
   const open = docId !== null;
   const [tab, setTab] = useState<"pdf" | "text">("pdf");
+  // Le lecteur n'a pas pu afficher l'original : on le dit, et le texte extrait prend le relais.
+  const [pdfFailed, setPdfFailed] = useState(false);
 
   const docQuery = useQuery({
     ...documentGetOptions(docId ?? ""),
@@ -99,6 +105,9 @@ export function DocumentViewer({
     return /\.(pdf|png|jpe?g|webp|heic)$/i.test(path);
   }, [fileUrl]);
   const pdfUrl = inlineViewable ? fileUrl : null;
+  // Un PDF se lit dans le lecteur de l'app, page par page, par la route
+  // réservée au propriétaire (même origine) — pas par l'adresse signée.
+  const isPdf = useMemo(() => Boolean(fileUrl && /\.pdf$/i.test(fileUrl.split("?")[0] ?? "")), [fileUrl]);
   const re = useMemo(() => (highlight ? buildQueryRegex(highlight) : null), [highlight]);
 
   const pages = useMemo(
@@ -116,11 +125,21 @@ export function DocumentViewer({
     return -1;
   }, [re, pages]);
 
-  // When opened with a citation, jump straight to the text tab.
+  // Ouvert depuis une citation : l'ORIGINAL, à la page citée, quand on la
+  // connaît ; sinon le texte extrait, où la phrase est surlignée.
   useEffect(() => {
     if (!open) return;
-    setTab(highlight ? "text" : "pdf");
-  }, [open, highlight, docId]);
+    setPdfFailed(false);
+    setTab(highlight && !page ? "text" : "pdf");
+  }, [open, highlight, page, docId]);
+
+  // Échap ferme la visionneuse, d'où que vienne le focus.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
 
   // Ohne anzeigbare Originaldatei bleibt nur die Textansicht.
   useEffect(() => {
@@ -162,7 +181,7 @@ export function DocumentViewer({
                 <h2 className="min-w-0 flex-1 truncate text-sm font-semibold">
                   {doc?.title ?? t("viewer.title")}
                 </h2>
-                <Button variant="ghost" size="icon" onClick={onClose} className="-mr-1">
+                <Button variant="ghost" size="icon" onClick={onClose} className="-mr-1" aria-label={t("viewer.close")} title={t("viewer.close")} data-testid="document-viewer-close">
                   <X className="size-4" />
                 </Button>
               </div>
@@ -216,6 +235,18 @@ export function DocumentViewer({
                     <div className="text-muted-foreground flex h-full items-center justify-center gap-2 text-sm">
                       <Loader2 className="size-4 animate-spin" /> {t("viewer.loading")}
                     </div>
+                  ) : isPdf && docId && !pdfFailed ? (
+                    <PDFViewer
+                      // Une autre citation, un autre document : le lecteur repart de zéro.
+                      key={docId}
+                      documentUrl={`/api/documents/${encodeURIComponent(docId)}/stream`}
+                      initialPage={page ?? (matchPage >= 0 ? (pages[matchPage]?.n ?? 1) : 1)}
+                      // L'original ne s'affiche pas : on le dit, et le texte extrait prend le relais.
+                      onError={() => {
+                        setPdfFailed(true);
+                        setTab("text");
+                      }}
+                    />
                   ) : pdfUrl ? (
                     <iframe
                       src={pdfUrl}
@@ -230,6 +261,12 @@ export function DocumentViewer({
                   )
                 ) : (
                   <div className="h-full overflow-y-auto px-5 py-4">
+                    {pdfFailed && (
+                      <div className="border-border bg-secondary/40 text-muted-foreground mb-4 flex items-center gap-2 rounded-lg border p-3 text-xs">
+                        <AlertTriangle className="size-3.5 shrink-0" />
+                        {t("viewer.pdfError")}
+                      </div>
+                    )}
                     {highlight && matchPage === -1 && (
                       <div className="border-border bg-secondary/40 text-muted-foreground mb-4 flex items-center gap-2 rounded-lg border p-3 text-xs">
                         <AlertTriangle className="size-3.5 shrink-0" />

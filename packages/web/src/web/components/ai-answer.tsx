@@ -10,9 +10,11 @@ import {
   Square,
   Volume2,
 } from "lucide-react";
+import { CitationBadge } from "@/components/citation-badge";
 import { MarkdownContent } from "@/components/markdown-content";
 import { MathText } from "@/components/math-text";
 import { useT } from "@/i18n";
+import { CitationContext, extractCitations as parseCitations, useCitationChecks, type Citation } from "@/lib/citations";
 import { speak, stopSpeaking, type VoiceEngine } from "@/lib/voice";
 import { PROFESSOR_STYLE, professorSpeech } from "@/lib/speech";
 import { useProfessor } from "@/lib/professors";
@@ -22,18 +24,11 @@ import { cn } from "@/lib/utils";
 // and highlighting the exact passage the tutor quoted. Provided by the chat
 // page (which owns the DocumentViewer); null when no viewer is available.
 export const SourceViewContext = createContext<
-  ((opts: { excerpt: string; docTitle?: string | null }) => void) | null
+  ((opts: { excerpt: string; docTitle?: string | null; page?: number | null }) => void) | null
 >(null);
 
-// A verbatim course citation the tutor attached to an [[OFFICIAL]] block.
-type Citation = { excerpt: string; docTitle: string | null };
-
-// [[QUELLE doc="Titel" seite=12]]exact excerpt[[/QUELLE]]  (attrs optional)
-// Tolerant gegenüber Groß-/Kleinschreibung, Leerzeichen und fehlendem
-// Schlusstag — ein Modell schreibt Marker nicht immer perfekt, und eine roh
-// sichtbare Marker-Zeile im Text ist für die Studierenden schlicht kaputt.
-const CITE_RE =
-  /\[\[\s*QUELLE([^\]]*)\]\]([\s\S]*?)(?:\[\[\s*\/\s*QUELLE\s*\]\]|$)/gi;
+// Les citations ([[QUELLE doc="Titel" seite=12]]phrase[[/QUELLE]]) : leur
+// lecture, leur vérification et leur contexte vivent dans lib/citations.ts.
 
 // Letzte Absicherung: entfernt jeden übrig gebliebenen [[...]]-Marker
 // (unbekannte Namen, verwaiste Schlusstags) aus dem sichtbaren Text.
@@ -44,17 +39,8 @@ export function stripStrayMarkers(text: string): string {
 }
 
 // Pull citation markers out of an official block: returns the display text
-// (markers removed) and the collected citations.
-function extractCitations(text: string): { clean: string; citations: Citation[] } {
-  const citations: Citation[] = [];
-  const clean = text.replace(CITE_RE, (_full, attrs: string, body: string) => {
-    const docMatch = /doc\s*=\s*"([^"]*)"/i.exec(attrs);
-    const excerpt = body.trim();
-    if (excerpt) citations.push({ excerpt, docTitle: docMatch?.[1]?.trim() || null });
-    return "";
-  });
-  return { clean: stripStrayMarkers(clean).trim(), citations };
-}
+// (markers removed) and the collected citations (document, page, phrase).
+const extractCitations = (text: string) => parseCitations(text, stripStrayMarkers);
 
 // ── Parsing ────────────────────────────────────────────────────────────────
 // The agent wraps grounded course content, its own completions and its
@@ -214,9 +200,13 @@ export function SourceCard({ variant, text }: { variant: "official" | "aerostudy
   const { t } = useT();
   const official = variant === "official";
   const showSource = useContext(SourceViewContext);
+  const cite = useContext(CitationContext);
   const { clean, citations } = official
     ? extractCitations(text)
     : { clean: text, citations: [] as Citation[] };
+  // Chaque citation complète est vérifiée contre les documents de l'étudiant :
+  // le badge montre le document et la page RÉELS, et n'ouvre que ce qui existe.
+  const { verdicts } = useCitationChecks(cite ? citations : [], cite?.scope);
 
   // Randmarkierung statt Kasten: Inhalt aus dem eigenen Skript bekommt den
   // gelben Markerstrich der Marke, eigene Herleitungen des Tutors nur eine
@@ -235,15 +225,37 @@ export function SourceCard({ variant, text }: { variant: "official" | "aerostudy
       </div>
       <div className="pt-1.5">
         <MarkdownContent content={clean} />
-        {official && citations.length > 0 && showSource && (
+        {official && citations.length > 0 && cite && (
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {citations.map((cite, i) => (
+            {citations.map((c, i) => {
+              const verdict = verdicts[i];
+              const documentId = verdict?.documentId ?? null;
+              return (
+                <CitationBadge
+                  key={i}
+                  citation={c}
+                  verdict={verdict}
+                  onOpen={
+                    documentId
+                      ? () => cite.open({ documentId, page: verdict?.page ?? null, excerpt: c.excerpt })
+                      : // Pas encore vérifiée (ou vérification indisponible) : l'ancien chemin, par le titre.
+                        !verdict && showSource
+                        ? () => showSource({ excerpt: c.excerpt, docTitle: c.docTitle, page: c.page })
+                        : undefined
+                  }
+                />
+              );
+            })}
+          </div>
+        )}
+        {/* Hors du chat (aucune vérification possible) : le bouton d'origine. */}
+        {official && citations.length > 0 && !cite && showSource && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {citations.map((c, i) => (
               <button
                 key={i}
-                onClick={() =>
-                  showSource({ excerpt: cite.excerpt, docTitle: cite.docTitle })
-                }
-                title={cite.excerpt}
+                onClick={() => showSource({ excerpt: c.excerpt, docTitle: c.docTitle, page: c.page })}
+                title={c.excerpt}
                 className="border-border text-muted-foreground hover:border-signature hover:text-foreground inline-flex max-w-full items-center gap-1.5 rounded-sm border px-2 py-0.5 text-xs font-medium transition-colors"
               >
                 <Quote className="size-3 shrink-0" />

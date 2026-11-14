@@ -41,6 +41,7 @@ import { chosenKey, moveFencedToPageTop, pageSplit, tafelPage } from "@/lib/tafe
 import { ReportAnswer } from "@/components/report-answer";
 import { CodeExplainContext, CodeSendContext } from "@/components/code-block";
 import { DocumentViewer } from "@/components/document-viewer";
+import { CitationContext } from "@/lib/citations";
 import { BEAM_LANG, beamBlockFromPart } from "@/components/beam-diagram";
 import { solverChartBlockFromPart } from "@/lib/solver-charts";
 import { chatPhase, PHASE_KEY } from "@/lib/chat-phase";
@@ -352,12 +353,16 @@ export default function ChatPage() {
   // Source viewer: opened from an [[OFFICIAL]] citation to show the exact
   // passage the tutor quoted, highlighted in the course document.
   const [sourceView, setSourceView] = useState<
-    { docId: string; highlight: string } | null
+    { docId: string; highlight: string; page: number | null } | null
   >(null);
 
+  // Chemin de secours (citation pas encore vérifiée par le serveur) : le
+  // document est retrouvé par son titre. Aucun titre ne ressemble → RIEN ne
+  // s'ouvre. Avant le 14 nov. 2026, on ouvrait alors le premier document de la
+  // liste : une citation de la Thermodynamik pouvait montrer la Mechanik.
   const showSource = useMemo(
     () =>
-      ({ excerpt, docTitle }: { excerpt: string; docTitle?: string | null }) => {
+      ({ excerpt, docTitle, page }: { excerpt: string; docTitle?: string | null; page?: number | null }) => {
         let id = activeDoc?.id ?? null;
         if (!id && docTitle) {
           const q = docTitle.toLowerCase();
@@ -370,10 +375,25 @@ export default function ChatPage() {
             );
           id = found?.id ?? null;
         }
-        if (!id && scopeDocs.length > 0) id = scopeDocs[0].id;
-        if (id) setSourceView({ docId: id, highlight: excerpt });
+        if (id) setSourceView({ docId: id, highlight: excerpt, page: page ?? null });
       },
     [activeDoc?.id, scopeDocs],
+  );
+
+  // Citations vérifiées (lib/citations.ts) : la portée est celle de la
+  // question, et un badge ouvre le document et la page que le serveur a
+  // confirmés.
+  const citationContext = useMemo(
+    () => ({
+      scope: {
+        documentId: activeDoc?.id ?? null,
+        subjectId: activeDoc?.id ? null : chatSubject,
+        semesterId: activeDoc?.id || chatSubject ? null : semesterId,
+      },
+      open: ({ documentId, page, excerpt }: { documentId: string; page: number | null; excerpt: string }) =>
+        setSourceView({ docId: documentId, highlight: excerpt, page }),
+    }),
+    [activeDoc?.id, chatSubject, semesterId],
   );
 
   // ── Persistent conversation history ──────────────────────────────────
@@ -1981,6 +2001,7 @@ export default function ChatPage() {
             board={
               <ErrorBoundary area="tafel" variant="inline" label="Die Tafel konnte nicht angezeigt werden." resetKey={activePage?.id}>
                 <SourceViewContext.Provider value={showSource}>
+                <CitationContext.Provider value={citationContext}>
                 <CodeExplainContext.Provider value={explainCode}>
                 <CodeSendContext.Provider value={sendFromCode}>
                 <TafelBoard
@@ -2120,6 +2141,7 @@ export default function ChatPage() {
                 />
                 </CodeSendContext.Provider>
                 </CodeExplainContext.Provider>
+                </CitationContext.Provider>
                 </SourceViewContext.Provider>
               </ErrorBoundary>
             }
@@ -2223,6 +2245,7 @@ export default function ChatPage() {
       <DocumentViewer
         docId={sourceView?.docId ?? null}
         highlight={sourceView?.highlight ?? null}
+        page={sourceView?.page ?? null}
         onClose={() => setSourceView(null)}
       />
       <ExplainerVideoDialog state={explainer} onClose={closeExplainer} onRetry={() => runExplainer(lastExplainerMessage.current)} />

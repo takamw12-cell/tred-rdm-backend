@@ -4,6 +4,7 @@ import tailwind from "@tailwindcss/vite"
 import path from "path";
 import honoDevPlugin from "./vite/__plugins/hono-dev-plugin";
 import assetOptimizerPlugin from "./vite/__plugins/asset-optimizer-plugin";
+import pdfjsAssetsPlugin from "./vite/pdfjs-assets-plugin";
 
 const root = path.resolve(__dirname, "../..");
 
@@ -15,7 +16,7 @@ export default defineConfig(({ mode }) => {
 		// All env files live at the repo root — keep Vite's own env loading there too,
 		// so packages/web/.env* files can never shadow the root .env.
 		envDir: root,
-		plugins: [honoDevPlugin(), react(), tailwind(), assetOptimizerPlugin()],
+		plugins: [honoDevPlugin(), react(), tailwind(), assetOptimizerPlugin(), pdfjsAssetsPlugin()],
 		resolve: {
 			alias: {
 				"@": path.resolve(__dirname, "./src/web"),

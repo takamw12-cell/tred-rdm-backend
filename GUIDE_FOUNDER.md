@@ -735,6 +735,48 @@ Ces deux messages (mot de passe, fichier abîmé) valent aussi pour l'import d'u
 
 Où est quoi : `api/lib/import-batch.ts` (le lot, côté serveur), `web/lib/import-batch.ts` (la file, côté navigateur), `web/components/import-queue.tsx` (les lignes), tests dans `tests/import-batch.test.ts`.
 
+## Fidélité aux documents : extraits tracés, citations vérifiées, lecteur PDF (15 nov. 2026)
+
+**Le principe.** TRED ne doit jamais attribuer à un document ce qui vient d'un autre, ni citer une page au hasard. Trois garde-fous, sans aucun service payant en plus :
+
+1. **Chaque extrait remis au tuteur porte son document et sa page.** Le texte d'un document garde une marque `[[SEITE n]]` au début de chaque page ; un extrait pris au milieu d'une page redit maintenant sa page en tête. (Avant, il arrivait sans numéro, et le tuteur citait la page de l'extrait précédent.) Chaque document reste enfermé dans son enveloppe `<dokument titel="…">`.
+2. **La consigne du tuteur (NIVEAU 4)** : toujours citer le document ET la page, ne jamais deviner une page, ne jamais mélanger deux documents, et signaler une contradiction entre deux documents au lieu d'en choisir un en silence.
+3. **Chaque citation est vérifiée par le serveur** avant de devenir une référence cliquable (voir ci-dessous).
+
+**Ce que voit l'étudiant.** Quand le tuteur cite son cours, un badge apparaît sous le passage, dans la Tafel comme dans le chat : `Thermo_Kapitel_3 · S. 12 ✓`. Un clic ouvre **le PDF d'origine à cette page**, dans le lecteur de l'app (flèches, saisie du numéro de page, zoom, ajustement à la largeur, Échap pour fermer ; ← → et + − au clavier). L'onglet « Extrahierter Text » reste là, avec la phrase surlignée.
+
+| Ce que le serveur constate | Ce que montre le badge |
+|---|---|
+| la phrase est dans le document, à la page annoncée | titre, page, coche verte |
+| la phrase y est, mais sur une autre page | titre, **la vraie page**, coche verte (l'info-bulle dit que la page a été corrigée) |
+| le document existe, la phrase n'y est pas mot pour mot (reformulation) | titre et page, **sans coche** |
+| aucun document de l'étudiant ne correspond | « Quelle nicht gefunden », non cliquable |
+
+Avant ce changement, la page citée était ignorée, et un titre qui ne correspondait à rien ouvrait le premier document de la liste.
+
+**Format de citation : inchangé.** Le tuteur écrit toujours `[[QUELLE doc="<titre>" seite=<n>]]phrase exacte[[/QUELLE]]`. Je n'ai pas créé le format `[CITE:id|page|texte]` du brief : le modèle produit déjà l'actuel correctement en production, un nouveau format ne pouvait pas être essayé sur le vrai modèle sans dépense, et faire recopier un identifiant technique à un modèle est une source d'erreurs. Le document est retrouvé par son titre puis confirmé par la phrase.
+
+**Sécurité de l'original.** Le lecteur lit le fichier par `GET /api/documents/:id/stream`, sur notre propre domaine : il faut être connecté ET propriétaire. Pour tout autre compte la réponse est `404`, la même que pour un identifiant inventé (on ne confirme pas qu'un document existe) ; sans session, `401`. Le fichier part par morceaux (seules les pages affichées sont téléchargées) et ne peut pas s'exécuter comme une page de TRED. **Rien à régler sur R2** : pas de CORS, pas de lien public.
+
+**Lecteur PDF : choix de l'outil** (registre npm vérifié le 14 nov. 2026).
+
+| Option | Licence | Verdict |
+|---|---|---|
+| `pdfjs-dist` 6.4.299 (PDF.js, Mozilla) | Apache-2.0, gratuit | **retenu** : déjà dans le projet, aucun paquet ajouté ; marche sur téléphone |
+| `react-pdf` 11.0.0 | MIT, gratuit | enveloppe du même moteur, mais embarque sa propre copie dans une autre version (6.3.289) : deux PDF.js dans l'app |
+| EmbedPDF 3.2.0 | Apache-2.0, gratuit | autre moteur (PDFium), plus lourd ; version publiée 3 jours plus tôt (règle des 14 jours) |
+| `react-pdf-viewer` | — | dernière version en 2023, dépôt archivé d'après un guide de 2026 |
+| Apryse WebViewer, Nutrient | payants, sur devis | hors sujet pour afficher une page |
+
+**Recherche vectorielle : pas ajoutée, à décider.** TRED choisit les extraits par correspondance de mots (BM25), et le tuteur peut relancer lui-même une recherche avec d'autres mots. Des embeddings trouveraient mieux les synonymes, mais demandent un service payant qui recevrait les cours des étudiants (un sous-traitant de plus à déclarer), un stockage vectoriel et une réindexation de tous les documents. Si tu veux y aller, je te prépare la comparaison chiffrée de trois options avant d'écrire une ligne.
+
+**Limites connues.**
+- Dans le PDF, la phrase n'est pas encore surlignée (elle l'est dans l'onglet texte) : le lecteur ouvre la bonne page.
+- Les documents importés avant que les originaux soient gardés, et les fichiers Word ou PowerPoint, n'ont pas de PDF à afficher : le badge ouvre alors le texte extrait, à la phrase.
+- Le premier affichage charge PDF.js (environ 400 Ko, une seule fois, et seulement à l'ouverture d'un document).
+
+Où est quoi : `api/lib/retrieval.ts` (extraits et pages), `api/lib/citations.ts` (vérification), `api/lib/document-stream.ts` et `document-owner.ts` (accès à l'original), `web/lib/citations.ts`, `web/components/citation-badge.tsx`, `web/components/pdf-viewer.tsx`, `vite/pdfjs-assets-plugin.ts` (polices et décodeurs de PDF.js copiés au build). Tests : `retrieval-pages`, `citations`, `citation-badge`, `document-stream`.
+
 ## Sécurité et limites — durcissement du 14 nov. 2026
 
 | Point | Ce qui est en place | Où |
