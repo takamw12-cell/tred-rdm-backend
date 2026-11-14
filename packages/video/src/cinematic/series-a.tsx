@@ -411,7 +411,7 @@ const FILMS: Film[] = [
   },
   {
     id: "DE-2-Die-Lerngruppe", title: "Die Lerngruppe", vo: voDe2, voice: voiceDe2, music: asset("music-neutral.mp3"), look: LOOKS.neutral, seed: 5,
-    scenes: groupProject({ id: "de2", look: LOOKS.neutral, lines: ["Lerngruppen sind Chaos.", "Es sei denn, du hast das richtige Tool."], w: { one: "Ein", draws: "zeichnet", explains: "erklärt" }, curves: { x: 1020, y: 530, z: 1.4 }, steps: { x: 1000, y: 600, z: 1.25 }, last: "page2", result: { x: 900, y: 560, z: 1.45, rect: [333, 500, 1374, 140] }, end: ["Für Ingenieure gebaut."] }),
+    scenes: groupProject({ id: "de2", look: LOOKS.neutral, lines: ["Lerngruppen sind Chaos.", "Es sei denn, du hast das richtige Tool."], w: { one: "Ein", draws: "zeichnet", explains: "erklärt" }, curves: { x: 1020, y: 530, z: 1.4 }, steps: { x: 1000, y: 600, z: 1.25 }, last: "page2", result: { x: 900, y: 700, z: 1.45, rect: [333, 646, 1374, 130] }, end: ["Für Ingenieure gebaut."] }),
   },
   {
     id: "DE-3-Der-Austauschstudent", title: "Der Austauschstudent", vo: voDe3, voice: voiceDe3, music: asset("music-cold.mp3"), look: LOOKS.cold, seed: 6,

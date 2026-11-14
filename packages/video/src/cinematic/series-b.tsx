@@ -479,7 +479,7 @@ const FILMS: Film[] = [
       id: "de2", w: { solvers: "deterministische", calc: "Berechnung", unit: "Einheit", hundred: "100" },
       t: { label: "KI-Antwort", says: "Das maximale Biegemoment ist vermutlich", wrong: "frei erfunden", lines: ["KI, die sich Formeln ausdenkt?", "Ja, ich auch nicht."], verified: ["Jede Berechnung", "Jede Einheit", "100% verifiziert"], end: ["Reine Mathematik.", "Null Halluzinationen."] },
       curves: { page: "page1", x: 1020, y: 530, z: 1.4, rect: [392, 380, 1260, 300] },
-      result: { page: "page2", x: 900, y: 560, z: 1.5, rect: [333, 500, 1374, 140] },
+      result: { page: "page2", x: 900, y: 700, z: 1.5, rect: [333, 646, 1374, 130] },
     }),
   },
   {

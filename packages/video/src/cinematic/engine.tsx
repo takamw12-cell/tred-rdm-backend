@@ -23,7 +23,7 @@ import { SFX, type SfxKind } from "../series/engine";
  *    (exposition, température, contraste, saturation), `vignette()` et
  *    `noise()` (grain, une graine par image) de @remotion/effects ;
  *  - chaque changement de scène se fait sous un <LightLeak> de
- *    @remotion/light-leaks (`hueShift` 0 = chaud, 240 = froid) ;
+ *    @remotion/light-leaks (`hueShift` 0 = chaud, 190 = bleu froid) ;
  *  - bandes noires 2.35:1, sous-titres dans la bande du bas.
  *
  * La voix (ElevenLabs, horodatée mot par mot) est découpée en phrases ; chaque
@@ -43,7 +43,7 @@ export type Look = {
   /** Force du grain (0–1) et du vignettage (0–1). */
   grain: number;
   vignette: number;
-  /** Teinte des light leaks : 0 = ambre, 240 = bleu froid. */
+  /** Teinte des light leaks : 0 = ambre, 190 = bleu froid (mesuré : 240 donne un voile VERT avec ce paquet). */
   hueShift: number;
   /** Intensité des light leaks (défaut 1). Les teintes froides lavent vite une interface blanche. */
   leak?: number;
@@ -57,7 +57,7 @@ export const LOOKS = {
   /** Lumière naturelle : neutre, grain fin, accents jaunes. */
   neutral: { grade: { temperature: 0.06, exposure: 0.02, contrast: 1.06, saturation: 1.02, vibrance: 0.12 }, grain: 0.065, vignette: 0.24, hueShift: 22, accent: "#EAB308" },
   /** Nuit froide : bleus, grain marqué. */
-  cold: { grade: { temperature: -0.34, tint: -0.03, exposure: -0.16, contrast: 1.14, saturation: 0.82, shadows: -0.1 }, grain: 0.12, vignette: 0.42, hueShift: 240, leak: 0.55, accent: "#8FD3FF" },
+  cold: { grade: { temperature: -0.34, tint: -0.03, exposure: -0.16, contrast: 1.14, saturation: 0.82, shadows: -0.1 }, grain: 0.12, vignette: 0.42, hueShift: 190, leak: 0.8, accent: "#8FD3FF" },
   /** « Tech Premium » (série B) : très sombre, métal, néon jaune. */
   tech: { grade: { temperature: -0.06, exposure: -0.1, contrast: 1.2, saturation: 0.9, shadows: -0.16, highlights: 0.06, vibrance: 0.15 }, grain: 0.085, vignette: 0.5, hueShift: 28, accent: "#FACC15" },
 } as const satisfies Record<string, Look>;
