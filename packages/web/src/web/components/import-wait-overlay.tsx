@@ -5,14 +5,17 @@ import { useT } from "@/i18n";
 import type { ImportStatus } from "@/lib/import-job";
 
 /**
- * L'écran d'attente d'un import : un film TRED de 10 s en boucle, muet (ses
- * sous-titres sont dans l'image), et une barre qui suit l'état du travail.
+ * L'écran d'attente d'un import : un film TRED de 10 s en boucle, VERTICAL
+ * (9:16, comme sur TikTok), muet (ses sous-titres sont dans l'image), et une
+ * barre qui suit l'état du travail.
  *
- * Le fichier porte sa version dans son nom (`-v1`) : il est servi avec un
- * cache d'un an (__server.ts). Changer le film = changer le nom.
+ * v2 (2026-11-14) : extrait du pilote « Die Klausur morgen » de la campagne
+ * « Survive Your Klausur » — 0 Ahnung → le trait orange → TRED explique.
+ * Le fichier porte sa version dans son nom : il est servi avec un cache d'un
+ * an (__server.ts). Changer le film = changer le nom.
  */
-export const WAIT_VIDEO = "/videos/import-wait-v1.mp4";
-export const WAIT_POSTER = "/videos/import-wait-v1.webp";
+export const WAIT_VIDEO = "/videos/import-wait-v2.mp4";
+export const WAIT_POSTER = "/videos/import-wait-v2.webp";
 
 export interface ImportWaitState {
   /** `uploading` : le fichier monte encore vers le serveur. */
@@ -65,9 +68,10 @@ export function ImportWaitOverlay({ state, onHide }: { state: ImportWaitState | 
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 12 }}
             transition={{ duration: 0.25 }}
-            className="bg-card border-border w-full max-w-2xl overflow-hidden rounded-lg border shadow-xl"
+            className="bg-card border-border w-fit max-w-full overflow-hidden rounded-lg border shadow-xl"
           >
-            <div className="relative aspect-video bg-black">
+            {/* Vertical : la hauteur suit l'écran (62 % au plus), la largeur s'en déduit ; le pied de carte prend la même largeur. */}
+            <div className="relative mx-auto bg-black" style={{ height: "min(62dvh, 640px)", aspectRatio: "9 / 16" }}>
               <video
                 ref={video}
                 src={WAIT_VIDEO}
@@ -84,7 +88,7 @@ export function ImportWaitOverlay({ state, onHide }: { state: ImportWaitState | 
               />
             </div>
 
-            <div className="p-4 sm:p-5">
+            <div className="p-4" style={{ width: "calc(min(62dvh, 640px) * 9 / 16)", minWidth: "100%" }}>
               <div className="flex items-baseline justify-between gap-3">
                 <p className="label-tech">{t("library.wait.title")}</p>
                 {pct !== null && <p className="label-tech tabular-nums">{pct} %</p>}

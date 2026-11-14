@@ -10,8 +10,14 @@ const LIBRARY = read("src/web/components/document-library.tsx");
 
 describe("film d'attente", () => {
   test("léger : moins de 5 Mo, avec une image d'attente", () => {
-    expect(statSync(join(ROOT, "public/videos/import-wait-v1.mp4")).size).toBeLessThan(5 * 1024 * 1024);
-    expect(statSync(join(ROOT, "public/videos/import-wait-v1.webp")).size).toBeLessThan(100 * 1024);
+    expect(statSync(join(ROOT, "public/videos/import-wait-v2.mp4")).size).toBeLessThan(5 * 1024 * 1024);
+    expect(statSync(join(ROOT, "public/videos/import-wait-v2.webp")).size).toBeLessThan(100 * 1024);
+    expect(OVERLAY).toContain('WAIT_VIDEO = "/videos/import-wait-v2.mp4"');
+  });
+
+  test("vertical, comme sur le téléphone (9:16), sans dépasser l'écran", () => {
+    expect(OVERLAY).toContain('aspectRatio: "9 / 16"');
+    expect(OVERLAY).toContain('height: "min(62dvh, 640px)"');
   });
 
   test("en boucle, muet, lisible sur iPhone sans plein écran", () => {
@@ -24,7 +30,7 @@ describe("film d'attente", () => {
     const server = read("src/__server.ts");
     expect(server).toContain('headers.set("Accept-Ranges", "bytes")');
     expect(server).toContain("status: 206");
-    expect("/videos/import-wait-v1.mp4").toMatch(/^\/videos\/[a-z0-9-]+-v\d+\.(mp4|webp)$/);
+    expect("/videos/import-wait-v2.mp4").toMatch(/^\/videos\/[a-z0-9-]+-v\d+\.(mp4|webp)$/);
   });
 
   test("l'écran disparaît dès la fin de l'import, réussi ou non", () => {

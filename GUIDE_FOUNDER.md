@@ -700,10 +700,11 @@ Le clic dépose un travail `generate-video`. Le worker enchaîne script (Claude)
 
 ### Le film d'attente pendant un import
 
-Pendant qu'un import tourne, l'écran de chargement montre un film TRED de 10 s en boucle, muet (ses sous-titres sont dans l'image), et une barre qui suit l'état du travail. Dès que le travail est `done`, l'écran disparaît. « Ausblenden » ou Échap le masque sans arrêter l'import.
+Pendant qu'un import tourne, l'écran de chargement montre un film TRED de 10 s en boucle, **vertical** (9:16), muet (ses sous-titres sont dans l'image), et une barre qui suit l'état du travail. Dès que le travail est `done`, l'écran disparaît. « Ausblenden » ou Échap le masque sans arrêter l'import.
 
-- Fichier : `packages/web/public/videos/import-wait-v1.mp4` (1,7 Mo, 1280×720) et son image `import-wait-v1.webp`. Source : `Cine-B-DE-1-Der-magische-Button.mp4`, de 9,6 s à 19,6 s.
-- **Changer de film** : exporte 10 s en 720p sans piste son, nomme-le `import-wait-v2.mp4` (le numéro compte : le fichier est mis en cache un an) et change les deux constantes en tête de `web/components/import-wait-overlay.tsx`.
+- Fichier : `packages/web/public/videos/import-wait-v2.mp4` (0,8 Mo, 720 × 1280) et son image `import-wait-v2.webp`. Source : le pilote `SK-1-Die-Klausur-morgen.mp4`, de 6,2 s à 16,2 s (« 0 Ahnung » → le trait orange → la question dans TRED → la Tafel).
+- Ce film porte les couleurs de la campagne (orange) à l'intérieur de l'app. Si tu préfères un film aux couleurs de l'app, il suffit d'en mettre un autre (ci-dessous).
+- **Changer de film** : exporte 10 s en 720 × 1280 sans piste son, nomme-le `import-wait-v3.mp4` (le numéro compte : le fichier est mis en cache un an) et change les deux constantes en tête de `web/components/import-wait-overlay.tsx`.
 
 ## Sécurité et limites — durcissement du 14 nov. 2026
 
