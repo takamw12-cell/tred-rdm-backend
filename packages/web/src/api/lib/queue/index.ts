@@ -17,8 +17,8 @@ import type { VideoRequest, VideoSource } from "../video-script";
  *
  * Sans REDIS_URL, `queueConfigured()` est faux et l'application se comporte
  * exactement comme avant : import dans la requête, vidéo dans le processus
- * web. Si Redis tombe en cours de route, `queueReady()` devient faux et
- * l'appelant retombe sur ce même chemin historique.
+ * web. Si Redis tombe en cours de route, ou si aucun worker ne tourne,
+ * `queueReady()` devient faux et l'appelant retombe sur ce même chemin.
  */
 
 export const IMPORT_QUEUE = "import-pdf";
@@ -97,9 +97,55 @@ function producerConnection(): IORedis {
   return producer;
 }
 
-/** Redis répond-il, là, maintenant ? Sinon l'appelant prend le chemin sans file. */
+/* ── Y a-t-il un worker ? ───────────────────────────────────────────────── */
+
+/**
+ * Chaque worker pose cette clé toutes les 10 s ; elle expire seule au bout de
+ * 35 s. Tant qu'elle est là, quelqu'un traite la file.
+ *
+ * Sans ce contrôle, un service web qui a REDIS_URL mais dont le worker est
+ * arrêté (déploiement en cours, plantage, service pas encore créé) déposerait
+ * des travaux que personne ne prend : l'étudiant regarderait une barre de
+ * progression immobile. Ici, pas de worker = pas de file : l'import est traité
+ * dans la requête, comme avant.
+ */
+export const WORKER_HEARTBEAT_KEY = "tred:worker:heartbeat";
+export const HEARTBEAT_EVERY_MS = 10_000;
+export const HEARTBEAT_TTL_S = 35;
+/** Le service web relit la clé toutes les 5 s ; au-delà de 20 s sans lecture réussie, il ne s'y fie plus. */
+const HEARTBEAT_CHECK_MS = 5_000;
+const HEARTBEAT_TRUST_MS = 20_000;
+
+let workerSeenAt = 0;
+let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+
+/** La dernière lecture du battement est-elle assez récente pour s'y fier ? (pure, testée) */
+export function heartbeatFresh(seenAt: number, now = Date.now()): boolean {
+  return seenAt > 0 && now - seenAt < HEARTBEAT_TRUST_MS;
+}
+
+async function checkWorker(): Promise<void> {
+  try {
+    const redis = producerConnection();
+    if (redis.status !== "ready") return;
+    workerSeenAt = (await redis.exists(WORKER_HEARTBEAT_KEY)) === 1 ? Date.now() : 0;
+  } catch {
+    /* Redis hoquette : la dernière lecture vieillit toute seule et cesse de compter */
+  }
+}
+
+function watchWorker(): void {
+  if (heartbeatTimer) return;
+  producerConnection().on("ready", () => void checkWorker());
+  heartbeatTimer = setInterval(() => void checkWorker(), HEARTBEAT_CHECK_MS);
+  // Ne retient pas le processus à l'arrêt.
+  heartbeatTimer.unref?.();
+  void checkWorker();
+}
+
+/** Redis répond ET un worker est là, maintenant ? Sinon l'appelant prend le chemin sans file. */
 export function queueReady(): boolean {
-  return queueConfigured() && producerConnection().status === "ready";
+  return queueConfigured() && producerConnection().status === "ready" && heartbeatFresh(workerSeenAt);
 }
 
 const queues = new Map<string, Queue>();
@@ -131,6 +177,7 @@ export function warmQueues(): void {
   if (!queueConfigured()) return;
   importQueue();
   videoQueue();
+  watchWorker();
 }
 
 /** Identifiant d'un travail d'import : imprévisible, sans « : » (interdit par BullMQ). */
@@ -151,6 +198,9 @@ export async function queueDepths(): Promise<Record<string, Record<string, numbe
 export async function closeQueues(): Promise<void> {
   await Promise.all([...queues.values()].map((q) => q.close().catch(() => {})));
   queues.clear();
+  if (heartbeatTimer) clearInterval(heartbeatTimer);
+  heartbeatTimer = null;
+  workerSeenAt = 0;
   producer?.disconnect();
   producer = null;
 }

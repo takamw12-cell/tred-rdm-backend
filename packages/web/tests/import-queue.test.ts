@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { IMPORT_JOB_ID_RE, RETRY, importErrorCode, newImportJobId, publicStatus, queueConfigured } from "../src/api/lib/queue";
+import { HEARTBEAT_EVERY_MS, HEARTBEAT_TTL_S, IMPORT_JOB_ID_RE, RETRY, heartbeatFresh, importErrorCode, newImportJobId, publicStatus, queueConfigured } from "../src/api/lib/queue";
 import { shownProgress } from "../src/web/lib/import-job";
 
 /**
@@ -95,8 +95,28 @@ describe("worker", () => {
     expect(worker).not.toMatch(/from "\.\/api"|from "\.\/api\/index"|__server/);
   });
 
-  test("le service worker de Railway démarre le bon point d'entrée", () => {
-    const cfg = JSON.parse(read("../../railway.worker.json")) as { deploy: { startCommand: string } };
-    expect(cfg.deploy.startCommand).toBe("bun packages/web/src/worker.ts");
+  test("pose un battement, et le retire à l'arrêt", () => {
+    const worker = read("src/worker.ts");
+    expect(worker).toContain('beat.set(WORKER_HEARTBEAT_KEY, String(Date.now()), "EX", HEARTBEAT_TTL_S)');
+    expect(worker).toContain("setInterval(pulse, HEARTBEAT_EVERY_MS)");
+    expect(worker).toContain("await beat.del(WORKER_HEARTBEAT_KEY)");
+    // Le battement survit à trois pulsations manquées, pas plus.
+    expect(HEARTBEAT_TTL_S * 1000).toBeGreaterThan(3 * HEARTBEAT_EVERY_MS);
+  });
+});
+
+describe("pas de worker, pas de file", () => {
+  test("le service web ne dépose un travail que si un worker a été vu récemment", () => {
+    const now = 1_000_000;
+    expect(heartbeatFresh(0, now)).toBe(false); // jamais vu
+    expect(heartbeatFresh(now - 4_000, now)).toBe(true);
+    expect(heartbeatFresh(now - 19_000, now)).toBe(true);
+    expect(heartbeatFresh(now - 21_000, now)).toBe(false); // Redis muet depuis trop longtemps : on ne s'y fie plus
+  });
+
+  test("queueReady exige Redis prêt ET un worker", () => {
+    const queue = read("src/api/lib/queue/index.ts");
+    expect(queue).toContain('return queueConfigured() && producerConnection().status === "ready" && heartbeatFresh(workerSeenAt);');
+    expect(queue).toContain("workerSeenAt = (await redis.exists(WORKER_HEARTBEAT_KEY)) === 1 ? Date.now() : 0;");
   });
 });

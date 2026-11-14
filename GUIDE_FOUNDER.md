@@ -660,15 +660,23 @@ Ensuite, supprime le dossier `C:\Users\HP\AppData\Local\Temp\tred-perf\prod-test
 
 **Tant que tu n'as rien fait, rien ne change** : sans `REDIS_URL`, l'import est traité comme avant. Si Redis tombe un jour, le site retombe tout seul sur ce chemin.
 
-### Mise en service sur Railway (une fois, environ 10 minutes)
+### Mise en service sur Railway (une fois, environ 15 minutes)
 
 1. **Redis.** Projet TRED → « + New » → Database → **Add Redis**. Facturé à l'usage par Railway (mémoire et processeur consommés ; pour cette file, quelques dizaines de Mo). Vérifie le tarif du jour sur https://railway.com/pricing avant de valider.
-2. **Service worker.** « + New » → GitHub Repo → le même dépôt `tred-rdm-backend`. Dans ses réglages :
-   - Settings → **Config-as-code** → chemin `railway.worker.json` (il lance `bun packages/web/src/worker.ts`) ;
+2. **Service worker.** « + New » → **Empty Service**, nommé `worker`. Avant de lui donner le dépôt :
+   - Variables : `DATABASE_URL = ${{TRED.DATABASE_URL}}`, et de même `DATABASE_AUTH_TOKEN`, `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY` (la forme `${{TRED.NOM}}` relit la valeur du service web : rien à recopier), plus `REDIS_URL = ${{Redis.REDIS_URL}}` et `NODE_ENV = production` ;
+   - Settings → Deploy → **Custom Start Command** : `bun packages/web/src/worker.ts` ;
    - aucun domaine public (Settings → Networking : ne rien générer) ;
-   - Variables : les mêmes que le service web pour `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, `S3_*`, `R2_*` (si utilisées), `ANTHROPIC_API_KEY`, `MATHPIX_*`, `ELEVENLABS_*`, plus `REDIS_URL = ${{Redis.REDIS_URL}}`. Le plus simple : « Shared Variables » du projet.
-3. **Service web.** Ajoute `REDIS_URL = ${{Redis.REDIS_URL}}`. Il redéploie, et les imports passent par la file.
-4. **Vérifier.** Importe un PDF : les journaux du worker affichent `[worker] import imp_… : terminé (N pages)`.
+   - puis Settings → Source → connecter le dépôt `tred-rdm-backend`, branche `master`. Railway construit la même image que le service web (le `Dockerfile` de la racine) et lance le worker.
+3. **Vérifier le worker.** Ses journaux affichent `[worker] prêt — files : import-pdf ×2, generate-video ×3`.
+4. **Service web.** Ajoute `REDIS_URL = ${{Redis.REDIS_URL}}`. Il redéploie, et les imports passent par la file.
+5. **Vérifier.** Importe un PDF : les journaux du worker affichent `[worker] import imp_… : terminé (N pages)`.
+
+**Filet de sécurité.** Le service web ne dépose un travail que s'il voit un worker vivant (un « battement » posé dans Redis toutes les 10 secondes). Worker arrêté, en cours de déploiement ou planté : en moins de 40 secondes le site retraite l'import dans la requête, comme avant. Personne ne reste devant une barre de progression immobile.
+
+**Deux points Railway à connaître (lus dans leur documentation le 14 nov. 2026).**
+- Les fichiers `railway.json` (« Config as Code ») sont **dépréciés** : ils ne fonctionnent plus pour un nouveau service, et cessent de fonctionner pour les services existants le **1er décembre 2026**. C'est pour cela que la commande de démarrage du worker se règle dans ses Settings. Le fichier `railway.worker.json` du dépôt ne sert donc à rien : tu peux le supprimer.
+- Le service web utilise encore `railway.json` (constructeur Dockerfile, commande de démarrage). Après le 1er décembre, Railway devrait se rabattre sur le `Dockerfile` de la racine, qui lance la même commande : rien ne devrait changer. À vérifier ce jour-là (un schéma électrique dans le chat doit toujours se compiler), ou à régler avant en demandant la migration vers `.railway/railway.ts`.
 
 **Revenir en arrière** : supprime `REDIS_URL` du service web. L'import redevient synchrone au redéploiement.
 
@@ -758,4 +766,36 @@ node C:\dev\tred-rdm\aerostudy-ai\migre-utm.mjs
 - Les valeurs viennent de l'URL : elles sont nettoyées (lettres, chiffres, `. _ ~ -`, 80 caractères).
 - L'export RGPD du compte les contient (`herkunft`) ; la suppression du compte les efface.
 - **À faire de ton côté** : ajouter une phrase à la Datenschutzerklärung (« Herkunft der Registrierung: Kampagnenparameter des Links, über den du gekommen bist », base légale à valider : intérêt légitime, art. 6 (1) f DSGVO). Je ne l'ai pas modifiée : c'est un texte juridique, il attend ta validation.
+
+## Avant un pic : test de charge et répliques du worker (14 nov. 2026)
+
+### Passer à 2 ou 3 répliques du worker (rentrée, veille de Klausuren)
+
+Le service web ne fait que déposer des travaux : c'est le **worker** qui limite le débit. Une réplique traite 2 imports et 3 vidéos à la fois. Pour absorber un pic, on en ajoute, sans toucher au code ni au service web :
+
+1. Railway → projet TRED → service **worker** → **Settings** → **Scaling** (« Replicas »).
+2. Passe de `1` à `2` ou `3`, puis valide. Railway démarre les nouvelles répliques en une à deux minutes ; chacune se sert dans la même file, sans réglage.
+3. Vérifie : les journaux du worker montrent plusieurs lignes `[worker] prêt — files : import-pdf ×2, generate-video ×3` (une par réplique).
+4. **Après le pic, reviens à `1`** : chaque réplique est facturée tant qu'elle tourne (mémoire et processeur à l'usage, tarif sur https://railway.com/pricing).
+
+Repères : avec 1 réplique, 100 imports de PDF texte déposés au même instant sont traités en moins d'une minute ; un scan (OCR) prend jusqu'à plusieurs minutes à lui seul. Si la rentrée amène beaucoup de scans, 3 répliques.
+
+**Quand en ajouter ?** Ouvre `https://www.tred-tutor.de/api/admin/queues` (connecté avec ton compte administrateur). `waiting` est le nombre de travaux qui attendent un worker. S'il reste au-dessus de 20 pendant plusieurs minutes, ajoute une réplique.
+
+**Ne pas confondre** avec les réglages `WORKER_IMPORT_CONCURRENCY` / `WORKER_VIDEO_CONCURRENCY` : ils augmentent le travail d'UNE réplique (plus de mémoire par conteneur). Ajouter des répliques est plus sûr.
+
+**Le service web**, lui, peut rester à 1 réplique : il ne garde plus de fichier en mémoire pendant l'extraction. Les limites de débit sont en base (Turso), donc justes même avec plusieurs répliques web.
+
+### Le test de charge
+
+`packages/web/loadtest/import-and-video.k6.js` lance **100 imports au même instant**, puis **50 générations vidéo au même instant**, pendant qu'une sonde interroge l'API dix fois par seconde. Il échoue si 95 % des réponses ne sont pas sous **500 ms** (dépôt d'un import ou d'une vidéo, suivi d'un travail, API).
+
+**Jamais contre la production** : cinquante vidéos = cinquante appels payants à Claude et à ElevenLabs, et dix comptes de test dans ta vraie base. On le lance sur un serveur local ou de recette :
+
+1. Installer k6 (gratuit, https://grafana.com/docs/k6/latest/set-up/install-k6/) : `winget install k6`.
+2. Démarrer le serveur de test avec `REDIS_URL`, `S3_*` et une base de test, plus le worker. Pour ne mesurer que la file, donner au worker des clés **factices** (`ANTHROPIC_API_KEY=sk-ant-test`, `ELEVENLABS_API_KEY=test`) : les vidéos échouent alors sans rien coûter, la route répond comme en vrai.
+3. `k6 run -e BASE=http://localhost:3000 packages/web/loadtest/import-and-video.k6.js`
+4. Dans un second terminal, la taille de la file : `bun packages/web/loadtest/queue-watch.ts` (mêmes variables d'environnement que le worker).
+
+Le test garde les limites de la production (10 imports par heure, 5 vidéos par jour et par compte) : il utilise dix comptes, et un `429` inattendu le fait échouer.
 

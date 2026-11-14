@@ -33,6 +33,7 @@ import { auth } from "./auth";
 import { rateLimitMiddleware, userRateLimit, USER_LIMITS } from "./middleware/rate-limit";
 import { contentMatchesExtension, declaredTooLarge, MAX_UPLOAD_BYTES } from "./lib/upload-guard";
 import { saveAttribution, type AttributionDb } from "./lib/attribution";
+import { requestSession } from "./lib/request-session";
 import { cleanUtm, UTM_HEADER, utmFromHeader } from "./lib/utm";
 import { fetchInstitutionLogo, isAllowedLogoDomain } from "./lib/institution-logo";
 import { db } from "./database";
@@ -73,7 +74,7 @@ import {
   UnsupportedFormatError,
 } from "./lib/extract";
 import { extractInBackground } from "./lib/extract-queue";
-import { importQueue, newImportJobId, queueReady, warmQueues } from "./lib/queue";
+import { importQueue, newImportJobId, queueConfigured, queueDepths, queueReady, warmQueues } from "./lib/queue";
 import { registerJobRoutes } from "./routes/jobs";
 import { renderTikz } from "./lib/tikz";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
@@ -226,7 +227,8 @@ app.use("/api/*", async (c, next) => {
   )
     return next();
 
-  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  // Lue une fois par requête : la route réutilise cette lecture (lib/request-session.ts).
+  const session = await requestSession(c.req.raw);
   if (!session) return next(); // Einzelne Routen entscheiden selbst über 401.
 
   const access = await getAccess(session.user.id, session.user.email);
@@ -513,6 +515,18 @@ registerJobRoutes(app);
 warmQueues();
 // Co-pilote vision (V2, Pilier 3) — squelette : 501 tant que non branché.
 registerVisionRoutes(app);
+
+// Taille des files Redis (import, vidéo) : à regarder avant et pendant un pic.
+app.get("/api/admin/queues", async (c) => {
+  const guard = await requireAdmin(c);
+  if (!guard.ok) return c.json(ADMIN_DENIED, guard.status);
+  if (!queueConfigured()) return c.json({ configured: false, ready: false, queues: {} });
+  try {
+    return c.json({ configured: true, ready: queueReady(), queues: await queueDepths() });
+  } catch (error) {
+    return c.json({ configured: true, ready: false, queues: {}, error: (error as Error).message?.slice(0, 160) });
+  }
+});
 
 app.get("/api/admin/users", async (c) => {
   const guard = await requireAdmin(c);
@@ -1827,19 +1841,20 @@ const MAX_CHARS = 400_000;
 const KINDS = new Set(["vorlesung", "uebung", "klausur", "other"]);
 
 app.post("/api/documents/upload", async (c) => {
-  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  const session = await requestSession(c.req.raw);
   if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);
-
-  // Dokumente sind nach Gesamtzahl begrenzt, nicht pro Monat: jedes Dokument
-  // wird bei jeder Frage als Kontext mitgeschickt und treibt so dauerhaft die
-  // Kosten. Geprüft VOR dem Hochladen und der Textextraktion.
-  const docQuota = await canAddDocument(session.user.id);
-  if (!docQuota.ok) return c.json(quotaError(docQuota), 402);
 
   // 50 Mo au plus. Refusé sur la taille annoncée, avant de lire le corps.
   if (declaredTooLarge(c.req.header("content-length"))) {
     return c.json({ error: "file_too_large", maxBytes: MAX_UPLOAD_BYTES }, 413);
   }
+
+  // Dokumente sind nach Gesamtzahl begrenzt, nicht pro Monat: jedes Dokument
+  // wird bei jeder Frage als Kontext mitgeschickt und treibt so dauerhaft die
+  // Kosten. La vérification part tout de suite et se lit pendant que le
+  // fichier arrive : deux lectures en base qui ne font plus attendre l'envoi.
+  const quotaCheck = canAddDocument(session.user.id);
+  quotaCheck.catch(() => {}); // relue plus bas ; pas de rejet « non géré » si le formulaire échoue avant
 
   let form: FormData;
   try {
@@ -1847,6 +1862,10 @@ app.post("/api/documents/upload", async (c) => {
   } catch {
     return c.json({ error: "invalid form data" }, 400);
   }
+
+  // Geprüft VOR der Textextraktion und VOR dem Objektspeicher.
+  const docQuota = await quotaCheck;
+  if (!docQuota.ok) return c.json(quotaError(docQuota), 402);
 
   const file = form.get("file");
   if (!(file instanceof File)) return c.json({ error: "file required" }, 400);

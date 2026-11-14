@@ -105,7 +105,7 @@ describe("aucune route d'administration sans garde", () => {
       }
     }
     // La liste connue : en ajouter une oblige à passer par ce test.
-    expect(routes.sort()).toEqual(["/api/admin/analytics", "/api/admin/reports", "/api/admin/reports/resolve", "/api/admin/session", "/api/admin/users", "/api/admin/users/access"]);
+    expect(routes.sort()).toEqual(["/api/admin/analytics", "/api/admin/queues", "/api/admin/reports", "/api/admin/reports/resolve", "/api/admin/session", "/api/admin/users", "/api/admin/users/access"]);
   });
 
   test("une route /api/admin déclarée autrement (sans garde lisible) fait échouer ce test", () => {

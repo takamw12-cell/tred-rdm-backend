@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import type { Hono } from "hono";
-import { auth } from "../auth";
+import { requestSession } from "../lib/request-session";
 import { db } from "../database";
 import { generatedVideo } from "../database/schema";
 import { IMPORT_JOB_ID_RE, VIDEO_JOB_ID_RE, importErrorCode, importQueue, publicStatus, queueConfigured, videoJobView, type ImportJobResult } from "../lib/queue";
@@ -21,7 +21,8 @@ import { IMPORT_JOB_ID_RE, VIDEO_JOB_ID_RE, importErrorCode, importQueue, public
 
 export function registerJobRoutes(app: Hono) {
   app.get("/api/jobs/:jobId", async (c) => {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    // Le suivi d'un travail est interrogé chaque seconde : la session déjà lue par le garde-fou suffit.
+    const session = await requestSession(c.req.raw);
     if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);
     const jobId = c.req.param("jobId");
     c.header("Cache-Control", "no-store");

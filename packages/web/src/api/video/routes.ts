@@ -15,6 +15,7 @@ import { MAX_SOLVER_RUNS, SOLVER_WINDOW_MS, serializeSolverRun, type SolverRun }
 import { solverSource, videoRequestSchema, type VideoRequest, type VideoSource } from "../lib/video-script";
 import { visibleDocuments } from "../lib/visible-documents";
 import { myCourseIds } from "../routes/courses";
+import { requestSession } from "../lib/request-session";
 import { userRateLimit, USER_LIMITS } from "../middleware/rate-limit";
 import { failVideo, runPipelineInline, type StoredScript } from "./pipeline";
 
@@ -104,7 +105,7 @@ function voiceFor(language: string, professor?: string | null): string | null {
 
 export function registerVideoRoutes(app: Hono) {
   app.post("/api/video/generate", async (c) => {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    const session = await requestSession(c.req.raw);
     if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);
     if (!process.env.ANTHROPIC_API_KEY || !elevenLabsConfigured() || !mediaStorageConfigured()) {
       return c.json({ error: "not_configured" }, 503);
@@ -200,7 +201,8 @@ export function registerVideoRoutes(app: Hono) {
   });
 
   app.get("/api/video/:id", async (c) => {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    // Interrogé toutes les 1,5 s pendant la préparation : la session du garde-fou suffit.
+    const session = await requestSession(c.req.raw);
     if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);
     const id = c.req.param("id");
     if (!ID_RE.test(id)) return c.json({ error: "not found" }, 404);

@@ -1,5 +1,18 @@
 import { UnrecoverableError, Worker, type Job } from "bullmq";
-import { IMPORT_QUEUE, VIDEO_QUEUE, queueConfigured, workerConnection, type ImportJobData, type ImportJobResult, type VideoJobData } from "./api/lib/queue";
+import IORedis from "ioredis";
+import {
+  HEARTBEAT_EVERY_MS,
+  HEARTBEAT_TTL_S,
+  IMPORT_QUEUE,
+  VIDEO_QUEUE,
+  WORKER_HEARTBEAT_KEY,
+  queueConfigured,
+  redisUrl,
+  workerConnection,
+  type ImportJobData,
+  type ImportJobResult,
+  type VideoJobData,
+} from "./api/lib/queue";
 import { discardImportFile, processImport } from "./api/lib/queue/import-job";
 import { failVideo, PipelineError, runPipeline, videoErrorCode } from "./api/video/pipeline";
 
@@ -75,6 +88,17 @@ videoWorker.on("failed", (job, err) => {
 const workers: Worker[] = [importWorker, videoWorker];
 for (const w of workers) w.on("error", (err) => console.error(`[worker] ${w.name}`, err.message));
 
+/**
+ * Le battement : « un worker est là ». Le service web ne dépose des travaux
+ * que s'il le voit (lib/queue/index.ts) ; sans lui, il traite l'import dans
+ * la requête. Posé toutes les 10 s, il expire seul 35 s après le dernier.
+ */
+const beat = new IORedis(redisUrl() as string, { family: 0, maxRetriesPerRequest: null });
+beat.on("error", (err) => console.error("[worker] battement", err.message));
+const pulse = () => void beat.set(WORKER_HEARTBEAT_KEY, String(Date.now()), "EX", HEARTBEAT_TTL_S).catch(() => {});
+pulse();
+const pulseTimer = setInterval(pulse, HEARTBEAT_EVERY_MS);
+
 console.log(`[worker] prêt — files : ${workers.map((w) => `${w.name} ×${w.opts.concurrency}`).join(", ")}`);
 
 /**
@@ -88,7 +112,12 @@ async function shutdown(signal: string) {
   stopping = true;
   console.log(`[worker] ${signal} : arrêt après les travaux en cours`);
   const force = setTimeout(() => process.exit(0), 25_000);
+  // On retire le battement tout de suite : le service web cesse de déposer des
+  // travaux pour ce worker (une autre réplique le reposera dans les 10 s).
+  clearInterval(pulseTimer);
+  await beat.del(WORKER_HEARTBEAT_KEY).catch(() => {});
   await Promise.all(workers.map((w) => w.close().catch(() => {})));
+  beat.disconnect();
   clearTimeout(force);
   process.exit(0);
 }
