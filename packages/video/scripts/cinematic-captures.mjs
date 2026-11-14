@@ -593,9 +593,15 @@ async function run(browser, id) {
     await rect("player", p.locator(".__remotion-player, [class*='remotion']"));
     await rect("save", p.getByRole("button", { name: /Im Dashboard speichern|Save to dashboard|dashboard/i }));
     await shot("player00");
+    // Le lecteur ne démarre pas toujours seul : on survole (les commandes
+    // apparaissent), on lance la lecture, puis on écarte la souris.
+    await p.mouse.move(960, 540);
+    await p.waitForTimeout(400);
     const play = p.getByRole("button", { name: /Wiedergabe|Abspielen|Play/ }).first();
     report.play = await play.isVisible().catch(() => false);
     if (report.play) await play.click().catch(() => {});
+    await p.mouse.move(120, 1040);
+    await p.waitForTimeout(500);
     for (let i = 1; i <= 16; i++) {
       await p.waitForTimeout(820);
       await shot(`player${String(i).padStart(2, "0")}`);

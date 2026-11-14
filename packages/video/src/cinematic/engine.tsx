@@ -59,7 +59,7 @@ export const LOOKS = {
   /** Nuit froide : bleus, grain marqué. */
   cold: { grade: { temperature: -0.34, tint: -0.03, exposure: -0.16, contrast: 1.14, saturation: 0.82, shadows: -0.1 }, grain: 0.12, vignette: 0.42, hueShift: 190, leak: 0.8, accent: "#8FD3FF" },
   /** « Tech Premium » (série B) : très sombre, métal, néon jaune. */
-  tech: { grade: { temperature: -0.06, exposure: -0.1, contrast: 1.2, saturation: 0.9, shadows: -0.16, highlights: 0.06, vibrance: 0.15 }, grain: 0.085, vignette: 0.5, hueShift: 28, accent: "#FACC15" },
+  tech: { grade: { temperature: -0.06, exposure: -0.1, contrast: 1.2, saturation: 0.9, shadows: -0.16, highlights: 0.06, vibrance: 0.15 }, grain: 0.085, vignette: 0.5, hueShift: 0, leak: 0.75, accent: "#FACC15" },
 } as const satisfies Record<string, Look>;
 
 /* ── Le plan du film : scènes et voix ─────────────────────────────────── */

@@ -37,7 +37,8 @@ const LOOK = LOOKS.tech;
 const Y = LOOK.accent;
 const dk = (id: string, name: string) => asset(`dk-${id}-${name}.jpg`);
 const BOARD: [number, number, number, number] = [302, 118, 1612, 892];
-const playerLayers = (id: string, every: number, from = 0): Layer[] => Array.from({ length: 17 }, (_, i) => ({ src: dk(id, `player${String(i).padStart(2, "0")}`), at: i === 0 ? from : from + 6 + i * every, fade: 5 }));
+/** La leçon qui se joue : images 05 à 13 (avant, l'affiche et les commandes ; après, la leçon est finie). */
+const playerLayers = (id: string, every: number, from = 0): Layer[] => Array.from({ length: 9 }, (_, i) => ({ src: dk(id, `player${String(i + 5).padStart(2, "0")}`), at: i === 0 ? from : from + 6 + i * every, fade: 5 }));
 
 /* ── La maquette de laptop ────────────────────────────────────────────── */
 
@@ -139,7 +140,7 @@ function magicButton(c: Magic): FilmScene[] {
         const player = click + 66;
         return (
           <Screen
-            layers={[{ src: dk(c.id, "chip") }, { src: dk(c.id, "gen-script"), at: click + 7, fade: 10 }, { src: dk(c.id, "gen-voice"), at: click + 36, fade: 6 }, ...playerLayers(c.id, Math.max(5, Math.floor((ctx.dur - player - 8) / 17)), player)]}
+            layers={[{ src: dk(c.id, "chip") }, { src: dk(c.id, "gen-script"), at: click + 7, fade: 10 }, { src: dk(c.id, "gen-voice"), at: click + 36, fade: 6 }, ...playerLayers(c.id, Math.max(6, Math.floor((ctx.dur - player - 8) / 9)), player)]}
             cams={[{ at: 0, x: c.chipX, y: 900, z: 2.2 }, { at: click + 6, x: c.chipX, y: 900, z: 2.2 }, { at: click + 34, x: 960, y: 540, z: 1.5 }, { at: player, x: 960, y: 540, z: 1.62 }, { at: ctx.dur, x: 960, y: 532, z: 2.0 }]}
             cursor={[{ at: 0, x: c.chipX + 14, y: 972 }, { at: click, x: c.chipX, y: 960, click: true }]}
             hideCursorAt={click + 12}
@@ -158,7 +159,7 @@ function magicButton(c: Magic): FilmScene[] {
       render: (ctx) => (
         <Stage clip="b1" from={2.4} dim={0.22}>
           <Laptop turn={[8, 15]}>
-            <Screen layers={playerLayers(c.id, 7).slice(4).map((l, i) => ({ ...l, at: i === 0 ? 0 : i * 9 }))} cams={[{ at: 0, x: 960, y: 540, z: 1.9 }]} />
+            <Screen layers={playerLayers(c.id, 7).slice(2).map((l, i) => ({ ...l, at: i === 0 ? 0 : i * 14 }))} cams={[{ at: 0, x: 960, y: 540, z: 1.9 }]} />
           </Laptop>
           <Kinetic lines={[{ text: c.t.studio[0], at: ctx.voiceAt + 2 }, { text: c.t.studio[1], at: ctx.voiceAt + 24, hot: true }]} size={58} x={120} bottom={BAR + 36} accent={Y} />
         </Stage>
