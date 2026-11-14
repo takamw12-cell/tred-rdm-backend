@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: package.json
@@ -42,7 +42,7 @@ jobs:
             zap-baseline.py -t https://www.tred-tutor.de -r rapport-zap.html -J rapport-zap.json -I
       - name: Rapport
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rapport-owasp-zap
           path: zap/
