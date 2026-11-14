@@ -1,3 +1,4 @@
+import { readAttribution, type AttributionDb } from "./attribution";
 import { eq, inArray } from "drizzle-orm";
 
 import { db } from "../database";
@@ -153,6 +154,8 @@ export async function exportUserData(userId: string) {
           erstelltAm: profile.createdAt,
         }
       : null,
+    // Herkunft der Anmeldung (Kampagnen-Link), falls gespeichert.
+    herkunft: await readAttribution(db as unknown as AttributionDb, userId).catch(() => null),
     zugang: access ?? null,
     tarif: plan
       ? {

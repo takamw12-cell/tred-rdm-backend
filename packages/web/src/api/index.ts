@@ -32,6 +32,8 @@ import { adminDenialStatus, checkAdmin } from "./lib/admin-guard";
 import { auth } from "./auth";
 import { rateLimitMiddleware, userRateLimit, USER_LIMITS } from "./middleware/rate-limit";
 import { contentMatchesExtension, declaredTooLarge, MAX_UPLOAD_BYTES } from "./lib/upload-guard";
+import { saveAttribution, type AttributionDb } from "./lib/attribution";
+import { cleanUtm, UTM_HEADER, utmFromHeader } from "./lib/utm";
 import { fetchInstitutionLogo, isAllowedLogoDomain } from "./lib/institution-logo";
 import { db } from "./database";
 import {
@@ -181,6 +183,7 @@ for (const p of ["/api/auth/sign-in/*", "/api/auth/sign-up/*", "/api/auth/forget
 // Rapports d'erreurs du navigateur : publics, donc bornés (anti-spam de logs).
 app.use("/api/errors", rateLimitMiddleware({ limit: 20, scope: "errors", by: "ip" }));
 app.use("/api/csp-report", rateLimitMiddleware({ limit: 30, scope: "csp", by: "ip" }));
+app.use("/api/attribution", rateLimitMiddleware({ limit: 10, scope: "attribution" }));
 // Logos des établissements : publics, liste fermée, en cache — bornés quand même.
 app.use("/api/logo/*", rateLimitMiddleware({ limit: 120, scope: "logo", by: "ip" }));
 app.use("/api/agent/*", rateLimitMiddleware({ limit: 5, scope: "agent" }));
@@ -239,7 +242,38 @@ app.use("/api/*", async (c, next) => {
 // Kein Einladungscode mehr (offene Beta). Schutz vor Missbrauch: die
 // E-Mail-Bestätigung (auth.ts), das Rate-Limit auf /api/auth und die
 // Guthaben-/Kontingentgrenzen pro Konto.
-app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw));
+app.on(["GET", "POST"], "/api/auth/*", async (c) => {
+  const res = await auth.handler(c.req.raw);
+  // Une inscription par e-mail réussie : on range l'origine du compte (lien
+  // de campagne), sans jamais retarder ni faire échouer la réponse.
+  if (c.req.method === "POST" && new URL(c.req.url).pathname === "/api/auth/sign-up/email" && res.ok) {
+    const utm = utmFromHeader(c.req.header(UTM_HEADER));
+    if (utm) {
+      void res
+        .clone()
+        .json()
+        .then((body) => {
+          const id = (body as { user?: { id?: string } } | null)?.user?.id;
+          return id ? saveAttribution(db as unknown as AttributionDb, id, utm) : null;
+        })
+        .catch((error) => console.error("[attribution] inscription non attribuée", (error as Error).message?.slice(0, 200)));
+    }
+  }
+  return res;
+});
+
+// Inscription Google / Apple : le compte existe déjà quand le navigateur
+// revient avec ses UTM. Accepté une seule fois, pour un compte de moins de 24 h.
+app.post("/api/attribution", async (c) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);
+  const utm = cleanUtm(await c.req.json().catch(() => null));
+  if (!utm) return c.json({ error: "invalid body" }, 400);
+  const age = Date.now() - new Date(session.user.createdAt).getTime();
+  if (age > 24 * 60 * 60 * 1000) return c.json({ saved: false, reason: "account_too_old" });
+  const result = await saveAttribution(db as unknown as AttributionDb, session.user.id, utm);
+  return c.json({ saved: result === "saved" });
+});
 
 // ── Stripe-Webhook ────────────────────────────────────────────────────────
 // Absichtlich eine schlichte Hono-Route und keine oRPC-Prozedur: die

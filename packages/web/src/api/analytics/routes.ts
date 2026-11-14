@@ -3,6 +3,7 @@ import type { Hono } from "hono";
 import { db } from "../database";
 import { posthogEnvReport, posthogErrorSummary, posthogQueryConfigured } from "./posthog-diagnostic";
 import { computeCoreMetrics, isoDay, type ActivityRow, type SignupRow } from "./metrics";
+import { attributionSummary, type AttributionDb } from "../lib/attribution";
 
 /**
  * GET /api/admin/analytics — Betreiber-Dashboard (nur Rolle admin).
@@ -169,8 +170,13 @@ export function registerAnalyticsRoutes(app: Hono, requireAdmin: Guard) {
     if (cache && Date.now() - cache.at < CACHE_MS && c.req.query("refresh") !== "1") {
       return c.json(cache.body);
     }
-    const [core, posthog] = await Promise.all([dbMetrics(), posthogMetrics()]);
-    const body = { generatedAt: new Date().toISOString(), core, posthog };
+    // Inscriptions par lien de campagne (UTM), 90 jours. null : migre-utm.mjs n'a pas tourné.
+    const [core, posthog, attribution] = await Promise.all([
+      dbMetrics(),
+      posthogMetrics(),
+      attributionSummary(db as unknown as AttributionDb, Date.now() - 90 * 24 * 60 * 60 * 1000).catch(() => null),
+    ]);
+    const body = { generatedAt: new Date().toISOString(), core, posthog, attribution };
     cache = { at: Date.now(), body };
     return c.json(body);
   });

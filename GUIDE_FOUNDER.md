@@ -724,3 +724,38 @@ Vérifié en local le 14 nov. 2026 sur l'accueil, la connexion, les tarifs, le t
 
 **Contrôler les secrets à la main** : `bun run build:web` puis `bun packages/web/scripts/check-bundle-secrets.ts`.
 
+## Suivi des campagnes : quelle vidéo amène quelle inscription (14 nov. 2026)
+
+**Le principe.** Chaque lien de campagne porte des paramètres UTM. Quand un visiteur arrive par ce lien puis s'inscrit, TRED range ces paramètres sur son compte (colonnes `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`, `utm_at` de la table `user`). `utm_content` désigne la vidéo.
+
+**À lancer une fois** (sinon rien n'est enregistré, et rien ne casse) :
+
+```
+node C:\dev\tred-rdm\aerostudy-ai\migre-utm.mjs
+```
+
+### Les liens à utiliser
+
+| Où | Lien |
+|---|---|
+| Profil TikTok | `https://www.tred-tutor.de/?utm_source=tiktok&utm_medium=social&utm_campaign=survive-klausur&utm_content=bio` |
+| Snapchat, vidéo 1 | `https://www.tred-tutor.de/?utm_source=snapchat&utm_medium=social&utm_campaign=survive-klausur&utm_content=sk1` |
+| Snapchat, vidéo 2 | `…&utm_content=sk2` |
+| Snapchat, vidéo 3 | `…&utm_content=sk3` |
+| Publicité TikTok (une URL par annonce) | `…?utm_source=tiktok&utm_medium=paid&utm_campaign=survive-klausur&utm_content=sk1` |
+
+**Limite à connaître.** Sur TikTok, « Link im Profil » est UN seul lien pour toutes les vidéos : en organique, tu sauras que l'inscription vient de TikTok, pas de quelle vidéo. Pour distinguer les vidéos il faut un lien par vidéo : c'est possible sur Snapchat (lien joint à chaque Snap) et en publicité TikTok (une URL par annonce). Autre moyen sans budget : changer `utm_content` du lien du profil à chaque vidéo publiée (`bio-sk1`, puis `bio-sk2`) et noter la date.
+
+### Où lire le résultat
+
+- `/admin/analytics` → carte « Anmeldungen nach Video » (90 jours).
+- Ou en SQL sur Turso : `SELECT utm_source, utm_content, count(*) FROM user WHERE utm_at IS NOT NULL GROUP BY 1, 2 ORDER BY 3 DESC;`
+
+### Ce qui est gardé, et où (RGPD)
+
+- **Premier contact** : le premier lien de la visite compte, et un compte déjà attribué ne change plus.
+- **Rien sur l'appareil sans consentement** (§ 25 TDDDG) : sans accord pour l'analyse, les UTM restent dans la mémoire de la page (ils survivent à la navigation dans l'app, pas à un rechargement). Avec accord, ils sont aussi dans `sessionStorage`, jusqu'à la fermeture de l'onglet. Aucun cookie.
+- Les valeurs viennent de l'URL : elles sont nettoyées (lettres, chiffres, `. _ ~ -`, 80 caractères).
+- L'export RGPD du compte les contient (`herkunft`) ; la suppression du compte les efface.
+- **À faire de ton côté** : ajouter une phrase à la Datenschutzerklärung (« Herkunft der Registrierung: Kampagnenparameter des Links, über den du gekommen bist », base légale à valider : intérêt légitime, art. 6 (1) f DSGVO). Je ne l'ai pas modifiée : c'est un texte juridique, il attend ta validation.
+

@@ -1,3 +1,4 @@
+import { utmHeaders, withUtm } from "@/lib/attribution";
 import { useState } from "react";
 import { useSearch } from "wouter";
 import { motion } from "framer-motion";
@@ -60,7 +61,8 @@ export default function LoginPage() {
     setError(null);
     const result = await authClient.signIn.social({
       provider: "google",
-      callbackURL: "/dashboard",
+      // Les UTM font l'aller-retour chez Google dans l'adresse de retour.
+      callbackURL: withUtm("/dashboard"),
     });
     if (result.error) {
       setError(result.error.message ?? t("auth.errorGeneric"));
@@ -71,7 +73,7 @@ export default function LoginPage() {
     setError(null);
     const result = await authClient.signIn.social({
       provider: "apple",
-      callbackURL: "/dashboard",
+      callbackURL: withUtm("/dashboard"),
     });
     if (result.error) {
       setError(result.error.message ?? t("auth.errorGeneric"));
@@ -96,6 +98,8 @@ export default function LoginPage() {
             // Le lien de l'e-mail de bienvenue vérifie l'adresse, ouvre la
             // session et mène ici.
             callbackURL: "/dashboard",
+            // D'où vient cette inscription (lien de campagne) : rangé sur le compte.
+            fetchOptions: { headers: utmHeaders() },
           })
         : await authClient.signIn.email({ email, password, callbackURL: "/dashboard" });
       if (res.error) {

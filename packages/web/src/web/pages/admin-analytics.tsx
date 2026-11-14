@@ -23,6 +23,8 @@ interface Retention {
 }
 interface Analytics {
   generatedAt: string;
+  /** Anmeldungen je Kampagnen-Link (UTM), 90 Tage. null: migre-utm.mjs noch nicht gelaufen. */
+  attribution?: { source: string | null; campaign: string | null; content: string | null; signups: number }[] | null;
   core: {
     signupsPerDay: { day: string; count: number }[];
     totals: { users: number; signups7d: number; signups30d: number };
@@ -118,6 +120,26 @@ export default function AdminAnalyticsPage() {
         <p className="mb-1 text-sm font-semibold">Registrierungen pro Tag</p>
         <p className="text-muted-foreground mb-4 text-xs">Letzte 30 Tage</p>
         <SignupBars rows={core.signupsPerDay} />
+      </Card>
+
+      <Card className="mb-4 p-5">
+        <p className="mb-1 text-sm font-semibold">Anmeldungen nach Video</p>
+        <p className="text-muted-foreground mb-4 text-xs">
+          Kampagnen-Links (utm_content = Video), letzte 90 Tage. Ohne Tracking: nur was im Link steht.
+        </p>
+        {data.attribution == null ? (
+          <p className="text-muted-foreground text-sm">Noch nicht aktiv: einmal <code>migre-utm.mjs</code> ausführen.</p>
+        ) : data.attribution.length === 0 ? (
+          <p className="text-muted-foreground text-sm">Noch keine Anmeldung über einen Kampagnen-Link.</p>
+        ) : (
+          <RankedBars
+            rows={data.attribution.map((a) => ({
+              label: a.content ?? "(ohne utm_content)",
+              sub: [a.source, a.campaign].filter(Boolean).join(" · ") || undefined,
+              value: a.signups,
+            }))}
+          />
+        )}
       </Card>
 
       <div className="mb-8 grid gap-3 sm:grid-cols-2">
