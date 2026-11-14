@@ -1,0 +1,5 @@
+# Les clips du fondateur restent sur sa machine : rien ne part dans le dépôt
+# par mégarde (visage, fichiers lourds). Seuls ce fichier et le LISEZ-MOI sont suivis.
+*
+!.gitignore
+!README.md

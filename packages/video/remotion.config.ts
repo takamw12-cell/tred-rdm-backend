@@ -35,6 +35,16 @@ Config.overrideWebpackConfig((current) => {
         remotion$: path.resolve(process.cwd(), "node_modules/remotion"),
       },
     },
+    module: {
+      ...withTailwind.module,
+      rules: [
+        ...(withTailwind.module?.rules ?? []),
+        // Les clips face caméra (public/facecam/) sortent souvent du téléphone
+        // avec une extension en majuscules (« INTRO.MOV »), que la règle de
+        // Remotion — minuscules seulement — laisserait passer pour du code.
+        { test: /\.(mp4|mov|webm)$/i, exclude: /\.(mp4|mov|webm)$/, type: "asset/resource" },
+      ],
+    },
     plugins: [
       ...(withTailwind.plugins ?? []),
       new webpack.DefinePlugin({

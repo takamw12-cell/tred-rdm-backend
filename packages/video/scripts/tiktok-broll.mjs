@@ -33,10 +33,12 @@ export const BROLL = {
     prompt: `The same student lifts his head and looks at the laptop screen. His eyes widen as he suddenly understands, a relieved smile spreads across his face, he leans back in his chair, exhales and nods slightly. ${NIGHT} ${LOOK}`,
     camera_motion: "static",
   },
-  turbine: {
-    prompt: `Slow push-in on the front of a modern turbofan jet engine under the wing of an airliner at night. The large titanium fan blades rotate slowly inside the nacelle, the spinner cone with its white spiral turns, cold blue floodlight glints on the metal, thin mist drifts past. Macro detail, cinematic, sharp. ${NIGHT} ${LOOK}`,
-    camera_motion: "dolly_in",
-  },
+  // PAS de plan « turbine » ici : broll-turbine.mp4 est un VRAI moteur (clip
+  // Pexels recadré, voir src/assets/tiktok/CREDITS.md). Deux essais générés
+  // (2026-11-14) n'ont pas tenu devant un œil d'aéronautique : une douzaine de
+  // pales en forme de rames, puis — moteur à l'arrêt, soufflante décrite pièce
+  // par pièce — des pales en rayons de vélo et un moteur posé au sol dans l'axe
+  // du fuselage. Ne pas le régénérer : ce script l'écraserait.
   desk: {
     prompt: `Slow lateral move over a student's desk at night, seen from above at an angle: an open notebook filled with handwritten equations and pencil sketches of an aircraft wing, a mechanical pencil, a steaming mug of coffee, and an open laptop whose out-of-focus screen shows dark-themed program code. ${NIGHT} ${LOOK}`,
     camera_motion: "dolly_right",

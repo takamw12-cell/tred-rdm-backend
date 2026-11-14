@@ -35,15 +35,39 @@ export function pop(frame: number, start: number, frames = 10): number {
   return 1 - Math.cos(t * Math.PI * 1.35) * Math.exp(-t * 4.2) * (1 - t);
 }
 
-/* ── Les fichiers de la campagne (plans Replicate, captures de l'app) ── */
+/* ── Les fichiers de la campagne (plans d'ambiance, captures de l'app) ── */
 
-type Ctx = { (key: string): string | { default: string } };
+type Ctx = { (key: string): string | { default: string }; keys(): string[] };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const files = (require as any).context("../assets/tiktok", false, /\.(jpg|mp4)$/) as Ctx;
 export const media = (name: string) => {
   const m = files(`./${name}`);
   return typeof m === "string" ? m : m.default;
 };
+
+/* ── Les clips « face caméra » du fondateur ───────────────────────────── */
+
+// Le dossier où le fondateur dépose ses clips (voir son LISEZ-MOI). Il est lu
+// au moment où Remotion assemble le projet : un fichier posé là est pris au
+// rendu suivant, sans toucher au code. Majuscules acceptées (« INTRO.MOV » :
+// la règle Webpack correspondante est dans remotion.config.ts).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const clips = (require as any).context("../../public/facecam", false, /\.(mp4|mov|webm)$/i) as Ctx;
+
+export type FaceCamSlot = "intro" | "outro";
+
+/**
+ * Le clip déposé pour cet emplacement — `intro.*` ouvre la vidéo 3, `outro.*`
+ * la ferme — ou `null` tant qu'il n'existe pas : la vidéo garde alors son plan
+ * de remplacement.
+ */
+export function faceCam(slot: FaceCamSlot): string | null {
+  const stem = (key: string) => (key.split("/").pop() ?? "").replace(/\.[^.]+$/, "").toLowerCase();
+  const key = clips.keys().find((k) => stem(k) === slot);
+  if (!key) return null;
+  const m = clips(key);
+  return typeof m === "string" ? m : m.default;
+}
 
 /* ── Plan d'ambiance plein cadre ──────────────────────────────────────── */
 

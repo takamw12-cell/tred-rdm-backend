@@ -830,10 +830,12 @@ Trois vidéos 1080 × 1920 (9:16), en allemand, livrées dans `C:\Users\HP\Downl
 | Fichier | Durée | Fil |
 |---|---|---|
 | `SK-1-Die-Klausur-morgen.mp4` | 20 s | panique → 80 pages qui défilent → freeze + trait orange → la question dans TRED → la Tafel pas à pas → soulagement, « Link im Profil » |
-| `SK-2-Physik-verstehen.mp4` | 20 s | turboréacteur → schéma animé du compresseur (pression, température) → freeze + trait orange → la Tafel : 288 K → 761 K, 475 kJ/kg |
-| `SK-3-Founder-Story.mp4` | 25 s | face caméra (carton en attendant ton clip) → bureau, code → freeze + trait orange → démo (Tafel, « Als Video erklären », lecteur) → « Ich baue TRED. » |
+| `SK-2-Physik-verstehen.mp4` | 20 s | un VRAI turboréacteur d'avion de ligne (soufflante qui tourne au sol) → schéma animé du compresseur (pression, température) → freeze + trait orange → la Tafel : 288 K → 761 K, 475 kJ/kg |
+| `SK-3-Founder-Story.mp4` | 25 s | ce que tu étudies (le vrai moteur — ou ton clip face caméra, s'il est déposé) → bureau, code → freeze + trait orange → Prof. Kenta en hologramme, qui va se poser sur son portrait dans l'app → démo (Tafel, « Als Video erklären », lecteur) → « Ich baue TRED. » (ou ton clip de fin) |
 
 **L'univers de la campagne** : bleu nuit `#0A0E27`, orange `#FF5722`, jaune doré `#FFC107`. Il ne concerne que ces vidéos : l'app garde ses couleurs. **La signature** : au moment où l'on passe de « je ne comprends pas » à « TRED m'explique », l'image se fige, un trait orange la traverse, elle se fend en deux et l'écran de TRED apparaît dessous (avec un son). **Les sous-titres** : deux ou trois mots à la fois, très gros, le mot prononcé sur un aplat orange.
+
+**Le visage de la campagne : Prof. Kenta**, « Das junge Genie » — le plus jeune des quatre professeurs de l'app, et celui que tout nouvel inscrit a par défaut. Toutes les captures le montrent sur la Tafel et dans le lecteur vidéo ; dans SK-3, au moment où la voix dit « Sie heißt TRED. », il apparaît en hologramme (mêmes couleurs que dans le Hörsaal), puis vient se poser exactement sur son portrait dans l'interface. Dans l'app, l'écran d'attente de l'import l'affiche à son tour, avec la bulle « Ich lese dein Skript … einen Moment bitte. » (traduite en anglais, français, espagnol) : l'étudiant retrouve dans TRED celui qu'il a vu sur TikTok. Il y est toujours affiché, quel que soit le professeur choisi pour le Hörsaal (`WAIT_PROFESSOR` dans `packages/web/src/web/components/import-wait-overlay.tsx`).
 
 **Tout ce qu'on voit de TRED est la vraie interface**, capturée en mode sombre dans une fenêtre verticale (1000 × 1778) : la réponse entière de la Tafel tient alors sur un écran 9:16. Les nombres du tableau sont calculés par le script de capture (compresseur idéal, rapport de pression 30, κ = 1,4), pas tapés à la main.
 
@@ -841,7 +843,8 @@ Trois vidéos 1080 × 1920 (9:16), en allemand, livrées dans `C:\Users\HP\Downl
 
 - `src/tiktok/` : `kit.tsx` (palette, plans, étiquettes), `captions.tsx` (sous-titres), `slash.tsx` (la signature, une transition `@remotion/transitions`), `scenes.tsx` (caméra sur les captures, PDF qui défile, compresseur, éditeur de code, cartes de fin), `engine.tsx`, `videos.tsx` (les trois vidéos, calées sur la voix).
 - `src/voiceovers.mjs` → `TIKTOK` : tes textes, mot pour mot, et la voix de chacun.
-- `src/assets/tiktok/` : les 4 plans Replicate et les captures de l'app.
+- `src/assets/tiktok/` : le vrai plan du moteur (Pexels), les 3 plans Replicate (étudiant, bureau), les captures de l'app, et `CREDITS.md` (d'où vient chaque image, avec quels droits).
+- `public/facecam/` : tes clips face caméra pour SK-3 (voir plus bas).
 
 ### Refaire un rendu (depuis WSL, dans `packages/video`)
 
@@ -854,18 +857,30 @@ Environ 5 à 7 minutes par vidéo. Le script rend en `crf 18`, preset `veryslow`
 | Pour changer… | Commande |
 |---|---|
 | un texte ou une voix | modifier `TIKTOK` dans `src/voiceovers.mjs`, puis `node scripts/voiceover.mjs t-de1 --force` (facturé par ElevenLabs au caractère ; les 3 voix actuelles = 983 caractères) |
-| un plan d'ambiance | modifier le texte dans `scripts/tiktok-broll.mjs`, puis `node scripts/tiktok-broll.mjs turbine --force` (facturé par Replicate, 6 s par plan) |
+| un plan d'ambiance généré (étudiant, bureau) | modifier le texte dans `scripts/tiktok-broll.mjs`, puis `node scripts/tiktok-broll.mjs desk --force` (facturé par Replicate, 6 s par plan). Le moteur, lui, est un vrai clip : voir `src/assets/tiktok/CREDITS.md` |
 | les sons (alarme, trait, son d'interface) | `npm run audio:tiktok` (synthétisés par code, libres de droits) ; les nappes sortent en WAV, à convertir en MP3 avec ffmpeg |
-| une capture de l'app | serveur local + `scripts/cinematic-captures.mjs sk2 de1 --dark --board` avec `CINE_VIEWPORT=1000x1778 CINE_SCALE=2.5` |
+| une capture de l'app | serveur local + `scripts/cinematic-captures.mjs sk2 de1 --dark` avec `CINE_VIEWPORT=1000x1778 CINE_SCALE=2.5 CINE_PROFESSOR=genius` (Prof. Kenta partout) |
 
-### Ton clip face caméra (vidéo 3)
+### Tes clips face caméra (vidéo 3)
 
-Les 5 premières secondes montrent un carton « FACE CAM ». Filme-toi 5 secondes à la verticale pendant que la voix dit « Ich studiere Luft- und Raumfahrttechnik in Deutschland. », pose le fichier dans `src/assets/tiktok/founder.mp4`, puis dans `src/tiktok/videos.tsx` remplace `const FOUNDER_CLIP: string | null = null;` par `const FOUNDER_CLIP: string | null = media("founder.mp4");` et relance le rendu. La voix de cette vidéo est une voix ElevenLabs neutre, en attendant : l'idéal est d'enregistrer la tienne.
+Dépose tes fichiers dans `packages/video/public/facecam/` avec ces noms, puis relance le rendu : ils prennent leur place tout seuls, sans toucher au code.
+
+| Fichier | Où il passe | Durée |
+|---|---|---|
+| `intro.mp4` | au début, à la place du plan du moteur — la voix dit « Ich studiere Luft- und Raumfahrttechnik in Deutschland. » | 5 s (2 s au minimum) |
+| `outro.mp4` | à la fin, à la place de la carte « Ich baue TRED. » — la voix dit « Wenn du studierst, probier TRED aus … » | 4 s (2 s au minimum) |
+
+- `.mov` (iPhone) et `.webm` marchent aussi, majuscules comprises. Un seul des deux clips suffit.
+- Filme à la verticale, les yeux vers 40 % de la hauteur ; laisse libre le tiers du bas (sous-titres) et, pour `outro`, le quart du haut (logo et « Link im Profil »).
+- **Le son de tes clips n'est pas utilisé** : la voix off continue par-dessus. Évite donc de parler à l'image. La voix de cette vidéo est une voix ElevenLabs neutre, en attendant : l'idéal reste d'enregistrer la tienne — dis-le, c'est un réglage à part.
+- Un clip plus court que sa place ne fige pas l'image : le script de rendu mesure sa durée, et la scène suivante commence plus tôt (début) ou la démonstration dure un peu plus (fin).
+- Les clips restent sur ta machine : le dossier a son `.gitignore`, rien ne part sur GitHub.
+- Le mode d'emploi complet est dans le dossier : `packages/video/public/facecam/README.md`.
 
 ### Avant de publier
 
-- **Étiquette « contenu généré par IA »** : les plans de l'étudiant, du turboréacteur et du bureau sont générés (Replicate), les voix aussi (ElevenLabs). TikTok demande de l'indiquer quand une vidéo montre des scènes réalistes générées : active l'option au moment de publier.
-- **Le turboréacteur généré est stylisé** (aubes épaisses, peu nombreuses). Devant des étudiants en aéronautique, un vrai plan serait plus crédible : remplace `broll-turbine.mp4` par une séquence à toi, ou relance la génération.
+- **Étiquette « contenu généré par IA »** : les plans de l'étudiant (SK-1) et du bureau (SK-3) sont générés (Replicate), les trois voix aussi (ElevenLabs). TikTok demande de l'indiquer quand une vidéo montre des scènes réalistes générées : active l'option au moment de publier. Le turboréacteur, lui, est un vrai moteur filmé.
+- **Le plan du moteur vient de Pexels** (licence gratuite, publicité comprise, sans mention obligatoire). Il est recadré pour que ni la livrée de la compagnie, ni l'immatriculation, ni la personne visible dans le fichier d'origine n'apparaissent : la licence interdit de laisser croire qu'une marque soutient TRED. Détails dans `packages/video/src/assets/tiktok/CREDITS.md`.
 - **Lien** : voir « Suivi des campagnes » plus haut (un seul lien de profil sur TikTok).
 - Zones sûres : les textes évitent le haut (barre TikTok), la droite (boutons) et le dernier quart (légende).
 

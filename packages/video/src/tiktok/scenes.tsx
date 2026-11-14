@@ -22,6 +22,24 @@ export type Cam = { at: number; x: number; y: number; w: number };
 export type Band = { y0: number; y1: number; at: number; frames?: number };
 
 /**
+ * Le cadrage à une image donnée, borné à la capture : le calcul de <TafelCam>,
+ * partagé avec ce qui doit suivre un point de l'écran (le professeur qui vient
+ * se poser sur son portrait). Un point (px, py) de la capture se trouve à
+ * l'écran en (width / 2 + (px − x) · scale, height / 2 + (py − y) · scale).
+ */
+export function camAt(cams: Cam[], frame: number, { width = W, height = H, free = false }: { width?: number; height?: number; free?: boolean } = {}) {
+  const at = cams.map((c) => c.at);
+  const pick = (key: "x" | "y" | "w") => (cams.length === 1 ? cams[0][key] : interpolate(frame, at, cams.map((c) => c[key]), { ...clamp, easing: easeInOut }));
+  const w = pick("w");
+  const scale = width / w;
+  const viewH = height / scale;
+  // La caméra ne sort pas de la capture (sauf vers le bas, si `free`).
+  const x = Math.min(CAP_W - w / 2, Math.max(w / 2, pick("x")));
+  const y = free ? Math.max(viewH / 2, pick("y")) : Math.min(CAP_H - viewH / 2, Math.max(viewH / 2, pick("y")));
+  return { x, y, w, scale };
+}
+
+/**
  * La capture, cadrée par une caméra animée. Avec `bands`, le tableau commence
  * flou et sombre ; chaque bande devient nette de gauche à droite, comme la
  * Tafel de l'app qui s'écrit pas à pas.
@@ -45,14 +63,7 @@ export function TafelCam({
   free?: boolean;
 }) {
   const frame = useCurrentFrame() - from;
-  const at = cams.map((c) => c.at);
-  const pick = (key: "x" | "y" | "w") => (cams.length === 1 ? cams[0][key] : interpolate(frame, at, cams.map((c) => c[key]), { ...clamp, easing: easeInOut }));
-  const w = pick("w");
-  const scale = width / w;
-  const viewH = height / scale;
-  // La caméra ne sort pas de la capture (sauf vers le bas, si `free`).
-  const x = Math.min(CAP_W - w / 2, Math.max(w / 2, pick("x")));
-  const y = free ? Math.max(viewH / 2, pick("y")) : Math.min(CAP_H - viewH / 2, Math.max(viewH / 2, pick("y")));
+  const { x, y, scale } = camAt(cams, frame, { width, height, free });
   const layer: CSSProperties = {
     position: "absolute",
     left: 0,
@@ -431,40 +442,151 @@ export function CodeScroll({ dur }: { dur: number }) {
   );
 }
 
-/* ── Le plan « face caméra » du fondateur (en attendant son vrai clip) ── */
+/* ── Le professeur de l'app, en hologramme ────────────────────────────── */
+
+// Les couleurs de `HologramProfessor` (le professeur du Hörsaal, dans l'app) :
+// anneau cyan-300, halo cyan-400 et jaune TRED. L'hologramme de la vidéo est
+// le même personnage, avec les mêmes codes.
+const HOLO = "103 232 249";
+const HOLO_DEEP = "34 211 238";
+const HOLO_GOLD = "234 179 8";
 
 /**
- * Emplacement réservé : le fondateur filmera 3 à 5 secondes face caméra, à la
- * verticale. Quand le clip existe, on le pose dans src/assets/tiktok/ et on le
- * passe à la vidéo (`faceCam`, voir videos.tsx) : ce carton disparaît.
+ * Le portrait d'un professeur de TRED, projeté comme un hologramme : il
+ * s'imprime de bas en haut en scintillant, un faisceau le porte, son halo
+ * respire. `x`, `y` (centre) et `size` (diamètre) peuvent bouger d'une image à
+ * l'autre : c'est ainsi qu'il vient se poser sur son vrai portrait, dans la
+ * capture de l'app. `stage` (0…1) règle ce qui n'existe que sur la scène —
+ * faisceau, socle, plaque du nom — et s'éteint quand il rejoint l'interface.
  */
-export function FaceCamPlaceholder({ backdrop }: { backdrop: ReactNode }) {
+export function ProfHologram({
+  src,
+  x,
+  y,
+  size,
+  at,
+  name,
+  role,
+  stage = 1,
+  opacity = 1,
+}: {
+  src: string;
+  x: number;
+  y: number;
+  size: number;
+  /** Image (relative à la scène) où il apparaît. */
+  at: number;
+  name: string;
+  role: string;
+  stage?: number;
+  opacity?: number;
+}) {
   const frame = useCurrentFrame();
-  const corner = (style: CSSProperties) => <span style={{ position: "absolute", width: 34, height: 34, borderColor: ORANGE, borderStyle: "solid", borderWidth: 0, ...style }} />;
+  const t = frame - at;
+  if (t < 0 || opacity <= 0) return null;
+  const r = size / 2;
+  // Matérialisation : douze images, le portrait monte avec la ligne de balayage.
+  const build = progress(frame, at, at + 12);
+  const flicker = t < 14 ? 0.7 + 0.3 * rnd(t * 3.7 + 1) : 1;
+  const jitter = t < 9 ? (rnd(t * 9.1) - 0.5) * 7 * (1 - t / 9) : 0;
+  const breathe = Math.sin((t / FPS) * Math.PI * 2.2);
+  const ripple = progress(frame, at + 8, at + 26);
+  const plate = Math.min(stage, pop(frame, at + 10, 11));
   return (
-    <AbsoluteFill style={{ background: NIGHT }}>
-      <AbsoluteFill style={{ filter: "blur(14px) brightness(0.55)", transform: "scale(1.12)" }}>{backdrop}</AbsoluteFill>
-      <div style={{ position: "absolute", left: 70, right: 70, top: 190, height: 500, borderRadius: 26, border: "2px dashed rgb(255 255 255 / 0.4)", background: "rgb(10 14 39 / 0.45)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 18 }}>
-        {corner({ top: -3, left: -3, borderTopWidth: 5, borderLeftWidth: 5, borderTopLeftRadius: 26 })}
-        {corner({ top: -3, right: -3, borderTopWidth: 5, borderRightWidth: 5, borderTopRightRadius: 26 })}
-        {corner({ bottom: -3, left: -3, borderBottomWidth: 5, borderLeftWidth: 5, borderBottomLeftRadius: 26 })}
-        {corner({ bottom: -3, right: -3, borderBottomWidth: 5, borderRightWidth: 5, borderBottomRightRadius: 26 })}
-        <svg width={150} height={150} viewBox="0 0 150 150">
-          <circle cx={75} cy={54} r={32} fill="rgb(255 255 255 / 0.22)" />
-          <path d="M14 150 C14 106 42 92 75 92 C108 92 136 106 136 150 Z" fill="rgb(255 255 255 / 0.22)" />
-        </svg>
-        <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 900, fontSize: 34, letterSpacing: "0.06em", color: "#FFFFFF" }}>FACE CAM</span>
-        <span style={{ fontFamily: "Inter, sans-serif", fontWeight: 600, fontSize: 15, color: "rgb(255 255 255 / 0.7)", textAlign: "center", lineHeight: 1.35 }}>
-          Platzhalter · hier kommt dein Clip
-          <br />
-          3–5 Sekunden, hochkant
-        </span>
-        <div style={{ position: "absolute", top: 16, left: 18, display: "flex", alignItems: "center", gap: 7, fontFamily: "'IBM Plex Mono', ui-monospace, monospace", fontWeight: 700, fontSize: 14, color: "#FFFFFF" }}>
-          <span style={{ width: 11, height: 11, borderRadius: 6, background: "#FF3B30", opacity: frame % 30 < 18 ? 1 : 0.25 }} />
-          REC
-        </div>
+    <div style={{ position: "absolute", left: 0, top: 0, opacity }}>
+      {/* Le faisceau du projecteur et son socle. */}
+      <div
+        style={{
+          position: "absolute",
+          left: x - r * 1.15,
+          top: y + r * 0.35,
+          width: r * 2.3,
+          height: r * 1.22,
+          clipPath: "polygon(34% 100%, 66% 100%, 100% 0%, 0% 0%)",
+          background: `linear-gradient(0deg, rgb(${HOLO} / 0.55), rgb(${HOLO} / 0.12) 60%, rgb(${HOLO} / 0))`,
+          opacity: stage * build * (0.78 + 0.14 * breathe),
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          left: x - r * 0.62,
+          top: y + r * 1.48,
+          width: r * 1.24,
+          height: r * 0.2,
+          borderRadius: "50%",
+          background: `radial-gradient(ellipse, rgb(255 255 255 / 0.9), rgb(${HOLO} / 0.75) 35%, rgb(${HOLO} / 0) 72%)`,
+          boxShadow: `0 0 ${r * 0.3}px ${r * 0.05}px rgb(${HOLO_DEEP} / 0.55)`,
+          opacity: stage * Math.min(1, t / 4),
+        }}
+      />
+      {/* Le halo : cyan et jaune, comme dans le Hörsaal. */}
+      <div
+        style={{
+          position: "absolute",
+          left: x - r,
+          top: y - r,
+          width: size,
+          height: size,
+          borderRadius: "50%",
+          background: `rgb(${HOLO} / 0.2)`,
+          boxShadow: `0 0 ${r * 0.5}px ${r * 0.15}px rgb(${HOLO_DEEP} / 0.3), 0 0 ${r * 0.3}px ${r * 0.08}px rgb(${HOLO_GOLD} / 0.28)`,
+          transform: `scale(${1 + 0.05 * breathe})`,
+          opacity: build * (0.75 + 0.2 * breathe),
+        }}
+      />
+      {/* Une onde part du portrait à son arrivée. */}
+      {ripple > 0 && ripple < 1 && (
+        <div style={{ position: "absolute", left: x - r, top: y - r, width: size, height: size, borderRadius: "50%", border: `2px solid rgb(${HOLO} / 0.8)`, transform: `scale(${1 + 0.55 * ripple})`, opacity: (1 - ripple) * stage }} />
+      )}
+      {/* Le portrait : celui de l'app, tramé et teinté. */}
+      <div
+        style={{
+          position: "absolute",
+          left: x - r + jitter,
+          top: y - r,
+          width: size,
+          height: size,
+          borderRadius: "50%",
+          overflow: "hidden",
+          boxShadow: `0 0 0 ${Math.max(1.5, size * 0.014)}px rgb(${HOLO} / 0.8)`,
+          background: "#0B1222",
+          opacity: flicker,
+        }}
+      >
+        <Img src={src} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", clipPath: `inset(${(1 - build) * 100}% 0 0 0)` }} />
+        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(180deg, rgb(${HOLO} / 0.1), rgb(${HOLO_DEEP} / 0.22))`, mixBlendMode: "screen" }} />
+        <div style={{ position: "absolute", inset: 0, opacity: 0.3 * Math.max(stage, 0.35), backgroundImage: "repeating-linear-gradient(180deg, rgb(255 255 255 / 0.25) 0px, rgb(255 255 255 / 0.25) 1px, transparent 1px, transparent 3px)", backgroundPositionY: -t * 0.5 }} />
+        {/* La ligne de balayage qui l'imprime. */}
+        {build < 1 && <div style={{ position: "absolute", left: 0, right: 0, top: `${(1 - build) * 100}%`, height: 3, marginTop: -1.5, background: "#FFFFFF", boxShadow: `0 0 12px 4px rgb(${HOLO} / 0.9)` }} />}
       </div>
-    </AbsoluteFill>
+      {/* La plaque : qui il est. */}
+      {plate > 0 && (
+        <div
+          style={{
+            position: "absolute",
+            left: x,
+            top: y + r * 1.82,
+            transform: `translateX(-50%) scale(${0.8 + 0.2 * plate})`,
+            opacity: Math.min(1, plate * 1.4),
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 1,
+            padding: "7px 18px 8px",
+            borderRadius: 14,
+            background: "rgb(5 8 25 / 0.86)",
+            border: `1.5px solid rgb(${HOLO} / 0.45)`,
+            boxShadow: `0 10px 30px -10px rgb(${HOLO_DEEP} / 0.6)`,
+            fontFamily: "Inter, sans-serif",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <span style={{ fontWeight: 900, fontSize: 21, letterSpacing: "-0.01em", color: "#FFFFFF" }}>{name}</span>
+          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: "0.06em", textTransform: "uppercase", color: `rgb(${HOLO})` }}>{role}</span>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -513,6 +635,28 @@ export function CtaOverlay({ at, top = 150 }: { at: number; top?: number }) {
       <div style={{ position: "absolute", top, left: 0, right: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
         <div style={{ transform: `scale(${0.75 + 0.25 * k})`, opacity: Math.min(1, k * 1.5) }}>
           <Logo variant="row" markClassName="h-[76px] text-white" />
+        </div>
+        <ProfilePill at={at + 7} />
+      </div>
+    </AbsoluteFill>
+  );
+}
+
+/**
+ * Le logo et « Link im Profil » en HAUT d'un plan face caméra (le clip de fin
+ * du fondateur) : le visage et les sous-titres restent dégagés.
+ */
+export function TopCta({ at, top = 84 }: { at: number; top?: number }) {
+  const frame = useCurrentFrame();
+  if (frame < at) return null;
+  const k = pop(frame, at, 12);
+  const shade = Math.min(1, k);
+  return (
+    <AbsoluteFill>
+      <AbsoluteFill style={{ background: `linear-gradient(180deg, rgb(10 14 39 / ${0.9 * shade}) 0%, rgb(10 14 39 / ${0.62 * shade}) 20%, rgb(10 14 39 / 0) 36%)` }} />
+      <div style={{ position: "absolute", top, left: 0, right: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+        <div style={{ transform: `scale(${0.75 + 0.25 * k})`, opacity: Math.min(1, k * 1.5) }}>
+          <Logo variant="row" markClassName="h-[60px] text-white" />
         </div>
         <ProfilePill at={at + 7} />
       </div>

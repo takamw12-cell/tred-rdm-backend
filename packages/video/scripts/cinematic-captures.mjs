@@ -32,6 +32,9 @@ const SCALE = Number(process.env.CINE_SCALE) || 1.5;
 // CINE_VIEWPORT=1000x1500 : fenêtre étroite — la Tafel replie ses lignes, ce qui se lit mieux dans une vidéo verticale.
 const [VW, VH] = (process.env.CINE_VIEWPORT ?? "1920x1080").split("x").map(Number);
 const VIEWPORT = { width: VW || 1920, height: VH || 1080 };
+// CINE_PROFESSOR=genius : impose un professeur à tous les scénarios joués (la campagne TikTok montre partout
+// Prof. Kenta, « Das junge Genie », sans changer les professeurs des courts-métrages déjà tournés).
+const PROFESSOR = process.env.CINE_PROFESSOR;
 mkdirSync(OUT, { recursive: true });
 
 /* ── Courbes (calculées ici, jamais « dessinées ») ────────────────────── */
@@ -523,7 +526,7 @@ function stream(text, step = 28) {
 }
 
 async function run(browser, id) {
-  const sc = SCENARIOS[id];
+  const sc = PROFESSOR ? { ...SCENARIOS[id], professor: PROFESSOR } : SCENARIOS[id];
   const report = { id, rects: {} };
   const ctx = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: SCALE, locale: sc.lang === "de" ? "de-DE" : "en-GB", timezoneId: "Europe/Berlin" });
   await ctx.addInitScript(({ lang, dark }) => {
@@ -558,12 +561,14 @@ async function run(browser, id) {
   await p.route(`**/api/video/${vid}`, (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(videoStep === "done" && sc.lesson ? lessonPayload(vid, sc.professor, sc.lesson) : { id: vid, status: videoStep }) }));
   await p.route(`**/api/video/${vid}/audio`, (route) => route.fulfill({ status: 200, contentType: "audio/mpeg", body: readFileSync(AUDIO) }));
   await p.route(`**/api/video/${vid}/save`, (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }));
-  // Le serveur local n'a pas de clé de modèle : le bouton vidéo y est masqué.
-  // On l'affiche comme en production (le reste de /api/config est inchangé).
+  // Le serveur local n'a pas de clé de modèle : les boutons qui en dépendent
+  // (« Als Video erklären », « Prüfe mein Verständnis », « Karteikarten
+  // erstellen ») y sont masqués. On les affiche comme en production, où la clé
+  // existe (le reste de /api/config est inchangé).
   await p.route("**/api/config", async (route) => {
     const res = await route.fetch();
     const body = await res.json();
-    await route.fulfill({ response: res, json: { ...body, features: { ...body.features, explainerVideo: true } } });
+    await route.fulfill({ response: res, json: { ...body, features: { ...body.features, explainerVideo: true, quiz: true, flashcards: true } } });
   });
   // Le tuteur : la réponse simulée, retenue jusqu'à `release()`.
   let release;
@@ -621,6 +626,8 @@ async function run(browser, id) {
   for (let i = 0; i <= steps; i++) {
     await board.evaluate((el, y) => el.scrollTo({ top: y }), Math.round(((scrollH[0] - scrollH[1]) * i) / steps)).catch(() => {});
     await p.waitForTimeout(500);
+    // Le professeur hologramme, tel qu'il est posé sur le tableau au moment de la capture.
+    if (i === 0) await rect("hologram", p.locator('[data-slot="hologram-professor"]'));
     await shot(`page${i}`);
   }
   report.pages = steps + 1;
