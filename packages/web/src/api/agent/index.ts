@@ -727,8 +727,28 @@ export function buildTutorAgent(opts: {
           — frag mich gezielt danach, dann hole ich die passende Stelle."`
           } Du sagst NIEMALS, das Dokument existiere nicht.
 
-          Die Auszüge sind mit Seitenmarken [[SEITE n]] versehen.
-          ZITIEREN: "→ ${(inventory[0]?.title ?? sources[0]?.title) ?? "Skript"}, Seite 7".
+          Die Auszüge sind mit Seitenmarken [[SEITE n]] versehen. JEDER
+          Auszug beginnt mit der Marke SEINER Seite — auch wenn er mitten auf
+          der Seite einsetzt. "[…]" heißt: dazwischen fehlt Text; was davor
+          und danach steht, gehört nicht zusammen.
+
+          ZITIERPFLICHT (ABSOLUT): Was du aus den Unterlagen nimmst, belegst
+          du IMMER mit DOKUMENT UND SEITE:
+          "→ ${(inventory[0]?.title ?? sources[0]?.title) ?? "Skript"}, Seite 7".
+          Der Titel ist der aus <dokument titel="…">, die Seite ist die Marke
+          [[SEITE n]], unter der die Stelle steht. Bist du dir bei der Seite
+          nicht sicher, ${opts.search ? "schlägst du mit `suche_in_unterlagen` nach" : "sagst du das offen"} — du RÄTST
+          nie eine Seitenzahl, und du nennst nie ein Dokument, das nicht in
+          der Liste steht.
+
+          MEHRERE DOKUMENTE — STRIKT GETRENNT: Jede Aussage gehört zu GENAU
+          dem Dokument, in dessen <dokument>-Block sie steht. Du schreibst
+          nie etwas aus Dokument A dem Dokument B zu, und du verschmilzt nie
+          Werte, Bezeichnungen oder Aufgaben aus zwei Dokumenten zu einer
+          Aussage. WIDERSPRECHEN sich zwei Dokumente (andere Formel, anderer
+          Wert, andere Vorzeichenkonvention), dann SAGST du das ausdrücklich:
+          beide Stellen mit Dokument und Seite, der Unterschied in einem
+          Satz — statt stillschweigend eine der beiden zu wählen.
 
           Allgemeines Wissen kennzeichnest du klar ("nicht im Skript, aber
           allgemein gilt: …"). Du veränderst oder widersprichst den
@@ -1917,8 +1937,24 @@ export function buildTutorAgent(opts: {
                 // rappel voyage avec chaque résultat, là où le modèle le lit.
                 // Teilaufgaben : chaque « Gegeben ist folgende Schaltung » est marqué
                 // ⟪NEUER KONTEXT⟫ (lib/task-context.ts), ici comme dans les extraits.
-                const stellen = trouvailles.map((t) => ({ ...t, extrait: markTaskContexts(t.extrait) }));
-                return { gefunden: trouvailles.length, hinweis: UNTRUSTED_RESULT_NOTE, stellen };
+                const stellen = trouvailles.map((t) => ({ document: t.document, kind: t.kind, seiten: t.seiten, extrait: markTaskContexts(t.extrait) }));
+                // Le document demandé n'existe pas sous ce titre : la recherche a
+                // porté sur tout le corpus. Le dire, pour qu'aucune trouvaille ne
+                // soit attribuée au document que le modèle croyait fouiller.
+                const fremd = trouvailles.some((t) => t.ausAnderemDokument);
+                return {
+                  gefunden: trouvailles.length,
+                  hinweis: UNTRUSTED_RESULT_NOTE,
+                  ...(fremd
+                    ? {
+                        achtung:
+                          `Kein Dokument mit dem Titel \u201e${String(dokument ?? "").slice(0, 80).replace(/["<>\u201c\u201d]/g, "'")}\u201c gefunden. ` +
+                          "Durchsucht wurden ALLE Unterlagen: jede Stelle geh\u00f6rt zu dem Dokument, das bei ihr unter \u201edocument\u201c steht \u2014 " +
+                          "schreibe sie nicht dem gesuchten Dokument zu.",
+                      }
+                    : {}),
+                  stellen,
+                };
               },
             }),
           }

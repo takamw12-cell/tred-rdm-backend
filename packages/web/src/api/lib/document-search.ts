@@ -1,4 +1,4 @@
-import { selectRelevantContext, type SourceDoc } from "./retrieval";
+import { pagesIn, selectRelevantContext, type SourceDoc } from "./retrieval";
 
 /**
  * La recherche que le tuteur fait LUI-MÊME.
@@ -32,11 +32,19 @@ import { selectRelevantContext, type SourceDoc } from "./retrieval";
  * qui vient surtout de cette boucle-là.
  */
 
-/** Une trouvaille, telle que le modèle la reçoit. */
+/** Une trouvaille, telle que le modèle la reçoit : jamais sans son document ni ses pages. */
 export interface Passage {
   document: string;
   kind: string;
+  /** Les pages que couvre l'extrait (ses marques [[SEITE n]]), dans l'ordre. */
+  seiten: number[];
   extrait: string;
+  /**
+   * Le modèle a demandé un document précis (`titre`) qu'on n'a pas trouvé :
+   * cette trouvaille vient d'un AUTRE document, nommé dans `document`. Elle ne
+   * doit pas être attribuée au document demandé.
+   */
+  ausAnderemDokument?: true;
 }
 
 /**
@@ -67,7 +75,12 @@ export function chercherDansDocuments(
   requete: string,
   titre?: string,
 ): Passage[] {
-  const corpus = titre?.trim() ? filtrerParTitre(docs, titre) : docs;
+  const voulu = titre?.trim() ? filtrerParTitre(docs, titre) : null;
+  // Aucun titre ne ressemble : on cherche partout (voir filtrerParTitre), mais
+  // on le DIT — sinon un passage du Skript de Thermodynamik serait lu comme
+  // venant de la Klausur que le modèle croyait fouiller.
+  const horsFiltre = voulu !== null && voulu.length === 0;
+  const corpus = voulu === null || horsFiltre ? docs : voulu;
   if (corpus.length === 0) return [];
 
   const { sources } = selectRelevantContext(corpus, requete, BUDGET_PAR_RECHERCHE);
@@ -78,7 +91,9 @@ export function chercherDansDocuments(
     .map((s) => ({
       document: s.title,
       kind: s.kind,
+      seiten: pagesIn(s.content),
       extrait: s.content.trim(),
+      ...(horsFiltre ? { ausAnderemDokument: true as const } : {}),
     }));
 }
 
@@ -86,9 +101,10 @@ export function chercherDansDocuments(
  * Les documents dont le titre ressemble à `titre`.
  *
  * On compare sur les mots, pas sur la chaîne entière : « Kapitel 3 » doit
- * atteindre « ET2_Skript_Kapitel3_final ». Si rien ne ressemble, on renvoie
- * TOUT le corpus plutôt que rien — chercher trop large donne une réponse
- * imparfaite, chercher dans le vide donne « je ne le trouve pas ».
+ * atteindre « ET2_Skript_Kapitel3_final ». Si rien ne ressemble, la liste est
+ * VIDE : l'appelant cherche alors dans tout le corpus plutôt que dans le vide
+ * (chercher dans le vide donne « je ne le trouve pas »), en marquant chaque
+ * trouvaille comme venant d'un autre document.
  */
 function filtrerParTitre(docs: SourceDoc[], titre: string): SourceDoc[] {
   const mots = normaliser(titre)
@@ -96,12 +112,10 @@ function filtrerParTitre(docs: SourceDoc[], titre: string): SourceDoc[] {
     .filter((m) => m.length >= 3);
   if (mots.length === 0) return docs;
 
-  const retenus = docs.filter((d) => {
+  return docs.filter((d) => {
     const cible = normaliser(d.title);
     return mots.some((m) => cible.includes(m));
   });
-
-  return retenus.length > 0 ? retenus : docs;
 }
 
 /** Minuscules, sans accents, sans ponctuation, chiffres détachés. */

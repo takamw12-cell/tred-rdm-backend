@@ -741,7 +741,7 @@ app.post("/api/agent/messages", async (c) => {
   })();
 
   const { sources } = selectRelevantContext(
-    rows.map((d) => ({ title: d.title, kind: d.kind, content: d.textContent })),
+    rows.map((d) => ({ id: d.id, title: d.title, kind: d.kind, content: d.textContent })),
     lastUserText,
     MAX_CONTEXT_CHARS,
   );
@@ -843,7 +843,7 @@ app.post("/api/agent/messages", async (c) => {
      */
     search: (requete, titre) =>
       chercherDansDocuments(
-        rows.map((d) => ({ title: d.title, kind: d.kind, content: d.textContent })),
+        rows.map((d) => ({ id: d.id, title: d.title, kind: d.kind, content: d.textContent })),
         requete,
         titre,
       ),
