@@ -34,6 +34,7 @@ import { rateLimitMiddleware, userRateLimit, USER_LIMITS } from "./middleware/ra
 import { contentMatchesExtension, declaredTooLarge, MAX_UPLOAD_BYTES } from "./lib/upload-guard";
 import { saveAttribution, type AttributionDb } from "./lib/attribution";
 import { requestSession } from "./lib/request-session";
+import { discardImportFile } from "./lib/queue/import-job";
 import { cleanUtm, UTM_HEADER, utmFromHeader } from "./lib/utm";
 import { fetchInstitutionLogo, isAllowedLogoDomain } from "./lib/institution-logo";
 import { db } from "./database";
@@ -173,6 +174,17 @@ startRetentionHeartbeat();
 // /api/health, le webhook Stripe et /api/rpc/* ne sont volontairement pas
 // limités : le premier sert aux sondes Railway, le deuxième vient de Stripe
 // et doit toujours passer, le troisième est déjà borné par les quotas.
+// Import, suivi d'un travail, vidéo : la lecture de la session part dès
+// l'arrivée de la requête, EN MÊME TEMPS que le compteur de débit ci-dessous.
+// Chaque aller-retour vers la base coûte une cinquantaine de millisecondes en
+// production (mesuré le 14 nov. 2026) : les enchaîner un à un ferait dépasser
+// la demi-seconde au simple dépôt d'un fichier.
+for (const p of ["/api/documents/upload", "/api/jobs/*", "/api/video/*"]) {
+  app.use(p, (c, next) => {
+    if ((c.req.header("cookie") ?? "").includes("session_token")) void requestSession(c.req.raw).catch(() => {});
+    return next();
+  });
+}
 app.use("/api/auth/*", rateLimitMiddleware({ limit: 10, scope: "auth" }));
 // Connexion / inscription / mot de passe : compteur par IP SEULEMENT. Le cookie
 // n'y est vérifié par personne, donc un cookie forgé à chaque essai donnait un
@@ -1911,41 +1923,60 @@ app.post("/api/documents/upload", async (c) => {
     return c.json({ error: "unsupported_format", detail: "content_mismatch" }, 415);
   }
 
-  // Par COMPTE : 10 imports par heure. Compté ici, après les contrôles : un
-  // fichier refusé ne consomme pas la limite de l'étudiant.
-  const limited = await userRateLimit(c, session.user.id, USER_LIMITS.import());
-  if (limited) return limited;
-
-  // ── Chemin asynchrone (REDIS_URL + stockage objet) ───────────────────────
+  // ── Chemin asynchrone (REDIS_URL + stockage objet + un worker vivant) ────
   // L'original part dans le stockage, un travail « import-pdf » dans la file,
   // et on répond tout de suite : le worker (src/worker.ts) fait l'extraction,
   // le navigateur suit GET /api/jobs/:jobId. Si le stockage ou Redis ne
-  // répondent pas, on retombe sur l'extraction dans la requête, ci-dessous :
+  // répondent pas, on retombe sur l'extraction dans la requête, plus bas :
   // plus lente, mais l'étudiant récupère son document.
+  //
+  // Par COMPTE : 10 imports par heure. Compté ici, après les contrôles : un
+  // fichier refusé ne consomme pas la limite de l'étudiant. Sur le chemin
+  // asynchrone, le compteur et l'envoi au stockage partent ENSEMBLE (deux
+  // attentes réseau en une) ; un envoi fait pour une requête finalement
+  // refusée est retiré du stockage.
   if (queueReady()) {
     const documentId = crypto.randomUUID();
     const fileKey = `documents/${session.user.id}/${documentId}.${ext}`;
     const jobId = newImportJobId();
-    try {
-      await s3.send(new PutObjectCommand({ Bucket: S3_BUCKET, Key: fileKey, Body: bytes, ContentType: storageMime(ext) }));
-      await importQueue().add(
-        "import-pdf",
-        {
-          userId: session.user.id,
-          documentId,
-          fileKey,
-          filename: file.name.slice(0, 300),
-          title,
-          kind: kind as "vorlesung" | "uebung" | "klausur" | "other",
-          semesterId,
-          subjectId,
+    const [limited, stored] = await Promise.all([
+      userRateLimit(c, session.user.id, USER_LIMITS.import()),
+      s3.send(new PutObjectCommand({ Bucket: S3_BUCKET, Key: fileKey, Body: bytes, ContentType: storageMime(ext) })).then(
+        () => true,
+        (err: unknown) => {
+          console.error("[upload] stockage indisponible, extraction dans la requête", (err as Error).message?.slice(0, 200));
+          return false;
         },
-        { jobId },
-      );
-      return c.json({ jobId, status: "pending" }, 202);
-    } catch (err) {
-      console.error("[upload] file indisponible, extraction dans la requête", (err as Error).message?.slice(0, 200));
+      ),
+    ]);
+    if (limited) {
+      if (stored) void discardImportFile(fileKey);
+      return limited;
     }
+    if (stored) {
+      try {
+        await importQueue().add(
+          "import-pdf",
+          {
+            userId: session.user.id,
+            documentId,
+            fileKey,
+            filename: file.name.slice(0, 300),
+            title,
+            kind: kind as "vorlesung" | "uebung" | "klausur" | "other",
+            semesterId,
+            subjectId,
+          },
+          { jobId },
+        );
+        return c.json({ jobId, status: "pending" }, 202);
+      } catch (err) {
+        console.error("[upload] file indisponible, extraction dans la requête", (err as Error).message?.slice(0, 200));
+      }
+    }
+  } else {
+    const limited = await userRateLimit(c, session.user.id, USER_LIMITS.import());
+    if (limited) return limited;
   }
 
   let extracted;

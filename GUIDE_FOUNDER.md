@@ -660,17 +660,19 @@ Ensuite, supprime le dossier `C:\Users\HP\AppData\Local\Temp\tred-perf\prod-test
 
 **Tant que tu n'as rien fait, rien ne change** : sans `REDIS_URL`, l'import est traité comme avant. Si Redis tombe un jour, le site retombe tout seul sur ce chemin.
 
-### Mise en service sur Railway (une fois, environ 15 minutes)
+### Mise en service sur Railway : un clic (préparé le 14 nov. 2026)
 
-1. **Redis.** Projet TRED → « + New » → Database → **Add Redis**. Facturé à l'usage par Railway (mémoire et processeur consommés ; pour cette file, quelques dizaines de Mo). Vérifie le tarif du jour sur https://railway.com/pricing avant de valider.
-2. **Service worker.** « + New » → **Empty Service**, nommé `worker`. Avant de lui donner le dépôt :
-   - Variables : `DATABASE_URL = ${{TRED.DATABASE_URL}}`, et de même `DATABASE_AUTH_TOKEN`, `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY` (la forme `${{TRED.NOM}}` relit la valeur du service web : rien à recopier), plus `REDIS_URL = ${{Redis.REDIS_URL}}` et `NODE_ENV = production` ;
-   - Settings → Deploy → **Custom Start Command** : `bun packages/web/src/worker.ts` ;
-   - aucun domaine public (Settings → Networking : ne rien générer) ;
-   - puis Settings → Source → connecter le dépôt `tred-rdm-backend`, branche `master`. Railway construit la même image que le service web (le `Dockerfile` de la racine) et lance le worker.
-3. **Vérifier le worker.** Ses journaux affichent `[worker] prêt — files : import-pdf ×2, generate-video ×3`.
-4. **Service web.** Ajoute `REDIS_URL = ${{Redis.REDIS_URL}}`. Il redéploie, et les imports passent par la file.
-5. **Vérifier.** Importe un PDF : les journaux du worker affichent `[worker] import imp_… : terminé (N pages)`.
+Tout est **déjà préparé dans ton projet Railway, en modifications en attente** (« staged changes », 37 lignes). Rien n'est créé ni facturé tant que tu ne les appliques pas :
+
+1. Ouvre le projet `aerostudy` sur Railway, environnement `production`. Un bandeau annonce les modifications en attente.
+2. Relis-les : un service **Redis** (image `redis:8.2`, volume `redis-volume`), un service **worker** (même dépôt, branche `master`, commande `bun packages/web/src/worker.ts`, une réplique, région `europe-west4`, dix variables dont huit relisent celles du service web par `${{TRED.NOM}}`), et `REDIS_URL = ${{Redis.REDIS_URL}}` sur le service web **TRED**.
+3. Clique sur **Deploy**. Redis démarre en une minute, le worker se construit en une dizaine de minutes (même image Docker que le web), le service web redéploie.
+4. **Vérifier le worker.** Ses journaux affichent `[worker] prêt — files : import-pdf ×2, generate-video ×3`.
+5. **Vérifier un import.** Importe un PDF : les journaux du worker affichent `[worker] import imp_… : terminé (N pages)`.
+
+Coût : Redis et le worker sont facturés à l'usage (mémoire, processeur, disque), tarifs sur https://railway.com/pricing. Le plan Hobby inclut 5 $ d'usage par mois (documentation Railway, lue le 14 nov. 2026).
+
+Pour ne PAS le faire : dans le même bandeau, « Discard changes ».
 
 **Filet de sécurité.** Le service web ne dépose un travail que s'il voit un worker vivant (un « battement » posé dans Redis toutes les 10 secondes). Worker arrêté, en cours de déploiement ou planté : en moins de 40 secondes le site retraite l'import dans la requête, comme avant. Personne ne reste devant une barre de progression immobile.
 
@@ -799,6 +801,27 @@ Repères : avec 1 réplique, 100 imports de PDF texte déposés au même instant
 4. Dans un second terminal, la taille de la file : `bun packages/web/loadtest/queue-watch.ts` (mêmes variables d'environnement que le worker).
 
 Le test garde les limites de la production (10 imports par heure, 5 vidéos par jour et par compte) : il utilise dix comptes, et un `429` inattendu le fait échouer.
+
+### Ce qui a été mesuré (14 nov. 2026)
+
+**En local** (k6 2.3.0, serveur + 1 worker sur le portable, base de test SQLite, Redis local, faux stockage) :
+
+| Mesure | Résultat |
+|---|---|
+| Imports acceptés / traités | 100 / 100, aucun échec |
+| Dépôt → document prêt (100 imports lancés ensemble, 1 worker) | 1,9 s au pire |
+| Vidéos acceptées | 50 / 50 |
+| API pendant la charge (`/api/health`, 10 req/s) | 95 % sous 1,2 ms |
+| Suivi d'un travail (`GET /api/jobs/:id`) | 95 % sous 114 ms |
+| Dépôt d'UN import, seul | 11 à 15 ms |
+| Dépôt, 100 lancés au même instant | 95 % sous 624 ms : **au-dessus des 500 ms** |
+| File Redis au plus haut | 71 imports en attente, vidée en moins de 2 s ; 31 vidéos en attente (clés factices : chaque vidéo échoue et est reprise 2 fois) |
+
+Le dernier chiffre de latence tient à la base de test : un fichier SQLite écrit de façon bloquante, deux écritures par dépôt (les compteurs de débit). Cent dépôts simultanés s'y mettent en file. Turso, en production, ne bloque pas ainsi.
+
+**En production** (mesures Railway des 3 derniers jours, AVANT la file) : `get-session` répond en 260 ms au milieu (415 ms au 95e centile), et `POST /api/documents/upload` en **30 secondes**. Un aller-retour vers Turso (Irlande) depuis Railway (Pays-Bas) coûte donc une cinquantaine de millisecondes. Avec la file, le dépôt enchaîne environ quatre allers-retours en base (au lieu de huit avant l'optimisation du 14 nov.) plus l'envoi à R2 : **attendu entre 0,3 et 0,5 s**, contre 30 s aujourd'hui. Ce n'est pas mesuré : à lire dans Railway (Observability → HTTP, chemin `/api/documents/upload`) une fois la file en service.
+
+**Pour descendre sous 200 ms**, il faudrait ne plus lire la session en base à chaque requête (cache de session signé de Better Auth, `session.cookieCache`) ou rapprocher la base (réplique embarquée Turso). Les deux changent le comportement de l'authentification ou l'hébergement : à décider ensemble, je ne les ai pas faits.
 
 ## Campagne TikTok / Snapchat « Survive Your Klausur » — 3 pilotes verticaux (14 nov. 2026)
 

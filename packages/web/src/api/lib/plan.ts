@@ -351,12 +351,15 @@ export async function consume(
 
 /** Documents are capped by total count, not per month. */
 export async function canAddDocument(userId: string): Promise<QuotaResult> {
-  const plan = await getPlan(userId);
+  // Deux lectures indépendantes, lancées ensemble : un aller-retour de moins sur chaque import.
+  const [plan, rows] = await Promise.all([
+    getPlan(userId),
+    db
+      .select({ n: sql<number>`count(*)` })
+      .from(document)
+      .where(eq(document.userId, userId)),
+  ]);
   const limit = LIMITS[plan].documents;
-  const rows = await db
-    .select({ n: sql<number>`count(*)` })
-    .from(document)
-    .where(eq(document.userId, userId));
   const used = Number(rows[0]?.n ?? 0);
   return { ok: used < limit, plan, used, limit };
 }
