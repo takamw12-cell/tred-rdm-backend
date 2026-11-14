@@ -1,9 +1,14 @@
+import { and, eq } from "drizzle-orm";
 import type { Hono } from "hono";
 import { auth } from "../auth";
-import { IMPORT_JOB_ID_RE, importErrorCode, importQueue, publicStatus, queueConfigured, type ImportJobResult } from "../lib/queue";
+import { db } from "../database";
+import { generatedVideo } from "../database/schema";
+import { IMPORT_JOB_ID_RE, VIDEO_JOB_ID_RE, importErrorCode, importQueue, publicStatus, queueConfigured, videoJobView, type ImportJobResult } from "../lib/queue";
 
 /**
  * GET /api/jobs/:jobId — l'état d'un travail de la file, pour son propriétaire.
+ *
+ * Deux types : « import-pdf » (imp_…) et « generate-video » (gv_…).
  *
  *   { jobId, type, status: "pending" | "processing" | "done" | "failed",
  *     progress: 0…100, result?, error? }
@@ -19,6 +24,26 @@ export function registerJobRoutes(app: Hono) {
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
     if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);
     const jobId = c.req.param("jobId");
+    c.header("Cache-Control", "no-store");
+
+    // Une vidéo explicative : son état est dans sa ligne `generated_video`
+    // (le worker l'y écrit à chaque étape). Le contenu se lit sur /api/video/:id.
+    if (VIDEO_JOB_ID_RE.test(jobId)) {
+      const [row] = await db
+        .select({ status: generatedVideo.status, error: generatedVideo.error })
+        .from(generatedVideo)
+        .where(and(eq(generatedVideo.id, jobId), eq(generatedVideo.userId, session.user.id)));
+      if (!row) return c.json({ error: "not found" }, 404);
+      const v = videoJobView(row.status);
+      return c.json({
+        jobId,
+        type: "generate-video" as const,
+        ...v,
+        ...(v.status === "done" ? { result: { videoId: jobId } } : {}),
+        ...(v.status === "failed" ? { error: row.error ?? "script_failed" } : {}),
+      });
+    }
+
     if (!IMPORT_JOB_ID_RE.test(jobId) || !queueConfigured()) return c.json({ error: "not found" }, 404);
 
     let job;
@@ -34,7 +59,6 @@ export function registerJobRoutes(app: Hono) {
     }
 
     const status = publicStatus(state, job.attemptsMade);
-    c.header("Cache-Control", "no-store");
     return c.json({
       jobId,
       type: "import-pdf" as const,

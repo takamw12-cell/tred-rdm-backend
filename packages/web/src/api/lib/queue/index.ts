@@ -173,3 +173,14 @@ export function publicStatus(state: string, attemptsMade: number): JobStatus {
   if (state === "delayed" && attemptsMade > 0) return "processing";
   return "pending";
 }
+
+export const VIDEO_JOB_ID_RE = /^gv_[a-f0-9]{20}$/;
+
+/** Étape d'une vidéo (`generated_video.status`) → état public et avancement. */
+export function videoJobView(rowStatus: string): { status: JobStatus; progress: number } {
+  if (rowStatus === "done") return { status: "done", progress: 100 };
+  if (rowStatus === "failed") return { status: "failed", progress: 0 };
+  if (rowStatus === "script") return { status: "processing", progress: 35 };
+  if (rowStatus === "voice") return { status: "processing", progress: 70 };
+  return { status: "pending", progress: 5 };
+}

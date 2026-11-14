@@ -1,6 +1,7 @@
-import { Worker, type Job } from "bullmq";
-import { IMPORT_QUEUE, queueConfigured, workerConnection, type ImportJobData, type ImportJobResult } from "./api/lib/queue";
+import { UnrecoverableError, Worker, type Job } from "bullmq";
+import { IMPORT_QUEUE, VIDEO_QUEUE, queueConfigured, workerConnection, type ImportJobData, type ImportJobResult, type VideoJobData } from "./api/lib/queue";
 import { discardImportFile, processImport } from "./api/lib/queue/import-job";
+import { failVideo, PipelineError, runPipeline, videoErrorCode } from "./api/video/pipeline";
 
 /**
  * Le worker : même code que le service web, autre point d'entrée.
@@ -43,7 +44,35 @@ importWorker.on("failed", (job, err) => {
   if (job && final) void discardImportFile(job.data.fileKey);
 });
 
-const workers: Worker[] = [importWorker];
+/**
+ * « Als Video erklären » : script → contrôle → voix → stockage. Presque tout
+ * le temps se passe à attendre Claude et ElevenLabs, donc trois à la fois par
+ * réplique. Une panne passagère est reprise 2 fois (5 s, puis 10 s) ; un refus
+ * (script non prouvé, plafond de voix) ne l'est pas.
+ */
+const videoWorker = new Worker<VideoJobData, void>(
+  VIDEO_QUEUE,
+  async (job) => {
+    try {
+      await runPipeline(job.data);
+    } catch (err) {
+      if (err instanceof PipelineError && !err.retryable) throw new UnrecoverableError(err.code);
+      throw err;
+    }
+  },
+  { connection: workerConnection(), concurrency: num("WORKER_VIDEO_CONCURRENCY", 3), lockDuration: 5 * 60_000 },
+);
+
+videoWorker.on("completed", (job) => console.log(`[worker] vidéo ${job.id} : prête`));
+videoWorker.on("failed", (job, err) => {
+  const final = finalFailure(job) || err.name === "UnrecoverableError";
+  console.warn(`[worker] vidéo ${job?.id} : ${err.message}${final ? " (définitif)" : ` (essai ${job?.attemptsMade}/${job?.opts.attempts}, sera repris)`}`);
+  // C'est ici, et seulement après la dernière reprise, que la vidéo devient
+  // `failed` pour l'étudiant, avec un code que le navigateur sait traduire.
+  if (job && final) void failVideo(job.data.id, videoErrorCode(err.message)).catch(() => {});
+});
+
+const workers: Worker[] = [importWorker, videoWorker];
 for (const w of workers) w.on("error", (err) => console.error(`[worker] ${w.name}`, err.message));
 
 console.log(`[worker] prêt — files : ${workers.map((w) => `${w.name} ×${w.opts.concurrency}`).join(", ")}`);

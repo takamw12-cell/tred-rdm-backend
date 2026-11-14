@@ -1,40 +1,21 @@
-import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
-import { generateObject } from "ai";
+import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { and, desc, eq, gt } from "drizzle-orm";
 import type { Hono } from "hono";
-import { gateway } from "../agent/gateway";
 import { auth } from "../auth";
 import { elevenLabsConfigured, resolvePremiumVoice } from "../avatar/elevenlabs";
 import { db } from "../database";
 import { document, generatedVideo, solverResult } from "../database/schema";
-import { PRIMARY_MODEL } from "../lib/ai-models";
-import type { BeamDiagramPayload } from "../lib/beam-tool";
 import { LANGUAGES } from "../lib/languages";
 import { MEDIA_BUCKET, mediaClient, mediaStorageConfigured } from "../lib/media-storage";
-import { addOutputTokens, consume, quotaError, tokenCapError, withinTokenCap } from "../lib/plan";
+import { consume, quotaError, tokenCapError, withinTokenCap } from "../lib/plan";
+import { queueConfigured, queueReady, videoQueue, type VideoJobData } from "../lib/queue";
 import { readProfessor } from "../lib/professor-store";
 import { selectRelevantContext } from "../lib/retrieval";
 import { MAX_SOLVER_RUNS, SOLVER_WINDOW_MS, serializeSolverRun, type SolverRun } from "../lib/solver-results";
-import {
-  alignmentToWords,
-  buildVideoPrompt,
-  resolveBeam,
-  sceneStartsMs,
-  scriptVoiceText,
-  solverSource,
-  validateVideoScript,
-  videoDurationMs,
-  videoRequestSchema,
-  videoScriptSchema,
-  type ValidatedScene,
-  type VideoRequest,
-  type VideoSource,
-  type VoiceWord,
-} from "../lib/video-script";
-import { isRealImageKey } from "../lib/video-visuals";
+import { solverSource, videoRequestSchema, type VideoRequest, type VideoSource } from "../lib/video-script";
 import { visibleDocuments } from "../lib/visible-documents";
 import { myCourseIds } from "../routes/courses";
-import { reserveChars } from "../tts/budget";
+import { failVideo, runPipelineInline, type StoredScript } from "./pipeline";
 
 /**
  * « Als Video erklären » — la vidéo explicative sur mesure.
@@ -66,19 +47,13 @@ import { reserveChars } from "../tts/budget";
  */
 
 const MAX_CONTEXT_CHARS = 24_000;
-/** Au-delà, le travail est considéré comme perdu (redémarrage du serveur). */
-const STALE_MS = 5 * 60_000;
+/**
+ * Au-delà, le travail est considéré comme perdu (redémarrage du serveur).
+ * Avec la file, une vidéo peut attendre son tour derrière d'autres et être
+ * reprise deux fois : on lui laisse vingt minutes.
+ */
+const staleMs = () => (queueConfigured() ? 20 : 5) * 60_000;
 const ID_RE = /^gv_[a-f0-9]{20}$/;
-
-type StoredScript = { scenes: ValidatedScene[]; words: VoiceWord[]; sceneStartsMs: number[]; professor?: string; beam?: BeamDiagramPayload | null; backdrop?: string | null };
-
-/** Code d'erreur stable, lu par le navigateur pour choisir son message. */
-type VideoError = "not_grounded" | "script_failed" | "daily_limit" | "voice_failed" | "storage_failed" | "timeout";
-
-const setStatus = (id: string, patch: Partial<typeof generatedVideo.$inferInsert>) =>
-  db.update(generatedVideo).set(patch).where(eq(generatedVideo.id, id));
-
-const fail = (id: string, error: VideoError) => setStatus(id, { status: "failed", error });
 
 /**
  * Enregistre un calcul de solveur réussi (appelé par le tuteur, lib/solver-guard.ts).
@@ -124,105 +99,6 @@ async function recentSolverRuns(userId: string, chatId?: string | null): Promise
 function voiceFor(language: string, professor?: string | null): string | null {
   const forced = process.env[`ELEVENLABS_VIDEO_VOICE_${language.toUpperCase()}`]?.trim();
   return forced || resolvePremiumVoice(professor ?? undefined)?.voiceId || null;
-}
-
-/**
- * ElevenLabs « with-timestamps » : le MP3 et l'instant de chaque caractère.
- * `language_code` fixe la phonétique de la langue de l'étudiant ; certains
- * modèles le refusent (400) : on recommence alors sans lui, le modèle
- * multilingue reconnaît la langue du texte.
- */
-async function synthesize(text: string, voiceId: string, language: string): Promise<{ audio: Uint8Array; words: VoiceWord[] }> {
-  const call = (withLanguage: boolean) =>
-    fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/with-timestamps?output_format=mp3_44100_128`, {
-      method: "POST",
-      headers: { "xi-api-key": process.env.ELEVENLABS_API_KEY!, "content-type": "application/json" },
-      body: JSON.stringify({
-        text,
-        model_id: process.env.ELEVENLABS_VIDEO_MODEL_ID || process.env.ELEVENLABS_MODEL_ID || "eleven_multilingual_v2",
-        ...(withLanguage ? { language_code: language } : {}),
-        // Stabilité basse et un peu de style : une voix qui explique, pas qui lit.
-        voice_settings: { stability: 0.4, similarity_boost: 0.8, style: 0.3, use_speaker_boost: true },
-      }),
-      signal: AbortSignal.timeout(120_000),
-    });
-  let res = await call(true);
-  if (res.status === 400 || res.status === 422) res = await call(false);
-  if (!res.ok) throw new Error(`ElevenLabs ${res.status} ${(await res.text()).slice(0, 200)}`);
-  const data = (await res.json()) as { audio_base64: string; alignment: Parameters<typeof alignmentToWords>[0] };
-  return { audio: new Uint8Array(Buffer.from(data.audio_base64, "base64")), words: alignmentToWords(data.alignment) };
-}
-
-/** Le pipeline, après la réponse HTTP. Chaque étape met `status` à jour pour le polling. */
-async function runPipeline(job: { id: string; userId: string; req: VideoRequest; sources: VideoSource[]; voiceId: string; professor: string }): Promise<void> {
-  const { id, userId, req, sources, voiceId, professor } = job;
-  const language = LANGUAGES[req.language]!;
-
-  // 1. Le script, puis son contrôle par du code.
-  await setStatus(id, { status: "script" });
-  let scenes: ValidatedScene[];
-  let title: string;
-  let beam: BeamDiagramPayload | null = null;
-  let backdrop: string | null = null;
-  try {
-    const { system, prompt } = buildVideoPrompt({ language, sources, question: req.question, answer: req.answer });
-    const { object, usage } = await generateObject({
-      model: gateway(PRIMARY_MODEL),
-      schema: videoScriptSchema,
-      system,
-      prompt,
-      abortSignal: AbortSignal.timeout(90_000),
-    });
-    void addOutputTokens(userId, usage?.outputTokens ?? 0);
-    // La poutre de la vidéo : un calcul du chat, ou l'exemple chiffré du cours
-    // passé au solveur. Jamais un schéma dessiné d'après le modèle.
-    const resolved = resolveBeam(object, sources, req.question);
-    beam = resolved.payload;
-    // L'image de contexte : un mot-clé de la bibliothèque, ou rien.
-    backdrop = isRealImageKey(object.backdrop) ? object.backdrop : null;
-    if (resolved.rejected) console.warn(`[video] ${id} : poutre du script écartée (${resolved.rejected})`);
-    const allSources = resolved.run ? [...sources, solverSource(resolved.run)] : sources;
-    const checked = validateVideoScript(object, allSources, req.question, { beam: beam !== null });
-    if (checked.dropped.length > 0) {
-      console.warn(`[video] ${id} : ${checked.dropped.length} scène(s) supprimée(s)`, checked.dropped.map((d) => (d.detail ? `${d.reason}(${d.detail})` : d.reason)).join(", "));
-    }
-    if (!checked.ok) {
-      console.warn(`[video] ${id} : script refusé (${checked.error}, ${checked.words} mots, ${object.scenes.length} scènes écrites, ${sources.length} sources dont ${sources.filter((x) => x.solver).length} solveur)`);
-      return void (await fail(id, "not_grounded"));
-    }
-    scenes = checked.scenes;
-    title = checked.title;
-  } catch (err) {
-    console.error(`[video] ${id} : script`, (err as Error).message?.slice(0, 300));
-    return void (await fail(id, "script_failed"));
-  }
-
-  // 2. La voix. Le plafond quotidien de caractères de l'étudiant s'applique.
-  await setStatus(id, { status: "voice", title: title.slice(0, 200) });
-  const text = scriptVoiceText(scenes);
-  if (!reserveChars(userId, text.length)) return void (await fail(id, "daily_limit"));
-  let audio: Uint8Array;
-  let words: VoiceWord[];
-  try {
-    ({ audio, words } = await synthesize(text, voiceId, req.language));
-    if (audio.byteLength === 0 || words.length === 0) throw new Error("audio vide");
-  } catch (err) {
-    console.error(`[video] ${id} : voix`, (err as Error).message?.slice(0, 300));
-    return void (await fail(id, "voice_failed"));
-  }
-
-  // 3. Le stockage. La durée de la vidéo est celle de la voix.
-  const audioKey = `media/generated/${userId}/${id}.mp3`;
-  try {
-    await mediaClient.send(new PutObjectCommand({ Bucket: MEDIA_BUCKET, Key: audioKey, Body: audio, ContentType: "audio/mpeg" }));
-  } catch (err) {
-    console.error(`[video] ${id} : stockage`, (err as Error).message?.slice(0, 300));
-    return void (await fail(id, "storage_failed"));
-  }
-  const stored: StoredScript = { scenes, words, sceneStartsMs: sceneStartsMs(scenes, words), professor, beam, backdrop };
-  await setStatus(id, { status: "done", script: JSON.stringify(stored), audioKey, durationMs: videoDurationMs(words) });
-  console.log(`[video] ${id} : visuels ${scenes.map((sc) => sc.visual).join(",")}${beam ? " · poutre calculée" : ""}`);
-  console.log(`[video] ${id} : prête, ${scenes.length} scènes, ${Math.round(videoDurationMs(words) / 1000)} s, ${text.length} caractères, langue ${req.language}`);
 }
 
 export function registerVideoRoutes(app: Hono) {
@@ -283,11 +159,20 @@ export function registerVideoRoutes(app: Hono) {
       return c.json({ error: "not_migrated" }, 503);
     }
 
-    // Le pipeline continue après la réponse ; une erreur imprévue marque la vidéo en échec.
-    void runPipeline({ id, userId: uid, req, sources, voiceId, professor }).catch(async (err) => {
-      console.error(`[video] ${id} : pipeline`, (err as Error).message?.slice(0, 300));
-      await fail(id, "script_failed").catch(() => {});
-    });
+    // Avec la file (REDIS_URL) : un travail « generate-video », traité par le
+    // worker et repris 2 fois en cas de panne passagère. Sans elle, ou si
+    // Redis ne répond pas : le pipeline tourne ici, après la réponse.
+    const job: VideoJobData = { id, userId: uid, req, sources, voiceId, professor };
+    let queued = false;
+    if (queueReady()) {
+      try {
+        await videoQueue().add("generate-video", job, { jobId: id });
+        queued = true;
+      } catch (err) {
+        console.error(`[video] ${id} : file indisponible, pipeline dans le service web`, (err as Error).message?.slice(0, 200));
+      }
+    }
+    if (!queued) runPipelineInline(job);
     return c.json({ id, status: "pending" }, 202);
   });
 
@@ -317,8 +202,8 @@ export function registerVideoRoutes(app: Hono) {
     if (!row) return c.json({ error: "not found" }, 404);
 
     // Un travail resté en cours trop longtemps a été perdu (redémarrage du serveur).
-    if (row.status !== "done" && row.status !== "failed" && Date.now() - row.createdAt.getTime() > STALE_MS) {
-      await fail(id, "timeout");
+    if (row.status !== "done" && row.status !== "failed" && Date.now() - row.createdAt.getTime() > staleMs()) {
+      await failVideo(id, "timeout");
       return c.json({ id, status: "failed", error: "timeout" });
     }
     if (row.status !== "done") return c.json({ id, status: row.status, error: row.error ?? undefined, title: row.title });

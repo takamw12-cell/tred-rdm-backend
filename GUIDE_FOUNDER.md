@@ -666,7 +666,7 @@ Ensuite, supprime le dossier `C:\Users\HP\AppData\Local\Temp\tred-perf\prod-test
 2. **Service worker.** « + New » → GitHub Repo → le même dépôt `tred-rdm-backend`. Dans ses réglages :
    - Settings → **Config-as-code** → chemin `railway.worker.json` (il lance `bun packages/web/src/worker.ts`) ;
    - aucun domaine public (Settings → Networking : ne rien générer) ;
-   - Variables : les mêmes que le service web pour `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, `S3_*`, `ANTHROPIC_API_KEY`, `MATHPIX_*`, plus `REDIS_URL = ${{Redis.REDIS_URL}}`. Le plus simple : « Shared Variables » du projet.
+   - Variables : les mêmes que le service web pour `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, `S3_*`, `R2_*` (si utilisées), `ANTHROPIC_API_KEY`, `MATHPIX_*`, `ELEVENLABS_*`, plus `REDIS_URL = ${{Redis.REDIS_URL}}`. Le plus simple : « Shared Variables » du projet.
 3. **Service web.** Ajoute `REDIS_URL = ${{Redis.REDIS_URL}}`. Il redéploie, et les imports passent par la file.
 4. **Vérifier.** Importe un PDF : les journaux du worker affichent `[worker] import imp_… : terminé (N pages)`.
 
@@ -678,6 +678,16 @@ Ensuite, supprime le dossier `C:\Users\HP\AppData\Local\Temp\tred-perf\prod-test
 |---|---|---|
 | `REDIS_URL` | web + worker | active la file |
 | `WORKER_IMPORT_CONCURRENCY` | worker | imports en parallèle par réplique (défaut 2) |
+| `WORKER_VIDEO_CONCURRENCY` | worker | vidéos en parallèle par réplique (défaut 3) |
+
+### « Als Video erklären » passe par la même file
+
+Le clic dépose un travail `generate-video`. Le worker enchaîne script (Claude) → contrôle par du code → voix (ElevenLabs) → stockage, et le navigateur affiche la vidéo dès qu'elle est prête (`GET /api/jobs/gv_…` pour l'état, `GET /api/video/gv_…` pour le contenu).
+
+- **Reprises.** Une panne passagère (Claude, ElevenLabs ou le stockage ne répondent pas) est reprise **2 fois**, après 5 s puis 10 s. Au troisième échec, la vidéo est marquée `failed` et l'étudiant voit « Das Video konnte nicht erstellt werden. ».
+- **Pas de reprise pour un refus.** Un script que le contrôle n'a pas pu prouver (`not_grounded`) ou le plafond quotidien de voix (`daily_limit`) sont des décisions : les rejouer paierait un appel de plus pour la même réponse.
+- **Une reprise ne coûte pas deux fois.** Le script validé est gardé entre deux essais : si seule la voix a échoué, on ne repaie pas Claude.
+- **Limite à connaître.** Le plafond quotidien de caractères ElevenLabs (`ELEVENLABS_DAILY_CHARS`) est compté en mémoire, par processus. Avec le worker, les vidéos ont donc leur propre compteur, séparé de la lecture à voix haute du chat, et chaque réplique a le sien. Les quotas du tarif (vidéos par mois) restent, eux, en base et exacts.
 
 
 ### Le film d'attente pendant un import

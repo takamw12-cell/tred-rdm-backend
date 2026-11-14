@@ -59,8 +59,11 @@ export function errorCodeOf(serverCode: string | undefined, httpStatus?: number)
 }
 
 const POLL_MS = 1500;
-/** Au-delà, on arrête d'attendre : le serveur marque lui-même la vidéo en échec après 5 min. */
-const MAX_WAIT_MS = 6 * 60_000;
+/**
+ * Au-delà, on arrête d'attendre. Le serveur marque lui-même la vidéo en échec
+ * après 5 min sans file, 20 min avec (attente dans la file + 2 reprises).
+ */
+const MAX_WAIT_MS = 21 * 60_000;
 
 const wait = (ms: number, signal: AbortSignal) =>
   new Promise<void>((resolve) => {
