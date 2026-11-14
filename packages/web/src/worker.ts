@@ -38,12 +38,15 @@ if (!queueConfigured()) {
 const num = (name: string, fallback: number) => Math.max(1, Number(process.env[name]) || fallback);
 
 /**
- * Imports traités en même temps par réplique. Deux par défaut : l'extraction
- * d'un PDF scanné occupe un cœur entier et garde le fichier en mémoire.
+ * Imports traités en même temps par réplique. UN par défaut (décision du
+ * fondateur, 14 nov. 2026) : l'extraction d'un PDF scanné occupe un cœur
+ * entier et garde le fichier en mémoire, et un lot de cinq fichiers ne doit
+ * pas saturer le service. Chaque document est donc lu seul, du début à la fin.
+ * Pour aller plus vite : `WORKER_IMPORT_CONCURRENCY`, ou une réplique de plus.
  */
 const importWorker = new Worker<ImportJobData, ImportJobResult>(IMPORT_QUEUE, processImport, {
   connection: workerConnection(),
-  concurrency: num("WORKER_IMPORT_CONCURRENCY", 2),
+  concurrency: num("WORKER_IMPORT_CONCURRENCY", 1),
   // Un OCR de trente pages dure : on ne considère pas le travail perdu avant cinq minutes.
   lockDuration: 5 * 60_000,
 });

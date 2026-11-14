@@ -667,7 +667,7 @@ Tout est **déjà préparé dans ton projet Railway, en modifications en attente
 1. Ouvre le projet `aerostudy` sur Railway, environnement `production`. Un bandeau annonce les modifications en attente.
 2. Relis-les : un service **Redis** (image `redis:8.2`, volume `redis-volume`), un service **worker** (même dépôt, branche `master`, commande `bun packages/web/src/worker.ts`, une réplique, région `europe-west4`, dix variables dont huit relisent celles du service web par `${{TRED.NOM}}`), et `REDIS_URL = ${{Redis.REDIS_URL}}` sur le service web **TRED**.
 3. Clique sur **Deploy**. Redis démarre en une minute, le worker se construit en une dizaine de minutes (même image Docker que le web), le service web redéploie.
-4. **Vérifier le worker.** Ses journaux affichent `[worker] prêt — files : import-pdf ×2, generate-video ×3`.
+4. **Vérifier le worker.** Ses journaux affichent `[worker] prêt — files : import-pdf ×1, generate-video ×3`.
 5. **Vérifier un import.** Importe un PDF : les journaux du worker affichent `[worker] import imp_… : terminé (N pages)`.
 
 Coût : Redis et le worker sont facturés à l'usage (mémoire, processeur, disque), tarifs sur https://railway.com/pricing. Le plan Hobby inclut 5 $ d'usage par mois (documentation Railway, lue le 14 nov. 2026).
@@ -687,7 +687,7 @@ Pour ne PAS le faire : dans le même bandeau, « Discard changes ».
 | Variable | Service | Rôle |
 |---|---|---|
 | `REDIS_URL` | web + worker | active la file |
-| `WORKER_IMPORT_CONCURRENCY` | worker | imports en parallèle par réplique (défaut 2) |
+| `WORKER_IMPORT_CONCURRENCY` | worker | imports en parallèle par réplique (défaut 1 depuis le 14 nov. 2026 : un document à la fois) |
 | `WORKER_VIDEO_CONCURRENCY` | worker | vidéos en parallèle par réplique (défaut 3) |
 
 ### « Als Video erklären » passe par la même file
@@ -707,6 +707,33 @@ Pendant qu'un import tourne, l'écran de chargement montre un film TRED de 10 s 
 - Fichier : `packages/web/public/videos/import-wait-v2.mp4` (0,8 Mo, 720 × 1280) et son image `import-wait-v2.webp`. Source : le pilote `SK-1-Die-Klausur-morgen.mp4`, de 6,2 s à 16,2 s (« 0 Ahnung » → le trait orange → la question dans TRED → la Tafel).
 - Ce film porte les couleurs de la campagne (orange) à l'intérieur de l'app. Si tu préfères un film aux couleurs de l'app, il suffit d'en mettre un autre (ci-dessous).
 - **Changer de film** : exporte 10 s en 720 × 1280 sans piste son, nomme-le `import-wait-v3.mp4` (le numéro compte : le fichier est mis en cache un an) et change les deux constantes en tête de `web/components/import-wait-overlay.tsx`.
+
+## Import par lot : plusieurs fichiers d'un coup (14 nov. 2026)
+
+L'étudiant peut choisir (ou glisser-déposer sur le panneau « Meine Kurse ») **jusqu'à 5 fichiers, 100 Mo en tout** ; chaque fichier reste limité à 50 Mo. Un seul fichier garde l'écran d'avant (film d'attente + Prof. Kenta). À partir de deux, l'écran d'attente montre **la file** : une ligne par fichier avec son statut — *Wartet*, *Wird hochgeladen …*, *Wird gelesen …*, *Fertig*, *Fehler*.
+
+**La règle : un lot est une suite d'imports indépendants.** Chaque fichier a son `documentId`, sa clé de stockage (`documents/<compte>/<document>.<ext>`) et son travail dans la file. Un fichier refusé n'arrête pas les autres ; sa ligne dit pourquoi, et la liste reste affichée dans le panneau tant qu'il reste un échec à lire.
+
+| Cas | Ce que voit l'étudiant |
+|---|---|
+| PDF protégé par mot de passe | « Diese PDF ist mit einem Passwort geschützt. Entferne den Schutz und lade sie erneut hoch. » |
+| Fichier abîmé (structure PDF illisible) | « Diese Datei ist beschädigt und lässt sich nicht öffnen. » |
+| Plus de 5 fichiers, ou plus de 100 Mo | refus avant tout envoi : « Höchstens 5 Dateien auf einmal. » / « Zusammen höchstens 100 MB auf einmal. » |
+| Limite d'imports (10 par heure et par compte) atteinte au milieu du lot | les fichiers déjà acceptés passent, les suivants affichent le message de limite |
+
+Ces deux messages (mot de passe, fichier abîmé) valent aussi pour l'import d'un seul fichier, qui affichait jusque-là une erreur technique.
+
+**Deux chemins, le même résultat :**
+- **file active** (Redis + worker déployés) : le lot part en un envoi, `POST /api/documents/upload-batch`, qui répond tout de suite `202 { results: [{ name, jobId, documentId, error }], jobIds }` ; le navigateur suit chaque travail par `GET /api/jobs/:jobId` ;
+- **sans file** (l'état de la production tant que les changements Railway ne sont pas déployés) : la route répond `503 queue_unavailable` et le navigateur dépose les fichiers un par un par `POST /api/documents/upload`. Rien à régler : il lit `importQueue` dans `/api/config`.
+
+**Formats.** Le lot accepte les mêmes formats que l'import d'un fichier (PDF, Word, PowerPoint, texte, images), avec le même contrôle du contenu réel — pas seulement les PDF : refuser dans un lot une diapositive acceptée seule aurait été incompréhensible.
+
+**Worker.** Il lit **un document à la fois** par défaut (`WORKER_IMPORT_CONCURRENCY=1`). Pour aller plus vite sans risque pour la mémoire : une réplique de plus (voir « Avant un pic »).
+
+**Mémoire du service web.** Un lot de 100 Mo est reçu en entier avant d'être distribué : compte jusqu'à 200 Mo de mémoire pendant quelques secondes pour un lot maximal. Si le service web est sur une petite instance et que beaucoup d'étudiants déposent de gros lots en même temps, c'est le premier chiffre à surveiller dans Railway → TRED → Metrics.
+
+Où est quoi : `api/lib/import-batch.ts` (le lot, côté serveur), `web/lib/import-batch.ts` (la file, côté navigateur), `web/components/import-queue.tsx` (les lignes), tests dans `tests/import-batch.test.ts`.
 
 ## Sécurité et limites — durcissement du 14 nov. 2026
 
@@ -778,10 +805,10 @@ Le service web ne fait que déposer des travaux : c'est le **worker** qui limite
 
 1. Railway → projet TRED → service **worker** → **Settings** → **Scaling** (« Replicas »).
 2. Passe de `1` à `2` ou `3`, puis valide. Railway démarre les nouvelles répliques en une à deux minutes ; chacune se sert dans la même file, sans réglage.
-3. Vérifie : les journaux du worker montrent plusieurs lignes `[worker] prêt — files : import-pdf ×2, generate-video ×3` (une par réplique).
+3. Vérifie : les journaux du worker montrent plusieurs lignes `[worker] prêt — files : import-pdf ×1, generate-video ×3` (une par réplique).
 4. **Après le pic, reviens à `1`** : chaque réplique est facturée tant qu'elle tourne (mémoire et processeur à l'usage, tarif sur https://railway.com/pricing).
 
-Repères : avec 1 réplique, 100 imports de PDF texte déposés au même instant sont traités en moins d'une minute ; un scan (OCR) prend jusqu'à plusieurs minutes à lui seul. Si la rentrée amène beaucoup de scans, 3 répliques.
+Repères (mesurés avec 2 imports en parallèle par réplique ; le réglage par défaut est maintenant 1, donc compte environ le double) : avec 1 réplique, 100 imports de PDF texte déposés au même instant sont traités en moins d'une minute ; un scan (OCR) prend jusqu'à plusieurs minutes à lui seul. Si la rentrée amène beaucoup de scans, 3 répliques.
 
 **Quand en ajouter ?** Ouvre `https://www.tred-tutor.de/api/admin/queues` (connecté avec ton compte administrateur). `waiting` est le nombre de travaux qui attendent un worker. S'il reste au-dessus de 20 pendant plusieurs minutes, ajoute une réplique.
 

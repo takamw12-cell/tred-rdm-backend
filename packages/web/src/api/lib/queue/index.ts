@@ -206,8 +206,24 @@ export async function closeQueues(): Promise<void> {
 }
 
 /** Codes d'échec que le navigateur sait traduire. */
-export const IMPORT_ERRORS = ["unsupported_format", "scan_unreadable", "no_text", "document_limit", "extraction_failed"] as const;
+export const IMPORT_ERRORS = ["unsupported_format", "scan_unreadable", "no_text", "document_limit", "password_protected", "corrupted_file", "extraction_failed"] as const;
 export type ImportError = (typeof IMPORT_ERRORS)[number];
+
+/**
+ * Un PDF qui ne s'ouvrira JAMAIS, quel que soit le nombre d'essais : protégé
+ * par un mot de passe, ou abîmé. pdf.js le dit par le NOM de son erreur
+ * (mesuré le 14 nov. 2026 : `PasswordException` « No password given »,
+ * `InvalidPDFException` « Invalid PDF structure. »). On lit le nom et non la
+ * classe : sur le chemin sans file, l'erreur revient d'un autre fil et n'est
+ * plus une instance de rien. `null` : une autre panne, qui peut être passagère.
+ */
+export function extractionRefusal(err: unknown): Extract<ImportError, "password_protected" | "corrupted_file"> | null {
+  const name = String((err as { name?: unknown } | null)?.name ?? "");
+  const message = String((err as { message?: unknown } | null)?.message ?? "");
+  if (name === "PasswordException" || /no password given|incorrect password/i.test(message)) return "password_protected";
+  if (name === "InvalidPDFException" || /invalid pdf structure/i.test(message)) return "corrupted_file";
+  return null;
+}
 
 export function importErrorCode(reason: string | undefined): ImportError {
   return (IMPORT_ERRORS as readonly string[]).includes(reason ?? "") ? (reason as ImportError) : "extraction_failed";

@@ -30,11 +30,12 @@ import { courses, myCourseIds } from "./routes/courses";
 import { visibleDocuments } from "./lib/visible-documents";
 import { adminDenialStatus, checkAdmin } from "./lib/admin-guard";
 import { auth } from "./auth";
-import { rateLimitMiddleware, userRateLimit, USER_LIMITS } from "./middleware/rate-limit";
+import { rateLimitMiddleware, userRateBump, userRateLimit, USER_LIMITS } from "./middleware/rate-limit";
+import { BATCH_MAX_BYTES, BATCH_MAX_FILES, checkBatch, declaredBatchTooLarge, runBatch } from "./lib/import-batch";
 import { contentMatchesExtension, declaredTooLarge, MAX_UPLOAD_BYTES } from "./lib/upload-guard";
 import { saveAttribution, type AttributionDb } from "./lib/attribution";
 import { requestSession } from "./lib/request-session";
-import { discardImportFile } from "./lib/queue/import-job";
+import { discardImportFile, extractionRefusal } from "./lib/queue/import-job";
 import { cleanUtm, UTM_HEADER, utmFromHeader } from "./lib/utm";
 import { fetchInstitutionLogo, isAllowedLogoDomain } from "./lib/institution-logo";
 import { db } from "./database";
@@ -179,7 +180,7 @@ startRetentionHeartbeat();
 // Chaque aller-retour vers la base coûte une cinquantaine de millisecondes en
 // production (mesuré le 14 nov. 2026) : les enchaîner un à un ferait dépasser
 // la demi-seconde au simple dépôt d'un fichier.
-for (const p of ["/api/documents/upload", "/api/jobs/*", "/api/video/*"]) {
+for (const p of ["/api/documents/upload", "/api/documents/upload-batch", "/api/jobs/*", "/api/video/*"]) {
   app.use(p, (c, next) => {
     if ((c.req.header("cookie") ?? "").includes("session_token")) void requestSession(c.req.raw).catch(() => {});
     return next();
@@ -204,6 +205,9 @@ app.use(
   "/api/documents/upload",
   rateLimitMiddleware({ limit: 10, scope: "upload", windowMs: 5 * 60_000 }),
 );
+// Import par lot (5 fichiers au plus par envoi) : la rafale est bornée ici, le
+// nombre d'imports par compte dans la route, fichier par fichier.
+app.use("/api/documents/upload-batch", rateLimitMiddleware({ limit: 4, scope: "upload-batch", windowMs: 5 * 60_000 }));
 // Médias du Hörsaal (administrateur seulement) : jusqu'à 200 Mo par envoi.
 app.use("/api/storage/upload", rateLimitMiddleware({ limit: 10, scope: "storage-upload", windowMs: 5 * 60_000 }));
 // « Als Video erklären » : rafales bornées ici ; la limite par compte
@@ -485,6 +489,12 @@ app.get("/api/config", (c) =>
       quiz: Boolean(process.env.ANTHROPIC_API_KEY),
       /** Génération de Karteikarten par l'IA (la révision marche sans clé). */
       flashcards: Boolean(process.env.ANTHROPIC_API_KEY),
+      /**
+       * La file d'import tourne (Redis + stockage + un worker vivant) : un lot
+       * part en UN envoi (POST /api/documents/upload-batch). Sinon le
+       * navigateur envoie les fichiers un par un par la route classique.
+       */
+      importQueue: queueReady(),
     },
   }),
 );
@@ -2000,6 +2010,9 @@ app.post("/api/documents/upload", async (c) => {
       console.warn("[upload] scan illisible (couche texte, Mathpix et vision)");
       return c.json({ error: "scan_unreadable" }, 422);
     }
+    // Protégé par mot de passe, ou abîmé : un message qui dit quoi faire.
+    const refusal = extractionRefusal(err);
+    if (refusal) return c.json({ error: refusal }, 422);
     console.error("[upload] extraction failed", err);
     const detail = err instanceof Error ? err.message : String(err);
     return c.json({ error: "extraction_failed", detail: detail.slice(0, 300) }, 422);
@@ -2047,6 +2060,81 @@ app.post("/api/documents/upload", async (c) => {
   });
 
   return c.json({ id, pageCount: extracted.pageCount, ocr: extracted.ocr });
+});
+
+// ── Import par lot ─────────────────────────────────────────────────────────
+// Plusieurs fichiers en un envoi (champ `files`, répété ; `kinds` dans le même
+// ordre ; `semesterId` / `subjectId` pour tout le lot). Chaque fichier devient
+// un travail DISTINCT de la file, avec son `documentId` : un fichier refusé
+// n'empêche pas les autres (lib/import-batch.ts). La réponse part aussitôt,
+// 202 { results: [{ name, jobId, documentId, error }], jobIds }, et le
+// navigateur suit chaque travail par GET /api/jobs/:jobId.
+//
+// Cette route n'existe QUE sur le chemin asynchrone : extraire cinq documents
+// dans la requête la ferait durer plusieurs minutes. Sans file, elle répond
+// 503 `queue_unavailable` avant de lire le corps, et le navigateur dépose les
+// fichiers un par un par /api/documents/upload.
+app.post("/api/documents/upload-batch", async (c) => {
+  const session = await requestSession(c.req.raw);
+  if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);
+  const userId = session.user.id;
+
+  if (!queueReady()) return c.json({ error: "queue_unavailable" }, 503);
+
+  // 100 Mo pour le lot. Refusé sur la taille annoncée, avant de lire le corps.
+  if (declaredBatchTooLarge(c.req.header("content-length"))) {
+    return c.json({ error: "batch_too_large", maxBytes: BATCH_MAX_BYTES, maxFiles: BATCH_MAX_FILES }, 413);
+  }
+
+  // Même règle que l'import d'un fichier : la limite de documents du tarif se
+  // lit pendant que les fichiers arrivent, et se revérifie dans le worker pour
+  // chaque document (cinq fichiers déposés d'un coup passent tous ce contrôle).
+  const quotaCheck = canAddDocument(userId);
+  quotaCheck.catch(() => {});
+
+  let form: FormData;
+  try {
+    form = await c.req.formData();
+  } catch {
+    return c.json({ error: "invalid form data" }, 400);
+  }
+
+  const docQuota = await quotaCheck;
+  if (!docQuota.ok) return c.json(quotaError(docQuota), 402);
+
+  const files = form.getAll("files").filter((f): f is File => f instanceof File);
+  const refusal = checkBatch(files);
+  if (refusal) {
+    return c.json({ error: refusal, maxBytes: BATCH_MAX_BYTES, maxFiles: BATCH_MAX_FILES }, refusal === "batch_too_large" ? 413 : 400);
+  }
+  const kinds = form.getAll("kinds");
+  const field = (name: string) => {
+    const v = form.get(name);
+    return typeof v === "string" && v.trim() ? v.trim() : null;
+  };
+
+  const results = await runBatch(
+    userId,
+    files.map((file, i) => ({ name: file.name, size: file.size, kind: kinds[i], bytes: async () => new Uint8Array(await file.arrayBuffer()) })),
+    { semesterId: field("semesterId"), subjectId: field("subjectId") },
+    {
+      isSupported,
+      extension: fileExtension,
+      // Par COMPTE : chaque fichier accepté compte pour un import (10 par heure).
+      allow: async () => !(await userRateBump(userId, USER_LIMITS.import())).limited,
+      store: async (fileKey, bytes, ext) => {
+        await s3.send(new PutObjectCommand({ Bucket: S3_BUCKET, Key: fileKey, Body: bytes, ContentType: storageMime(ext) }));
+      },
+      enqueue: async (job, jobId) => {
+        await importQueue().add("import-pdf", job, { jobId });
+      },
+      discard: discardImportFile,
+      newDocumentId: () => crypto.randomUUID(),
+      newJobId: newImportJobId,
+    },
+  );
+
+  return c.json({ results, jobIds: results.flatMap((r) => (r.jobId ? [r.jobId] : [])) }, 202);
 });
 
 export default app;

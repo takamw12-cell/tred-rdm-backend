@@ -181,7 +181,9 @@ describe("extractPdf de bout en bout (vrai PDF, OCR simulé)", () => {
     expect(read("src/api/index.ts")).toContain('{ error: "scan_unreadable" }, 422');
     expect(read("src/api/lib/extract-worker.ts")).toContain('"scan_unreadable"');
     expect(read("src/api/lib/extract-queue.ts")).toContain('"ScannedPdfUnreadableError"');
-    expect(read("src/web/components/document-library.tsx")).toContain('t("library.scanUnreadable")');
+    // Le message vit avec les autres codes d'import (un fichier ou un lot) ; la bibliothèque passe par là.
+    expect(read("src/web/components/import-queue.tsx")).toMatch(/case "scan_unreadable":\s+return t\("library\.scanUnreadable"\);/);
+    expect(read("src/web/components/document-library.tsx")).toContain("setUploadError(importErrorText(t, code ?? fallback));");
     const de = read("src/web/i18n/messages/de.ts");
     expect(de).toContain("Dieses PDF scheint ein Scan zu sein und konnte nicht automatisch gelesen werden.");
     for (const l of ["en", "fr", "es"]) expect(read(`src/web/i18n/messages/${l}.ts`)).toContain("scanUnreadable:");

@@ -1,8 +1,10 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { ImportQueueList, ImportQueueSummary } from "@/components/import-queue";
 import { ProfessorPortrait } from "@/components/professor-portrait";
 import { useT } from "@/i18n";
+import type { QueueItem } from "@/lib/import-batch";
 import type { ImportStatus } from "@/lib/import-job";
 import { PROFESSORS } from "@/lib/professors";
 
@@ -18,6 +20,10 @@ import { PROFESSORS } from "@/lib/professors";
  *
  * Sous le film, un professeur de l'app dit ce qui se passe : « Ich lese dein
  * Skript … einen Moment bitte. » (décision du fondateur, 2026-11-14).
+ *
+ * Import PAR LOT (`state.queue`) : la file prend la place du film — une ligne
+ * par fichier, avec son statut. C'est elle que l'étudiant regarde, et elle
+ * demande une carte plus large que le film vertical.
  */
 export const WAIT_VIDEO = "/videos/import-wait-v2.mp4";
 export const WAIT_POSTER = "/videos/import-wait-v2.webp";
@@ -58,6 +64,8 @@ export interface ImportWaitState {
   /** 0…100. `null` : serveur sans file, durée inconnue (barre indéterminée). */
   progress: number | null;
   title: string;
+  /** Import par lot : la file, un élément par fichier déposé. */
+  queue?: QueueItem[];
 }
 
 export function ImportWaitOverlay({ state, onHide }: { state: ImportWaitState | null; onHide: () => void }) {
@@ -106,6 +114,25 @@ export function ImportWaitOverlay({ state, onHide }: { state: ImportWaitState | 
             // Écran bas (téléphone couché) : la carte défile au lieu de déborder.
             className="bg-card border-border max-h-full w-fit max-w-full overflow-x-hidden overflow-y-auto rounded-lg border shadow-xl"
           >
+            {state.queue ? (
+              <div className="p-4" style={{ width: "min(92vw, 26rem)" }} data-testid="import-wait-batch">
+                <div className="mb-4 flex items-end gap-3" data-testid="import-wait-professor">
+                  <WaitProfessor still={Boolean(reduced)} />
+                  <p className="bg-secondary text-foreground min-w-0 rounded-2xl rounded-bl-sm px-3 py-2 text-sm leading-snug font-medium">
+                    <span className="label-tech mb-0.5 block">{WAIT_PROFESSOR.name}</span>
+                    {t("library.wait.professorLineBatch")}
+                  </p>
+                </div>
+                <ImportQueueSummary items={state.queue} />
+                <ImportQueueList items={state.queue} className="mt-2" />
+                <div className="mt-2 flex justify-end">
+                  <button type="button" onClick={onHide} className="text-muted-foreground hover:text-foreground shrink-0 text-xs font-medium underline underline-offset-2">
+                    {t("library.wait.hide")}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
             {/* Vertical : la hauteur suit l'écran (62 % au plus), la largeur s'en déduit ; le pied de carte prend la même largeur. */}
             <div className="relative mx-auto bg-black" style={{ height: "min(62dvh, 640px)", aspectRatio: "9 / 16" }}>
               <video
@@ -163,6 +190,8 @@ export function ImportWaitOverlay({ state, onHide }: { state: ImportWaitState | 
                 </button>
               </div>
             </div>
+              </>
+            )}
           </motion.div>
         </motion.section>
       )}

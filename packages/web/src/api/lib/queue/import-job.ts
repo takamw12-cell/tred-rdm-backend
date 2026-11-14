@@ -5,9 +5,9 @@ import { document } from "../../database/schema";
 import { extractDocument, UnsupportedFormatError } from "../extract";
 import { canAddDocument } from "../plan";
 import { s3, S3_BUCKET } from "../s3";
-import type { ImportJobData, ImportJobResult } from "./index";
+import { extractionRefusal, type ImportJobData, type ImportJobResult } from "./index";
 
-export { IMPORT_ERRORS, importErrorCode, type ImportError } from "./index";
+export { IMPORT_ERRORS, extractionRefusal, importErrorCode, type ImportError } from "./index";
 
 /**
  * Le travail « import-pdf », exécuté par le worker (src/worker.ts).
@@ -16,7 +16,8 @@ export { IMPORT_ERRORS, importErrorCode, type ImportError } from "./index";
  *
  * Le message d'une erreur est un CODE stable, lu par le navigateur
  * (`GET /api/jobs/:id` → `error`). Les refus définitifs — format, scan
- * illisible, pas de texte, limite de documents — lèvent `UnrecoverableError` :
+ * illisible, pas de texte, limite de documents, PDF protégé par mot de passe
+ * ou abîmé — lèvent `UnrecoverableError` :
  * les rejouer coûterait un OCR de plus pour le même résultat. Tout le reste
  * (stockage, base, modèle de vision indisponibles) est repris par BullMQ.
  */
@@ -38,6 +39,10 @@ export async function processImport(job: Job<ImportJobData, ImportJobResult>): P
   } catch (err) {
     if (err instanceof UnsupportedFormatError) throw new UnrecoverableError("unsupported_format");
     if (err instanceof Error && err.name === "ScannedPdfUnreadableError") throw new UnrecoverableError("scan_unreadable");
+    // Verrouillé ou abîmé : ce document-là échoue, avec un message qui dit
+    // quoi faire. Les autres travaux du lot ne le savent même pas.
+    const refusal = extractionRefusal(err);
+    if (refusal) throw new UnrecoverableError(refusal);
     console.error(`[import] ${job.id} : extraction`, err instanceof Error ? err.message.slice(0, 300) : err);
     throw new Error("extraction_failed");
   }

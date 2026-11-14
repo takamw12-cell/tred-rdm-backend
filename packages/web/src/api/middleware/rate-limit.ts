@@ -194,6 +194,25 @@ export const USER_LIMITS = {
 } as const;
 
 /**
+ * Compte UNE unité pour ce compte et dit si la limite est dépassée — sans
+ * fabriquer de réponse. Sert à l'import par lot : cinq fichiers comptent pour
+ * cinq imports, et celui qui dépasse la limite est refusé seul, pas le lot.
+ */
+export async function userRateBump(userId: string, rule: { scope: string; limit: number; windowMs: number }): Promise<{ limited: boolean; retryAfter: number }> {
+  const now = Date.now();
+  const windowStart = Math.floor(now / rule.windowMs) * rule.windowMs;
+  let count: number;
+  try {
+    count = await bump(`${rule.scope}:u:${userId}`, windowStart);
+  } catch (error) {
+    // Même règle que le middleware : en cas de panne du compteur, on laisse passer.
+    console.error("[rate-limit] compteur indisponible, requête autorisée", error);
+    return { limited: false, retryAfter: 0 };
+  }
+  return { limited: count > rule.limit, retryAfter: Math.max(1, Math.ceil((windowStart + rule.windowMs - now) / 1000)) };
+}
+
+/**
  * Limite par compte, à appeler DANS la route, une fois la session vérifiée.
  *
  * Le middleware ci-dessus compte par cookie de session, sans le vérifier : il
@@ -204,19 +223,9 @@ export const USER_LIMITS = {
  * Renvoie la réponse 429 à retourner, ou `null` si la requête peut continuer.
  */
 export async function userRateLimit(c: Context, userId: string, rule: { scope: string; limit: number; windowMs: number }): Promise<Response | null> {
-  const now = Date.now();
-  const windowStart = Math.floor(now / rule.windowMs) * rule.windowMs;
-  let count: number;
-  try {
-    count = await bump(`${rule.scope}:u:${userId}`, windowStart);
-  } catch (error) {
-    // Même règle que le middleware : en cas de panne du compteur, on laisse passer.
-    console.error("[rate-limit] compteur indisponible, requête autorisée", error);
-    return null;
-  }
-  if (count <= rule.limit) return null;
+  const { limited, retryAfter } = await userRateBump(userId, rule);
+  if (!limited) return null;
 
-  const retryAfter = Math.max(1, Math.ceil((windowStart + rule.windowMs - now) / 1000));
   c.header("Retry-After", String(retryAfter));
   const wait = retryAfter >= 3600 ? `${Math.ceil(retryAfter / 3600)} Stunden` : `${Math.ceil(retryAfter / 60)} Minuten`;
   return c.json(

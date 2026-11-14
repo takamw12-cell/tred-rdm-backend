@@ -15,10 +15,16 @@ export interface Features {
   quiz: boolean;
   /** Génération de Karteikarten par l'IA. */
   flashcards: boolean;
+  /**
+   * La file d'import tourne : un lot de fichiers part en un seul envoi.
+   * Ce n'est pas un bouton à montrer ou cacher : dans le doute (config
+   * illisible, ancien serveur), on dépose les fichiers un par un.
+   */
+  importQueue: boolean;
 }
 
-const NONE: Features = { videoSearch: false, explainerVideo: false, quiz: false, flashcards: false };
-const ALL: Features = { videoSearch: true, explainerVideo: true, quiz: true, flashcards: true };
+const NONE: Features = { videoSearch: false, explainerVideo: false, quiz: false, flashcards: false, importQueue: false };
+const ALL: Features = { videoSearch: true, explainerVideo: true, quiz: true, flashcards: true, importQueue: false };
 
 export function useFeatures(): Features {
   const q = useQuery({

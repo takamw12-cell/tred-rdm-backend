@@ -43,7 +43,8 @@ export function findRoutes(source: string, file = ""): Route[] {
 
 /** Import de fichier, ou génération de vidéo. `/:id/` désigne une vidéo existante (sauvegarde), pas une génération. */
 export function isCostly(path: string): boolean {
-  if (/\/(upload|import)(\/|$)/.test(path)) return true;
+  // « upload-batch » : l'import de plusieurs fichiers en un envoi.
+  if (/\/(upload|import)(-batch)?(\/|$)/.test(path)) return true;
   return /\/video(\/|$)/.test(path) && !path.includes("/:id");
 }
 
@@ -65,7 +66,7 @@ const burst = burstLimited(INDEX);
 
 describe("routes d'import et de génération vidéo : toutes limitées", () => {
   test("le test voit bien les routes concernées", () => {
-    expect(costly.map((r) => r.path).sort()).toEqual(["/api/agent/video", "/api/documents/upload", "/api/storage/upload", "/api/video/generate"]);
+    expect(costly.map((r) => r.path).sort()).toEqual(["/api/agent/video", "/api/documents/upload", "/api/documents/upload-batch", "/api/storage/upload", "/api/video/generate"]);
   });
 
   test.each(costly.map((r) => [r.path, r] as const))("%s : limite de rafale (middleware)", (path) => {
@@ -73,7 +74,8 @@ describe("routes d'import et de génération vidéo : toutes limitées", () => {
   });
 
   test.each(costly.filter((r) => !ADMIN_ONLY.has(r.path)).map((r) => [r.path, r] as const))("%s : limite par compte (userRateLimit)", (_path, route) => {
-    expect(route.body).toMatch(/await userRateLimit\(c, [^,]+, USER_LIMITS\.(import|video)\(\)\)/);
+    // Le lot compte UNE unité par fichier accepté (`userRateBump`) : celui qui dépasse est refusé seul.
+    expect(route.body).toMatch(/await userRateLimit\(c, [^,]+, USER_LIMITS\.(import|video)\(\)\)|await userRateBump\([^,]+, USER_LIMITS\.import\(\)\)/);
   });
 
   test("une route d'administration exemptée est bien gardée par requireAdmin", () => {

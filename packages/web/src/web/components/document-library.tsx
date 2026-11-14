@@ -1,4 +1,6 @@
 import { followImportJob } from "@/lib/import-job";
+import { checkSelection, runImportBatch, summarize, type BatchTransport, type QueueItem } from "@/lib/import-batch";
+import { ImportQueueList, ImportQueueSummary, importErrorText } from "./import-queue";
 import { ImportWaitOverlay, type ImportWaitState } from "./import-wait-overlay";
 import { useRef, useState } from "react";
 import { paywallFromResponse } from "@/lib/paywall";
@@ -25,6 +27,7 @@ import {
   documentRemoveOptions,
 } from "@/queries/documents";
 import { semestersListKey } from "@/queries/semesters";
+import { useFeatures } from "@/queries/features";
 import { track } from "@/lib/analytics";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
@@ -84,15 +87,112 @@ export function DocumentLibrary({
   // l'import continue et le bouton garde son indicateur.
   const [wait, setWait] = useState<ImportWaitState | null>(null);
   const [waitHidden, setWaitHidden] = useState(false);
+  // Import par lot : la file (une ligne par fichier). Elle reste affichée dans
+  // le panneau quand l'écran d'attente est masqué, et après la fin s'il y a eu
+  // des échecs — jusqu'à ce que l'étudiant la ferme.
+  const [queue, setQueue] = useState<QueueItem[] | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const features = useFeatures();
   const [viewerDocId, setViewerDocId] = useState<string | null>(null);
 
   const { data: docs = [], isLoading } = useQuery(documentsListOptions(semesterId));
   const removeMut = useMutation(documentRemoveOptions());
 
-  async function handleFiles(files: FileList | null) {
+  /** Envoi d'UN fichier par la route classique (elle extrait dans la requête quand le serveur n'a pas de file). */
+  async function uploadOne(file: File): ReturnType<BatchTransport["uploadOne"]> {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("title", file.name.replace(/\.[a-z0-9]{1,5}$/i, ""));
+    form.append("kind", guessKind(file.name));
+    if (semesterId) form.append("semesterId", semesterId);
+    const res = await fetch("/api/documents/upload", { method: "POST", body: form });
+    if (!res.ok) {
+      // Limite de documents du tarif : la fenêtre s'ouvre une fois, et les fichiers suivants ne sont pas tentés.
+      if (await paywallFromResponse(res, "documents")) return { ok: false, error: "document_limit", stop: true };
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      const error = data.error ?? `http_${res.status}`;
+      return { ok: false, error, stop: error === "RATE_LIMITED" };
+    }
+    const body = (await res.json()) as { id?: string; jobId?: string };
+    if (body.id) return { ok: true, documentId: body.id };
+    if (body.jobId) return { ok: true, jobId: body.jobId };
+    return { ok: false, error: "extraction_failed" };
+  }
+
+  const transport: BatchTransport = {
+    // Le lot en UN envoi : possible seulement quand le serveur a une file.
+    uploadBatch: async (batch) => {
+      const form = new FormData();
+      for (const f of batch) {
+        form.append("files", f);
+        form.append("kinds", guessKind(f.name));
+      }
+      if (semesterId) form.append("semesterId", semesterId);
+      const res = await fetch("/api/documents/upload-batch", { method: "POST", body: form });
+      if (res.status === 503) return { kind: "no_queue" };
+      if (!res.ok) {
+        if (await paywallFromResponse(res, "documents")) return { kind: "refused", error: "document_limit" };
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        return { kind: "refused", error: data.error ?? `http_${res.status}` };
+      }
+      const body = (await res.json()) as { results?: { name: string; jobId: string | null; documentId: string | null; error: string | null }[] };
+      return { kind: "accepted", results: body.results ?? [] };
+    },
+    uploadOne,
+    follow: followImportJob,
+  };
+
+  /** Plusieurs fichiers : chacun a sa ligne et son statut ; un échec n'arrête pas les autres. */
+  async function importBatch(files: File[]) {
+    const sizeMb = Math.round(files.reduce((n, f) => n + f.size, 0) / 100_000) / 10;
+    const refusal = checkSelection(files);
+    if (refusal) {
+      setUploadError(importErrorText(t, refusal));
+      track("upload_failed", { ext: "batch", reason: refusal });
+      if (inputRef.current) inputRef.current.value = "";
+      return;
+    }
+    // Jamais les noms des fichiers : seulement leur nombre et leur poids.
+    track("upload_batch_started", { count: files.length, sizeMb });
+    try {
+      setProgress(t("library.processing"));
+      setWaitHidden(false);
+      const refresh = () => {
+        void qc.invalidateQueries({ queryKey: documentsListKey() });
+        void qc.invalidateQueries({ queryKey: semestersListKey() });
+      };
+      const final = await runImportBatch(files, {
+        queue: features.importQueue,
+        accepted: hasAcceptedExtension,
+        transport,
+        onChange: (items) => {
+          setQueue(items);
+          setWait({ status: "processing", progress: null, title: "", queue: items });
+        },
+        // Chaque document apparaît dans la liste dès qu'il est prêt, sans attendre la fin du lot.
+        onImported: refresh,
+      });
+      const result = summarize(final);
+      track("upload_batch_completed", { count: result.total, done: result.done, failed: result.failed });
+      // Tout est passé : la file disparaît. Sinon elle reste, pour dire quoi et pourquoi.
+      setQueue(result.failed > 0 ? final : null);
+    } finally {
+      setProgress(null);
+      setWait(null);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  }
+
+  async function handleFiles(list: FileList | null) {
     setUploadError(null);
-    const file = files?.[0];
-    if (!file) return;
+    const files = Array.from(list ?? []);
+    if (files.length === 0) return;
+    setQueue(null);
+    if (files.length > 1) return importBatch(files);
+    return importSingle(files[0]!);
+  }
+
+  async function importSingle(file: File) {
     // Trichter « import » (analyse, seulement avec consentement) : jamais le
     // nom du fichier, seulement son type et sa taille.
     const ext = (file.name.match(/\.([a-z0-9]{1,5})$/i)?.[1] ?? "?").toLowerCase();
@@ -130,12 +230,7 @@ export function DocumentLibrary({
       // Message d'échec selon le code du serveur (réponse directe ou travail de la file).
       const showFailure = (code: string | undefined, fallback: string) => {
         track("upload_failed", { ext, reason: code ?? fallback });
-        if (code === "unsupported_format") setUploadError(t("library.onlyPdf"));
-        else if (code === "no_text") setUploadError(t("library.scanned"));
-        else if (code === "scan_unreadable") setUploadError(t("library.scanUnreadable"));
-        else if (code === "file_too_large") setUploadError(t("library.tooLarge"));
-        else if (code === "RATE_LIMITED") setUploadError(t("library.rateLimited"));
-        else setUploadError(t("library.uploadFailed", { msg: code ?? fallback }));
+        setUploadError(importErrorText(t, code ?? fallback));
       };
 
       if (!res.ok) {
@@ -187,9 +282,35 @@ export function DocumentLibrary({
   }
 
   const busy = progress !== null;
+  const queueSummary = queue ? summarize(queue) : null;
 
   return (
-    <div className="flex h-full flex-col">
+    <div
+      className="relative flex h-full flex-col"
+      // Glisser-déposer : un ou plusieurs fichiers, lâchés n'importe où sur le panneau.
+      onDragOver={(e) => {
+        if (busy || !e.dataTransfer.types.includes("Files")) return;
+        e.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false);
+      }}
+      onDrop={(e) => {
+        if (!e.dataTransfer.types.includes("Files")) return;
+        e.preventDefault();
+        setDragging(false);
+        if (!busy) void handleFiles(e.dataTransfer.files);
+      }}
+    >
+      {dragging && (
+        <div className="border-signature bg-background/90 pointer-events-none absolute inset-2 z-10 grid place-items-center rounded-xl border-2 border-dashed p-4 text-center" data-testid="import-drop-zone">
+          <p className="text-foreground flex flex-col items-center gap-2 text-sm font-semibold">
+            <Upload className="size-5" />
+            {t("library.dropHere")}
+          </p>
+        </div>
+      )}
       <ImportWaitOverlay state={waitHidden ? null : wait} onHide={() => setWaitHidden(true)} />
       <div className="border-border flex h-12 items-center gap-2 border-b px-4">
         <FileText className="text-primary size-4" />
@@ -201,6 +322,8 @@ export function DocumentLibrary({
           ref={inputRef}
           type="file"
           accept={ACCEPT_ATTR}
+          // Jusqu'à 5 fichiers d'un coup (100 Mo en tout) : voir lib/import-batch.ts.
+          multiple
           className="hidden"
           onChange={(e) => handleFiles(e.target.files)}
         />
@@ -217,6 +340,23 @@ export function DocumentLibrary({
         </Button>
         {uploadError && (
           <p className="text-destructive mt-2 text-xs font-medium">{uploadError}</p>
+        )}
+        {/* La file du lot, ici quand l'écran d'attente est masqué — et après la fin, s'il reste des échecs à lire. */}
+        {queue && queueSummary && (!busy || waitHidden) && (
+          <div className="border-border bg-card mt-3 rounded-xl border p-3" data-testid="import-queue-panel">
+            <ImportQueueSummary items={queue} />
+            <ImportQueueList items={queue} className="mt-1" />
+            <div className="mt-1 flex items-center justify-between gap-3">
+              <p className="text-destructive text-xs font-medium">{queueSummary.finished && queueSummary.failed > 0 ? t("library.queue.failed", { count: queueSummary.failed }) : ""}</p>
+              <button
+                type="button"
+                onClick={() => (queueSummary.finished ? setQueue(null) : setWaitHidden(false))}
+                className="text-muted-foreground hover:text-foreground shrink-0 text-xs font-medium underline underline-offset-2"
+              >
+                {queueSummary.finished ? t("library.queue.dismiss") : t("library.queue.show")}
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
