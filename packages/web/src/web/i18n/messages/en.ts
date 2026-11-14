@@ -543,6 +543,7 @@ export const en: Messages = {
       processing: "TRED is reading your document …",
       done: "Done.",
       hide: "Hide",
+      professorLine: "I'm reading your script … one moment, please.",
     },
     title: "My courses",
     allScope: "All materials",

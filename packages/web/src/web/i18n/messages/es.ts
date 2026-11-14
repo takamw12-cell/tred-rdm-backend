@@ -555,6 +555,7 @@ export const es: Messages = {
       processing: "TRED está leyendo tu documento …",
       done: "Listo.",
       hide: "Ocultar",
+      professorLine: "Estoy leyendo tus apuntes … un momento, por favor.",
     },
     title: "Mis cursos",
     allScope: "Todos los materiales",

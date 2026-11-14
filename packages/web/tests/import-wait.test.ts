@@ -33,6 +33,23 @@ describe("film d'attente", () => {
     expect("/videos/import-wait-v2.mp4").toMatch(/^\/videos\/[a-z0-9-]+-v\d+\.(mp4|webp)$/);
   });
 
+  test("Prof. Kenta annonce la lecture du document, dans les quatre langues de l'écran", () => {
+    // Le visage de la campagne TikTok : toujours lui, avec son vrai portrait de l'app.
+    expect(OVERLAY).toContain("WAIT_PROFESSOR = PROFESSORS.genius");
+    expect(OVERLAY).toContain('data-testid="import-wait-professor"');
+    expect(OVERLAY).toContain('t("library.wait.professorLine")');
+    expect(statSync(join(ROOT, "public/avatars/kenta.webp")).size).toBeGreaterThan(1000);
+    // La phrase du fondateur, mot pour mot (points de suspension à la typographie de l'app).
+    expect(read("src/web/i18n/messages/de.ts")).toContain('professorLine: "Ich lese dein Skript … einen Moment bitte."');
+    for (const lang of ["en", "fr", "es"]) expect(read(`src/web/i18n/messages/${lang}.ts`)).toMatch(/\n {6}professorLine: ".{10,}",\n/);
+    // Le portrait est décoratif : la phrase, elle, est du vrai texte.
+    expect(OVERLAY).toContain('className="relative size-14 shrink-0" aria-hidden="true"');
+  });
+
+  test("écran bas (téléphone couché) : la carte défile au lieu de déborder", () => {
+    expect(OVERLAY).toContain("max-h-full w-fit max-w-full overflow-x-hidden overflow-y-auto");
+  });
+
   test("l'écran disparaît dès la fin de l'import, réussi ou non", () => {
     const tail = LIBRARY.slice(LIBRARY.indexOf("} finally {"));
     expect(tail.slice(0, 120)).toContain("setWait(null)");

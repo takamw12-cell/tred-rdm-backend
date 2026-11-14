@@ -543,6 +543,7 @@ export const fr: Messages = {
       processing: "TRED lit ton document …",
       done: "Terminé.",
       hide: "Masquer",
+      professorLine: "Je lis ton cours … un instant, s’il te plaît.",
     },
     title: "Mes cours",
     allScope: "Tous les documents",

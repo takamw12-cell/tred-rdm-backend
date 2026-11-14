@@ -542,6 +542,7 @@ export const de = {
       processing: "TRED liest dein Dokument …",
       done: "Fertig.",
       hide: "Ausblenden",
+      professorLine: "Ich lese dein Skript … einen Moment bitte.",
     },
     title: "Meine Kurse",
     allScope: "Alle Materialien",
