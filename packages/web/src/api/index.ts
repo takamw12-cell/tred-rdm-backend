@@ -70,6 +70,8 @@ import {
   UnsupportedFormatError,
 } from "./lib/extract";
 import { extractInBackground } from "./lib/extract-queue";
+import { importQueue, newImportJobId, queueReady, warmQueues } from "./lib/queue";
+import { registerJobRoutes } from "./routes/jobs";
 import { renderTikz } from "./lib/tikz";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { s3, S3_BUCKET } from "./lib/s3";
@@ -449,6 +451,8 @@ registerAnalyticsRoutes(app, requireAdmin);
 registerFlashcardRoutes(app);
 // « Als Video erklären » : vidéo explicative sur mesure (script validé + voix).
 registerVideoRoutes(app);
+registerJobRoutes(app);
+warmQueues();
 // Co-pilote vision (V2, Pilier 3) — squelette : 501 tant que non branché.
 registerVisionRoutes(app);
 
@@ -1811,6 +1815,38 @@ app.post("/api/documents/upload", async (c) => {
 
   const bytes = new Uint8Array(await file.arrayBuffer());
   if (bytes.byteLength === 0) return c.json({ error: "empty file" }, 400);
+
+  // ── Chemin asynchrone (REDIS_URL + stockage objet) ───────────────────────
+  // L'original part dans le stockage, un travail « import-pdf » dans la file,
+  // et on répond tout de suite : le worker (src/worker.ts) fait l'extraction,
+  // le navigateur suit GET /api/jobs/:jobId. Si le stockage ou Redis ne
+  // répondent pas, on retombe sur l'extraction dans la requête, ci-dessous :
+  // plus lente, mais l'étudiant récupère son document.
+  if (queueReady()) {
+    const documentId = crypto.randomUUID();
+    const fileKey = `documents/${session.user.id}/${documentId}.${ext}`;
+    const jobId = newImportJobId();
+    try {
+      await s3.send(new PutObjectCommand({ Bucket: S3_BUCKET, Key: fileKey, Body: bytes, ContentType: storageMime(ext) }));
+      await importQueue().add(
+        "import-pdf",
+        {
+          userId: session.user.id,
+          documentId,
+          fileKey,
+          filename: file.name.slice(0, 300),
+          title,
+          kind: kind as "vorlesung" | "uebung" | "klausur" | "other",
+          semesterId,
+          subjectId,
+        },
+        { jobId },
+      );
+      return c.json({ jobId, status: "pending" }, 202);
+    } catch (err) {
+      console.error("[upload] file indisponible, extraction dans la requête", (err as Error).message?.slice(0, 200));
+    }
+  }
 
   let extracted;
   try {

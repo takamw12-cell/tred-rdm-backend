@@ -1,3 +1,4 @@
+import { followImportJob } from "@/lib/import-job";
 import { useRef, useState } from "react";
 import { paywallFromResponse } from "@/lib/paywall";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -109,24 +110,39 @@ export function DocumentLibrary({
         body: form,
       });
 
+      // Message d'échec selon le code du serveur (réponse directe ou travail de la file).
+      const showFailure = (code: string | undefined, fallback: string) => {
+        track("upload_failed", { ext, reason: code ?? fallback });
+        if (code === "unsupported_format") setUploadError(t("library.onlyPdf"));
+        else if (code === "no_text") setUploadError(t("library.scanned"));
+        else if (code === "scan_unreadable") setUploadError(t("library.scanUnreadable"));
+        else setUploadError(t("library.uploadFailed", { msg: code ?? fallback }));
+      };
+
       if (!res.ok) {
         // Limite de documents du tarif : la fenêtre de limite s'ouvre.
         await paywallFromResponse(res, "documents");
         const data = (await res.json().catch(() => ({}))) as { error?: string };
-        track("upload_failed", { ext, reason: data.error ?? `http_${res.status}` });
-        if (data.error === "unsupported_format") {
-          setUploadError(t("library.onlyPdf"));
-        } else if (data.error === "no_text") {
-          setUploadError(t("library.scanned"));
-        } else if (data.error === "scan_unreadable") {
-          setUploadError(t("library.scanUnreadable"));
-        } else {
-          setUploadError(t("library.uploadFailed", { msg: data.error ?? res.statusText }));
-        }
+        showFailure(data.error, res.statusText || `http_${res.status}`);
         return;
       }
 
-      const { id } = (await res.json()) as { id: string };
+      // 202 { jobId } : le serveur traite l'import en arrière-plan, on suit
+      // son avancement. 200 { id } : serveur sans file, le document est prêt.
+      const body = (await res.json()) as { id?: string; jobId?: string };
+      let id = body.id;
+      if (!id && body.jobId) {
+        const outcome = await followImportJob(body.jobId, () => {});
+        if (!outcome.ok) {
+          showFailure(outcome.error, "extraction_failed");
+          return;
+        }
+        id = outcome.documentId;
+      }
+      if (!id) {
+        showFailure(undefined, "extraction_failed");
+        return;
+      }
       track("upload_completed", { ext, sizeMb });
       await qc.invalidateQueries({ queryKey: documentsListKey() });
       await qc.invalidateQueries({ queryKey: semestersListKey() });

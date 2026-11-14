@@ -112,7 +112,14 @@ export async function pickAndUploadDocument(opts?: {
     return { ok: false, error: "network", detail: String(err) };
   }
 
-  if (res.ok) return { ok: true };
+  if (res.ok) {
+    // 202 { jobId } : le serveur traite l'import en arrière-plan (file Redis).
+    // On attend la fin pour pouvoir annoncer un échec ; 200 { id } : déjà prêt.
+    const queued = (await res.json().catch(() => null)) as { jobId?: string } | null;
+    if (!queued?.jobId) return { ok: true };
+    opts?.onProgress?.("extracting");
+    return followImportJob(queued.jobId);
+  }
 
   const body = await res.text().catch(() => "");
 
@@ -130,4 +137,33 @@ export async function pickAndUploadDocument(opts?: {
   }
 
   return { ok: false, error: "unknown", detail: `${res.status} ${body}`.slice(0, 300) };
+}
+
+/** Suit `GET /api/jobs/:jobId` jusqu'à la fin de l'import (dix minutes au plus). */
+async function followImportJob(jobId: string): Promise<UploadResult> {
+  const started = Date.now();
+  while (Date.now() - started < 10 * 60_000) {
+    await new Promise((r) => setTimeout(r, 1500));
+    let job: { status?: string; error?: string } | null = null;
+    try {
+      const res = await apiFetch(`/api/jobs/${jobId}`);
+      if (res.status === 404) return { ok: false, error: "unknown", detail: "job_lost" };
+      if (res.ok) job = (await res.json()) as { status?: string; error?: string };
+    } catch {
+      continue; // coupure passagère : on réessaie
+    }
+    if (job?.status === "done") return { ok: true };
+    if (job?.status === "failed") {
+      const error: UploadError =
+        job.error === "unsupported_format"
+          ? "unsupported"
+          : job.error === "no_text" || job.error === "scan_unreadable"
+            ? "no_text"
+            : job.error === "document_limit"
+              ? "quota"
+              : "unknown";
+      return { ok: false, error, detail: job.error };
+    }
+  }
+  return { ok: false, error: "unknown", detail: "timeout" };
 }

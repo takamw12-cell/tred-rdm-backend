@@ -651,3 +651,31 @@ Créé le 12 nov. 2026 pour valider « Als Video erklären » de bout en bout su
 2. Ou demander à Claude Code : « supprime le compte de test de production » ; il utilisera le même parcours avec la session gardée dans `prod-test\profile`.
 
 Ensuite, supprime le dossier `C:\Users\HP\AppData\Local\Temp\tred-perf\prod-test`. La boîte jetable disparaît d'elle-même.
+
+## Montée en charge : file Redis et service worker (14 nov. 2026)
+
+**Le problème.** L'import d'un document était traité dans la requête HTTP : pendant l'extraction (jusqu'à plusieurs minutes pour un scan), le service web gardait le fichier en mémoire et son processeur occupé. À quelques dizaines d'imports en même temps, tout le site ralentit.
+
+**Ce qui change.** Le service web valide le fichier, le range dans le stockage objet (R2), dépose un travail `import-pdf` dans Redis et répond tout de suite avec un `jobId`. Un second service, le **worker** (même dépôt, point d'entrée `packages/web/src/worker.ts`), fait l'extraction. Le navigateur suit l'avancement sur `GET /api/jobs/:jobId` (`pending` → `processing` → `done` ou `failed`).
+
+**Tant que tu n'as rien fait, rien ne change** : sans `REDIS_URL`, l'import est traité comme avant. Si Redis tombe un jour, le site retombe tout seul sur ce chemin.
+
+### Mise en service sur Railway (une fois, environ 10 minutes)
+
+1. **Redis.** Projet TRED → « + New » → Database → **Add Redis**. Facturé à l'usage par Railway (mémoire et processeur consommés ; pour cette file, quelques dizaines de Mo). Vérifie le tarif du jour sur https://railway.com/pricing avant de valider.
+2. **Service worker.** « + New » → GitHub Repo → le même dépôt `tred-rdm-backend`. Dans ses réglages :
+   - Settings → **Config-as-code** → chemin `railway.worker.json` (il lance `bun packages/web/src/worker.ts`) ;
+   - aucun domaine public (Settings → Networking : ne rien générer) ;
+   - Variables : les mêmes que le service web pour `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, `S3_*`, `ANTHROPIC_API_KEY`, `MATHPIX_*`, plus `REDIS_URL = ${{Redis.REDIS_URL}}`. Le plus simple : « Shared Variables » du projet.
+3. **Service web.** Ajoute `REDIS_URL = ${{Redis.REDIS_URL}}`. Il redéploie, et les imports passent par la file.
+4. **Vérifier.** Importe un PDF : les journaux du worker affichent `[worker] import imp_… : terminé (N pages)`.
+
+**Revenir en arrière** : supprime `REDIS_URL` du service web. L'import redevient synchrone au redéploiement.
+
+**Aucune table à créer.** L'état des travaux vit dans Redis (une heure après la fin, un jour après un échec).
+
+| Variable | Service | Rôle |
+|---|---|---|
+| `REDIS_URL` | web + worker | active la file |
+| `WORKER_IMPORT_CONCURRENCY` | worker | imports en parallèle par réplique (défaut 2) |
+
