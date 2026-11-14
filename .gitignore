@@ -89,6 +89,9 @@ packages/web/scripts/*
 !packages/web/scripts/generate-universal-backgrounds.mjs
 # Essai réel de « Als Video erklären » sans compte (voir GUIDE_FOUNDER.md).
 !packages/web/scripts/explainer-trial.ts
+# Contrôle « aucun secret dans le bundle du navigateur » (lancé par la CI après le build).
+!packages/web/scripts/bundle-secrets.ts
+!packages/web/scripts/check-bundle-secrets.ts
 _a-supprimer/
 
 # Sauvegardes des scripts de correctif

@@ -533,6 +533,8 @@ export const de = {
     generatedKlausur: "Generierte Übungsklausur",
   },
   library: {
+    tooLarge: "Die Datei ist zu groß (maximal 50 MB).",
+    rateLimited: "Zu viele Importe in kurzer Zeit. Versuch es in einer Stunde erneut.",
     wait: {
       title: "Dein Dokument wird importiert",
       uploading: "Wird hochgeladen …",

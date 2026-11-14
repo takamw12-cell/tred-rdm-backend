@@ -546,6 +546,8 @@ export const es: Messages = {
     generatedKlausur: "Klausur de prueba generada",
   },
   library: {
+    tooLarge: "El archivo es demasiado grande (máximo 50 MB).",
+    rateLimited: "Demasiadas importaciones en poco tiempo. Inténtalo de nuevo en una hora.",
     wait: {
       title: "Importando tu documento",
       uploading: "Subiendo …",

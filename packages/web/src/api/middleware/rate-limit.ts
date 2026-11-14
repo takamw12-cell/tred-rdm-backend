@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import type { MiddlewareHandler } from "hono";
+import type { Context, MiddlewareHandler } from "hono";
 import { db } from "../database";
 import { rateLimit } from "../database/schema";
 
@@ -21,6 +21,13 @@ const WINDOW_MS = 60_000;
 
 /** Une ligne sur cent déclenche le ménage. Évite un cron pour si peu. */
 const CLEANUP_ODDS = 0.01;
+
+/**
+ * Âge au-delà duquel une fenêtre est supprimée. Plus long que la plus longue
+ * fenêtre utilisée (un jour, pour les vidéos) : à une heure, le ménage
+ * effaçait le compteur du jour en cours et la limite quotidienne ne tenait pas.
+ */
+const SWEEP_AFTER_MS = 25 * 60 * 60 * 1000;
 
 export interface RateLimitOptions {
   /** Requêtes autorisées par fenêtre. */
@@ -139,7 +146,7 @@ export function rateLimitMiddleware(opts: RateLimitOptions): MiddlewareHandler {
       return next();
     }
 
-    if (Math.random() < CLEANUP_ODDS) sweep(now - 60 * 60 * 1000);
+    if (Math.random() < CLEANUP_ODDS) sweep(now - SWEEP_AFTER_MS);
 
     const remaining = Math.max(0, opts.limit - count);
     const resetAt = windowStart + windowMs;
@@ -163,4 +170,63 @@ export function rateLimitMiddleware(opts: RateLimitOptions): MiddlewareHandler {
 
     return next();
   };
+}
+
+/* ── Limites par COMPTE ──────────────────────────────────────────────────── */
+
+export const HOUR_MS = 60 * 60_000;
+export const DAY_MS = 24 * HOUR_MS;
+
+const envInt = (name: string, fallback: number) => {
+  const n = Number(process.env[name]);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
+};
+
+/**
+ * Les deux limites par compte. Réglables par variable d'environnement, sans
+ * redéploiement de code : un semestre d'examens peut demander plus d'imports.
+ */
+export const USER_LIMITS = {
+  /** Imports de documents : 10 par heure. */
+  import: () => ({ scope: "user-import", limit: envInt("IMPORT_RATE_PER_HOUR", 10), windowMs: HOUR_MS }),
+  /** Vidéos explicatives : 5 par jour. */
+  video: () => ({ scope: "user-video", limit: envInt("VIDEO_RATE_PER_DAY", 5), windowMs: DAY_MS }),
+} as const;
+
+/**
+ * Limite par compte, à appeler DANS la route, une fois la session vérifiée.
+ *
+ * Le middleware ci-dessus compte par cookie de session, sans le vérifier : il
+ * arrête une rafale, mais un étudiant qui se reconnecte obtient un cookie neuf
+ * et donc un compteur neuf. Ici la clé est l'identifiant du compte : dix
+ * imports par heure, quel que soit le nombre d'appareils ou de sessions.
+ *
+ * Renvoie la réponse 429 à retourner, ou `null` si la requête peut continuer.
+ */
+export async function userRateLimit(c: Context, userId: string, rule: { scope: string; limit: number; windowMs: number }): Promise<Response | null> {
+  const now = Date.now();
+  const windowStart = Math.floor(now / rule.windowMs) * rule.windowMs;
+  let count: number;
+  try {
+    count = await bump(`${rule.scope}:u:${userId}`, windowStart);
+  } catch (error) {
+    // Même règle que le middleware : en cas de panne du compteur, on laisse passer.
+    console.error("[rate-limit] compteur indisponible, requête autorisée", error);
+    return null;
+  }
+  if (count <= rule.limit) return null;
+
+  const retryAfter = Math.max(1, Math.ceil((windowStart + rule.windowMs - now) / 1000));
+  c.header("Retry-After", String(retryAfter));
+  const wait = retryAfter >= 3600 ? `${Math.ceil(retryAfter / 3600)} Stunden` : `${Math.ceil(retryAfter / 60)} Minuten`;
+  return c.json(
+    {
+      error: "RATE_LIMITED",
+      scope: rule.scope,
+      limit: rule.limit,
+      retryAfter,
+      message: `Limit erreicht (${rule.limit}). Versuch es in ${wait} erneut.`,
+    },
+    429,
+  );
 }

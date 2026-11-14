@@ -30,7 +30,8 @@ import { courses, myCourseIds } from "./routes/courses";
 import { visibleDocuments } from "./lib/visible-documents";
 import { adminDenialStatus, checkAdmin } from "./lib/admin-guard";
 import { auth } from "./auth";
-import { rateLimitMiddleware } from "./middleware/rate-limit";
+import { rateLimitMiddleware, userRateLimit, USER_LIMITS } from "./middleware/rate-limit";
+import { contentMatchesExtension, declaredTooLarge, MAX_UPLOAD_BYTES } from "./lib/upload-guard";
 import { fetchInstitutionLogo, isAllowedLogoDomain } from "./lib/institution-logo";
 import { db } from "./database";
 import {
@@ -179,6 +180,7 @@ for (const p of ["/api/auth/sign-in/*", "/api/auth/sign-up/*", "/api/auth/forget
 }
 // Rapports d'erreurs du navigateur : publics, donc bornés (anti-spam de logs).
 app.use("/api/errors", rateLimitMiddleware({ limit: 20, scope: "errors", by: "ip" }));
+app.use("/api/csp-report", rateLimitMiddleware({ limit: 30, scope: "csp", by: "ip" }));
 // Logos des établissements : publics, liste fermée, en cache — bornés quand même.
 app.use("/api/logo/*", rateLimitMiddleware({ limit: 120, scope: "logo", by: "ip" }));
 app.use("/api/agent/*", rateLimitMiddleware({ limit: 5, scope: "agent" }));
@@ -186,6 +188,11 @@ app.use(
   "/api/documents/upload",
   rateLimitMiddleware({ limit: 10, scope: "upload", windowMs: 5 * 60_000 }),
 );
+// Médias du Hörsaal (administrateur seulement) : jusqu'à 200 Mo par envoi.
+app.use("/api/storage/upload", rateLimitMiddleware({ limit: 10, scope: "storage-upload", windowMs: 5 * 60_000 }));
+// « Als Video erklären » : rafales bornées ici ; la limite par compte
+// (5 vidéos par jour) est dans la route, une fois la session vérifiée.
+app.use("/api/video/generate", rateLimitMiddleware({ limit: 5, scope: "video" }));
 // La compilation LaTeX lance pdflatex ET dvisvgm — deux processus, jusqu'à
 // vingt secondes de calcul, sur le serveur qui répond aussi aux questions des
 // autres étudiants. Une réponse contenant quatre schémas fait quatre appels
@@ -362,6 +369,23 @@ app.post("/api/subscriptions/webhook", async (c) => {
 //
 // Réponse 204 dans TOUS les cas : un rapport d'erreur qui échoue et déclenche
 // un second rapport est une boucle qu'on ne veut pas découvrir en production.
+// Rapports de la Content-Security-Policy : ce que le navigateur a bloqué (ou
+// bloquerait, en « Report-Only »). Une ligne de journal, rien en base.
+app.post("/api/csp-report", async (c) => {
+  try {
+    const raw = (await c.req.json()) as Record<string, unknown>;
+    const r = (raw["csp-report"] ?? raw) as Record<string, unknown>;
+    const cut = (v: unknown) => String(v ?? "").slice(0, 200);
+    // Zod teste `new Function("")` au démarrage pour savoir s'il peut compiler
+    // ses schémas ; refusé, il s'en passe tout seul. Ce n'est pas un blocage.
+    if (r["blocked-uri"] === "eval") return c.body(null, 204);
+    console.warn("[csp]", cut(r["effective-directive"] ?? r["violated-directive"]), "←", cut(r["blocked-uri"]), "sur", cut(r["document-uri"]));
+  } catch {
+    /* rapport illisible : ignoré */
+  }
+  return c.body(null, 204);
+});
+
 app.post("/api/errors", async (c) => {
   try {
     const body = (await c.req.json()) as Record<string, unknown>;
@@ -1477,6 +1501,10 @@ app.post("/api/agent/video", async (c) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);
 
+  // Même limite par compte que /api/video/generate : 5 vidéos par jour.
+  const limited = await userRateLimit(c, session.user.id, USER_LIMITS.video());
+  if (limited) return limited;
+
   const quota = await consume(session.user.id, "video");
   if (!quota.ok) return c.json(quotaError(quota), 402);
 
@@ -1774,6 +1802,11 @@ app.post("/api/documents/upload", async (c) => {
   const docQuota = await canAddDocument(session.user.id);
   if (!docQuota.ok) return c.json(quotaError(docQuota), 402);
 
+  // 50 Mo au plus. Refusé sur la taille annoncée, avant de lire le corps.
+  if (declaredTooLarge(c.req.header("content-length"))) {
+    return c.json({ error: "file_too_large", maxBytes: MAX_UPLOAD_BYTES }, 413);
+  }
+
   let form: FormData;
   try {
     form = await c.req.formData();
@@ -1813,8 +1846,22 @@ app.post("/api/documents/upload", async (c) => {
       ? subjectIdInput.trim()
       : null;
 
+  if (file.size > MAX_UPLOAD_BYTES) {
+    return c.json({ error: "file_too_large", maxBytes: MAX_UPLOAD_BYTES }, 413);
+  }
   const bytes = new Uint8Array(await file.arrayBuffer());
   if (bytes.byteLength === 0) return c.json({ error: "empty file" }, 400);
+
+  // Le type RÉEL, lu dans les octets : l'extension et le type MIME annoncés
+  // viennent du client. Un exécutable renommé « cours.pdf » s'arrête ici.
+  if (!contentMatchesExtension(ext, bytes)) {
+    return c.json({ error: "unsupported_format", detail: "content_mismatch" }, 415);
+  }
+
+  // Par COMPTE : 10 imports par heure. Compté ici, après les contrôles : un
+  // fichier refusé ne consomme pas la limite de l'étudiant.
+  const limited = await userRateLimit(c, session.user.id, USER_LIMITS.import());
+  if (limited) return limited;
 
   // ── Chemin asynchrone (REDIS_URL + stockage objet) ───────────────────────
   // L'original part dans le stockage, un travail « import-pdf » dans la file,

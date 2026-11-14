@@ -124,6 +124,7 @@ export async function pickAndUploadDocument(opts?: {
   const body = await res.text().catch(() => "");
 
   if (res.status === 402) return { ok: false, error: "quota", detail: body };
+  if (res.status === 413) return { ok: false, error: "too_large", detail: body };
   if (res.status === 415) return { ok: false, error: "unsupported", detail: body };
   if (res.status === 422) {
     // Le serveur distingue « pas de texte exploitable » d'un échec

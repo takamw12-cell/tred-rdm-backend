@@ -52,6 +52,10 @@ jobs:
       - name: Build de production
         run: bun run --cwd packages/web build
 
+      # Tout ce qui est dans dist/ est public. Une clé qui s'y glisse = rouge.
+      - name: Aucun secret dans le bundle du navigateur
+        run: bun packages/web/scripts/check-bundle-secrets.ts
+
   automerge:
     name: Fusion auto (Dependabot — mineures et correctifs)
     needs: verify

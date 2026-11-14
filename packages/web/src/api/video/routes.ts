@@ -15,6 +15,7 @@ import { MAX_SOLVER_RUNS, SOLVER_WINDOW_MS, serializeSolverRun, type SolverRun }
 import { solverSource, videoRequestSchema, type VideoRequest, type VideoSource } from "../lib/video-script";
 import { visibleDocuments } from "../lib/visible-documents";
 import { myCourseIds } from "../routes/courses";
+import { userRateLimit, USER_LIMITS } from "../middleware/rate-limit";
 import { failVideo, runPipelineInline, type StoredScript } from "./pipeline";
 
 /**
@@ -136,6 +137,11 @@ export function registerVideoRoutes(app: Hono) {
     const excerpts = docs.length > 0 ? selectRelevantContext(docs, `${req.question}\n${req.answer}`.slice(0, 4000), MAX_CONTEXT_CHARS).sources : [];
     // Les extraits du cours d'abord, puis les calculs des solveurs : tous numérotés [S1], [S2]…
     const sources: VideoSource[] = [...excerpts, ...runs.map(solverSource)];
+
+    // Par COMPTE : 5 vidéos par jour. Après les refus ci-dessus (pas de
+    // cours, langue inconnue), qui ne consomment donc pas la limite.
+    const limited = await userRateLimit(c, uid, USER_LIMITS.video());
+    if (limited) return limited;
 
     const cap = await withinTokenCap(uid);
     if (!cap.ok) return c.json(tokenCapError(cap.used, cap.cap), 402);

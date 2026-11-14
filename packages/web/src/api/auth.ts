@@ -31,7 +31,7 @@ const appleEnabled =
  * le développement local, et ce que TRUSTED_ORIGINS ajoute (séparées par des
  * virgules — par ex. l'origine de l'app de bureau).
  */
-const TRUSTED_ORIGINS = [
+export const TRUSTED_ORIGINS = [
   process.env.WEBSITE_URL,
   process.env.BETTER_AUTH_URL,
   // Domaine public de TRED (www et la racine, qui redirige vers www) — et

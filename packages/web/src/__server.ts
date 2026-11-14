@@ -1,15 +1,26 @@
 import app from "./api";
 import { adminPageDenial } from "./api/lib/admin-guard";
+import { TRUSTED_ORIGINS } from "./api/auth";
+import { buildCsp, CSP_BASELINE, cspHeaders, inlineScriptHashes, judgeOrigin, withoutCors } from "./api/lib/security-headers";
 
 const port = Number(process.env.PORT ?? 3000);
 const distDir = `${import.meta.dir}/../dist`;
 const indexPath = `${distDir}/index.html`;
 
 /**
- * En-têtes de sécurité, posés sur TOUTES les réponses (API et fichiers).
- * Pas de Content-Security-Policy pour l'instant : KaTeX (styles inline),
- * Stripe et YouTube demandent une politique écrite et testée à part.
+ * Content-Security-Policy (api/lib/security-headers.ts). Le seul script inline
+ * de l'app (le thème, dans index.html) est autorisé par son empreinte, relue
+ * du build au démarrage. Politique complète en « Report-Only » tant que
+ * CSP_ENFORCE n'est pas « true » ; le socle, lui, est toujours appliqué.
  */
+const htmlPages = [indexPath, ...(await Array.fromAsync(new Bun.Glob("prerendered/*.html").scan({ cwd: distDir, absolute: true })).catch(() => []))];
+const builtHtml = (await Promise.all(htmlPages.map((p) => Bun.file(p).text().catch(() => "")))).join("\n");
+const CSP = cspHeaders(
+  buildCsp({ scriptHashes: inlineScriptHashes(builtHtml), storageEndpoint: process.env.S3_ENDPOINT, posthogHost: process.env.VITE_POSTHOG_HOST }),
+  process.env.CSP_ENFORCE === "true",
+);
+
+/** En-têtes de sécurité, posés sur TOUTES les réponses (API et fichiers). */
 const SECURITY_HEADERS: Record<string, string> = {
   "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
   "X-Content-Type-Options": "nosniff",
@@ -18,16 +29,26 @@ const SECURITY_HEADERS: Record<string, string> = {
   "Permissions-Policy": "camera=(), geolocation=(), microphone=(self), payment=(self)",
 };
 
-function withSecurityHeaders(response: Response): Response {
+/**
+ * Pages et fichiers statiques : la politique complète (un worker hérite de la
+ * politique de SON fichier .js, d'où les fichiers aussi). Réponses de l'API :
+ * le socle seulement — du JSON n'a rien à charger, et 1,5 Ko d'en-tête par
+ * appel serait du poids pour rien.
+ */
+const PAGE_HEADERS: Record<string, string> = { ...SECURITY_HEADERS, ...CSP };
+const API_HEADERS: Record<string, string> = { ...SECURITY_HEADERS, "Content-Security-Policy": CSP_BASELINE };
+
+function withSecurityHeaders(response: Response, api: boolean): Response {
+  const wanted = api ? API_HEADERS : PAGE_HEADERS;
   // Certaines réponses (fetch proxifié) ont des en-têtes immuables : copie.
   let res = response;
   try {
-    for (const [k, v] of Object.entries(SECURITY_HEADERS)) {
+    for (const [k, v] of Object.entries(wanted)) {
       if (!res.headers.has(k)) res.headers.set(k, v);
     }
   } catch {
     res = new Response(response.body, response);
-    for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.headers.set(k, v);
+    for (const [k, v] of Object.entries(wanted)) res.headers.set(k, v);
   }
   return res;
 }
@@ -41,7 +62,7 @@ const server = Bun.serve({
   // la route du chat (api/index.ts) empêche de l'atteindre.
   idleTimeout: 255,
   async fetch(request) {
-    return withSecurityHeaders(await handle(request));
+    return withSecurityHeaders(await handle(request), new URL(request.url).pathname.startsWith("/api"));
   },
 });
 
@@ -49,7 +70,15 @@ async function handle(request: Request): Promise<Response> {
   const url = new URL(request.url);
 
   if (url.pathname.startsWith("/api")) {
-    return app.fetch(request);
+    // CORS restreint aux origines de confiance (le site, l'app mobile, le
+    // développement local). Une écriture venue d'ailleurs s'arrête ici ; une
+    // lecture est servie sans en-têtes CORS, donc illisible pour le site appelant.
+    const verdict = judgeOrigin(request.method, request.headers.get("origin"), TRUSTED_ORIGINS);
+    if (verdict === "deny") {
+      return new Response(JSON.stringify({ error: "ORIGIN_NOT_ALLOWED" }), { status: 403, headers: { "Content-Type": "application/json", Vary: "Origin" } });
+    }
+    const response = await app.fetch(request);
+    return verdict === "strip" ? withoutCors(response) : response;
   }
 
   // /admin et /admin/* : vérifié ICI, avant de servir le moindre octet. Un

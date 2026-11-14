@@ -534,6 +534,8 @@ export const fr: Messages = {
     generatedKlausur: "Klausur blanche générée",
   },
   library: {
+    tooLarge: "Ce fichier est trop lourd (50 Mo au maximum).",
+    rateLimited: "Trop d'imports en peu de temps. Réessaie dans une heure.",
     wait: {
       title: "Import de ton document",
       uploading: "Envoi en cours …",

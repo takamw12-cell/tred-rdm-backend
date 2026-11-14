@@ -696,3 +696,31 @@ Pendant qu'un import tourne, l'écran de chargement montre un film TRED de 10 s 
 
 - Fichier : `packages/web/public/videos/import-wait-v1.mp4` (1,7 Mo, 1280×720) et son image `import-wait-v1.webp`. Source : `Cine-B-DE-1-Der-magische-Button.mp4`, de 9,6 s à 19,6 s.
 - **Changer de film** : exporte 10 s en 720p sans piste son, nomme-le `import-wait-v2.mp4` (le numéro compte : le fichier est mis en cache un an) et change les deux constantes en tête de `web/components/import-wait-overlay.tsx`.
+
+## Sécurité et limites — durcissement du 14 nov. 2026
+
+| Point | Ce qui est en place | Où |
+|---|---|---|
+| Taille d'un fichier | **50 Mo** au plus. Refusé sur la taille annoncée, avant de lire le corps, puis sur la taille réelle. Le navigateur refuse aussi avant l'envoi. | `api/lib/upload-guard.ts` |
+| Type réel | La **signature** du fichier (ses premiers octets) doit correspondre à l'extension : `%PDF-`, zip Office contenant `word/` ou `ppt/`, en-têtes PNG / JPEG / WebP / HEIC, texte sans octet nul. Un exécutable renommé « cours.pdf » est refusé (415). | `api/lib/upload-guard.ts` |
+| Limite par compte | **10 imports par heure**, **5 vidéos par jour**, comptés sur l'identifiant du compte (se reconnecter ne remet rien à zéro). Réglables : `IMPORT_RATE_PER_HOUR`, `VIDEO_RATE_PER_DAY`. | `api/middleware/rate-limit.ts` (`userRateLimit`) |
+| Limite de rafale | Déjà là pour l'import ; ajoutée sur `/api/video/generate` et `/api/storage/upload`. | `api/index.ts` |
+| Stockage | Les fichiers des étudiants ne touchent jamais le disque du service : originaux et voix dans le stockage objet (R2), lus par **URL signée d'une heure**. Seul LaTeX écrit sur le disque (fichiers de travail et cache de schémas, recalculables). | `api/routes/documents.ts`, `api/lib/tikz.ts` |
+| CORS | Restreint aux origines de confiance (le site, l'app mobile, le local en développement, `TRUSTED_ORIGINS`). Une écriture venue d'un autre site reçoit `403 ORIGIN_NOT_ALLOWED` ; une lecture est servie sans en-têtes CORS, donc illisible pour lui. Avant : n'importe quel site pouvait appeler l'API avec le cookie de l'étudiant. | `api/lib/security-headers.ts`, `__server.ts` |
+| En-têtes | `X-Content-Type-Options`, `X-Frame-Options`, HSTS (déjà là) + **Content-Security-Policy**. | `__server.ts` |
+| Secrets | Aucun dans le bundle du navigateur : contrôlé à chaque build par la CI. | `scripts/check-bundle-secrets.ts` |
+| Garde-fou | Un test échoue si une route d'import ou de génération vidéo n'a pas de limite. | `tests/rate-limit-coverage.test.ts` |
+
+### La Content-Security-Policy : en observation d'abord
+
+Une CSP fausse d'une seule adresse éteint la publicité, le professeur virtuel ou Python pour tout le monde. Elle est donc livrée en deux étages :
+
+- **le socle, toujours appliqué** : pas de plugin, pas de `<base>` étranger, pas d'affichage dans le cadre d'un autre site ;
+- **la politique complète, en observation** (`Content-Security-Policy-Report-Only`) : le navigateur signale ce qu'elle bloquerait, sans rien bloquer. Chaque signalement est une ligne `[csp] directive ← adresse` dans les journaux Railway.
+
+**Pour la rendre bloquante** : après quelques jours d'usage réel (publicité, Python, tableau blanc, professeur virtuel), s'il n'y a plus de ligne `[csp]`, ajoute `CSP_ENFORCE=true` sur le service web. S'il y en a, donne-moi la ligne : j'ajoute l'adresse légitime à la politique. Pour revenir en arrière, supprime la variable.
+
+Vérifié en local le 14 nov. 2026 sur l'accueil, la connexion, les tarifs, le tableau de bord, le chat, les Karteikarten et les réglages : aucun blocage. Non vérifiables en local (pas de clés) : AdSense, PostHog, Sentry, HeyGen. C'est la raison de l'étage d'observation.
+
+**Contrôler les secrets à la main** : `bun run build:web` puis `bun packages/web/scripts/check-bundle-secrets.ts`.
+

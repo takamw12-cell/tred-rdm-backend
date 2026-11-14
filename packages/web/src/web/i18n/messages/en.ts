@@ -534,6 +534,8 @@ export const en: Messages = {
     generatedKlausur: "Generated mock Klausur",
   },
   library: {
+    tooLarge: "This file is too large (50 MB maximum).",
+    rateLimited: "Too many imports in a short time. Try again in an hour.",
     wait: {
       title: "Importing your document",
       uploading: "Uploading …",

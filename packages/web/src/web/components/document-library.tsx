@@ -63,6 +63,9 @@ function guessKind(name: string): DocKind {
   return "other";
 }
 
+/** Même plafond que le serveur (api/lib/upload-guard.ts). */
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+
 export function DocumentLibrary({
   activeId,
   semesterId = null,
@@ -100,6 +103,13 @@ export function DocumentLibrary({
       track("upload_failed", { ext, reason: "format" });
       return;
     }
+    // 50 Mo au plus (même plafond que le serveur, api/lib/upload-guard.ts) :
+    // refusé ici, avant de faire monter le fichier pour rien.
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setUploadError(t("library.tooLarge"));
+      track("upload_failed", { ext, reason: "too_large" });
+      return;
+    }
 
     try {
       setProgress(t("library.processing"));
@@ -123,6 +133,8 @@ export function DocumentLibrary({
         if (code === "unsupported_format") setUploadError(t("library.onlyPdf"));
         else if (code === "no_text") setUploadError(t("library.scanned"));
         else if (code === "scan_unreadable") setUploadError(t("library.scanUnreadable"));
+        else if (code === "file_too_large") setUploadError(t("library.tooLarge"));
+        else if (code === "RATE_LIMITED") setUploadError(t("library.rateLimited"));
         else setUploadError(t("library.uploadFailed", { msg: code ?? fallback }));
       };
 
