@@ -82,8 +82,9 @@ import { extractInBackground } from "./lib/extract-queue";
 import { importQueue, newImportJobId, queueConfigured, queueDepths, queueReady, warmQueues } from "./lib/queue";
 import { registerJobRoutes } from "./routes/jobs";
 import { renderTikz } from "./lib/tikz";
-import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { s3, S3_BUCKET } from "./lib/s3";
+import { storedObjectReader } from "./lib/document-storage";
 import { selectRelevantContext } from "./lib/retrieval";
 import { chercherDansDocuments } from "./lib/document-search";
 import { searchYoutube, youtubeConfigured } from "./lib/youtube";
@@ -2148,26 +2149,16 @@ app.post("/api/documents/upload-batch", async (c) => {
 // ── L'original d'un document, pour son propriétaire ───────────────────────
 // Le lecteur PDF de l'app lit le fichier ICI, sur notre origine : la session
 // décide, et pour qui n'est pas le propriétaire le document n'existe pas (404,
-// comme un identifiant inventé). Voir lib/document-stream.ts.
-/** Au-delà, une plage d'octets n'est plus gardée en mémoire : elle part en flux. */
-const STREAM_BUFFER_MAX = 4 * 1024 * 1024;
-
+// comme un identifiant inventé). Voir lib/document-stream.ts ; la lecture dans
+// le stockage (R2) est dans lib/document-storage.ts, testée contre un R2
+// simulé (tests/document-stream-r2.test.ts).
 app.get("/api/documents/:id/stream", async (c) => {
   const session = await requestSession(c.req.raw);
   return streamDocument(
     { userId: session?.user.id ?? null, documentId: c.req.param("id"), range: c.req.header("range") },
     {
       findOwned: (documentId, userId) => ownedDocumentFile(db, documentId, userId),
-      getObject: async (fileKey, range) => {
-        const obj = await s3.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: fileKey, ...(range ? { Range: range } : {}) }));
-        if (!obj.Body) throw Object.assign(new Error("original vide"), { name: "NoSuchKey" });
-        // Une plage de lecteur (256 Ko, quelques Mo au plus) part en octets :
-        // sa taille est annoncée. Un fichier entier ou une très grande plage
-        // part en flux, sans jamais tenir en mémoire.
-        const small = Boolean(range) && (obj.ContentLength ?? Number.POSITIVE_INFINITY) <= STREAM_BUFFER_MAX;
-        const body = small ? await obj.Body.transformToByteArray() : (obj.Body.transformToWebStream() as ReadableStream<Uint8Array>);
-        return { body, contentLength: obj.ContentLength, contentRange: obj.ContentRange };
-      },
+      getObject: storedObjectReader(s3, S3_BUCKET),
       mime: storageMime,
     },
   );
