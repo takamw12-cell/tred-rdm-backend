@@ -85,21 +85,24 @@ function debutDeJourneeBerlin(maintenant: Date): number {
  * Renvoie `true` à une seule réplique. Le `UPDATE` conditionnel est atomique :
  * deux répliques qui l'exécutent en même temps ne peuvent pas toutes deux
  * toucher une ligne.
+ *
+ * `cle` : la tâche verrouillée. Le résumé du matin (morning-digest-job.ts)
+ * prend le même verrou sous sa propre clé — une ligne de `job_run` par tâche.
  */
-async function prendreLeVerrou(maintenant: Date): Promise<boolean> {
+export async function prendreLeVerrou(maintenant: Date, cle: string = JOB): Promise<boolean> {
   const debut = debutDeJourneeBerlin(maintenant);
 
   // La ligne doit exister avant de pouvoir être verrouillée. `DO NOTHING` rend
   // l'appel sans effet dès la deuxième fois.
   await db
     .insert(jobRun)
-    .values({ key: JOB, ranAt: 0, note: "" })
+    .values({ key: cle, ranAt: 0, note: "" })
     .onConflictDoNothing();
 
   const res = await db
     .update(jobRun)
     .set({ ranAt: maintenant.getTime() })
-    .where(and(eq(jobRun.key, JOB), lte(jobRun.ranAt, debut)));
+    .where(and(eq(jobRun.key, cle), lte(jobRun.ranAt, debut)));
 
   return ((res as unknown as { rowsAffected?: number }).rowsAffected ?? 0) > 0;
 }

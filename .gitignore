@@ -92,6 +92,8 @@ packages/web/scripts/*
 # Contrôle « aucun secret dans le bundle du navigateur » (lancé par la CI après le build).
 !packages/web/scripts/bundle-secrets.ts
 !packages/web/scripts/check-bundle-secrets.ts
+# Le résumé du matin, à la demande (voir GUIDE_FOUNDER.md, « Résumé du matin »).
+!packages/web/scripts/resume-lancement.ts
 _a-supprimer/
 
 # Sauvegardes des scripts de correctif

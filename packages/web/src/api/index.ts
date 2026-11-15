@@ -105,6 +105,7 @@ import {
 } from "./lib/plan";
 import { notifyExerciseReady } from "./lib/push";
 import { startEveningReminder } from "./lib/evening-reminder";
+import { startMorningDigest } from "./lib/morning-digest-job";
 import { startRetentionHeartbeat } from "./lib/retention/heartbeat";
 import { detectDocumentDenial } from "./lib/denial-guard";
 import { applySubscription, endSubscription } from "./lib/billing";
@@ -158,6 +159,10 @@ startEveningReminder();
 // L'agent de rétention (lib/retention/) : un cycle toutes les 12 h entre 9 h
 // et 20 h à Berlin — EN PAUSE tant que /admin/retention ne l'a pas activé.
 startRetentionHeartbeat();
+// Le résumé du matin : à 8 h (Berlin), un e-mail aux adresses ADMIN_EMAILS —
+// « X visiteurs, Y inscriptions, Z imports, W vidéos générées » et le détail
+// par vidéo. Un envoi par jour (verrou en base) — voir lib/morning-digest-job.ts.
+startMorningDigest();
 
 // ── Limitation de débit ───────────────────────────────────────────────────
 // Montée AVANT tout le reste : une requête refusée ne doit toucher ni la

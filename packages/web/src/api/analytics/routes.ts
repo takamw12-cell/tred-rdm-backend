@@ -38,7 +38,8 @@ function logConfigOnce() {
   console.log("[analytics] PostHog config", JSON.stringify(posthogEnvReport()));
 }
 
-async function hogql(query: string): Promise<unknown[][]> {
+/** Aussi utilisé par le résumé du matin (lib/morning-digest-job.ts) : visiteurs par lien de campagne. */
+export async function hogql(query: string): Promise<unknown[][]> {
   const res = await fetch(`${POSTHOG_API()}/api/projects/${encodeURIComponent(process.env.POSTHOG_PROJECT_ID!)}/query/`, {
     method: "POST",
     headers: {

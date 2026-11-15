@@ -953,3 +953,62 @@ Dépose tes fichiers dans `packages/video/public/facecam/` avec ces noms, puis r
 - **Lien** : voir « Suivi des campagnes » plus haut (un seul lien de profil sur TikTok).
 - Zones sûres : les textes évitent le haut (barre TikTok), la droite (boutons) et le dernier quart (légende).
 
+## Résumé du matin : l'e-mail de 8 h (15 nov. 2026)
+
+**Ce que tu reçois.** Chaque jour à 8 h (heure de Berlin), le serveur envoie aux adresses de `ADMIN_EMAILS` :
+
+> 12 visiteurs, 3 inscriptions, 5 imports, 2 vidéos générées
+
+sur les dernières 24 h, puis une ligne par lien de campagne — donc par vidéo — avec visiteurs et inscriptions, sur 24 h et sur 7 jours. C'est là que tu vois si la vidéo 1 amène plus de trafic que la 2 ou la 3.
+
+**D'où viennent les chiffres.**
+
+- Inscriptions, imports, vidéos générées : la base de TRED. Exacts, pour tous les comptes. « Vidéos générées » = les « Als Video erklären » terminées ; celles en échec sont signalées à part.
+- Visiteurs : PostHog, donc **seulement les personnes qui ont accepté la mesure d'audience**. C'est un minimum, pas un total — l'e-mail le rappelle. Pour comparer deux vidéos entre elles, le chiffre reste valable.
+
+**Pour comparer les vidéos, il faut un lien par vidéo** (`utm_content=sk1`, `sk2`, `sk3`) : voir « Suivi des campagnes » plus haut. Avec le seul lien du profil TikTok, tout arrive sur la ligne `bio`.
+
+**Réglages** (rien à faire, tout est déjà en place sur Railway) : `ADMIN_EMAILS` (destinataires), `RESEND_API_KEY` + `MAIL_FROM` (envoi), `POSTHOG_PERSONAL_API_KEY` + `POSTHOG_PROJECT_ID` (visiteurs ; sans elles l'e-mail part quand même, avec « visiteurs non disponibles »). Pour couper l'e-mail : `DISABLE_MORNING_DIGEST=true`.
+
+**Comment ça marche.** Même construction que la relance du soir : une boucle dans le serveur, vérifiée tous les quarts d'heure, et un verrou en base (`job_run`, clé `morning_digest`) pour un seul envoi par jour. Si le serveur redémarre à 8 h, l'envoi est rattrapé jusqu'à midi. Dans les journaux Railway : `[resume] … — 1/1 e-mail(s) partis`. Code : `packages/web/src/api/lib/morning-digest.ts` (calcul et texte) et `morning-digest-job.ts` (boucle, envoi).
+
+**À la demande**, depuis ta machine (Railway CLI) :
+
+```
+railway run bun packages/web/scripts/resume-lancement.ts            # l'affiche
+railway run bun packages/web/scripts/resume-lancement.ts --envoyer  # l'envoie aussi
+```
+
+## Lecteur PDF et R2 : ce qui est testé, et comment le vérifier en production (15 nov. 2026)
+
+**Ce qui est testé automatiquement** (`tests/document-stream-r2.test.ts`, à chaque push). Le test lance un faux R2 local qui répond comme le vrai (requêtes signées obligatoires, plages d'octets, erreurs en XML) et fait passer dessus le vrai code : la requête de propriété, la route, le lecteur de stockage et le client S3 construit comme en production. Il garantit que :
+
+- seule la propriétaire fait partir une requête vers R2 ;
+- une autre étudiante connectée reçoit **404**, la même réponse que pour un identifiant inventé, et R2 ne voit passer **aucune** requête ;
+- la clé lue dans R2 vient de la base, jamais de l'adresse appelée ;
+- un original disparu donne 404, un R2 en panne ou des identifiants refusés donnent 502, sans rien révéler.
+
+**Ce que ce test ne prouve pas** : que TON bucket, TES clés et TON endpoint répondent. Ça, seul un essai réel le dit. Deux minutes :
+
+1. Connecte-toi sur www.tred-tutor.de, ouvre le Hörsaal, « Meine Kurse », et clique l'œil d'un PDF importé récemment (ou un badge de citation dans une réponse).
+2. Le PDF s'affiche page par page : R2 répond. C'est tout.
+3. S'il ne s'affiche pas : dans les journaux Railway du service TRED, cherche `[stream]`. `stockage indisponible` suivi d'un nom (`InvalidAccessKeyId`, `SignatureDoesNotMatch`, `NoSuchBucket`…) désigne la variable `S3_*` en cause. Aucune ligne `[stream]` et pas de PDF : le document a été importé avant que les originaux soient gardés (il n'a que son texte) — réimporte-le.
+
+Déjà vérifié sans compte : sans session, la route répond 401.
+
+## Lisibilité : textes mesurés contre le fond réel (15 nov. 2026)
+
+Le panneau « Meine Kurse » du Hörsaal était posé à même la photo sombre avec l'encre du thème clair. Il est maintenant en verre bleu nuit, texte blanc et gris clair, dans les deux thèmes.
+
+Pour « toutes les zones où le texte pourrait être illisible », chaque texte visible des pages principales a été mesuré contre les pixels réellement affichés derrière lui (photo, voile, verre compris), en thème clair et sombre. Corrigé :
+
+- **Thème sombre, tableau blanc** : le gras était jaune sur blanc, les en-têtes de tableau encre sur bleu nuit, « Vorlesen » et « Melden » gris clair sur blanc. Le tableau blanc garde désormais les couleurs du thème clair.
+- **Pied de page** (Impressum, Datenschutz, AGB, Widerruf) : gris sur la photo, à peine lisible dans la salle sombre. Blanc dans la salle sombre, encre du thème ailleurs.
+- **Sous-titres et notes posés sur la photo** (Einstellungen, Übungen, Wörterbuch, Credits, Preise) : même traitement.
+- **Badges « In Bearbeitung » / « Gemeistert »** et chiffres jaunes de la page Credits en thème clair : jaune ou vert pâle sur fond clair, remplacés par un ambre et un vert foncés.
+- **Tableau** : gris des libellés un cran plus foncé ; texte d'invite de la zone de saisie ; sous-titre du professeur.
+- **Recommandations du Dashboard** : fond plus opaque derrière le texte blanc.
+- Champ de recherche du Wörterbuch, prix barré de la page Preise, ligne choisie des Einstellungen en thème sombre.
+
+Restent volontairement pâles : les boutons désactivés.
+
