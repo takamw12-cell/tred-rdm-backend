@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { BookOpenCheck, Check, FileText, Loader2, Quote, RotateCcw, Scale, Stethoscope, Trophy, Volume2, VolumeX, X } from "lucide-react";
+import { DocumentViewer } from "@/components/document-viewer";
 import { PageContainer, PageHeader, Reveal } from "@/components/page";
 import { ProfessorPortrait } from "@/components/professor-portrait";
 import { useT } from "@/i18n";
@@ -36,6 +37,8 @@ export default function FallCheckPage() {
   const [state, setState] = useState<ChallengeState>(CHALLENGE_START);
   const [picked, setPicked] = useState<number | null>(null);
   const [muted, setMuted] = useState(soundMuted);
+  /** Le lecteur de l'original, ouvert sur la page de la preuve. */
+  const [reader, setReader] = useState<{ page: number; quote: string } | null>(null);
 
   const chosenDoc = docId || docs[0]?.id || "";
   const total = challenge?.questions.length ?? 0;
@@ -71,6 +74,7 @@ export default function FallCheckPage() {
   );
   const next = useCallback(() => setPicked(null), []);
   function leave() {
+    setReader(null);
     setChallenge(null);
     setPicked(null);
     setState(CHALLENGE_START);
@@ -84,14 +88,17 @@ export default function FallCheckPage() {
   useEffect(() => {
     if (!challenge) return;
     function onKey(e: KeyboardEvent) {
+      if (e.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(e.target.tagName) && e.key === "Enter") return;
       if (e.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+      // Lecteur ouvert : ses propres touches (← → + −) ; le jeu attend.
+      if (reader) return;
       if (picked !== null && e.key === "Enter") return next();
       const i = "1234".indexOf(e.key) >= 0 ? "1234".indexOf(e.key) : "abcd".indexOf(e.key.toLowerCase());
       if (i >= 0 && e.key.length === 1) pickOption(i);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [challenge, picked, next, pickOption]);
+  }, [challenge, picked, next, pickOption, reader]);
 
   const right = picked !== null && current ? picked === current.correct : null;
 
@@ -286,15 +293,26 @@ export default function FallCheckPage() {
                       {picked !== null && (
                         <motion.div initial={reduced ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={SPRING} className="space-y-3" data-testid="fallcheck-feedback" data-right={right}>
                           <p className={cn("text-sm font-semibold", right ? "text-[#86EFAC]" : "text-[#FCA5A5]")}>{right ? t("fallcheck.correct") : t("fallcheck.wrong", { answer: current.options[current.correct] })}</p>
-                          <figure className="m-0 rounded-xl border-l-2 border-[#EAB308] bg-[#EAB308]/[0.07] p-4">
-                            <figcaption className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-[#EAB308]" data-testid="fallcheck-source">
+                          {/* La preuve se touche : l'original s'ouvre à cette page, la phrase surlignée. */}
+                          <button
+                            type="button"
+                            onClick={() => setReader({ page: current.page, quote: current.quote })}
+                            aria-label={t("fallcheck.openSource", { doc: challenge.title, page: current.page })}
+                            data-testid="fallcheck-open-source"
+                            className="group block w-full rounded-xl border-l-2 border-[#EAB308] bg-[#EAB308]/[0.07] p-4 text-left transition-colors hover:bg-[#EAB308]/[0.13] focus-visible:ring-2 focus-visible:ring-[#EAB308] focus-visible:outline-none"
+                          >
+                            <span className="mb-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs font-semibold text-[#EAB308]" data-testid="fallcheck-source">
                               <Quote className="size-3.5" />
                               {t("fallcheck.source", { doc: challenge.title, page: current.page })}
-                            </figcaption>
-                            <blockquote className="m-0 text-sm leading-relaxed text-white/90" data-testid="fallcheck-quote">
+                              <span className="ml-auto inline-flex items-center gap-1 rounded-md bg-[#EAB308]/15 px-2 py-0.5 text-[11px] transition-colors group-hover:bg-[#EAB308] group-hover:text-[#0F172A]">
+                                <FileText className="size-3" />
+                                {t("fallcheck.openHint")}
+                              </span>
+                            </span>
+                            <span className="block text-sm leading-relaxed text-white/90" data-testid="fallcheck-quote">
                               „{current.quote}“
-                            </blockquote>
-                          </figure>
+                            </span>
+                          </button>
                           <p className="text-sm leading-relaxed text-white/80">{current.explanation}</p>
                           <div className="flex justify-end">
                             <button type="button" onClick={next} data-testid="fallcheck-next" className="inline-flex min-h-11 items-center rounded-xl bg-[#EAB308] px-6 text-sm font-semibold text-[#0F172A] transition-[transform,filter] hover:brightness-105 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none active:scale-[0.99]">
@@ -311,6 +329,9 @@ export default function FallCheckPage() {
           )}
         </div>
       </Reveal>
+
+      {/* Le même lecteur que pour les citations du tuteur : l'original, réservé à son propriétaire. */}
+      <DocumentViewer docId={reader && challenge ? challenge.documentId : null} page={reader?.page ?? null} highlight={reader?.quote ?? null} onClose={() => setReader(null)} />
     </PageContainer>
   );
 }

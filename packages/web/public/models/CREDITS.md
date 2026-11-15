@@ -19,6 +19,12 @@ texte d'introduction du modèle.
   (axe Y vers le haut), centrés, colorés, puis simplifiés et compressés
   (meshopt). Script : `models-pipeline/build-heart.mjs`.
 
+## engineering/turbofan.glb
+
+- **Source** : « Turbofan Jet Engine Cutaway », Grab3D. **Licence** : CC0 1.0
+  (domaine public). Détail, origine et modifications :
+  `engineering/CREDITS.md`.
+
 ## ../hdr/studio-small-03-1k.hdr (éclairage de la scène)
 
 - **Source** : « Studio Small 03 », Greg Zaal, Poly Haven, résolution 1k.

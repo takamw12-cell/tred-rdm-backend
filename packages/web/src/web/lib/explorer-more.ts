@@ -210,15 +210,23 @@ export const surfaceHeight = (x: number, y: number) => Math.sin(x) + Math.cos(y)
 /** Un point (x, y) du plan → sa place dans la scène. */
 export const surfacePoint = (x: number, y: number): [number, number, number] => [x * SURFACE.scale, surfaceHeight(x, y) * SURFACE.scale, y * SURFACE.scale];
 
+/** Le gradient de f(x, y) = sin x + cos y. */
+export const surfaceGradient = (x: number, y: number): [number, number] => [Math.cos(x), -Math.sin(y)];
+/** Un pas de descente de gradient : (x, y) − η·∇f. Les billes de la scène avancent ainsi. */
+export function descend(x: number, y: number, eta: number): [number, number] {
+  const [gx, gy] = surfaceGradient(x, y);
+  return [x - eta * gx, y - eta * gy];
+}
+
 export const MATH_SURFACE: ExplorerModel = {
   id: "surface",
   discipline: "mathematics",
   name: L("Fläche z = sin x + cos y", "Surface z = sin x + cos y", "Surface z = sin x + cos y", "Superficie z = sin x + cos y"),
   intro: L(
-    "Der Graph einer Funktion von zwei Variablen. Drehe die Fläche und tippe auf einen Punkt: Gipfel, Tal, Sattel.",
-    "The graph of a function of two variables. Turn the surface and tap a point: peak, valley, saddle.",
-    "Le graphe d'une fonction de deux variables. Fais tourner la surface et touche un point : sommet, creux, col.",
-    "La gráfica de una función de dos variables. Gira la superficie y toca un punto: cima, valle, puerto.",
+    "Der Graph einer Funktion von zwei Variablen. Drehe die Fläche und tippe auf einen Punkt: Gipfel, Tal, Sattel. Die Kugeln rollen in Richtung des steilsten Abstiegs (−∇f).",
+    "The graph of a function of two variables. Turn the surface and tap a point: peak, valley, saddle. The balls roll in the direction of steepest descent (−∇f).",
+    "Le graphe d'une fonction de deux variables. Fais tourner la surface et touche un point : sommet, creux, col. Les billes roulent dans la direction de la plus grande pente (−∇f).",
+    "La gráfica de una función de dos variables. Gira la superficie y toca un punto: cima, valle, puerto. Las bolas ruedan en la dirección de máximo descenso (−∇f).",
   ),
   bounds: { min: [-2.7, -1.9, -2.7], max: [2.7, 1.9, 2.7] },
   camera: [5.8, 5.2, 7.8],
@@ -291,12 +299,12 @@ export const ATOM_SHELLS = { k: { radius: 1.05, electrons: 2 }, l: { radius: 2.0
 export const ATOM: ExplorerModel = {
   id: "atom",
   discipline: "physics",
-  name: L("Kohlenstoffatom (Schalenmodell)", "Carbon atom (shell model)", "Atome de carbone (modèle en couches)", "Átomo de carbono (modelo de capas)"),
+  name: L("Kohlenstoffatom", "Carbon atom", "Atome de carbone", "Átomo de carbono"),
   intro: L(
-    "Ein Kohlenstoffatom im Schalenmodell: 6 Protonen und 6 Neutronen im Kern, 6 Elektronen auf zwei Schalen. Tippe auf einen Punkt.",
-    "A carbon atom in the shell model: 6 protons and 6 neutrons in the nucleus, 6 electrons on two shells. Tap a point.",
-    "Un atome de carbone dans le modèle en couches : 6 protons et 6 neutrons dans le noyau, 6 électrons sur deux couches. Touche un point.",
-    "Un átomo de carbono en el modelo de capas: 6 protones y 6 neutrones en el núcleo, 6 electrones en dos capas. Toca un punto.",
+    "Ein Kohlenstoffatom: 6 Protonen und 6 Neutronen im Kern, 6 Elektronen. Die Kreise sind das Schalenmodell; die Punktwolken sind aus den Orbitalen 1s, 2s und 2p berechnet (Form wie beim Wasserstoff, Größen nicht maßstäblich). Tippe auf einen Punkt.",
+    "A carbon atom: 6 protons and 6 neutrons in the nucleus, 6 electrons. The circles are the shell model; the point clouds are computed from the 1s, 2s and 2p orbitals (hydrogen-like shapes, sizes not to scale). Tap a point.",
+    "Un atome de carbone : 6 protons et 6 neutrons dans le noyau, 6 électrons. Les cercles sont le modèle en couches ; les nuages de points sont calculés à partir des orbitales 1s, 2s et 2p (formes de type hydrogène, tailles non à l'échelle). Touche un point.",
+    "Un átomo de carbono: 6 protones y 6 neutrones en el núcleo, 6 electrones. Los círculos son el modelo de capas; las nubes de puntos se calculan a partir de los orbitales 1s, 2s y 2p (formas de tipo hidrógeno, tamaños no a escala). Toca un punto.",
   ),
   bounds: { min: [-2.4, -2.4, -2.4], max: [2.4, 2.4, 2.4] },
   camera: [2.6, 3.4, 6.2],

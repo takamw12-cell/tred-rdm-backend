@@ -57,6 +57,14 @@ describe("branchement", () => {
     expect(PAGE).toContain('t("fallcheck.source", { doc: challenge.title, page: current.page })');
   });
 
+  test("la preuve est un bouton : il ouvre l'original à la page citée, la phrase surlignée (même lecteur que la Tafel)", () => {
+    expect(PAGE).toContain('import { DocumentViewer } from "@/components/document-viewer";');
+    expect(PAGE).toContain("onClick={() => setReader({ page: current.page, quote: current.quote })}");
+    expect(PAGE).toContain("<DocumentViewer docId={reader && challenge ? challenge.documentId : null} page={reader?.page ?? null} highlight={reader?.quote ?? null}");
+    // Lecteur ouvert : Entrée ne fait pas avancer le jeu derrière lui.
+    expect(PAGE).toContain("if (reader) return;");
+  });
+
   test("barre de progression accessible, sons coupables, clavier", () => {
     expect(PAGE).toContain('<progress className="sr-only" value={state.index} max={total}');
     expect(PAGE).toContain("setSoundMuted(!muted)");

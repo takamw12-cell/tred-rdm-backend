@@ -130,6 +130,12 @@ describe("le chargeur de fichiers .glb", () => {
     expect(glbUrl("zelle2")).toBe("/models/zelle2.glb");
   });
 
+  test("un dossier de filière est permis, et lui seul", () => {
+    expect(glbUrl("engineering/pumpe")).toBe("/models/engineering/pumpe.glb");
+    expect(glbUrl("medicine/heart")).toBe("/models/medicine/heart.glb");
+    for (const bad of ["secret/pumpe", "engineering/../x", "engineering/a/b", "engineering/"]) expect(glbUrl(bad)).toBeNull();
+  });
+
   test("tout le reste est refusé : autre dossier, autre site, majuscules, vide", () => {
     for (const bad of ["../secret", "a/b", "https://evil.example/x", "//evil.example/x", "Herz", "x.glb", "", null, undefined, "a".repeat(80)]) expect(glbUrl(bad as string)).toBeNull();
   });

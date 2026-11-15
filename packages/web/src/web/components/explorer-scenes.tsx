@@ -1,9 +1,11 @@
 import { Component, Suspense, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
 import * as THREE from "three";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
-import { ActiveContext, HIGHLIGHT, Part, Skin } from "@/components/explorer-kit";
-import { ATOM_SHELLS, HEART_GLB, HEART_PART_OF, NORM_LEVELS, SURFACE, surfaceHeight, surfacePoint } from "@/lib/explorer-more";
+import { ActiveContext, HIGHLIGHT, Part, SelectContext, Skin } from "@/components/explorer-kit";
+import { EXPLORER_MODELS, TURBOFAN_FILE } from "@/lib/explorer-models";
+import { ATOM_SHELLS, descend, HEART_GLB, HEART_PART_OF, NORM_LEVELS, SURFACE, surfaceGradient, surfaceHeight, surfacePoint } from "@/lib/explorer-more";
+import { ORBITALS, sampleOrbital } from "@/lib/orbitals";
 
 /**
  * Les scènes des autres filières (2026-11-15) : cellule, cœur, surface
@@ -229,7 +231,67 @@ function HeartAnatomy({ playing }: { playing: boolean }) {
   );
 }
 
-/** Si le fichier du cœur ne se charge pas, le schéma le remplace : la page ne reste jamais vide. */
+/* ── Ingénierie : le turboréacteur en coupe (Grab3D, CC0) ─────────────────── */
+/**
+ * Le fichier public/models/engineering/turbofan.glb : carter et rotor, avec
+ * leurs textures (couleur, rugosité, métal, relief). Les matières du fichier
+ * passent en rendu physique complet (vernis léger) ; le rotor tourne. Les
+ * pièces ne sont pas des maillages séparés : toucher le modèle choisit le
+ * repère le plus proche du point touché.
+ */
+function TurbofanFile({ playing }: { playing: boolean }) {
+  const { scene } = useGLTF(TURBOFAN_FILE.url, false);
+  const select = useContext(SelectContext);
+  const root = useMemo(() => {
+    const copy = scene.clone(true);
+    copy.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      const physical = new THREE.MeshPhysicalMaterial();
+      THREE.MeshStandardMaterial.prototype.copy.call(physical, mesh.material as THREE.MeshStandardMaterial);
+      physical.clearcoat = 0.25;
+      physical.clearcoatRoughness = 0.35;
+      mesh.material = physical;
+    });
+    return copy;
+  }, [scene]);
+  // Le rotor (soufflante, compresseurs, turbines sur leur arbre) : la pièce qui tourne.
+  const rotor = useRef<THREE.Object3D | null>(null);
+  useEffect(() => {
+    rotor.current = root.getObjectByName(TURBOFAN_FILE.rotor) ?? null;
+  }, [root]);
+  useFrame((_, dt) => {
+    if (playing && rotor.current) rotor.current.rotation.x += Math.min(dt, 0.05) * 1.6;
+  });
+  const onClick = (e: ThreeEvent<MouseEvent>) => {
+    if (e.delta > 6) return;
+    e.stopPropagation();
+    let best: { id: string; d: number } | null = null;
+    for (const h of EXPLORER_MODELS.turbofan.hotspots) {
+      const d = e.point.distanceToSquared(new THREE.Vector3(...h.position));
+      if (!best || d < best.d) best = { id: h.id, d };
+    }
+    if (best) select(best.id);
+  };
+  return (
+    <group scale={TURBOFAN_FILE.scale} position={[0, TURBOFAN_FILE.lift * TURBOFAN_FILE.scale, 0]} onClick={onClick}>
+      <primitive object={root} />
+    </group>
+  );
+}
+
+/** Le turboréacteur : le fichier ; `fallback` (la coupe construite) s'il ne se charge pas. */
+export function TurbofanModel({ playing, fallback }: { playing: boolean; fallback: ReactNode }) {
+  return (
+    <ModelFileBoundary fallback={fallback}>
+      <Suspense fallback={null}>
+        <TurbofanFile playing={playing} />
+      </Suspense>
+    </ModelFileBoundary>
+  );
+}
+
+/** Si le fichier d'un modèle ne se charge pas, la scène construite le remplace : la page ne reste jamais vide. */
 class ModelFileBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() {
@@ -269,7 +331,50 @@ function Dot({ id, at }: { id: string; at: [number, number, number] }) {
   );
 }
 
-export function Surface() {
+/** Départs des billes : répartis sur le domaine, loin du minimum. */
+const ROLLER_STARTS: [number, number][] = [[1.2, 0.4], [2.6, -0.6], [0.3, -1.4], [2.1, 1.5], [-0.2, 0.5], [1.7, -2.2], [0.9, 2.3], [2.9, 0.9]];
+
+/**
+ * Des billes qui suivent la plus grande pente : à chaque image, (x, y) avance
+ * de −η·∇f. Elles finissent toutes au minimum, puis repartent. Rien n'est
+ * mis en scène à la main : le chemin EST la descente de gradient.
+ */
+function Rollers({ playing }: { playing: boolean }) {
+  const balls = useRef<(THREE.Mesh | null)[]>([]);
+  const at = useRef(ROLLER_STARTS.map(([x, y]) => ({ x, y, rest: 0 })));
+  useFrame((_, dt) => {
+    if (!playing) return;
+    const d = Math.min(dt, 0.05);
+    at.current.forEach((p, i) => {
+      const [gx, gy] = surfaceGradient(p.x, p.y);
+      if (Math.hypot(gx, gy) < 0.04) {
+        // Arrivée : une courte pause au fond, puis retour au départ.
+        p.rest += d;
+        if (p.rest > 1.2) Object.assign(p, { x: ROLLER_STARTS[i]![0], y: ROLLER_STARTS[i]![1], rest: 0 });
+      } else {
+        [p.x, p.y] = descend(p.x, p.y, d * 0.9);
+        p.y = Math.max(-SURFACE.range, Math.min(SURFACE.range, p.y));
+      }
+      const [sx, sy, sz] = surfacePoint(p.x, p.y);
+      balls.current[i]?.position.set(sx, sy + 0.07, sz);
+    });
+  });
+  return (
+    <group>
+      {ROLLER_STARTS.map(([x, y], i) => {
+        const [sx, sy, sz] = surfacePoint(x, y);
+        return (
+          <mesh key={i} ref={(m) => void (balls.current[i] = m)} position={[sx, sy + 0.07, sz]} raycast={() => null}>
+            <sphereGeometry args={[0.07, 20, 16]} />
+            <meshPhysicalMaterial color="#F8FAFC" metalness={0.9} roughness={0.15} clearcoat={1} />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+}
+
+export function Surface({ playing }: { playing: boolean }) {
   const { surface, grid } = useMemo(() => {
     const side = 2 * SURFACE.range * SURFACE.scale;
     const surface = new THREE.PlaneGeometry(side, side, 72, 72);
@@ -315,6 +420,7 @@ export function Surface() {
         <lineBasicMaterial color="#0F172A" transparent opacity={0.35} />
       </lineSegments>
       <primitive object={arrow} />
+      <Rollers playing={playing} />
       <Dot id="maximum" at={surfacePoint(Math.PI / 2, 0)} />
       <Dot id="minimum" at={surfacePoint(-Math.PI / 2, Math.PI)} />
       <Dot id="saddle" at={surfacePoint(Math.PI / 2, Math.PI)} />
@@ -362,7 +468,23 @@ export function Atom({ playing }: { playing: boolean }) {
       }),
     [],
   );
-  const cloud = useContext(ActiveContext) === "limits";
+  const active = useContext(ActiveContext);
+  const cloud = active === "limits";
+  const clouds = useRef<THREE.Group>(null);
+  const orbitals = useMemo(
+    () =>
+      ORBITALS.map((o, i) => {
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute("position", new THREE.BufferAttribute(sampleOrbital(o.kind, o.count, o.scale, o.maxR, 17 + i), 3));
+        return { ...o, geometry };
+      }),
+    [],
+  );
+  useEffect(() => () => orbitals.forEach((o) => o.geometry.dispose()), [orbitals]);
+  useFrame((_, dt) => {
+    // Les nuages tournent lentement : on en perçoit le volume.
+    if (playing && clouds.current) clouds.current.rotation.y += Math.min(dt, 0.05) * 0.12;
+  });
   return (
     <group>
       <Part id="nucleus">
@@ -373,14 +495,22 @@ export function Atom({ playing }: { playing: boolean }) {
           </mesh>
         ))}
       </Part>
-      <Shell id="k-shell" radius={ATOM_SHELLS.k.radius} electrons={ATOM_SHELLS.k.electrons} speed={1.9} playing={playing} />
-      <Shell id="valence" radius={ATOM_SHELLS.l.radius} electrons={ATOM_SHELLS.l.electrons} speed={0.9} playing={playing} />
-      {/* « Limites du modèle » : le nuage de probabilité, à la place des orbites. */}
+      {/* Le modèle en couches (cercles, électrons qui tournent) — retiré quand on en montre les limites. */}
+      {!cloud && (
+        <>
+          <Shell id="k-shell" radius={ATOM_SHELLS.k.radius} electrons={ATOM_SHELLS.k.electrons} speed={1.9} playing={playing} />
+          <Shell id="valence" radius={ATOM_SHELLS.l.radius} electrons={ATOM_SHELLS.l.electrons} speed={0.9} playing={playing} />
+        </>
+      )}
+      {/* Les orbitales occupées, tirées de |ψ|² (lib/orbitals.ts). « Limites du modèle » : elles seules restent. */}
       <Part id="limits">
-        <mesh>
-          <sphereGeometry args={[2.25, 40, 28]} />
-          <meshStandardMaterial color={cloud ? HIGHLIGHT : "#A5B4FC"} transparent opacity={cloud ? 0.2 : 0.06} depthWrite={false} side={THREE.BackSide} />
-        </mesh>
+        <group ref={clouds}>
+          {orbitals.map((o) => (
+            <points key={o.kind} geometry={o.geometry} raycast={() => null}>
+              <pointsMaterial color={o.color} size={cloud ? 0.045 : 0.035} sizeAttenuation transparent opacity={cloud || active === o.part ? 0.95 : 0.45} depthWrite={false} blending={THREE.AdditiveBlending} />
+            </points>
+          ))}
+        </group>
       </Part>
     </group>
   );

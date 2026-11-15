@@ -95,12 +95,20 @@ const TURBOFAN: ExplorerModel = {
     fr: "Un turboréacteur double flux à deux arbres, en coupe. Touche un point pour voir ce qui s'y passe.",
     es: "Un turbofán de dos ejes, en corte. Toca un punto para ver qué ocurre allí.",
   },
-  bounds: { min: [-3.1, -1.5, -1.5], max: [3.1, 1.5, 1.5] },
-  camera: [-4.9, 2.6, 6.3],
+  credit: {
+    de: "3D-Modell: „Turbofan Jet Engine Cutaway“, Grab3D, CC0 1.0 (gemeinfrei) – ein generisches Lehrmodell, kein bestimmtes Triebwerk.",
+    en: "3D model: “Turbofan Jet Engine Cutaway”, Grab3D, CC0 1.0 (public domain) – a generic teaching model, not a specific engine.",
+    fr: "Modèle 3D : « Turbofan Jet Engine Cutaway », Grab3D, CC0 1.0 (domaine public) – un modèle pédagogique générique, pas un moteur précis.",
+    es: "Modelo 3D: «Turbofan Jet Engine Cutaway», Grab3D, CC0 1.0 (dominio público): un modelo didáctico genérico, no un motor concreto.",
+  },
+  // Le fichier public/models/engineering/turbofan.glb, agrandi 1,5 fois (TURBOFAN_FILE) :
+  // la soufflante est à droite (x > 0), l'air sort à gauche ; l'axe du moteur est à y = 0,15.
+  bounds: { min: [-2.9, -1.8, -1.6], max: [2.9, 1.8, 1.6] },
+  camera: [2.95, 2.85, 7.05],
   hotspots: [
     {
       id: "fan",
-      position: [-2.42, 1.02, 0.5],
+      position: [1.65, 0.79, 0.64],
       title: { de: "Fan (Bläser)", en: "Fan", fr: "Soufflante (fan)", es: "Fan (soplante)" },
       text: {
         de: "Der Fan saugt die gesamte Luft an und beschleunigt sie. Nur ein kleiner Teil strömt ins Kerntriebwerk – der große Rest fließt außen vorbei und liefert den Großteil des Schubs.",
@@ -123,7 +131,7 @@ const TURBOFAN: ExplorerModel = {
     },
     {
       id: "compressor",
-      position: [-0.75, 0.7, 0.42],
+      position: [0.15, 0.5, 0.35],
       title: { de: "Verdichter", en: "Compressor", fr: "Compresseur", es: "Compresor" },
       text: {
         de: "Schaufelreihe für Schaufelreihe wird die Kernluft zusammengedrückt: Ein Laufrad beschleunigt sie, das feststehende Leitrad dahinter wandelt die Geschwindigkeit in Druck um. Dabei wird die Luft heiß.",
@@ -146,7 +154,7 @@ const TURBOFAN: ExplorerModel = {
     },
     {
       id: "combustor",
-      position: [0.62, 0.62, 0.42],
+      position: [-0.6, 0.65, 0.5],
       title: { de: "Brennkammer", en: "Combustion chamber", fr: "Chambre de combustion", es: "Cámara de combustión" },
       text: {
         de: "Hier wird Kerosin in die verdichtete Luft eingespritzt und verbrannt – bei nahezu konstantem Druck. Die Wärme lässt das Gas sich stark ausdehnen: Das ist die Energie, von der Turbine und Düse leben.",
@@ -169,7 +177,7 @@ const TURBOFAN: ExplorerModel = {
     },
     {
       id: "turbine",
-      position: [1.62, 0.74, 0.42],
+      position: [-1.5, 0.55, 0.4],
       title: { de: "Turbine", en: "Turbine", fr: "Turbine", es: "Turbina" },
       text: {
         de: "Das heiße Gas entspannt sich in der Turbine und gibt dabei Arbeit ab. Die Hochdruckturbine treibt über die äußere Welle den Hochdruckverdichter an, die Niederdruckturbine über die innere Welle den Fan.",
@@ -192,7 +200,7 @@ const TURBOFAN: ExplorerModel = {
     },
     {
       id: "nozzle",
-      position: [2.72, 0.42, 0.3],
+      position: [-2.4, 0.36, 0.21],
       title: { de: "Schubdüse", en: "Exhaust nozzle", fr: "Tuyère", es: "Tobera" },
       text: {
         de: "In der Düse wird das Abgas beschleunigt: Druck wird zu Geschwindigkeit. Schub entsteht, weil das Triebwerk Luft nach hinten schneller ausstößt, als sie vorne ankommt (Impulssatz).",
@@ -253,7 +261,7 @@ const TURBOFAN: ExplorerModel = {
     },
     {
       id: "bypass",
-      position: [0.3, 0.04, 1.17],
+      position: [1.05, 1.05, 0.9],
       title: { de: "Nebenstromkanal", en: "Bypass duct", fr: "Flux secondaire", es: "Flujo secundario" },
       text: {
         de: "Der kalte Nebenstrom umströmt das Kerntriebwerk. Viel Luft nur wenig zu beschleunigen ist effizienter, als wenig Luft stark zu beschleunigen – und deutlich leiser.",
@@ -437,6 +445,13 @@ const GEARBOX: ExplorerModel = {
 export const EXPLORER_MODELS: Record<ExplorerModelId, ExplorerModel> = { turbofan: TURBOFAN, gearbox: GEARBOX, cell: CELL, heart: HEART, surface: MATH_SURFACE, atom: ATOM, norms: NORMS };
 export const MODEL_IDS: ExplorerModelId[] = ["turbofan", "gearbox", "cell", "heart", "surface", "atom", "norms"];
 
+/**
+ * Le turboréacteur livré : coupe pédagogique Grab3D (CC0), deux pièces — le
+ * carter sur son bâti et le rotor, qui tourne autour de l'axe X. Dans le
+ * fichier, le modèle est en mètres, posé au sol ; `lift` le centre.
+ */
+export const TURBOFAN_FILE = { url: "/models/engineering/turbofan.glb", scale: 1.5, lift: -1.1, rotor: "jet-engine_rotor" } as const;
+
 /** Les filières, dans l'ordre des onglets, avec leur nom. */
 export const DISCIPLINES: { id: Discipline; name: LocalText }[] = [
   { id: "engineering", name: { de: "Ingenieurwesen", en: "Engineering", fr: "Ingénierie", es: "Ingeniería" } },
@@ -463,11 +478,13 @@ export function explorerModelFor(question: string): ExplorerModelId | null {
 
 /**
  * Un modèle déposé dans `public/models/` : `/explorer?glb=herz-anatomie`
- * charge `/models/herz-anatomie.glb`. Le nom est restreint à des lettres,
- * chiffres et tirets : il ne peut désigner ni un autre dossier ni un autre site.
+ * charge `/models/herz-anatomie.glb` ; `?glb=engineering/pumpe` charge le fichier
+ * du dossier de la filière. Le nom est restreint à des lettres, chiffres et
+ * tirets, précédé au plus d'un dossier de filière : il ne peut désigner ni un
+ * autre dossier ni un autre site.
  */
 export function glbUrl(name: string | null | undefined): string | null {
-  return name && /^[a-z0-9][a-z0-9-]{0,60}$/.test(name) ? `/models/${name}.glb` : null;
+  return name && /^((engineering|medicine|mathematics|physics|law)\/)?[a-z0-9][a-z0-9-]{0,60}$/.test(name) ? `/models/${name}.glb` : null;
 }
 
 export const isModelId = (v: unknown): v is ExplorerModelId => typeof v === "string" && (MODEL_IDS as string[]).includes(v);

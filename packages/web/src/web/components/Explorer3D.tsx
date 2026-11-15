@@ -6,7 +6,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { cameraStart, GEAR, gearCentres, gearPitchPoint, type ExplorerModel, type ExplorerModelId, type Vec3 } from "@/lib/explorer-models";
 import { cn } from "@/lib/utils";
 import { ActiveContext, HIGHLIGHT, Part, SelectContext, Skin } from "@/components/explorer-kit";
-import { Atom, Cell, GltfModel, Heart, Norms, Surface } from "@/components/explorer-scenes";
+import { Atom, Cell, GltfModel, Heart, Norms, Surface, TurbofanModel } from "@/components/explorer-scenes";
 
 /**
  * La scène de l'Explorateur 3D — chargée À LA DEMANDE (React.lazy dans
@@ -648,9 +648,14 @@ class WebGLBoundary extends Component<{ fallback: ReactNode; children: ReactNode
   }
 }
 
+/** Le turboréacteur : le fichier .glb ; la coupe construite reste le repli si le fichier ne se charge pas. */
+function TurbofanScene({ playing }: { playing: boolean }) {
+  return <TurbofanModel playing={playing} fallback={<Turbofan playing={playing} />} />;
+}
+
 /** Une scène par modèle livré. Un modèle venu d'un fichier (`modelUrl`) n'en a pas besoin. */
 const SCENES: Record<ExplorerModelId, ComponentType<{ playing: boolean }>> = {
-  turbofan: Turbofan,
+  turbofan: TurbofanScene,
   gearbox: Gearbox,
   cell: Cell,
   heart: Heart,
