@@ -19,6 +19,7 @@ import { getAccess } from "./lib/access";
 import { isValidSignupName } from "./lib/display-name";
 import { startTrial, type TrialDb } from "./lib/trial";
 import { betaFree } from "./lib/plan";
+import { AUTH_IP_ADDRESS, SESSION_WITHOUT_IP } from "./lib/client-ip";
 
 // Social logins are optional: each is enabled only when its env vars are set.
 const googleEnabled =
@@ -105,6 +106,10 @@ export const auth = betterAuth({
   // BETTER_AUTH_URL d'abord (convention Better Auth), WEBSITE_URL sinon.
   baseURL: process.env.BETTER_AUTH_URL || process.env.WEBSITE_URL,
   database: drizzleAdapter(db, { provider: "sqlite" }),
+  // Reconnaître le visiteur derrière l'edge de Railway (lib/client-ip.ts) :
+  // sans cela, la limite « 3 requêtes / 10 s » de l'inscription et de la
+  // connexion vaut pour TOUS les visiteurs ensemble.
+  advanced: { ipAddress: AUTH_IP_ADDRESS },
   emailAndPassword: {
     enabled: true,
     // Sans ceci, un étudiant qui se trompe de mot de passe à l'inscription
@@ -173,6 +178,9 @@ export const auth = betterAuth({
         before: async (session) => {
           const access = await getAccess(session.userId).catch(() => null);
           if (access && !access.isActive) throw new APIError("FORBIDDEN", { message: "ACCOUNT_DISABLED" });
+          // L'adresse du visiteur compte les tentatives ; elle n'est pas
+          // rangée dans la session (lib/client-ip.ts).
+          return SESSION_WITHOUT_IP;
         },
       },
     },
