@@ -1356,3 +1356,11 @@ Un « worktree » est une deuxième copie de travail du dépôt, sur sa propre b
 ### Limite d'import
 
 100 imports par heure et par compte depuis le 2026-11-16 (10 auparavant). Si tu as un jour ajouté la variable `IMPORT_RATE_PER_HOUR` dans Railway, elle prime sur le code : supprime-la ou mets 100.
+
+### Vérification quotidienne dans le cloud (2026-11-16)
+
+Une routine cloud « TRED - verification quotidienne 8h » tourne chaque jour à 7 h UTC — 8 h à Berlin en hiver, 9 h en été — sans que ton ordinateur soit allumé. Elle est en lecture seule : elle vérifie que le site répond, que les modèles 3D (cœur, turboréacteur, image d'éclairage) sont bien servis, que le dernier déploiement du site et du worker a réussi, et compte les erreurs 5xx des dernières 24 heures dans Railway. Elle n'a accès qu'au connecteur Railway.
+
+- Voir les rapports, la mettre en pause ou la supprimer : `https://claude.ai/code/routines` (chaque passage y apparaît comme une session, le rapport est sa dernière réponse).
+- Elle ne t'envoie pas d'e-mail. Si tu veux recevoir le rapport par e-mail ou sur Slack, demande-le : il faut lui ajouter ce connecteur.
+- En été, pour rester à 8 h, change l'heure de la routine à 6 h UTC.
