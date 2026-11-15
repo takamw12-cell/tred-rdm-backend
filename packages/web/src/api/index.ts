@@ -106,6 +106,7 @@ import {
 import { notifyExerciseReady } from "./lib/push";
 import { startEveningReminder } from "./lib/evening-reminder";
 import { startMorningDigest } from "./lib/morning-digest-job";
+import { recordMastery, weakestConcepts, type MasteryDb } from "./lib/concept-mastery";
 import { startRetentionHeartbeat } from "./lib/retention/heartbeat";
 import { detectDocumentDenial } from "./lib/denial-guard";
 import { applySubscription, endSubscription } from "./lib/billing";
@@ -774,7 +775,11 @@ app.post("/api/agent/messages", async (c) => {
   // Ce que le tuteur a retenu de cette personne. Une requête, plafonnée à
   // huit lignes : au-delà, le prompt s'allonge sans que la réponse gagne.
   const uid = session.user.id;
-  const gaps = await openGaps(uid);
+  // Avec les lacunes, les trois concepts les plus fragiles de CE compte
+  // (lib/concept-mastery.ts) : le tuteur ralentit et vise l'erreur typique.
+  // Les deux lectures partent ensemble ; aucune ne lève si sa table manque.
+  const masteryDb = db as unknown as MasteryDb;
+  const [gaps, weakest] = await Promise.all([openGaps(uid), weakestConcepts(masteryDb, uid, 3).catch(() => [])]);
   // Style VARK choisi dans les réglages. Ne lève jamais (→ « interactive »).
   const learningStyle = await readLearningStyle(uid);
   // Professeur choisi (vestiaire). Ne lève jamais (→ « genius »).
@@ -841,6 +846,11 @@ app.post("/api/agent/messages", async (c) => {
       open: gaps,
       note: (input) => noteGap(uid, { ...input, semesterId: semesterId ?? null }),
       resolve: (label) => resolveGap(uid, label),
+    },
+    // Le compte est celui de la session : l'outil ne peut signaler que pour lui.
+    mastery: {
+      weakest,
+      signal: (input) => recordMastery(masteryDb, uid, input).catch(() => ({ saved: false as const, reason: "invalid" as const })),
     },
     /**
      * La recherche porte sur `rows` — TOUT le corpus visible — et non sur

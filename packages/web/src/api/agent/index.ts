@@ -24,6 +24,7 @@ import { renderDiagram, type DiagramSpec } from "../lib/diagrams";
 import type { Passage } from "../lib/document-search";
 import { markTaskContexts } from "../lib/task-context";
 import { ageLabel } from "../lib/memory-text";
+import { ERROR_TYPES, masteryPromptLines, OUTCOMES, type ConceptState, type MasteryResult, type MasterySignal } from "../lib/concept-mastery";
 import { DEFAULT_LEARNING_STYLE, type LearningStyle } from "../lib/learning-style";
 import { DEFAULT_PROFESSOR, PROFESSORS, type ProfessorId } from "../lib/professors";
 import dedent from "dedent";
@@ -74,6 +75,17 @@ export interface TutorMemory {
   }>;
   /** Marque une lacune comme comblée. */
   resolve: (label: string) => Promise<boolean>;
+}
+
+/**
+ * Le modèle de l'apprenant (lib/concept-mastery.ts) : un score par concept.
+ * Absent = ni liste dans le prompt, ni outil — le comportement d'avant.
+ */
+export interface TutorMastery {
+  /** Les concepts les plus fragiles de la personne, les plus bas d'abord. */
+  weakest: ConceptState[];
+  /** Enregistre ce que la personne vient de montrer sur un concept. */
+  signal: (input: MasterySignal) => Promise<MasteryResult>;
 }
 
 /**
@@ -131,7 +143,11 @@ function buildMemoryBlock(
   memory?: TutorMemory,
   learningStyle: LearningStyle = DEFAULT_LEARNING_STYLE,
   professor: ProfessorId = DEFAULT_PROFESSOR,
+  mastery?: TutorMastery,
 ): string {
+  // Lernstand : les concepts fragiles de CETTE personne, et la consigne de
+  // signaler ce qu'elle montre. Vide sans modèle de l'apprenant.
+  const masteryLines = mastery ? [...masteryPromptLines(mastery.weakest)] : [];
   // Personnalité du professeur choisi : le TON, jamais l'exactitude.
   const personaLines = [
     "DEINE ROLLE (vom Studierenden gewählter Professor):",
@@ -159,7 +175,7 @@ function buildMemoryBlock(
   ];
 
   if (!memory || memory.open.length === 0) {
-    return [...header, ...styleLines].join("\n");
+    return [...header, ...styleLines, ...masteryLines].join("\n");
   }
 
   const lines = memory.open
@@ -189,6 +205,7 @@ function buildMemoryBlock(
     "  liest nicht aus einer Akte vor.",
     "- Im Pr\u00fcfungsmodus: nur beobachten und aufzeichnen, nichts sagen.",
     "",
+    ...masteryLines,
   ].join("\n");
 }
 
@@ -228,6 +245,8 @@ export function buildTutorAgent(opts: {
   codeLang?: string;
   /** Mémoire du tuteur. Absente = comportement d'avant, sans diagnostic. */
   memory?: TutorMemory;
+  /** Modèle de l'apprenant : concepts fragiles + outil lernstand_melden. Absent = rien des deux. */
+  mastery?: TutorMastery;
   /** Style d'apprentissage VARK (réglages). Absent = « interactive ». */
   learningStyle?: LearningStyle;
   /** Professeur choisi (lib/professors.ts). Absent = « genius ». */
@@ -276,7 +295,7 @@ export function buildTutorAgent(opts: {
   precomputedNote?: string | null;
 }) {
   const rule = langRule(opts.locale);
-  const memoryBlock = buildMemoryBlock(opts.memory, opts.learningStyle, opts.professor);
+  const memoryBlock = buildMemoryBlock(opts.memory, opts.learningStyle, opts.professor, opts.mastery);
   const lang = rule.label;
   const student = opts.studentName?.trim() || null;
   const uni = opts.university?.trim() || "FH Aachen";
@@ -2010,6 +2029,39 @@ export function buildTutorAgent(opts: {
               execute: async ({ kurzform }) => ({
                 geschlossen: await opts.memory!.resolve(kurzform),
               }),
+            }),
+          }
+        : {}),
+
+      // ── Lernstand ─────────────────────────────────────────────────────
+      // Le score de maîtrise par concept (lib/concept-mastery.ts). Le compte
+      // vient de la session, côté serveur : l'outil ne reçoit que le concept.
+      // Il ne rend PAS le score : le tuteur ne peut pas le réciter.
+      ...(opts.mastery
+        ? {
+            lernstand_melden: tool({
+              description:
+                "Hält fest, wie sicher der/die Studierende EIN Konzept gerade " +
+                "gezeigt hat. Benutzen, sobald er oder sie SELBST etwas " +
+                "beantwortet, gerechnet oder in eigenen Worten erklärt hat — " +
+                "richtig, teilweise oder falsch. NICHT benutzen, wenn nur eine " +
+                "Frage gestellt oder deiner Erklärung bloß zugestimmt wurde. " +
+                "Höchstens zwei Aufrufe pro Antwort, ein Konzept pro Aufruf. " +
+                "Still benutzen: erwähne den Aufruf nie.",
+              inputSchema: z.object({
+                konzept: z
+                  .string()
+                  .min(2)
+                  .max(80)
+                  .describe("Kurzer, stabiler Fachbegriff, immer gleich geschrieben, z. B. Wärmekapazität, Momentengleichgewicht, Kettenregel"),
+                fach: z.string().max(60).optional().describe("Fach oder Kapitel, z. B. Thermodynamik"),
+                ergebnis: z.enum(OUTCOMES).describe("Was die Person gezeigt hat"),
+                fehlerart: z.enum(ERROR_TYPES).optional().describe("Nur bei teilweise oder falsch: die Art des Fehlers"),
+              }),
+              execute: async ({ konzept, fach, ergebnis, fehlerart }) => {
+                const result = await opts.mastery!.signal({ concept: konzept, topic: fach ?? null, outcome: ergebnis, errorType: fehlerart ?? null });
+                return { festgehalten: result.saved };
+              },
             }),
           }
         : {}),

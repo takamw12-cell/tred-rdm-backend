@@ -1012,3 +1012,23 @@ Pour « toutes les zones où le texte pourrait être illisible », chaque texte 
 
 Restent volontairement pâles : les boutons désactivés.
 
+
+## Sprint « tuteur intelligent » — chantier 1 : le modèle de l'apprenant (15 nov. 2026)
+
+**Ce que TRED faisait déjà.** Le tuteur retient les *lacunes* d'un étudiant (une idée fausse, en une phrase : « verwechselt Spannung und Dehnung ») et les lui rappelle au bon moment — c'est la table `misconception`, avec sa répétition espacée.
+
+**Ce qui est nouveau.** Une mesure : pour chaque concept que l'étudiant travaille (« Wärmekapazität », « Momentengleichgewicht »), un score de maîtrise de 0 à 1 et le compte de ses erreurs par type (signe, unité, formule confondue, erreur de calcul, notions confondues, mauvaise approche).
+
+- **Mise à jour automatique** : quand l'étudiant répond, calcule ou explique lui-même, le tuteur le signale par un outil interne (`lernstand_melden`). Aucun appel de modèle en plus, donc aucun coût en plus. Une bonne réponse monte le score, une mauvaise le descend ; la dernière réponse pèse 30 %, pour qu'une étourderie n'efface pas dix réussites.
+- **Avant chaque réponse** : les trois concepts les plus fragiles de l'étudiant sont remis au tuteur (NIVEAU 2b), avec ses erreurs typiques. Consigne : sur ces concepts, expliquer plus lentement, ajouter une analogie, vérifier le prérequis, et faire découvrir l'erreur typique avant qu'elle ne revienne. Le tuteur ne reçoit aucun chiffre et a interdiction de citer la liste : l'étudiant n'entend jamais « tu es à 28 % ».
+- **Données personnelles** : la table est exportée et effacée avec le compte, comme les lacunes.
+
+**À lancer une fois** (sinon rien n'est enregistré, et rien ne casse) :
+
+```
+node C:\dev\tred-rdm\aerostudy-ai\migre-concept-mastery.mjs
+```
+
+**Limite à connaître.** C'est le modèle qui juge si une réponse était juste, comme pour les lacunes. Je n'ai pas pu l'essayer sur le vrai modèle (chaque essai coûte) : le calcul du score, l'enregistrement et le texte remis au tuteur sont testés ; la régularité avec laquelle il appelle l'outil se verra à l'usage, dans la table.
+
+Code : `packages/web/src/api/lib/concept-mastery.ts`, outil dans `src/api/agent/index.ts`. Les barres « par matière » du Dashboard arrivent au chantier 4.

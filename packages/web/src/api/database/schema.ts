@@ -736,6 +736,40 @@ export const flashcard = sqliteTable(
 
 export type Flashcard = typeof flashcard.$inferSelect;
 
+// ── Modèle de l'apprenant : un score de maîtrise par concept ──────────────
+//
+// Une ligne par concept et par compte (« Wärmekapazität », 0,35, deux erreurs
+// d'unité). Le tuteur la met à jour par l'outil `lernstand_melden` quand
+// l'étudiant montre ce qu'il sait, et reçoit avant chaque réponse les trois
+// concepts les plus fragiles (lib/concept-mastery.ts — qui lit et écrit en SQL
+// direct, pour rester debout tant que la table manque).
+// Table créée sur Turso par migre-concept-mastery.mjs (racine du dépôt).
+// Données personnelles : exportée et effacée avec le compte (lib/gdpr.ts).
+export const conceptMastery = sqliteTable(
+  "concept_mastery",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    /** Le concept tel qu'il est affiché. */
+    concept: text("concept").notNull(),
+    /** Le même, normalisé (minuscules, sans ponctuation) : une ligne par concept. */
+    conceptKey: text("concept_key").notNull(),
+    /** Matière ou chapitre : regroupe les barres du Dashboard. */
+    topic: text("topic").notNull().default(""),
+    /** Maîtrise estimée, de 0 à 1. 0,5 = pas encore jugé. */
+    score: real("score").notNull().default(0.5),
+    attempts: integer("attempts").notNull().default(0),
+    correct: integer("correct").notNull().default(0),
+    /** JSON : un compteur par type d'erreur, ex. {"einheit":2,"vorzeichen":1}. */
+    errorPatterns: text("error_patterns").notNull().default("{}"),
+    lastSeen: integer("last_seen", { mode: "timestamp_ms" }).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (t) => [index("concept_mastery_user_score").on(t.userId, t.score)],
+);
+
+export type ConceptMastery = typeof conceptMastery.$inferSelect;
+
 // ── Intelligence collective (V2 — Pilier 4, FONDATIONS) ───────────────────
 //
 // Une excellente explication du tuteur, ANONYMISÉE, versée dans la base de
