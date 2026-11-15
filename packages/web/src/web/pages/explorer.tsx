@@ -6,7 +6,7 @@ import { PageContainer, PageHeader, Reveal } from "@/components/page";
 import { ProfessorPortrait } from "@/components/professor-portrait";
 import { FormulaSteps } from "@/components/formula-steps";
 import { useT } from "@/i18n";
-import { askPrompt, EXPLORER_MODELS, hotspotOf, isModelId, MODEL_IDS, pick, type ExplorerModelId } from "@/lib/explorer-models";
+import { askPrompt, customModel, DISCIPLINES, EXPLORER_MODELS, glbUrl, hotspotOf, isModelId, modelsOf, pick, type Discipline, type ExplorerModelId } from "@/lib/explorer-models";
 import { useProfessor } from "@/lib/professors";
 import { cn } from "@/lib/utils";
 
@@ -39,7 +39,11 @@ export default function ExplorerPage() {
     const wanted = fromUrl.get("model");
     return isModelId(wanted) ? wanted : "turbofan";
   });
-  const model = EXPLORER_MODELS[modelId];
+  // /explorer?glb=nom : un fichier déposé dans public/models/ (nom restreint, lib/explorer-models.ts).
+  const customName = fromUrl.get("glb");
+  const [modelUrl, setModelUrl] = useState<string | null>(() => glbUrl(customName));
+  const model = modelUrl && customName ? customModel(customName) : EXPLORER_MODELS[modelId];
+  const discipline = EXPLORER_MODELS[modelId].discipline;
   const [active, setActive] = useState<string | null>(() => hotspotOf(EXPLORER_MODELS[modelId], fromUrl.get("part"))?.id ?? null);
   // Mouvement réduit : la scène démarre à l'arrêt, l'étudiant la lance s'il le veut.
   const [playing, setPlaying] = useState(!reduced);
@@ -54,9 +58,15 @@ export default function ExplorerPage() {
   }, []);
 
   function switchModel(id: ExplorerModelId) {
-    if (id === modelId) return;
+    if (id === modelId && !modelUrl) return;
+    setModelUrl(null);
     setModelId(id);
     setActive(null);
+  }
+  /** Changer de filière ouvre son premier modèle. */
+  function switchDiscipline(next: Discipline) {
+    const first = modelsOf(next)[0];
+    if (first && first.id !== "custom") switchModel(first.id);
   }
 
   // Plein écran : la scène et son panneau ensemble (l'explication reste lisible).
@@ -90,11 +100,36 @@ export default function ExplorerPage() {
     <PageContainer className="max-w-7xl">
       <PageHeader title={t("explorer.title")} subtitle={t("explorer.subtitle")} />
 
+      {/* Les filières : TRED n'est pas réservé aux ingénieurs. */}
+      <Reveal className="mb-3">
+        <div role="tablist" aria-label={t("explorer.discipline")} className="flex gap-1.5 overflow-x-auto pb-1" data-testid="discipline-tabs">
+          {DISCIPLINES.map((d) => {
+            const on = !modelUrl && d.id === discipline;
+            return (
+              <button
+                key={d.id}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                data-testid={`discipline-${d.id}`}
+                onClick={() => switchDiscipline(d.id)}
+                className={cn(
+                  "min-h-10 shrink-0 rounded-full border px-4 text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-[#EAB308] focus-visible:outline-none motion-safe:active:scale-[0.97]",
+                  on ? "border-[#0F172A] bg-[#0F172A] text-white" : "border-border bg-card text-card-foreground hover:border-[#EAB308]",
+                )}
+              >
+                {pick(d.name, locale)}
+              </button>
+            );
+          })}
+        </div>
+      </Reveal>
+
       <Reveal>
         <div
           ref={stage}
           data-testid="explorer-stage"
-          data-model={modelId}
+          data-model={model.id}
           className={cn(
             "grid overflow-hidden border border-white/10 bg-[#0B1220] text-white shadow-xl lg:grid-cols-[minmax(0,1fr)_23rem]",
             full ? "h-screen grid-rows-[minmax(0,1fr)_auto] rounded-none lg:grid-rows-1" : "rounded-3xl",
@@ -122,6 +157,7 @@ export default function ExplorerPage() {
             >
               <Explorer3D
                 model={model}
+                modelUrl={modelUrl}
                 active={active}
                 onSelect={setActive}
                 playing={playing}
@@ -135,16 +171,16 @@ export default function ExplorerPage() {
             {/* Choix du modèle. */}
             <fieldset aria-label={t("explorer.model")} // Téléphone : en bas, sur une ligne (en haut, les deux noms passaient sur deux lignes et couvraient le modèle).
               className="absolute bottom-3 left-3 m-0 flex min-w-0 gap-1 rounded-full border-0 bg-[#0F172A]/80 p-1 ring-1 ring-white/15 backdrop-blur sm:top-3 sm:bottom-auto">
-              {MODEL_IDS.map((id) => (
+              {modelsOf(discipline).map(({ id }) => id).filter((id): id is ExplorerModelId => id !== "custom").map((id) => (
                 <button
                   key={id}
                   type="button"
                   data-testid={`model-${id}`}
-                  aria-pressed={id === modelId}
+                  aria-pressed={id === modelId && !modelUrl}
                   onClick={() => switchModel(id)}
                   className={cn(
                     "min-h-9 rounded-full px-3 text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-[#EAB308] focus-visible:outline-none",
-                    id === modelId ? "bg-[#EAB308] text-[#0F172A]" : "text-white/80 hover:text-white",
+                    id === modelId && !modelUrl ? "bg-[#EAB308] text-[#0F172A]" : "text-white/80 hover:text-white",
                   )}
                 >
                   {pick(EXPLORER_MODELS[id].name, locale)}
@@ -238,7 +274,7 @@ export default function ExplorerPage() {
 
             {/* La même sélection, en liste : clavier, lecteur d'écran, et petits écrans. */}
             <div>
-              <h3 className="mb-2 text-xs font-semibold tracking-[0.14em] text-white/70 uppercase">{hotspot ? t("explorer.parts") : t("explorer.pickPart")}</h3>
+              {model.hotspots.length > 0 && <h3 className="mb-2 text-xs font-semibold tracking-[0.14em] text-white/70 uppercase">{hotspot ? t("explorer.parts") : t("explorer.pickPart")}</h3>}
               <ul className="grid grid-cols-2 gap-1.5 lg:grid-cols-1">
                 {model.hotspots.map((h, i) => {
                   const on = h.id === active;

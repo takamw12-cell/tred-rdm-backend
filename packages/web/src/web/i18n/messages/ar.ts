@@ -316,6 +316,8 @@ export const ar: PartialMessages = {
     attachGalleryHint: "صور من معرضك",
     attachCamera: "الكاميرا",
     attachCameraHint: "التقاط صورة",
+    // Bouton sous une réponse du Hörsaal quand la question porte sur un modèle de l'Explorateur 3D.
+    view3d: "عرض ثلاثي الأبعاد",
     fileTooLarge: "«{name}» كبير جداً (20 ميغابايت كحد أقصى)",
     // PDF joints à une question : 20 pages au plus, tous fichiers confondus ({pages} = le total que porterait la question).
     pdfTooLong: "«{name}»: {pages} صفحة PDF كثيرة على سؤال واحد (الحد الأقصى {max}). استورده في «Meine Kurse»: عندها يبحث TRED في المستند كاملاً ويذكر الصفحة.",

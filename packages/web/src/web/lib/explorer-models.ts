@@ -21,6 +21,8 @@
  * langues de l'interface retombent sur l'allemand, comme le reste de l'app.
  */
 
+import { ATOM, CELL, HEART, MATH_SURFACE, NORMS } from "./explorer-more";
+
 export const CONTENT_LOCALES = ["de", "en", "fr", "es"] as const;
 export type ContentLocale = (typeof CONTENT_LOCALES)[number];
 export type LocalText = Record<ContentLocale, string>;
@@ -53,10 +55,20 @@ export interface ExplorerHotspot {
   steps?: FormulaStep[];
 }
 
-export type ExplorerModelId = "turbofan" | "gearbox";
+export type ExplorerModelId = "turbofan" | "gearbox" | "cell" | "heart" | "surface" | "atom" | "norms";
+
+/** Les filières de l'Explorateur : TRED n'est pas réservé aux ingénieurs. */
+export type Discipline = "engineering" | "medicine" | "mathematics" | "physics" | "law";
 
 export interface ExplorerModel {
-  id: ExplorerModelId;
+  /** « custom » : un fichier .glb déposé dans public/models/, sans repères. */
+  id: ExplorerModelId | "custom";
+  discipline: Discipline;
+  /**
+   * Mots (expressions régulières, en minuscules) qui, dans une question posée
+   * au tuteur, annoncent ce modèle : le Hörsaal propose alors « In 3D ansehen ».
+   */
+  keywords: string[];
   name: LocalText;
   intro: LocalText;
   /** Boîte englobante du modèle : cadrage de la caméra, et garde-fou des repères. */
@@ -72,6 +84,8 @@ export interface ExplorerModel {
  * taux de compression global 40 à 50, entrée de turbine jusqu'à ≈ 1 700 °C). */
 const TURBOFAN: ExplorerModel = {
   id: "turbofan",
+  discipline: "engineering",
+  keywords: ["turbofan", "triebwerk", "strahltriebwerk", "turbor[ée]acteur", "jet engine", "turbofán", "brennkammer", "nebenstrom"],
   name: { de: "Turbofan-Triebwerk", en: "Turbofan engine", fr: "Turboréacteur double flux", es: "Motor turbofán" },
   intro: {
     de: "Ein Zweiwellen-Turbofan im Schnitt. Tippe auf einen Punkt, um zu sehen, was dort passiert.",
@@ -283,6 +297,8 @@ export const gearCentres = {
 
 const GEARBOX: ExplorerModel = {
   id: "gearbox",
+  discipline: "engineering",
+  keywords: ["zahnrad", "stirnrad", "getriebe", "\\bgears?\\b", "gearbox", "engrenage", "engranaje", "übersetzungsverhältnis"],
   name: { de: "Stirnradgetriebe", en: "Spur gear stage", fr: "Engrenage droit", es: "Engranaje recto" },
   intro: {
     de: "Ein einstufiges Stirnradgetriebe: Das kleine Ritzel treibt das große Rad. Tippe auf einen Punkt.",
@@ -416,8 +432,41 @@ const GEARBOX: ExplorerModel = {
   ],
 };
 
-export const EXPLORER_MODELS: Record<ExplorerModelId, ExplorerModel> = { turbofan: TURBOFAN, gearbox: GEARBOX };
-export const MODEL_IDS: ExplorerModelId[] = ["turbofan", "gearbox"];
+export const EXPLORER_MODELS: Record<ExplorerModelId, ExplorerModel> = { turbofan: TURBOFAN, gearbox: GEARBOX, cell: CELL, heart: HEART, surface: MATH_SURFACE, atom: ATOM, norms: NORMS };
+export const MODEL_IDS: ExplorerModelId[] = ["turbofan", "gearbox", "cell", "heart", "surface", "atom", "norms"];
+
+/** Les filières, dans l'ordre des onglets, avec leur nom. */
+export const DISCIPLINES: { id: Discipline; name: LocalText }[] = [
+  { id: "engineering", name: { de: "Ingenieurwesen", en: "Engineering", fr: "Ingénierie", es: "Ingeniería" } },
+  { id: "medicine", name: { de: "Medizin", en: "Medicine", fr: "Médecine", es: "Medicina" } },
+  { id: "mathematics", name: { de: "Mathematik", en: "Mathematics", fr: "Mathématiques", es: "Matemáticas" } },
+  { id: "physics", name: { de: "Physik", en: "Physics", fr: "Physique", es: "Física" } },
+  { id: "law", name: { de: "Jura", en: "Law", fr: "Droit", es: "Derecho" } },
+];
+export const modelsOf = (discipline: Discipline): ExplorerModel[] => MODEL_IDS.map((id) => EXPLORER_MODELS[id]).filter((m) => m.discipline === discipline);
+
+/**
+ * Le modèle qu'une question annonce, s'il y en a un — pour le bouton « In 3D
+ * ansehen » du Hörsaal. On lit la QUESTION de l'étudiant, pas la réponse : un
+ * tuteur qui cite un cœur en passant ne doit pas faire surgir un bouton.
+ */
+export function explorerModelFor(question: string): ExplorerModelId | null {
+  const q = (question ?? "").toLowerCase();
+  if (!q.trim()) return null;
+  for (const id of MODEL_IDS) {
+    if (EXPLORER_MODELS[id].keywords.some((k) => new RegExp(k, "u").test(q))) return id;
+  }
+  return null;
+}
+
+/**
+ * Un modèle déposé dans `public/models/` : `/explorer?glb=herz-anatomie`
+ * charge `/models/herz-anatomie.glb`. Le nom est restreint à des lettres,
+ * chiffres et tirets : il ne peut désigner ni un autre dossier ni un autre site.
+ */
+export function glbUrl(name: string | null | undefined): string | null {
+  return name && /^[a-z0-9][a-z0-9-]{0,60}$/.test(name) ? `/models/${name}.glb` : null;
+}
 
 export const isModelId = (v: unknown): v is ExplorerModelId => typeof v === "string" && (MODEL_IDS as string[]).includes(v);
 
@@ -464,4 +513,24 @@ export function cameraStart(model: ExplorerModel, aspect: number, fovDeg: number
   const base = Math.hypot(...model.camera);
   const k = cameraDistance(model, aspect, fovDeg) / base;
   return [model.camera[0] * k, model.camera[1] * k, model.camera[2] * k];
+}
+
+/** Le modèle « vide » d'un fichier .glb : un cadre, une caméra, aucun repère. */
+export function customModel(name: string): ExplorerModel {
+  const text = { de: name, en: name, fr: name, es: name };
+  return {
+    id: "custom",
+    discipline: "engineering",
+    keywords: [],
+    name: text,
+    intro: {
+      de: "Ein eigenes Modell aus dem Ordner „models“. Ziehe, um es zu drehen.",
+      en: "A custom model from the “models” folder. Drag to rotate it.",
+      fr: "Un modèle déposé dans le dossier « models ». Glisse pour le faire tourner.",
+      es: "Un modelo propio de la carpeta «models». Arrastra para girarlo.",
+    },
+    bounds: { min: [-2.4, -2.4, -2.4], max: [2.4, 2.4, 2.4] },
+    camera: [3.2, 2.6, 6.2],
+    hotspots: [],
+  };
 }

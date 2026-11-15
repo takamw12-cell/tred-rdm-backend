@@ -316,6 +316,8 @@ export const it: PartialMessages = {
     attachGalleryHint: "Foto dalla tua galleria",
     attachCamera: "Fotocamera",
     attachCameraHint: "Scatta una foto",
+    // Bouton sous une réponse du Hörsaal quand la question porte sur un modèle de l'Explorateur 3D.
+    view3d: "Vedi in 3D",
     fileTooLarge: "«{name}» è troppo grande (max 20 MB)",
     // PDF joints à une question : 20 pages au plus, tous fichiers confondus ({pages} = le total que porterait la question).
     pdfTooLong: "«{name}»: {pages} pagine di PDF sono troppe per una domanda (massimo {max}). Importalo in «Meine Kurse»: TRED lo esamina per intero e cita la pagina.",

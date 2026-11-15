@@ -1300,3 +1300,21 @@ Code : `src/web/pages/explorer.tsx`, `src/web/components/Explorer3D.tsx` (charg�
 - *Poids de Phaser* : 1,4 Mo (372 Ko compressé), téléchargé seulement à l'ouverture du mini-jeu. C'est le prix d'un vrai moteur de jeu ; si le mini-jeu reste à ce niveau de simplicité, il pourrait s'en passer.
 
 Code : `src/web/pages/minigame.tsx`, `src/web/components/MiniGame.tsx`, `src/web/lib/minigame.ts` (règles), `src/web/components/flip-deck.tsx`, `src/web/components/page-transition.tsx`. Essai : `tred-perf\visuel-e2e.ts`.
+
+## Explorateur 3D universel : cinq filières (15 nov. 2026)
+
+- **Onglets de filière** en haut de la page : Ingenieurwesen, Medizin, Mathematik, Physik, Jura. Changer d'onglet change le modèle et ses points.
+- **Sept modèles**, tous construits dans le navigateur : turboréacteur et engrenage (ingénierie) ; cellule animale et cœur (médecine) ; surface z = sin x + cos y avec maximum, minimum, col et gradient (mathématiques) ; atome de carbone en couches (physique) ; pyramide des normes allemande, du Grundgesetz à la Satzung (droit). Chacun a ses points, ses explications en quatre langues, parfois une formule pas à pas.
+- **Chargeur de fichiers** : dépose un `.glb` dans `packages/web/public/models/` (par exemple `herz-anatomie.glb`) et ouvre `/explorer?glb=herz-anatomie`. Le mode d'emploi est dans `public/models/README.md`. Un modèle déposé ainsi n'a pas de points cliquables : ils s'écrivent dans `src/web/lib/explorer-more.ts`.
+- **« In 3D ansehen » dans le Hörsaal** : quand la QUESTION de l'étudiant porte sur un modèle (« Erkläre mir das Herz », « Wie ist ein Atom aufgebaut? »…), un bouton jaune apparaît sous la réponse et ouvre `/explorer?model=heart` directement sur le bon modèle.
+
+**Écarts avec ton brief.**
+
+- *Le turboréacteur n'est pas devenu un fichier .glb.* Tu demandais à la fois de ne plus le coder et de le garder : il reste construit en code (c'est ce qui fait tourner ses arbres et allume ses pièces), et le composant accepte en plus la prop `modelUrl` pour n'importe quel fichier.
+- *Sans compression Draco.* Le décodeur serait téléchargé chez Google à chaque affichage : un fichier compressé ainsi ne s'ouvrira pas.
+- *Droit* : tu n'avais pas précisé de modèle ; j'ai fait la pyramide des normes. Dis-moi si tu préfères autre chose.
+- *Le bouton 3D lit des mots-clés, pas le sens.* « Solarzelle » ou « Herzlichen Dank » ne le déclenchent pas, mais une question très indirecte non plus.
+- *Le chargeur .glb est essayé avec un fichier d'essai fabriqué* (un tétraèdre), pas avec un vrai modèle anatomique : aucun n'est livré.
+- *Relecture* : les contenus de médecine et de droit sont exacts à ma connaissance et recoupés par des tests pour les nombres ; fais-les relire par quelqu'un de la filière avant de t'en servir en communication.
+
+Code : `src/web/lib/explorer-more.ts`, `src/web/components/explorer-scenes.tsx`, `explorer-kit.tsx`. Essai : `tred-perf\universel-e2e.ts`.

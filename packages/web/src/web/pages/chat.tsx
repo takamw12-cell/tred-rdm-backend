@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
   Loader2,
+  Box,
   Sparkles,
   X,
   Library,
@@ -54,6 +55,7 @@ import { Scratchpad } from "@/components/scratchpad";
 import { downscaleImageToDataUrl, downscaleDataUrl, isUsableDataUrl } from "@/lib/image";
 import { readChatFailure } from "@/lib/chat-error";
 import { countPdfPages } from "@/lib/pdf-pages";
+import { explorerModelFor, type ExplorerModelId } from "@/lib/explorer-models";
 import { patienceKey } from "@/lib/patience";
 import { MAX_ATTACHED_PDF_PAGES, pdfPagesExceeded, pruneHistoryFiles } from "../../api/lib/chat-attachments";
 import { QuotaBanner } from "@/components/quota-banner";
@@ -2543,6 +2545,9 @@ export default function ChatPage() {
                   footer={
                     activePage?.messageId && !(busy && onLastPage) ? (
                       <PageActions
+                        // La QUESTION annonce-t-elle un modèle de l'Explorateur 3D (cœur, cellule, moteur…) ?
+                        explorerModel={explorerModelFor(activePage.question ?? "")}
+                        view3dLabel={t("chat.view3d")}
                         messageId={activePage.messageId}
                         fullText={displayText(messages.find((m) => m.id === activePage.messageId) ?? ({ parts: [] } as unknown as UIMessage))}
                         conversationId={convId}
@@ -2724,6 +2729,8 @@ type PageAction = "why" | "explain" | "engineer" | "mission" | "video" | "ytsear
  * dernier et en gris (on le trouve quand on le cherche, pas du pouce).
  */
 function PageActions({
+  explorerModel,
+  view3dLabel,
   messageId,
   fullText,
   conversationId,
@@ -2731,6 +2738,9 @@ function PageActions({
   onAction,
   labels,
 }: {
+  /** Le modèle 3D que la question annonce : un lien « In 3D ansehen » l'ouvre directement. */
+  explorerModel: ExplorerModelId | null;
+  view3dLabel: string;
   messageId: string;
   /** La réponse complète : lecture à voix haute et signalement. */
   fullText: string;
@@ -2752,6 +2762,16 @@ function PageActions({
   return (
     <>
       <ListenButton text={fullText} locale={locale} />
+      {explorerModel && (
+        <Link
+          to={`/explorer?model=${explorerModel}`}
+          data-testid="view-3d"
+          className="flex min-h-9 items-center gap-1.5 rounded-full bg-[#EAB308] px-3 py-1.5 text-xs font-semibold text-[#0F172A] ring-1 ring-[#EAB308] transition-transform hover:bg-[#FACC15] motion-safe:active:scale-[0.97]"
+        >
+          <Box className="size-3.5" />
+          {view3dLabel}
+        </Link>
+      )}
       <BoardChip icon={<HelpCircle className="size-3.5" />} label={labels.why} onClick={() => onAction("why")} />
       <BoardChip icon={<RefreshCw className="size-3.5" />} label={labels.explain} onClick={() => onAction("explain")} />
       <BoardChip icon={<Cog className="size-3.5" />} label={labels.engineer} onClick={() => onAction("engineer")} />

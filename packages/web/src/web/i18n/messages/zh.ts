@@ -316,6 +316,8 @@ export const zh: PartialMessages = {
     attachGalleryHint: "从相册中选择",
     attachCamera: "相机",
     attachCameraHint: "拍一张照片",
+    // Bouton sous une réponse du Hörsaal quand la question porte sur un modèle de l'Explorateur 3D.
+    view3d: "3D 查看",
     fileTooLarge: "「{name}」过大（最大 20 MB）",
     // PDF joints à une question : 20 pages au plus, tous fichiers confondus ({pages} = le total que porterait la question).
     pdfTooLong: "「{name}」：{pages} 页 PDF 对一个问题来说太多了（最多 {max} 页）。请在「Meine Kurse」中导入：TRED 会检索整份文档并标明页码。",

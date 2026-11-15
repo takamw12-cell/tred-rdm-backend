@@ -1,10 +1,12 @@
-import { Component, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Component, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import * as THREE from "three";
-import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer, OrbitControls } from "@react-three/drei";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { cameraStart, GEAR, gearCentres, gearPitchPoint, type ExplorerModel, type Vec3 } from "@/lib/explorer-models";
+import { cameraStart, GEAR, gearCentres, gearPitchPoint, type ExplorerModel, type ExplorerModelId, type Vec3 } from "@/lib/explorer-models";
 import { cn } from "@/lib/utils";
+import { ActiveContext, HIGHLIGHT, Part, SelectContext, Skin } from "@/components/explorer-kit";
+import { Atom, Cell, GltfModel, Heart, Norms, Surface } from "@/components/explorer-scenes";
 
 /**
  * La scène de l'Explorateur 3D — chargée À LA DEMANDE (React.lazy dans
@@ -20,11 +22,7 @@ import { cn } from "@/lib/utils";
  */
 
 const FOV = 35;
-const HIGHLIGHT = "#EAB308";
 
-/** Le repère choisi (surbrillance) et le geste « choisir cette pièce ». */
-const ActiveContext = createContext<string | null>(null);
-const SelectContext = createContext<(id: string) => void>(() => {});
 
 /* ── Briques ─────────────────────────────────────────────────────────────── */
 
@@ -92,50 +90,6 @@ function along(keys: [number, number][], x: number): number {
     }
   }
   return keys[keys.length - 1][1];
-}
-
-/** Matière d'une pièce : elle s'allume quand SON repère est choisi. */
-function Skin({ part, color, metalness = 0.6, roughness = 0.36, glow, opacity }: { part: string; color: string; metalness?: number; roughness?: number; glow?: { color: string; intensity: number }; opacity?: number }) {
-  const on = useContext(ActiveContext) === part;
-  return (
-    <meshStandardMaterial
-      color={color}
-      metalness={metalness}
-      roughness={roughness}
-      emissive={on ? HIGHLIGHT : (glow?.color ?? "#000000")}
-      emissiveIntensity={on ? 0.6 : (glow?.intensity ?? 0)}
-      side={THREE.DoubleSide}
-      transparent={opacity !== undefined}
-      opacity={opacity ?? 1}
-    />
-  );
-}
-
-/** Un groupe cliquable : toucher la pièce choisit son repère (un glissé fait tourner la vue, il ne choisit rien). */
-function Part({ id, children }: { id: string; children: ReactNode }) {
-  const select = useContext(SelectContext);
-  const onClick = useCallback(
-    (e: ThreeEvent<MouseEvent>) => {
-      if (e.delta > 6) return;
-      e.stopPropagation();
-      select(id);
-    },
-    [id, select],
-  );
-  return (
-    <group
-      onClick={onClick}
-      onPointerOver={(e) => {
-        e.stopPropagation();
-        document.body.style.cursor = "pointer";
-      }}
-      onPointerOut={() => {
-        document.body.style.cursor = "";
-      }}
-    >
-      {children}
-    </group>
-  );
 }
 
 /* ── Turboréacteur double flux, deux arbres, en coupe ────────────────────── */
@@ -688,8 +642,20 @@ class WebGLBoundary extends Component<{ fallback: ReactNode; children: ReactNode
   }
 }
 
+/** Une scène par modèle livré. Un modèle venu d'un fichier (`modelUrl`) n'en a pas besoin. */
+const SCENES: Record<ExplorerModelId, ComponentType<{ playing: boolean }>> = {
+  turbofan: Turbofan,
+  gearbox: Gearbox,
+  cell: Cell,
+  heart: Heart,
+  surface: Surface,
+  atom: Atom,
+  norms: Norms,
+};
+
 export default function Explorer3D({
   model,
+  modelUrl,
   active,
   onSelect,
   playing,
@@ -699,6 +665,8 @@ export default function Explorer3D({
   onResetReady,
 }: {
   model: ExplorerModel;
+  /** Un fichier .glb à charger À LA PLACE de la scène construite (public/models/). */
+  modelUrl?: string | null;
   /** Le repère choisi, ou aucun. */
   active: string | null;
   onSelect: (id: string | null) => void;
@@ -713,6 +681,7 @@ export default function Explorer3D({
   onResetReady: (reset: () => void) => void;
 }) {
   const focus = model.hotspots.find((h) => h.id === active)?.position ?? null;
+  const Scene = SCENES[model.id === "custom" ? "turbofan" : model.id];
   const select = useCallback((id: string) => onSelect(id), [onSelect]);
   const resetRef = useRef(onResetReady);
   resetRef.current = onResetReady;
@@ -745,7 +714,13 @@ export default function Explorer3D({
         <ActiveContext.Provider value={active}>
           <SelectContext.Provider value={select}>
             <StudioLights />
-            {model.id === "turbofan" ? <Turbofan playing={playing} /> : <Gearbox playing={playing} />}
+            {modelUrl ? (
+              <Suspense fallback={null}>
+                <GltfModel url={modelUrl} />
+              </Suspense>
+            ) : (
+              <Scene playing={playing} />
+            )}
             <MarkerTracker model={model} buttons={buttons} onCompact={setCompact} />
             <Rig model={model} focus={focus} onResetReady={onReady} />
             <OrbitControls makeDefault enableDamping dampingFactor={0.1} enablePan={false} minDistance={3.2} maxDistance={26} rotateSpeed={0.8} />

@@ -316,6 +316,8 @@ export const hi: PartialMessages = {
     attachGalleryHint: "आपकी गैलरी से फ़ोटो",
     attachCamera: "कैमरा",
     attachCameraHint: "फ़ोटो लें",
+    // Bouton sous une réponse du Hörsaal quand la question porte sur un modèle de l'Explorateur 3D.
+    view3d: "3D में देखें",
     fileTooLarge: "«{name}» बहुत बड़ी है (अधिकतम 20 MB)",
     // PDF joints à une question : 20 pages au plus, tous fichiers confondus ({pages} = le total que porterait la question).
     pdfTooLong: "«{name}»: एक प्रश्न के लिए {pages} PDF पृष्ठ बहुत ज़्यादा हैं (अधिकतम {max})। इसे «Meine Kurse» में इम्पोर्ट करें: तब TRED पूरा दस्तावेज़ खोजकर पृष्ठ बताएगा।",

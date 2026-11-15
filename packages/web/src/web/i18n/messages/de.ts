@@ -410,6 +410,8 @@ export const de = {
     attachGalleryHint: "Fotos aus deiner Galerie",
     attachCamera: "Kamera",
     attachCameraHint: "Ein Foto aufnehmen",
+    // Bouton sous une réponse du Hörsaal quand la question porte sur un modèle de l'Explorateur 3D.
+    view3d: "In 3D ansehen",
     fileTooLarge: "„{name}“ ist zu groß (max. 20 MB)",
     // PDF joints à une question : 20 pages au plus, tous fichiers confondus ({pages} = le total que porterait la question).
     pdfTooLong: "„{name}“: {pages} PDF-Seiten sind zu viel für eine Frage (höchstens {max}). Importiere das Dokument unter „Meine Kurse“ – dann durchsucht TRED es ganz und zitiert die Seite.",
@@ -1103,6 +1105,7 @@ export const de = {
   },
   // L'Explorateur 3D (pages/explorer.tsx). Les textes des modèles sont dans lib/explorer-models.ts.
   explorer: {
+    discipline: "Fachrichtung",
     title: "3D-Explorer",
     subtitle: "Drehe das Modell, tippe auf einen Punkt – und sieh, wie es funktioniert.",
     loading: "Das Modell wird aufgebaut …",

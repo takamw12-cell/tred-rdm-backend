@@ -52,7 +52,8 @@ describe("ce qu'il charge", () => {
 
   test("rien n'est demandé à un tiers : ni fichier de modèle, ni image d'éclairage, ni police", () => {
     expect(SCENE).not.toMatch(/https?:\/\//);
-    expect(SCENE).not.toMatch(/useGLTF|useTexture|\.glb|\.gltf|\.hdr|preset=/);
+    // Les fichiers .glb viennent de NOTRE dossier public/models/ (tests/explorer-universal.test.ts).
+    expect(SCENE).not.toMatch(/useTexture|\.hdr|preset=/);
     // <Text> et <Html> de drei : l'un télécharge une police, l'autre levait « removeChild ».
     expect(SCENE).not.toMatch(/<Text\b|<Html\b/);
   });

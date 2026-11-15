@@ -411,6 +411,8 @@ export const fr: Messages = {
     attachGalleryHint: "Photos de ta galerie",
     attachCamera: "Caméra",
     attachCameraHint: "Prendre une photo",
+    // Bouton sous une réponse du Hörsaal quand la question porte sur un modèle de l'Explorateur 3D.
+    view3d: "Voir en 3D",
     fileTooLarge: "« {name} » est trop volumineux (max 20 Mo)",
     // PDF joints à une question : 20 pages au plus, tous fichiers confondus ({pages} = le total que porterait la question).
     pdfTooLong: "« {name} » : {pages} pages de PDF, c'est trop pour une question ({max} au plus). Importe-le dans « Mes cours » : TRED le parcourt alors en entier et cite la page.",
@@ -1103,6 +1105,7 @@ export const fr: Messages = {
   },
   // L'Explorateur 3D (pages/explorer.tsx). Les textes des modèles sont dans lib/explorer-models.ts.
   explorer: {
+    discipline: "Filière",
     title: "Explorateur 3D",
     subtitle: "Fais tourner le modèle, touche un point, et regarde comment ça marche.",
     loading: "Le modèle se construit …",

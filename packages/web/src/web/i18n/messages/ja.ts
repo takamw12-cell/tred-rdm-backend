@@ -316,6 +316,8 @@ export const ja: PartialMessages = {
     attachGalleryHint: "ギャラリーの写真",
     attachCamera: "カメラ",
     attachCameraHint: "写真を撮る",
+    // Bouton sous une réponse du Hörsaal quand la question porte sur un modèle de l'Explorateur 3D.
+    view3d: "3Dで見る",
     fileTooLarge: "「{name}」が大きすぎます（最大 20 MB）",
     // PDF joints à une question : 20 pages au plus, tous fichiers confondus ({pages} = le total que porterait la question).
     pdfTooLong: "「{name}」：PDF {pages}ページは1つの質問には多すぎます（最大{max}ページ）。「Meine Kurse」に取り込むと、TREDが全体を検索してページを引用します。",

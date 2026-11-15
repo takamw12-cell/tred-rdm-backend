@@ -26,9 +26,9 @@ import {
 const models = MODEL_IDS.map((id) => EXPLORER_MODELS[id]);
 const texts = (t: LocalText) => CONTENT_LOCALES.map((l) => t[l]);
 
-describe("deux modèles, construits dans le navigateur", () => {
+describe("les modèles, construits dans le navigateur", () => {
   test("turboréacteur double flux et engrenage droit", () => {
-    expect(MODEL_IDS).toEqual(["turbofan", "gearbox"]);
+    expect(MODEL_IDS.slice(0, 2)).toEqual(["turbofan", "gearbox"]);
     expect(isModelId("turbofan")).toBe(true);
     expect(isModelId("sketchfab")).toBe(false);
   });
@@ -58,7 +58,8 @@ describe("deux modèles, construits dans le navigateur", () => {
 describe("les textes : complets en allemand, anglais, français et espagnol", () => {
   test("nom, introduction, et pour chaque point : titre, explication, ordre de grandeur, question", () => {
     for (const m of models) {
-      for (const t of [m.name, m.intro]) for (const s of texts(t)) expect(s.trim().length).toBeGreaterThan(5);
+      for (const s of texts(m.name)) expect(s.trim().length).toBeGreaterThan(2);
+      for (const s of texts(m.intro)) expect(s.trim().length).toBeGreaterThan(30);
       for (const h of m.hotspots) {
         for (const s of texts(h.title)) expect(s.trim().length).toBeGreaterThan(2);
         // Deux ou trois phrases : assez pour comprendre, assez court pour un téléphone.
