@@ -246,8 +246,14 @@
   --color-fuchsia-950: #1a1a1a;
 }
 
-/* ── Hell: Creme, Tinte, Textmarker ────────────────────────────────────── */
-:root {
+/* ── Hell: Creme, Tinte, Textmarker ──────────────────────────────────────
+   Auch auf der WEISSEN Tafel, in beiden Themes: Glas und Blätter bleiben dort
+   hell. Im dunklen Theme kamen sonst dessen Farben auf das weiße Blatt —
+   Fettdruck gelb auf Weiß (1,9:1), Tabellenköpfe Tinte auf Nachtblau (1,0:1),
+   „Vorlesen" hellgrau auf Weiß (2,3:1), gemessen am 2026-11-15. Frei gewählte
+   Tafelfarben ([data-tafel-custom]) sind ausgenommen. */
+:root,
+[data-board-theme="white"]:not([data-tafel-custom]) {
   --radius: 0.875rem;
 
   --background: #fdfbf7;
@@ -281,6 +287,10 @@
   --mastered: #15803d;
   --learning: #eab308;
   --new: #a8a29e;
+  /* Dieselben Stände als SCHRIFT auf hellem Grund: das Gelb und das Grün der
+     Flächen tragen dort keinen Text (1,3:1 und 3,0:1 gemessen). */
+  --learning-ink: #713f12;
+  --mastered-ink: #14532d;
 
   --chart-1: #1a1a1a;
   --chart-2: #eab308;
@@ -344,6 +354,8 @@
   --mastered: #4ade80;
   --learning: #eab308;
   --new: #64748b;
+  --learning-ink: #eab308;
+  --mastered-ink: #4ade80;
 
   --chart-1: #eab308;
   --chart-2: #60a5fa;
@@ -383,6 +395,13 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+  }
+  /* Texte d'invite des champs « nus » (sans ui/input) : le gris du thème, et
+     non la moitié de la couleur du texte (3,3:1 sur crème). Dans la couche
+     base : un `placeholder:…` posé sur le champ garde la priorité. */
+  ::placeholder {
+    color: var(--muted-foreground);
+    opacity: 1;
   }
   h1, h2, h3, h4 {
     font-family: var(--font-display);
@@ -518,7 +537,9 @@ html:lang(ar) body { line-height: 1.7; }
   --board-surface: linear-gradient(160deg, #ffffff 0%, #f6f8fb 45%, #eaeff5 100%);
   --board-inset: inset 0 3px 14px rgb(15 23 42 / 0.22), inset 0 0 0 1px rgb(255 255 255 / 0.9), inset 0 -2px 6px rgb(15 23 42 / 0.08);
   --board-ink: #1b2a4a;
-  --board-muted: #64748b;
+  /* #475569 (#64748B avant le 2026-11-15) : sur les pastilles et le coin gris
+     du verre, l'ancien gris tombait à 3,8:1 ; celui-ci tient 6:1. */
+  --board-muted: #475569;
   --board-accent: #eab308;
   --board-stamp: #1d4ed8;
   --board-check: #16a34a;
@@ -631,7 +652,12 @@ html:lang(ar) body { line-height: 1.7; }
 }
 [data-room="dark"] [data-slot="app-footer"] {
   border-color: rgb(255 255 255 / 0.08);
-  color: rgb(255 255 255 / 0.7);
+  color: rgb(255 255 255 / 0.85);
+  /* Les liens du pied de page portent `text-muted-foreground` : sans ces deux
+     lignes, ils gardaient le gris du thème clair sur la photo sombre (1,5:1
+     mesuré le 2026-11-15) et la couleur ci-dessus ne s'appliquait à rien. */
+  --muted-foreground: rgb(255 255 255 / 0.85);
+  --foreground: #fff;
 }
 [data-room="dark"] [data-slot="app-footer"] a:hover {
   color: #fff;
@@ -718,6 +744,16 @@ html:lang(ar) body { line-height: 1.7; }
   color-scheme: dark;
 }
 
+/* « In Bearbeitung » / « Gemeistert » ÉCRITS : la couleur d'écriture suit le
+   fond local (thème clair, thème sombre, panneau de nuit, tableau blanc) —
+   voir --learning-ink / --mastered-ink. Hors couche : passe devant l'utilitaire. */
+.text-learning { color: var(--learning-ink); }
+.text-mastered { color: var(--mastered-ink); }
+
+/* Ligne choisie (fond « accent ») en thème sombre : le gris clair #94A3B8 y
+   tombe à 4,0:1 — un cran plus clair sur cette surface. */
+.dark .bg-accent { --muted-foreground: #cbd5e1; }
+
 /* ── Verre dépoli, version sombre ──────────────────────────────────────
    Même principe que le verre blanc, en bleu nuit : la photo transparaît,
    le texte clair garde son contraste. Les feuilles d'exercice restent du
@@ -755,6 +791,22 @@ html:lang(ar) body { line-height: 1.7; }
     0 1px 2px rgb(0 0 0 / 0.75),
     0 0 12px rgb(0 0 0 / 0.6),
     0 0 24px rgb(0 0 0 / 0.4);
+}
+/* Le halo ne suffit pas au GRIS : mesuré sur les photos réelles le
+   2026-11-15, un sous-titre gris posé sur la photo restait à 2,3–4,3:1, et
+   les liens du pied de page à 2,5:1. Sur la photo, le texte secondaire prend
+   donc l'encre du thème à 82 % (≥ 5,4:1 sur ces mêmes pixels) ; dans les
+   cartes, le gris ne change pas. */
+.on-photo.text-muted-foreground,
+[data-slot="app-footer"] {
+  --muted-foreground: color-mix(in srgb, var(--foreground) 82%, transparent);
+}
+.on-photo.text-muted-foreground {
+  color: var(--muted-foreground);
+}
+/* Salle sombre (Dashboard, Hörsaal) : la photo est sombre dans les deux thèmes. */
+[data-room="dark"] .on-photo.text-muted-foreground {
+  --muted-foreground: rgb(255 255 255 / 0.85);
 }
 .dark .paper-sheet {
   --foreground: #0f172a;

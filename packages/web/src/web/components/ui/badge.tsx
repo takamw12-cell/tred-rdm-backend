@@ -14,7 +14,8 @@ const badgeVariants = cva(
         outline: "text-foreground",
         mastered: "border-transparent bg-mastered/15 text-mastered dark:bg-mastered/20",
         learning: "border-transparent bg-learning/20 text-learning dark:bg-learning/25",
-        new: "border-transparent bg-new/15 text-muted-foreground",
+        // Encre du thème, pas le gris : sur ce fond gris pâle, le gris restait à 4,3:1.
+        new: "border-transparent bg-new/15 text-foreground",
       },
     },
     defaultVariants: { variant: "default" },

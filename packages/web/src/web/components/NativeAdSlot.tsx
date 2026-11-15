@@ -92,7 +92,7 @@ export function NativeAdSlot({ className }: { className?: string }) {
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-[11px] leading-snug text-white/70">
+          <p className="mt-3 text-[11px] leading-snug text-white/85">
             {tag ? "Als Amazon-Partner verdient TRED an qualifizierten Verkäufen — für dich ändert sich der Preis nicht. " : ""}
             {c.noDataShared}
           </p>
@@ -111,7 +111,7 @@ export function SponsorTile({ s, label, onClick, large }: { s: SponsorTarget; la
       rel={s.paid ? "sponsored noopener noreferrer" : "noopener noreferrer"}
       onClick={onClick}
       className={cn(
-        "group flex items-start gap-3 rounded-xl border border-[#F1E7CF]/30 bg-[#F1E7CF]/[0.08] p-3 transition-colors hover:border-[#F1E7CF]/60 hover:bg-[#F1E7CF]/[0.12]",
+        "group flex items-start gap-3 rounded-xl border border-[#F1E7CF]/30 bg-slate-950/40 p-3 backdrop-blur-sm transition-colors hover:border-[#F1E7CF]/60 hover:bg-slate-950/55",
         large && "p-5",
       )}
     >
@@ -122,7 +122,7 @@ export function SponsorTile({ s, label, onClick, large }: { s: SponsorTarget; la
         <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <span className={cn("font-semibold", large ? "text-base" : "text-sm")}>{s.product}</span>
           <ExternalLink className="size-3 shrink-0 opacity-50 group-hover:opacity-90" aria-hidden />
-          <span className="text-[10px] tracking-wide text-[#F1E7CF]/80 uppercase">
+          <span className="text-[10px] tracking-wide text-[#F1E7CF] uppercase">
             {label} · {s.sponsor}
           </span>
         </span>

@@ -9,7 +9,7 @@ export default function ProfessorsPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <h1 className="font-display text-3xl font-semibold">{ui.section}</h1>
-      <p className="text-muted-foreground mt-1 mb-6 text-sm">{ui.sectionDesc}</p>
+      <p className="on-photo text-muted-foreground mt-1 mb-6 text-sm">{ui.sectionDesc}</p>
       <ProfessorPicker />
     </div>
   );

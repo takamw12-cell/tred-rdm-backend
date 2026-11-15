@@ -225,7 +225,7 @@ export default function SettingsPage() {
         <h1 className="font-display mb-1 text-2xl font-bold tracking-tight">
           {t("settings.title")}
         </h1>
-        <p className="text-muted-foreground text-sm">{t("settings.subtitle")}</p>
+        <p className="on-photo text-muted-foreground text-sm">{t("settings.subtitle")}</p>
       </div>
 
       <Section
@@ -435,7 +435,8 @@ export default function SettingsPage() {
 
       {error && <p className="text-destructive text-sm">{error}</p>}
 
-      <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
+      {/* Posé à même la photo de fond, comme le sous-titre : halo de lisibilité. */}
+      <p className="on-photo text-muted-foreground flex items-center gap-1.5 text-xs">
         <Type className="size-3" />
         {t("settings.footnote")}
       </p>

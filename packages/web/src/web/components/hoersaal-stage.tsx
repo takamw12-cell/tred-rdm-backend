@@ -159,12 +159,12 @@ export function FloatingProfessor({
           écrit lui-même son transform (glisser). */}
       <div className="flex origin-top-right flex-col items-center gap-2 max-sm:scale-75">
       {video ?? <HologramProfessor professor={professor} pose={pose} beat={beat} size="float" />}
-      <div className="flex max-w-[15rem] items-center gap-1 rounded-full border border-white/10 bg-slate-950/60 py-1 pr-1 pl-2 text-white shadow-[0_10px_30px_-10px_rgb(0_0_0/0.8)] backdrop-blur-md">
+      <div className="flex max-w-[15rem] items-center gap-1 rounded-full border border-white/10 bg-slate-950/70 py-1 pr-1 pl-2 text-white shadow-[0_10px_30px_-10px_rgb(0_0_0/0.8)] backdrop-blur-md">
         <GripHorizontal className="size-3.5 shrink-0 text-white/40" aria-hidden />
         <div className="min-w-0 px-1 leading-tight">
           <p className="font-display truncate text-xs font-semibold">{professor.name}</p>
           {(status ?? subtitle) && (
-            <p className={cn("truncate text-[10px]", status ? "text-[#FACC15]" : "text-white/60")}>{status ?? subtitle}</p>
+            <p className={cn("truncate text-[10px]", status ? "text-[#FACC15]" : "text-white/80")}>{status ?? subtitle}</p>
           )}
         </div>
         {actions && (

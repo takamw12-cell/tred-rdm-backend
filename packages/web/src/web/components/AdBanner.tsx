@@ -82,7 +82,7 @@ export function AdBanner({ className }: { className?: string }) {
         ))}
       </ul>
 
-      <p className="mt-3 text-[11px] leading-snug text-white/70">
+      <p className="mt-3 text-[11px] leading-snug text-white/85">
         {tag
           ? "Als Amazon-Partner verdient TRED an qualifizierten Verkäufen — für dich ändert sich der Preis nicht."
           : "Unverbindliche Empfehlungen."}{" "}
@@ -100,7 +100,7 @@ export function ResourceLink({ r, href, onClick }: { r: PartnerResource; href: s
       target="_blank"
       rel="sponsored noopener noreferrer"
       onClick={onClick}
-      className="group flex h-full items-start gap-3 rounded-xl border border-white/10 bg-white/[0.04] p-3 transition-colors hover:border-[#F1E7CF]/50 hover:bg-white/[0.08]"
+      className="group flex h-full items-start gap-3 rounded-xl border border-white/10 bg-slate-950/40 p-3 backdrop-blur-sm transition-colors hover:border-[#F1E7CF]/50 hover:bg-slate-950/55"
     >
       <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-[#F1E7CF]/15 text-[#F1E7CF]">
         <Icon className="size-4" aria-hidden />
@@ -110,7 +110,7 @@ export function ResourceLink({ r, href, onClick }: { r: PartnerResource; href: s
           {r.title}
           <ExternalLink className="size-3 shrink-0 opacity-50 group-hover:opacity-90" aria-hidden />
         </span>
-        <span className="mt-1 block text-xs leading-snug text-white/75">{r.why}</span>
+        <span className="mt-1 block text-xs leading-snug text-white/85">{r.why}</span>
       </span>
     </a>
   );

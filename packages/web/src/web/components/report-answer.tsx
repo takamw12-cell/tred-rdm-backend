@@ -75,7 +75,7 @@ export function ReportAnswer({
         type="button"
         onClick={() => setOpen(true)}
         aria-label={t("report.action")}
-        className="text-muted-foreground/70 hover:text-destructive hover:border-destructive/40 border-transparent flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors"
+        className="text-muted-foreground hover:text-destructive hover:border-destructive/40 border-transparent flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors"
       >
         <Flag className="size-3.5" />
         {t("report.action")}

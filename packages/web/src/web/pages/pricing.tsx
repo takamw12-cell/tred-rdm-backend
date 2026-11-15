@@ -305,7 +305,7 @@ export default function PricingPage() {
                 {prices && (
                   <p className="mt-1.5 text-sm text-white/60 tabular-nums">
                     {c.every6Months(money(prices.semester.amount))}
-                    <span className="ml-2 text-white/40 line-through">{money(prices.monthly.amount * prices.semester.months)}</span>
+                    <span className="ml-2 text-white/55 line-through">{money(prices.monthly.amount * prices.semester.months)}</span>
                   </p>
                 )}
               </div>
@@ -450,7 +450,7 @@ export default function PricingPage() {
       )}
 
       <Reveal className="mt-8 text-center">
-        <p className="text-muted-foreground text-xs">{c.payments}: Visa · Mastercard · Apple Pay · Klarna · SEPA</p>
+        <p className="on-photo text-muted-foreground text-xs">{c.payments}: Visa · Mastercard · Apple Pay · Klarna · SEPA</p>
       </Reveal>
     </PageContainer>
   );

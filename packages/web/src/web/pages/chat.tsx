@@ -1462,7 +1462,8 @@ export default function ChatPage() {
           }}
           rows={1}
           placeholder={t("chat.placeholder")}
-          className="placeholder:truncate max-h-32 min-w-0 flex-1 resize-none bg-transparent py-1.5 text-sm outline-none"
+          // Texte d'invite : encre du rebord à 70 % (4,9:1 sur le verre clair ; à 50 %, 2,9:1).
+          className="placeholder:truncate max-h-32 min-w-0 flex-1 resize-none bg-transparent py-1.5 text-sm outline-none placeholder:text-[#0F172A]/70"
         />
         <Button
           size="icon"

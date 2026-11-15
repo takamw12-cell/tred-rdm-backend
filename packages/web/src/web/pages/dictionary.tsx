@@ -56,7 +56,8 @@ export default function DictionaryPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("dictionary.searchPlaceholder")}
-            className="pl-9"
+            // Fond de carte : le champ est posé sur la photo, son texte d'invite s'y perdait (3,6:1).
+            className="bg-card pl-9"
           />
         </div>
         <Select value={category} onValueChange={setCategory}>
@@ -76,7 +77,7 @@ export default function DictionaryPage() {
 
       <Reveal className="mb-6">
         <div className="mb-1.5 flex items-center justify-between text-sm">
-          <span className="text-muted-foreground font-medium">
+          <span className="on-photo text-muted-foreground font-medium">
             {t("dictionary.progress", { known, total: terms.length })}
           </span>
         </div>

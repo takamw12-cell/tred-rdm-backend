@@ -232,7 +232,7 @@ function GeneratorTab({
         />
       ) : (
         !loading && (
-          <p className="text-muted-foreground text-sm">{t("exercises.emptyGenerated")}</p>
+          <p className="on-photo text-muted-foreground text-sm">{t("exercises.emptyGenerated")}</p>
         )
       )}
     </div>

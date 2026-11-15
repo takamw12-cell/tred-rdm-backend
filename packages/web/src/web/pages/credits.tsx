@@ -35,7 +35,7 @@ export default function CreditsPage() {
       <div>
         <Link
           href="/chat"
-          className="text-muted-foreground hover:text-foreground mb-3 inline-flex items-center gap-1.5 text-sm"
+          className="on-photo text-muted-foreground hover:text-foreground mb-3 inline-flex items-center gap-1.5 text-sm"
         >
           <ArrowLeft className="size-4" />
           {t("credits.backToChat")}
@@ -43,7 +43,7 @@ export default function CreditsPage() {
         <h1 className="font-display mb-1 text-2xl font-bold tracking-tight">
           {t("credits.title")}
         </h1>
-        <p className="text-muted-foreground text-sm">{t("credits.subtitle")}</p>
+        <p className="on-photo text-muted-foreground text-sm">{t("credits.subtitle")}</p>
       </div>
 
       {/* ── Les deux cagnottes, côte à côte ─────────────────────────────── */}
@@ -65,7 +65,8 @@ export default function CreditsPage() {
               <Wallet className="size-3.5" />
               {t("credits.purchased")}
             </p>
-            <p className="font-display text-signature text-2xl font-bold tabular-nums">
+            {/* Ambre foncé en clair : le jaune Textmarker écrit sur du blanc tombe à 1,6:1. */}
+            <p className="font-display text-2xl font-bold tabular-nums text-[#854D0E] dark:text-signature">
               {data?.purchasedCredits ?? "—"}
             </p>
             {/* La promesse commerciale, à l'endroit où elle compte. */}
@@ -95,7 +96,7 @@ export default function CreditsPage() {
                 <span
                   className={cn(
                     "w-12 shrink-0 text-right font-medium tabular-nums",
-                    ligne.amount > 0 ? "text-signature" : "text-muted-foreground",
+                    ligne.amount > 0 ? "text-[#854D0E] dark:text-signature" : "text-muted-foreground",
                   )}
                 >
                   {ligne.amount > 0 ? `+${ligne.amount}` : ligne.amount}
