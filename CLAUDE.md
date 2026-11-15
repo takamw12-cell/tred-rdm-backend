@@ -92,3 +92,30 @@ Claude Code peut les utiliser de lui-même, sans demander, dans les limites des 
 - skill `security-audit` (cloudflare/security-audit-skill @ c1c8a8c) : audit de sécurité en plusieurs phases, avec findings vérifiés.
 - Déjà présents : `design-taste-frontend`, `anthropic-skills:pdf` (extraction de PDF).
 - **Non installés :** `luminary19/atelier` (2 étoiles, aucun commit depuis juin 2026, 366 fichiers dont des scripts de génération d'images : impossible à vérifier, donc hors des critères « officiel et maintenu ») ; `security-audit-mcp` (paquet npm d'un auteur isolé, remplacé par le skill officiel de Cloudflare).
+
+## Gardes automatiques (2026-11-16)
+
+Trois règles du fondateur sont vérifiées par du code, pas par la mémoire de qui que ce soit — `packages/web/tests/tred-guards.test.ts`, exécuté par la CI et par `.githooks/pre-commit` :
+
+1. **Modèles 3D** : dans `public/models/`, uniquement des `.glb` de moins de 5 Mo, compressés meshopt (jamais Draco), chacun cité dans `public/models/CREDITS.md` avec une licence qui permet l'usage commercial (CC0, CC BY 4.0). Aucune adresse externe dans les scènes.
+2. **Repères** : titre, explication, fait et question pré-écrits, complets en de/en/fr/es ; un modèle repris d'un tiers affiche sa provenance (`credit`).
+3. **Universalité** : chaque filière de `DISCIPLINES` a au moins un modèle avec des repères.
+
+Activer le hook dans une nouvelle copie du dépôt (worktree compris, la configuration est partagée) : `git config core.hooksPath .githooks`. Ne contourne jamais ces gardes avec `--no-verify` : si une garde est fausse, corrige la garde et dis-le.
+
+## Sessions parallèles (worktrees)
+
+Pour travailler sur plusieurs domaines en même temps sans que les sessions se marchent dessus, lance chaque session dans son propre worktree git :
+
+```
+cd C:\dev\tred-rdm\aerostudy-ai
+claude --worktree medecine      # une copie de travail et une branche à part
+claude --worktree droit         # dans un autre terminal
+claude --worktree ingenierie
+```
+
+Règles pour ces sessions :
+- Une session = un domaine = une branche. Ne touche pas aux fichiers d'un autre domaine ; les fichiers communs (`explorer-models.ts`, `Explorer3D.tsx`, `i18n/messages/*`) se modifient dans UNE seule session à la fois.
+- Un worktree neuf n'a ni `node_modules` ni `.env` : lance `bun install` à la racine du worktree ; ne copie pas `.env` (les essais locaux utilisent la base de test, jamais la production).
+- Rien ne part en production depuis un worktree : la branche est fusionnée dans `master` (qui déploie) seulement sur demande explicite du fondateur, après `bun test` et `bun run typecheck`.
+- Ne jamais `git stash` : le stash est commun à tous les worktrees.

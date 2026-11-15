@@ -1326,3 +1326,33 @@ Code : `src/web/lib/explorer-more.ts`, `src/web/components/explorer-scenes.tsx`,
 - **Éclairage** : image de studio Poly Haven (CC0) servie par TRED depuis `public/hdr/`. Les « presets » de drei (`preset="studio"`, `preset="city"`) ne sont pas utilisés : ils feraient télécharger l'image chez un tiers par le navigateur de chaque étudiant.
 - **Fall-Check** (`/fall-check`, lien depuis la page Mini-Spiel) : un jeu de cas tiré d'un document de l'étudiant, en trois modes (diagnostic, décision, notion). Une question ne sort que si la phrase qui prouve sa réponse est retrouvée mot pour mot dans le document ; elle est montrée avec sa page. Chaque partie est un appel au modèle d'IA (compté dans le plafond de jetons du forfait, 20 parties par heure au plus). Une partie met environ une minute à se préparer.
 - **Ingénierie** : aucun modèle CAO réaliste à licence sûre n'a été trouvé (les modèles d'exemple Khronos n'ont pas de licence écrite, « Cozy Mechanical Parts » non plus). Le turboréacteur construit reste en place tant que tu n'as pas fourni ou acheté un modèle.
+
+## Gardes automatiques et sessions parallèles (2026-11-16)
+
+### Gardes automatiques
+
+Avant chaque commit qui touche l'Explorateur, les modèles ou les jeux, trois vérifications tournent toutes seules (et de nouveau dans la CI) :
+
+1. Les modèles 3D de `public/models/` sont des `.glb` de moins de 5 Mo, compressés, chacun avec sa licence écrite dans `CREDITS.md`.
+2. Chaque point cliquable a son explication pré-écrite, complète en allemand, anglais, français et espagnol.
+3. Chaque filière a au moins un modèle.
+
+Si l'une échoue, le commit est refusé avec la raison. Sur une nouvelle machine, active-les une fois : `git config core.hooksPath .githooks`.
+
+Deux limites à connaître. La garde 1 ne peut pas interdire toute géométrie « construite dans le code » : la surface mathématique et l'atome le sont par ta décision. Et il n'existe pas encore de **source** par repère (référence de manuel) : je ne peux pas inventer des références ; il faut qu'une personne de chaque filière les fournisse, après quoi la garde pourra l'exiger.
+
+### Travailler sur plusieurs domaines en même temps (worktrees)
+
+Un « worktree » est une deuxième copie de travail du dépôt, sur sa propre branche. Deux sessions Claude peuvent ainsi travailler en même temps sans se gêner.
+
+1. Ouvre un terminal dans `C:\dev\tred-rdm\aerostudy-ai`.
+2. Tape `claude --worktree medecine` (le nom est libre). Claude crée la copie et la branche, et y démarre.
+3. Dans un deuxième terminal : `claude --worktree droit`. Et ainsi de suite.
+4. Quand un domaine est prêt, demande dans sa session : « fusionne cette branche dans master et pousse ». Rien ne part en production avant cette demande.
+5. À la fermeture d'une session, Claude propose de garder ou de supprimer le worktree. Garde-le tant que le travail n'est pas fusionné.
+
+À éviter : deux sessions qui modifient le même fichier commun (par exemple `explorer-models.ts` ou les fichiers de traduction) — la fusion demanderait un arbitrage à la main. Donne à chaque session un périmètre clair dès la première phrase (« tu travailles uniquement sur la médecine »).
+
+### Limite d'import
+
+100 imports par heure et par compte depuis le 2026-11-16 (10 auparavant). Si tu as un jour ajouté la variable `IMPORT_RATE_PER_HOUR` dans Railway, elle prime sur le code : supprime-la ou mets 100.

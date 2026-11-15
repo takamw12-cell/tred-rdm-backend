@@ -1,0 +1,14 @@
+#!/bin/sh
+# Gardes de TRED : exécutées avant chaque commit (voir GUIDE_FOUNDER.md, « Gardes automatiques »).
+# Activation, une fois par copie du dépôt :  git config core.hooksPath .githooks
+# Ne tournent que si le commit touche l'Explorateur, les modèles ou les jeux.
+if git diff --cached --name-only | grep -qE '^packages/web/(public/models/|src/web/(lib/explorer|lib/orbitals|components/[Ee]xplorer|pages/(explorer|fall-check|minigame))|tests/tred-guards)'; then
+  BUN=$(command -v bun || command -v bun.exe || echo /mnt/c/Users/HP/.bun/bin/bun.exe)
+  echo "[gardes TRED] modèles 3D, repères, universalité…"
+  (cd packages/web && "$BUN" test tests/tred-guards.test.ts tests/explorer-universal.test.ts tests/explorer-heart-model.test.ts) >/tmp/tred-guards.log 2>&1 || {
+    tail -30 /tmp/tred-guards.log
+    echo "[gardes TRED] ÉCHEC : commit refusé. Corrige, ou lis GUIDE_FOUNDER.md (« Gardes automatiques »)."
+    exit 1
+  }
+  echo "[gardes TRED] OK"
+fi
