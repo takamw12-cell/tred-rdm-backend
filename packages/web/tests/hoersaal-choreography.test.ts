@@ -100,6 +100,21 @@ describe("Câblage", () => {
     expect(read("src/web/lib/voice.ts")).toContain('if (e.name === "word") onWord();');
   });
 
+  test("téléphone : la saisie rétrécit avec l'écran, le bouton d'envoi ne sort jamais du rebord", () => {
+    // Mesuré le 15 nov. 2026 après l'ajout du bouton socratique : la pastille de
+    // saisie faisait 350 px dans une ligne de 272 px (écran de 360 px), et
+    // « Senden » commençait à 371 px — hors de l'écran. Un élément flexible ne
+    // rétrécit pas sous la largeur de son contenu tant qu'il n'a pas `min-w-0`.
+    const chat = read("src/web/pages/chat.tsx");
+    const row = chat.slice(chat.indexOf('data-slot="chat-composer"'));
+    const pill = row.slice(0, row.indexOf("Hidden inputs"));
+    expect(pill).toMatch(/<div className="flex min-w-0 flex-1 items-end/);
+    // C'est le champ de texte qui cède la place, jamais les boutons.
+    const upToSend = row.slice(0, row.indexOf("<Send "));
+    expect(upToSend).toMatch(/<textarea[\s\S]*?min-w-0 flex-1/);
+    expect(upToSend).toContain("size-8 shrink-0");
+  });
+
   test("tuteur : une seule scène — Tafel plein cadre, professeur flottant, barre de chat en bas", () => {
     const chat = read("src/web/pages/chat.tsx");
     expect(chat).toContain("<HoersaalStage");

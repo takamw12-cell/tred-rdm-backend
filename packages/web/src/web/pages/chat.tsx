@@ -1397,9 +1397,14 @@ export default function ChatPage() {
   // (décision fondateur 2026-11-09) : une seule ligne, jamais de
   // chevauchement. Verre dépoli clair, encre fixe : le rebord est toujours
   // en métal clair, quel que soit le thème de l'app.
+  //
+  // `min-w-0` sur la pastille : sans lui elle garde la largeur de son contenu
+  // (trois boutons + champ + envoi = 350 px) et déborde d'un téléphone — le
+  // bouton d'envoi sortait de l'écran depuis l'ajout du bouton socratique.
+  // Sur téléphone les écarts se resserrent ; c'est le champ qui rétrécit.
   const composerRow = (
     <div data-slot="chat-composer" className="flex items-end gap-2">
-      <div className="flex flex-1 items-end gap-2 rounded-2xl border border-white/50 bg-white/45 px-3 py-1.5 shadow-[inset_0_1px_0_rgb(255_255_255/0.6),0_6px_16px_-10px_rgb(0_0_0/0.5)] backdrop-blur-xl backdrop-saturate-150 transition-[box-shadow,background] focus-within:bg-white/70 focus-within:ring-2 focus-within:ring-inset focus-within:ring-[#EAB308]/60">
+      <div className="flex min-w-0 flex-1 items-end gap-1 rounded-2xl border border-white/50 bg-white/45 px-2 py-1.5 sm:gap-2 sm:px-3 shadow-[inset_0_1px_0_rgb(255_255_255/0.6),0_6px_16px_-10px_rgb(0_0_0/0.5)] backdrop-blur-xl backdrop-saturate-150 transition-[box-shadow,background] focus-within:bg-white/70 focus-within:ring-2 focus-within:ring-inset focus-within:ring-[#EAB308]/60">
         {/* Hidden inputs targeted by the three menu options */}
         <input
           ref={filesInputRef}
