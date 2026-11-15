@@ -1318,3 +1318,11 @@ Code : `src/web/pages/minigame.tsx`, `src/web/components/MiniGame.tsx`, `src/web
 - *Relecture* : les contenus de médecine et de droit sont exacts à ma connaissance et recoupés par des tests pour les nombres ; fais-les relire par quelqu'un de la filière avant de t'en servir en communication.
 
 Code : `src/web/lib/explorer-more.ts`, `src/web/components/explorer-scenes.tsx`, `explorer-kit.tsx`. Essai : `tred-perf\universel-e2e.ts`.
+
+## Cœur anatomique réel et « Fall-Check » (2026-11-15)
+
+- **Cœur de l'onglet Médecine** : ce n'est plus un schéma. C'est le maillage anatomique BodyParts3D 4.0 (licence CC BY 4.0 : usage commercial et modification permis, mention obligatoire). Fichier `packages/web/public/models/medicine/heart.glb` (540 Ko). La mention est affichée sous le texte du modèle et listée dans `public/models/CREDITS.md`. **Ne retire pas cette mention** : c'est la condition de la licence.
+- **Refaire ou ajouter un modèle** : `packages/web/models-pipeline/README.md` (conversion, puis compression avec `@gltf-transform/cli`).
+- **Éclairage** : image de studio Poly Haven (CC0) servie par TRED depuis `public/hdr/`. Les « presets » de drei (`preset="studio"`, `preset="city"`) ne sont pas utilisés : ils feraient télécharger l'image chez un tiers par le navigateur de chaque étudiant.
+- **Fall-Check** (`/fall-check`, lien depuis la page Mini-Spiel) : un jeu de cas tiré d'un document de l'étudiant, en trois modes (diagnostic, décision, notion). Une question ne sort que si la phrase qui prouve sa réponse est retrouvée mot pour mot dans le document ; elle est montrée avec sa page. Chaque partie est un appel au modèle d'IA (compté dans le plafond de jetons du forfait, 20 parties par heure au plus). Une partie met environ une minute à se préparer.
+- **Ingénierie** : aucun modèle CAO réaliste à licence sûre n'a été trouvé (les modèles d'exemple Khronos n'ont pas de licence écrite, « Cozy Mechanical Parts » non plus). Le turboréacteur construit reste en place tant que tu n'as pas fourni ou acheté un modèle.
