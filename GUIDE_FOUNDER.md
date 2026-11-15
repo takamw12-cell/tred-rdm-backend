@@ -1051,3 +1051,23 @@ Le vestiaire passe de quatre à neuf professeurs. Les cinq nouveaux sont des **a
 - **Voix** : chacun a une voix par défaut d'ElevenLabs, modifiable par sa variable. Rien à configurer.
 - **Crédits** : `packages/web/public/avatars/CREDITS.md`. Un test refuse tout nom de personnage ou d'œuvre connue dans le vestiaire et dans ce fichier.
 - Les films promotionnels gardent les quatre professeurs du lancement (`LAUNCH_PROFESSOR_IDS`) : leurs plans sont composés pour quatre.
+
+## Sprint « tuteur intelligent » — chantier 2 : le mode socratique (15 nov. 2026)
+
+**Où.** Dans le Hörsaal, à gauche de la zone de saisie : un bouton en forme de bulle avec un point d'interrogation, à côté du mode calcul. Le choix est retenu sur l'appareil.
+
+**Ce qui change quand il est allumé.**
+
+- Le tuteur ne donne plus le résultat ni le corrigé — même si l'étudiant le demande.
+- Chaque réponse se termine par une seule question, puis il attend.
+- À chaque essai manqué, un indice plus fort : niveau 1 (où regarder), niveau 2 (l'approche ou la formule, sans les nombres), niveau 3 (l'étape suivante presque faite).
+- Au-dessus de la saisie : « Versuche: 1/3 », et le bouton **« Ich gebe auf »**. S'il clique, le tuteur donne la solution complète et ajoute une note : l'endroit précis où ça a bloqué, et « lies dieses Kapitel morgen noch einmal ». Sans reproche.
+- S'il trouve seul : « Selbst gelöst ».
+
+**Qui compte les essais.** Le tuteur : lui seul sait si un message est un essai ou une nouvelle question. Il écrit le compteur en dernière ligne de sa réponse (`[[SOKRATES versuch=1 von=3]]`) ; l'interface le lit et ne le montre jamais.
+
+**Ce que j'ai vérifié, et ce que je n'ai pas pu.** Dans le navigateur, avec des réponses simulées au format demandé au modèle : le compteur passe de 0/3 à 1/3, le marqueur n'apparaît jamais à l'écran, l'abandon n'est envoyé au serveur que pour le clic (la question suivante repart en mode normal). Sur le vrai modèle, rien : chaque essai coûte. Le respect de l'interdiction et la qualité des trois niveaux d'indice sont donc à juger sur une vraie conversation.
+
+**Avec le Prüfungsmodus** : le mode socratique n'y est jamais appliqué. Les douze langues ont leurs textes.
+
+Code : `packages/web/src/api/lib/socratic.ts` (consigne), `src/web/lib/socratic.ts` (lecture du compteur), bouton et barre dans `src/web/pages/chat.tsx`.

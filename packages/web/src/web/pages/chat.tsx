@@ -25,6 +25,7 @@ import {
   GalleryVerticalEnd,
   Paperclip,
   Calculator,
+  MessageCircleQuestion,
   NotebookPen,
   Camera,
   FolderOpen,
@@ -79,6 +80,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { usePreferencesStore } from "@/stores/preferences";
 import { DocumentLibrary } from "@/components/document-library";
+import { parseSocratic, stripSocratic } from "@/lib/socratic";
 import { Button } from "@/components/ui/button";
 import { FloatingProfessor, HoersaalStage } from "@/components/hoersaal-stage";
 import { professorText, professorUi, useProfessor } from "@/lib/professors";
@@ -131,7 +133,7 @@ const SOLVER_TOOLS = new Set([
 // l'endroit exact de l'appel. Écrit par le code, pas par le modèle : c'est ce
 // qui garantit que le schéma est celui du calcul. Et comme tout passe par ce
 // texte, la sauvegarde et la traduction le conservent sans autre changement.
-function messageText(m: UIMessage): string {
+function rawMessageText(m: UIMessage): string {
   // Un même graphique de solveur n'est montré qu'une fois : si le modèle
   // rappelle l'outil malgré un résultat déjà calculé (fast-path), le second
   // bloc, identique, disparaît.
@@ -150,6 +152,14 @@ function messageText(m: UIMessage): string {
       return mediaBlockFromPart(p) ?? "";
     })
     .join("");
+}
+
+/**
+ * Le texte affiché, sauvegardé et réutilisé : sans le compteur du mode
+ * socratique ([[SOKRATES …]], lib/socratic.ts), que l'interface lit à part.
+ */
+function messageText(m: UIMessage): string {
+  return stripSocratic(rawMessageText(m));
 }
 
 // Une réponse peut passer de longues secondes en raisonnement ou en appels
@@ -206,6 +216,17 @@ export default function ChatPage() {
   // ── Mode Calcul (MATLAB / Python) ─────────────────────────────────────
   const [calcMode, setCalcMode] = useState(false);
   const codeLang = usePreferencesStore((s) => s.codeLang);
+
+  // ── Mode socratique : des questions et des indices, pas la solution ───
+  // Le choix est retenu sur cet appareil. Le tuteur compte les essais et
+  // l'écrit en fin de réponse ; l'interface le lit (lib/socratic.ts).
+  const [socratic, setSocratic] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("tred.socratic.v1") === "on";
+  });
+  useEffect(() => {
+    window.localStorage.setItem("tred.socratic.v1", socratic ? "on" : "off");
+  }, [socratic]);
 
   // ── Scratchpad / brouillon panel ──────────────────────────────────────
   const [scratchOpen, setScratchOpen] = useState(false);
@@ -477,6 +498,10 @@ export default function ChatPage() {
   localeRef.current = locale;
   calcModeRef.current = calcMode;
   codeLangRef.current = codeLang;
+  const socraticRef = useRef(socratic);
+  socraticRef.current = socratic;
+  // « Ich gebe auf » : vrai pour UN envoi, remis à faux dès que la réponse arrive.
+  const giveUpRef = useRef(false);
 
   const transport = useMemo(
     () =>
@@ -491,6 +516,9 @@ export default function ChatPage() {
           locale: localeRef.current,
           calcMode: calcModeRef.current,
           codeLang: codeLangRef.current,
+          // Mode socratique, et l'abandon pour ce seul envoi (api/lib/socratic.ts).
+          socratic: socraticRef.current,
+          socraticGiveUp: giveUpRef.current,
           // Filière, Hochschule, semestre : le tuteur adapte ses exemples
           // (LRT, Maschinenbau …). Lu au moment de l'envoi.
           studyProfile: pickStudyProfile(useUserStore.getState().profile),
@@ -506,6 +534,20 @@ export default function ChatPage() {
   const { messages, sendMessage, status, setMessages, error, regenerate, clearError } =
     useChat({ transport });
   const busy = status === "submitted" || status === "streaming";
+
+  // L'abandon ne vaut que pour la requête qui vient de partir.
+  useEffect(() => {
+    if (status !== "submitted") giveUpRef.current = false;
+  }, [status]);
+  // Où en est l'exercice socratique : le compteur de la DERNIÈRE réponse du tuteur.
+  const socraticState = useMemo(() => {
+    if (!socratic) return null;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i]!;
+      if (m.role === "assistant") return parseSocratic(rawMessageText(m));
+    }
+    return null;
+  }, [socratic, messages]);
 
   // Dernière réponse du tuteur, si elle n'a encore (ou finalement) aucun texte.
   const lastMsg = messages[messages.length - 1];
@@ -1435,9 +1477,11 @@ export default function ChatPage() {
           onClick={() => setCalcMode((v) => !v)}
           className={cn(
             "grid size-8 shrink-0 place-items-center rounded-lg transition-colors",
+            // Encre du rebord, pas les couleurs du thème : la saisie est un verre
+            // clair dans les deux thèmes (en sombre, le jaune et le gris clair s'y perdaient).
             calcMode
-              ? "bg-primary/15 text-primary"
-              : "text-muted-foreground hover:text-primary hover:bg-accent",
+              ? "bg-[#0F172A]/15 text-[#0F172A]"
+              : "text-[#0F172A]/60 hover:bg-[#0F172A]/10 hover:text-[#0F172A]",
           )}
           title={
             calcMode
@@ -1450,6 +1494,22 @@ export default function ChatPage() {
           aria-pressed={calcMode}
         >
           <Calculator className="size-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setSocratic((v) => !v)}
+          className={cn(
+            "grid size-8 shrink-0 place-items-center rounded-lg transition-colors",
+            socratic
+              ? "bg-[#0F172A]/15 text-[#0F172A]"
+              : "text-[#0F172A]/60 hover:bg-[#0F172A]/10 hover:text-[#0F172A]",
+          )}
+          title={socratic ? t("chat.socraticOn") : t("chat.socraticHint")}
+          aria-label={t("chat.socratic")}
+          aria-pressed={socratic}
+          data-testid="socratic-toggle"
+        >
+          <MessageCircleQuestion className="size-4" />
         </button>
         <textarea
           value={input}
@@ -1530,11 +1590,46 @@ export default function ChatPage() {
         </div>
       )}
       {calcMode && (
-        <p className="text-muted-foreground mt-1.5 px-1 text-xs">
+        <p className="mt-1.5 px-1 text-xs text-[#0F172A]/75">
           {codeLang === "matlab"
             ? t("chat.calcModeOnMatlab")
             : t("chat.calcModeOnPython")}
         </p>
+      )}
+      {/* Mode socratique : où en est l'exercice, et la porte de sortie. Encre
+          du rebord (fond clair dans les deux thèmes), pas le gris du thème. */}
+      {socratic && (
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-xs text-[#0F172A]" data-testid="socratic-bar">
+          <span className="inline-flex items-center gap-1.5 font-semibold">
+            <MessageCircleQuestion className="size-3.5" aria-hidden />
+            {t("chat.socratic")}
+          </span>
+          {socraticState?.status === "open" && (
+            <span className="rounded-full bg-[#0F172A]/10 px-2 py-0.5 font-semibold tabular-nums" data-testid="socratic-attempts" aria-live="polite">
+              {t("chat.socraticAttempts", { n: socraticState.attempt, max: socraticState.max })}
+            </span>
+          )}
+          {socraticState?.status === "solved" && (
+            <span className="rounded-full bg-emerald-600/15 px-2 py-0.5 font-semibold text-emerald-800" data-testid="socratic-solved">
+              {t("chat.socraticSolved")}
+            </span>
+          )}
+          {socraticState?.status === "open" && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                giveUpRef.current = true;
+                send(t("chat.socraticGiveUpMessage"));
+              }}
+              // À côté du compteur, pas au bord droit : le coin est occupé par le bouton de pause du fond.
+              className="rounded-full border border-[#0F172A]/35 bg-white/40 px-2.5 py-0.5 font-semibold transition-colors hover:bg-white/70 disabled:opacity-50"
+              data-testid="socratic-give-up"
+            >
+              {t("chat.socraticGiveUp")}
+            </button>
+          )}
+        </div>
       )}
     </>
   );

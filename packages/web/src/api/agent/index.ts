@@ -25,6 +25,7 @@ import type { Passage } from "../lib/document-search";
 import { markTaskContexts } from "../lib/task-context";
 import { ageLabel } from "../lib/memory-text";
 import { ERROR_TYPES, masteryPromptLines, OUTCOMES, type ConceptState, type MasteryResult, type MasterySignal } from "../lib/concept-mastery";
+import { socraticPromptLines, type SocraticFlags } from "../lib/socratic";
 import { DEFAULT_LEARNING_STYLE, type LearningStyle } from "../lib/learning-style";
 import { DEFAULT_PROFESSOR, PROFESSORS, type ProfessorId } from "../lib/professors";
 import dedent from "dedent";
@@ -144,10 +145,13 @@ function buildMemoryBlock(
   learningStyle: LearningStyle = DEFAULT_LEARNING_STYLE,
   professor: ProfessorId = DEFAULT_PROFESSOR,
   mastery?: TutorMastery,
+  /** Consigne du mode socratique (lib/socratic.ts), déjà vide s'il est éteint. */
+  socraticLines: string[] = [],
 ): string {
   // Lernstand : les concepts fragiles de CETTE personne, et la consigne de
   // signaler ce qu'elle montre. Vide sans modèle de l'apprenant.
-  const masteryLines = mastery ? [...masteryPromptLines(mastery.weakest)] : [];
+  // Le mode socratique vient en DERNIER : ses règles priment sur le style.
+  const masteryLines = [...(mastery ? [...masteryPromptLines(mastery.weakest)] : []), ...socraticLines];
   // Personnalité du professeur choisi : le TON, jamais l'exactitude.
   const personaLines = [
     "DEINE ROLLE (vom Studierenden gewählter Professor):",
@@ -247,6 +251,8 @@ export function buildTutorAgent(opts: {
   memory?: TutorMemory;
   /** Modèle de l'apprenant : concepts fragiles + outil lernstand_melden. Absent = rien des deux. */
   mastery?: TutorMastery;
+  /** Mode socratique allumé par l'étudiant (lib/socratic.ts). Absent ou éteint = prompt d'avant. */
+  socratic?: SocraticFlags;
   /** Style d'apprentissage VARK (réglages). Absent = « interactive ». */
   learningStyle?: LearningStyle;
   /** Professeur choisi (lib/professors.ts). Absent = « genius ». */
@@ -295,7 +301,9 @@ export function buildTutorAgent(opts: {
   precomputedNote?: string | null;
 }) {
   const rule = langRule(opts.locale);
-  const memoryBlock = buildMemoryBlock(opts.memory, opts.learningStyle, opts.professor, opts.mastery);
+  // Mode socratique : jamais en Prüfungsmodus, qui a ses propres règles.
+  const socraticLines = opts.socratic && !opts.examMode ? socraticPromptLines(opts.socratic) : [];
+  const memoryBlock = buildMemoryBlock(opts.memory, opts.learningStyle, opts.professor, opts.mastery, socraticLines);
   const lang = rule.label;
   const student = opts.studentName?.trim() || null;
   const uni = opts.university?.trim() || "FH Aachen";

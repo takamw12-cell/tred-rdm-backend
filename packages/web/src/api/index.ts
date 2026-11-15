@@ -107,6 +107,7 @@ import { notifyExerciseReady } from "./lib/push";
 import { startEveningReminder } from "./lib/evening-reminder";
 import { startMorningDigest } from "./lib/morning-digest-job";
 import { recordMastery, weakestConcepts, type MasteryDb } from "./lib/concept-mastery";
+import { socraticFlags } from "./lib/socratic";
 import { startRetentionHeartbeat } from "./lib/retention/heartbeat";
 import { detectDocumentDenial } from "./lib/denial-guard";
 import { applySubscription, endSubscription } from "./lib/billing";
@@ -847,6 +848,9 @@ app.post("/api/agent/messages", async (c) => {
       note: (input) => noteGap(uid, { ...input, semesterId: semesterId ?? null }),
       resolve: (label) => resolveGap(uid, label),
     },
+    // Mode socratique du Hörsaal : des questions et des indices, pas la
+    // solution — sauf le tour où l'étudiant clique « Ich gebe auf ».
+    socratic: socraticFlags(body),
     // Le compte est celui de la session : l'outil ne peut signaler que pour lui.
     mastery: {
       weakest,
