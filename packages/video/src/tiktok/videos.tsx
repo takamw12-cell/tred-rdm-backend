@@ -5,6 +5,7 @@ import { PROFESSORS } from "../../../web/src/api/lib/professors";
 import type { Cue, VoFile } from "../promo/voice";
 import { BRoll, GOLD, H, NIGHT, Sticker, W, clamp, easeInOut, faceCam, media, pop, progress, s } from "./kit";
 import { SurviveVideo, type SurviveScene } from "./engine";
+import { SurviveVisual } from "./sk4";
 import { CamRing, CodeScroll, CompressorSchematic, CtaOverlay, EndCard, PdfScroll, ProfHologram, TafelCam, TopCta, camAt, type Band, type Cam } from "./scenes";
 import vo1Json from "../assets/vo-t-de1.json";
 import vo2Json from "../assets/vo-t-de2.json";
@@ -575,4 +576,5 @@ export const SURVIVE = [
   ["SK-1-Die-Klausur-morgen", SurviveKlausur, s(20)],
   ["SK-2-Physik-verstehen", SurvivePhysik, s(20)],
   ["SK-3-Founder-Story", SurviveFounder, s(25)],
+  ["SK-4-Visual-Learning", SurviveVisual, s(20)],
 ] as const;

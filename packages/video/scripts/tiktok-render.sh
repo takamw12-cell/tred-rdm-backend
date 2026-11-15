@@ -51,7 +51,7 @@ fi
 
 BUNDLE="${TIKTOK_BUNDLE:-$(mktemp -d)/bundle}"
 [ -f "$BUNDLE/index.html" ] || npx remotion bundle src/index.ts --out-dir="$BUNDLE" >/dev/null
-ALL="SK-1-Die-Klausur-morgen SK-2-Physik-verstehen SK-3-Founder-Story"
+ALL="SK-1-Die-Klausur-morgen SK-2-Physik-verstehen SK-3-Founder-Story SK-4-Visual-Learning"
 FF="${FFMPEG:-ffmpeg}"
 # Un ffmpeg Windows (…/ffmpeg.exe) lancé depuis WSL ne comprend pas « /mnt/c/… » : on lui donne le chemin Windows.
 native() { case "$FF" in *.exe) wslpath -w "$1" 2>/dev/null || printf '%s' "$1" ;; *) printf '%s' "$1" ;; esac; }

@@ -190,4 +190,7 @@ export const TIKTOK = [
   { id: "t-de3", language: "de", voiceId: "SAz9YHcvj6GT2YYXdXww", model: "eleven_v4", // River — détendu, neutre : en attendant la vraie voix du fondateur
     settings: { stability: 0.45, similarity_boost: 0.8, style: 0.2, use_speaker_boost: true, speed: 1.06 },
     text: "Ich studiere Luft- und Raumfahrttechnik in Deutschland. Und manchmal sitze ich stundenlang vor einem Skript und denke mir: Warum ist das alles so kompliziert erklärt? Also habe ich angefangen, selbst eine Lern-App zu entwickeln. Sie heißt TRED. Die Idee: Lade dein Skript hoch und lass dir schwierige Themen verständlicher erklären. Das Projekt ist noch in der Entwicklung. Wenn du studierst, probier TRED aus und sag mir, was ich verbessern soll." },
+  { id: "t-de4", language: "de", voiceId: "TX3LPaxmHKxFdv7VOQHJ", model: "eleven_v4", // Liam, comme SK-1 : « Ce n'est pas juste du texte »
+    settings: { stability: 0.3, similarity_boost: 0.75, style: 0.4, use_speaker_boost: true, speed: 1.06 },
+    text: "Lernen mit KI ist nur Text? Falsch. In TRED erklärt mir der Professor die Aufgabe an der Tafel. Dann drehe ich das Triebwerk in 3D und tippe auf die Brennkammer. Und am Ende teste ich mich im Mini-Spiel. Das ist nicht nur Text. TRED — Link im Profil." },
 ];
