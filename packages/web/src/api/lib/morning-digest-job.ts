@@ -26,7 +26,12 @@ import { collectCounts, headline, inSendWindow, mergeVideoRows, renderDigest, SE
  */
 
 const JOB = "morning_digest";
-const PERIODE_MS = 15 * 60_000;
+/**
+ * Toutes les cinq minutes : la boucle part de l'heure de démarrage du serveur,
+ * pas de l'heure ronde — au quart d'heure, l'e-mail « de 8 h » pouvait partir
+ * à 8 h 14. Hors de la fenêtre du matin, un tour ne lit même pas la base.
+ */
+const PERIODE_MS = 5 * 60_000;
 const num = (v: unknown) => Number(v ?? 0) || 0;
 const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim().slice(0, 80) : null);
 
@@ -130,7 +135,7 @@ export function startMorningDigest(): void {
 
   minuterie = setInterval(() => void tour(), PERIODE_MS);
   minuterie.unref?.();
-  console.log(`[resume] actif — ${SEND_FROM_HOUR} h ${DIGEST_TIMEZONE}, vérifié tous les quarts d'heure`);
+  console.log(`[resume] actif — ${SEND_FROM_HOUR} h ${DIGEST_TIMEZONE}, vérifié toutes les 5 minutes`);
 }
 
 /** Pour les tests et l'arrêt propre. */

@@ -970,7 +970,7 @@ sur les dernières 24 h, puis une ligne par lien de campagne — donc par vidéo
 
 **Réglages** (rien à faire, tout est déjà en place sur Railway) : `ADMIN_EMAILS` (destinataires), `RESEND_API_KEY` + `MAIL_FROM` (envoi), `POSTHOG_PERSONAL_API_KEY` + `POSTHOG_PROJECT_ID` (visiteurs ; sans elles l'e-mail part quand même, avec « visiteurs non disponibles »). Pour couper l'e-mail : `DISABLE_MORNING_DIGEST=true`.
 
-**Comment ça marche.** Même construction que la relance du soir : une boucle dans le serveur, vérifiée tous les quarts d'heure, et un verrou en base (`job_run`, clé `morning_digest`) pour un seul envoi par jour. Si le serveur redémarre à 8 h, l'envoi est rattrapé jusqu'à midi. Dans les journaux Railway : `[resume] … — 1/1 e-mail(s) partis`. Code : `packages/web/src/api/lib/morning-digest.ts` (calcul et texte) et `morning-digest-job.ts` (boucle, envoi).
+**Comment ça marche.** Même construction que la relance du soir : une boucle dans le serveur, vérifiée toutes les cinq minutes (l'e-mail part donc entre 8 h 00 et 8 h 05), et un verrou en base (`job_run`, clé `morning_digest`) pour un seul envoi par jour. Si le serveur redémarre à 8 h, l'envoi est rattrapé jusqu'à midi. Dans les journaux Railway : `[resume] … — 1/1 e-mail(s) partis`. Code : `packages/web/src/api/lib/morning-digest.ts` (calcul et texte) et `morning-digest-job.ts` (boucle, envoi).
 
 **À la demande**, depuis ta machine (Railway CLI) :
 
