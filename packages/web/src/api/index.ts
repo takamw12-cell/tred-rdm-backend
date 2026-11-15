@@ -93,6 +93,7 @@ import { chercherDansDocuments } from "./lib/document-search";
 import { searchYoutube, youtubeConfigured } from "./lib/youtube";
 import { writeVideoQuery } from "./lib/video-query";
 import { finalizeQuiz, quizContext, quizModelSchema, quizRequestSchema, quizSystemPrompt } from "./lib/quiz";
+import { challengeModelSchema, challengePrompt, challengeRequestSchema, challengeSystemPrompt, excerptFor, groundChallenge } from "./lib/doc-challenge";
 import {
   getAccess,
   setActive,
@@ -1836,6 +1837,57 @@ app.post("/api/agent/quiz", async (c) => {
     return c.json({ questions });
   } catch (err) {
     console.error("[quiz] generation failed", (err as Error).message);
+    return c.json({ error: "failed" }, 502);
+  }
+});
+
+// « Fall-Check » : un défi tiré d'UN document de l'étudiant (lib/doc-challenge.ts).
+// Le document est cherché par son identifiant ET par le compte : celui d'un
+// autre ne revient pas du tout. Mêmes garde-fous que le quiz ; 20 parties par
+// heure au plus. Une question ne sort que si sa preuve est dans le document.
+const challengeCalls = new Map<string, number[]>();
+app.post("/api/agent/doc-challenge", async (c) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);
+  if (!process.env.ANTHROPIC_API_KEY) return c.json({ error: "not_configured" }, 503);
+
+  const parsed = challengeRequestSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: "invalid body" }, 400);
+
+  const uid = session.user.id;
+  const [doc] = await db
+    .select({ id: document.id, title: document.title, kind: document.kind, textContent: document.textContent })
+    .from(document)
+    .where(and(eq(document.id, parsed.data.documentId), eq(document.userId, uid)))
+    .limit(1);
+  if (!doc) return c.json({ error: "not_found" }, 404);
+  if (doc.textContent.trim().length < 400) return c.json({ error: "too_short" }, 422);
+
+  const now = Date.now();
+  const recent = (challengeCalls.get(uid) ?? []).filter((t) => now - t < 60 * 60 * 1000);
+  if (recent.length >= 20) return c.json({ error: "rate_limited" }, 429);
+  challengeCalls.set(uid, [...recent, now]);
+
+  const cap = await withinTokenCap(uid);
+  if (!cap.ok) return c.json(tokenCapError(cap.used, cap.cap), 402);
+  const { label: langLabel } = langOf(parsed.data.locale);
+
+  try {
+    const { object, usage } = await generateObject({
+      model: gateway(PRIMARY_MODEL),
+      schema: challengeModelSchema,
+      system: challengeSystemPrompt(parsed.data.mode, langLabel),
+      prompt: challengePrompt(doc, excerptFor(doc.textContent)),
+      abortSignal: AbortSignal.timeout(60_000),
+    });
+    void addOutputTokens(uid, usage?.outputTokens ?? 0);
+    // La preuve est cherchée dans le document ENTIER, pas dans le seul extrait envoyé.
+    const questions = groundChallenge(object, doc.textContent);
+    console.log(`[doc-challenge] mode=${parsed.data.mode} proposed=${object.faelle.length} grounded=${questions.length}`);
+    if (questions.length === 0) return c.json({ error: "no_grounded_question" }, 422);
+    return c.json({ documentId: doc.id, title: doc.title, questions });
+  } catch (err) {
+    console.error("[doc-challenge] generation failed", (err as Error).message);
     return c.json({ error: "failed" }, 502);
   }
 });

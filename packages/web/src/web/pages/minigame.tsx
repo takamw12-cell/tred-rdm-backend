@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Box, Flame, Loader2, RotateCcw, Trophy } from "lucide-react";
+import { Box, FileSearch, Flame, Loader2, RotateCcw, Trophy } from "lucide-react";
 import { PageContainer, PageHeader, Reveal } from "@/components/page";
 import { ProfessorPortrait } from "@/components/professor-portrait";
 import type { Feedback } from "@/components/MiniGame";
@@ -77,6 +77,12 @@ export default function MiniGamePage() {
   return (
     <PageContainer className="max-w-5xl">
       <PageHeader title={t("minigame.title")} subtitle={t("minigame.subtitle")} />
+
+      {/* L'autre jeu : des cas tirés des documents de l'étudiant, toutes filières. */}
+      <Link to="/fall-check" data-testid="to-fallcheck" className="mb-4 flex min-h-12 items-center gap-3 rounded-xl bg-[#0F172A] px-4 py-3 text-sm font-semibold text-white ring-1 ring-white/10 transition-colors hover:bg-[#16213A] focus-visible:ring-2 focus-visible:ring-[#EAB308] focus-visible:outline-none">
+        <FileSearch className="size-5 shrink-0 text-[#EAB308]" />
+        {t("fallcheck.link")}
+      </Link>
 
       <Reveal>
         <div className="overflow-hidden rounded-3xl border border-white/10 bg-[#0B1220] text-white shadow-xl" data-testid="minigame" data-round={state.round} data-done={done}>

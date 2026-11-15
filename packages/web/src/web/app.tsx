@@ -56,6 +56,8 @@ const FlashcardsPage = lazyPage(() => import("./pages/flashcards"));
 const ExplorerPage = lazyPage(() => import("./pages/explorer"));
 // Mini-jeu : Phaser ne se charge qu'à l'ouverture de cette page.
 const MiniGamePage = lazyPage(() => import("./pages/minigame"));
+// Fall-Check : des cas tirés d'un document de l'étudiant.
+const FallCheckPage = lazyPage(() => import("./pages/fall-check"));
 const FormulasPage = lazyPage(() => import("./pages/formulas"));
 const ExamPage = lazyPage(() => import("./pages/exam"));
 const SettingsPage = lazyPage(() => import("./pages/settings"));
@@ -118,6 +120,7 @@ function AuthedApp() {
             <Route path="/flashcards" component={FlashcardsPage} />
             <Route path="/explorer" component={ExplorerPage} />
             <Route path="/minigame" component={MiniGamePage} />
+            <Route path="/fall-check" component={FallCheckPage} />
             <Route path="/formulas" component={FormulasPage} />
             <Route path="/settings" component={SettingsPage} />
             <Route path="/pricing" component={PricingPage} />
