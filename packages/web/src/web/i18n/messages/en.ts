@@ -566,7 +566,7 @@ export const en: Messages = {
   },
   library: {
     tooLarge: "This file is too large (50 MB maximum).",
-    rateLimited: "Too many imports in a short time. Try again in an hour.",
+    rateLimited: "Safety limit reached: a very large number of imports in a short time. Please try again a little later.",
     passwordProtected: "This PDF is password-protected. Remove the protection and upload it again.",
     corrupted: "This file is damaged and cannot be opened.",
     emptyFile: "This file is empty.",
@@ -1147,6 +1147,8 @@ export const en: Messages = {
     correct: "Correct!",
     wrong: "Not quite – the right answer is: {answer}",
     source: "{doc} · page {page}",
+    openHint: "Open in document",
+    openSource: "Open “{doc}” at page {page}",
     next: "Next",
     finish: "See result",
     finishedTitle: "Done!",

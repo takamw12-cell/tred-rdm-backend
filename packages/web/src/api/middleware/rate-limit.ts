@@ -187,8 +187,13 @@ const envInt = (name: string, fallback: number) => {
  * redéploiement de code : un semestre d'examens peut demander plus d'imports.
  */
 export const USER_LIMITS = {
-  /** Imports de documents : 10 par heure. */
-  import: () => ({ scope: "user-import", limit: envInt("IMPORT_RATE_PER_HOUR", 10), windowMs: HOUR_MS }),
+  /**
+   * Imports de documents : 100 par heure — un garde-fou contre un script, pas
+   * une limite pour un étudiant. À 10 par heure (jusqu'au 2026-11-16), deux
+   * lots de cinq cours d'affilée bloquaient le compte une heure : décision du
+   * fondateur, personne ne doit plus rencontrer cette limite en usage normal.
+   */
+  import: () => ({ scope: "user-import", limit: envInt("IMPORT_RATE_PER_HOUR", 100), windowMs: HOUR_MS }),
   /** Vidéos explicatives : 5 par jour. */
   video: () => ({ scope: "user-video", limit: envInt("VIDEO_RATE_PER_DAY", 5), windowMs: DAY_MS }),
 } as const;
@@ -217,7 +222,7 @@ export async function userRateBump(userId: string, rule: { scope: string; limit:
  *
  * Le middleware ci-dessus compte par cookie de session, sans le vérifier : il
  * arrête une rafale, mais un étudiant qui se reconnecte obtient un cookie neuf
- * et donc un compteur neuf. Ici la clé est l'identifiant du compte : dix
+ * et donc un compteur neuf. Ici la clé est l'identifiant du compte : cent
  * imports par heure, quel que soit le nombre d'appareils ou de sessions.
  *
  * Renvoie la réponse 429 à retourner, ou `null` si la requête peut continuer.

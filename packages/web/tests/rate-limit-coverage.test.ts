@@ -103,17 +103,17 @@ describe("valeurs des limites par compte", async () => {
   process.env.DATABASE_URL ??= "file::memory:";
   const { DAY_MS, HOUR_MS, USER_LIMITS } = await import("../src/api/middleware/rate-limit");
 
-  test("10 imports par heure, 5 vidéos par jour", () => {
+  test("100 imports par heure (garde-fou, pas une limite d'usage), 5 vidéos par jour", () => {
     const saved = { i: process.env.IMPORT_RATE_PER_HOUR, v: process.env.VIDEO_RATE_PER_DAY };
     delete process.env.IMPORT_RATE_PER_HOUR;
     delete process.env.VIDEO_RATE_PER_DAY;
     try {
-      expect(USER_LIMITS.import()).toEqual({ scope: "user-import", limit: 10, windowMs: HOUR_MS });
+      expect(USER_LIMITS.import()).toEqual({ scope: "user-import", limit: 100, windowMs: HOUR_MS });
       expect(USER_LIMITS.video()).toEqual({ scope: "user-video", limit: 5, windowMs: DAY_MS });
       process.env.IMPORT_RATE_PER_HOUR = "25";
       expect(USER_LIMITS.import().limit).toBe(25);
       process.env.IMPORT_RATE_PER_HOUR = "abc"; // valeur illisible : on garde la limite par défaut
-      expect(USER_LIMITS.import().limit).toBe(10);
+      expect(USER_LIMITS.import().limit).toBe(100);
     } finally {
       if (saved.i === undefined) delete process.env.IMPORT_RATE_PER_HOUR;
       else process.env.IMPORT_RATE_PER_HOUR = saved.i;

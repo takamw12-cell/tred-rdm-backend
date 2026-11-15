@@ -565,7 +565,7 @@ export const de = {
   },
   library: {
     tooLarge: "Die Datei ist zu groß (maximal 50 MB).",
-    rateLimited: "Zu viele Importe in kurzer Zeit. Versuch es in einer Stunde erneut.",
+    rateLimited: "Sicherheitsgrenze erreicht: sehr viele Importe in kurzer Zeit. Bitte versuche es etwas später erneut.",
     passwordProtected: "Diese PDF ist mit einem Passwort geschützt. Entferne den Schutz und lade sie erneut hoch.",
     corrupted: "Diese Datei ist beschädigt und lässt sich nicht öffnen.",
     emptyFile: "Diese Datei ist leer.",
@@ -1147,6 +1147,8 @@ export const de = {
     correct: "Richtig!",
     wrong: "Nicht ganz – richtig ist: {answer}",
     source: "{doc} · Seite {page}",
+    openHint: "Im Dokument öffnen",
+    openSource: "„{doc}“ auf Seite {page} öffnen",
     next: "Weiter",
     finish: "Ergebnis ansehen",
     finishedTitle: "Geschafft!",
