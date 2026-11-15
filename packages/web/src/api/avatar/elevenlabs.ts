@@ -15,7 +15,7 @@ import { NotConfiguredError, type TtsStage } from "./pipeline";
  */
 
 export type VoiceStyle = "calm" | "energetic" | "strict";
-export type PremiumSlot = "genius" | "maverick" | "examiner" | "sensei";
+export type PremiumSlot = "genius" | "maverick" | "examiner" | "sensei" | "strategist" | "trickster" | "observer" | "medic" | "analyst";
 
 export const PREMIUM_SLOTS: {
   id: PremiumSlot;
@@ -32,6 +32,18 @@ export const PREMIUM_SLOTS: {
   { id: "examiner", env: "ELEVENLABS_VOICE_AIKO", defaultVoiceId: "Xb7hH8MSUJpSbSDYk0k2", style: "strict" },
   // Sensei Haruto — voix grave et calme (« Brian »).
   { id: "sensei", env: "ELEVENLABS_VOICE_HARUTO", defaultVoiceId: "nPczCjzI2devNBz1zQrb", style: "calm" },
+  // ── Les cinq professeurs du 15 nov. 2026 ─ identifiants relus dans la liste
+  // publique des voix par défaut d'ElevenLabs (GET /v1/voices, sans clé).
+  // Prof. Daichi, le stratège — homme posé, formel (« Daniel »).
+  { id: "strategist", env: "ELEVENLABS_VOICE_DAICHI", defaultVoiceId: "onwK4e9ZLuTAKqWW03F9", style: "calm" },
+  // Prof. Kazu, le farceur — jeune homme plein d'entrain (« Charlie »).
+  { id: "trickster", env: "ELEVENLABS_VOICE_KAZU", defaultVoiceId: "IKne3meq5aSn9XLyUdCD", style: "energetic" },
+  // Sensei Sora, l'observateur — jeune homme tranquille (« Will »).
+  { id: "observer", env: "ELEVENLABS_VOICE_SORA", defaultVoiceId: "bIHbv24MWmeRgasZH58o", style: "calm" },
+  // Dr. Mio, la médecin — femme assurée (« Lily »).
+  { id: "medic", env: "ELEVENLABS_VOICE_MIO", defaultVoiceId: "pFZP5JQG7iQjIQuC4Bku", style: "calm" },
+  // Prof. Shun, l'analyste — homme sobre (« Eric »), diction sèche.
+  { id: "analyst", env: "ELEVENLABS_VOICE_SHUN", defaultVoiceId: "cjVigY5qzO86Huf0OWal", style: "strict" },
 ];
 
 /** Voix disponibles : toutes, dès que la clé est posée. */

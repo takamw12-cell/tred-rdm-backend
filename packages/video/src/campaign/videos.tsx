@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { AbsoluteFill, useCurrentFrame } from "remotion";
 import { PaperNote, SolverStamp, StepChecklist } from "@/components/hoersaal";
-import { PROFESSORS, PROFESSOR_IDS } from "../../../web/src/api/lib/professors";
+import { PROFESSORS, LAUNCH_PROFESSOR_IDS } from "../../../web/src/api/lib/professors";
 import { solveNPV } from "../../../web/src/api/lib/solvers/finance-solver";
 import { Appear, HoersaalBoard, Tex } from "../promo/board";
 import { interpolateScroll, pop, progress, withStaticImage } from "../promo/kit";
@@ -48,7 +48,7 @@ import music5de from "../assets/music-c5-de.mp3";
 
 export type Lang = "en" | "de";
 export const prof = (id: keyof typeof PROFESSORS) => withStaticImage(PROFESSORS[id]);
-export const PROFS = PROFESSOR_IDS.map((id) => prof(id));
+export const PROFS = LAUNCH_PROFESSOR_IDS.map((id) => prof(id));
 
 /** Toutes les filières, une photo chacune (fonds de l'app). */
 export const FIELDS: Record<Lang, { src: string; label: string }[]> = {

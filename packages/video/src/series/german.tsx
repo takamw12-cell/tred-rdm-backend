@@ -3,7 +3,7 @@ import { AbsoluteFill, useCurrentFrame } from "remotion";
 import { Atom, BookOpen, Cog, Code2, FlaskConical, Flame, Layers, Scale, Sigma, Stethoscope, TrendingUp, Zap } from "lucide-react";
 import { PaperNote, ProfessorHalo, SolverStamp, StepChecklist } from "@/components/hoersaal";
 import { LogoMark } from "@/components/logo";
-import { PROFESSORS, PROFESSOR_IDS } from "../../../web/src/api/lib/professors";
+import { PROFESSORS, LAUNCH_PROFESSOR_IDS } from "../../../web/src/api/lib/professors";
 import { solveIRR, solveNPV } from "../../../web/src/api/lib/solvers/finance-solver";
 import { Appear, HandLine, HoersaalBoard, Tex } from "../promo/board";
 import { NIGHT, YELLOW, interpolateScroll, pop, progress, rise, withStaticImage } from "../promo/kit";
@@ -323,7 +323,7 @@ const DE3_SCENES: SceneDef[] = [
   {
     name: "Wähle deinen Professor",
     enter: "slide",
-    render: ({ f }) => <ProfGrid profs={PROFESSOR_IDS.map((id) => prof(id))} lang="de" title="Wähle deinen Professor." chosen="sensei" chooseAt={f("Professor")} />,
+    render: ({ f }) => <ProfGrid profs={LAUNCH_PROFESSOR_IDS.map((id) => prof(id))} lang="de" title="Wähle deinen Professor." chosen="sensei" chooseAt={f("Professor")} />,
     cues: ({ f }) => [{ at: f("Professor"), kind: "click" }],
   },
   {
@@ -386,7 +386,7 @@ function SubjectsDE({ at }: { at: { geist: number; ing: number; med: number } })
 
 function ProfRingDE({ at }: { at: number }) {
   const frame = useCurrentFrame();
-  const profs = PROFESSOR_IDS.map((id) => prof(id));
+  const profs = LAUNCH_PROFESSOR_IDS.map((id) => prof(id));
   const pos = [
     { x: -130, y: -170 },
     { x: 130, y: -170 },

@@ -19,7 +19,7 @@ import { HoersaalStage } from "@/components/hoersaal-stage";
 import { HologramProfessor } from "@/components/hologram-professor";
 import { Logo } from "@/components/logo";
 import { parseBeamPayload, renderBeamSvg } from "@/lib/beam-svg";
-import { PROFESSORS, PROFESSOR_IDS, professorText, type Professor } from "../../web/src/api/lib/professors";
+import { PROFESSORS, LAUNCH_PROFESSOR_IDS, professorText, type Professor } from "../../web/src/api/lib/professors";
 import { solveMechanicsSafe } from "../../web/src/api/lib/mechanics-solver";
 import { payloadToProblem } from "../../web/src/api/lib/beam-tool";
 
@@ -382,7 +382,7 @@ function Profs() {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const { dur } = SCENES.profs;
-  const profs = useMemo(() => PROFESSOR_IDS.map((id) => withStaticImage(PROFESSORS[id])), []);
+  const profs = useMemo(() => LAUNCH_PROFESSOR_IDS.map((id) => withStaticImage(PROFESSORS[id])), []);
   return (
     <AbsoluteFill
       style={{

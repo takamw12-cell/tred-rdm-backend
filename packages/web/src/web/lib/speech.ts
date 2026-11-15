@@ -207,6 +207,11 @@ export const PROFESSOR_STYLE: Record<string, VoiceStyle> = {
   sensei: "calm",
   maverick: "energetic",
   examiner: "strict",
+  strategist: "calm",
+  trickster: "energetic",
+  observer: "calm",
+  medic: "calm",
+  analyst: "strict",
 };
 
 /** Débit et hauteur d'une voix navigateur, bornés aux valeurs sûres. */

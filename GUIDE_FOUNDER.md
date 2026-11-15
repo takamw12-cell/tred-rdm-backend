@@ -1032,3 +1032,22 @@ node C:\dev\tred-rdm\aerostudy-ai\migre-concept-mastery.mjs
 **Limite à connaître.** C'est le modèle qui juge si une réponse était juste, comme pour les lacunes. Je n'ai pas pu l'essayer sur le vrai modèle (chaque essai coûte) : le calcul du score, l'enregistrement et le texte remis au tuteur sont testés ; la régularité avec laquelle il appelle l'outil se verra à l'usage, dans la table.
 
 Code : `packages/web/src/api/lib/concept-mastery.ts`, outil dans `src/api/agent/index.ts`. Les barres « par matière » du Dashboard arrivent au chantier 4.
+
+## Cinq professeurs de plus au vestiaire (15 nov. 2026)
+
+Le vestiaire passe de quatre à neuf professeurs. Les cinq nouveaux sont des **archétypes à nous** — un rôle, un ton, une méthode — pas des personnages repris d'une œuvre :
+
+| Professeur | Archétype | Ton et méthode | Voix par défaut |
+|---|---|---|---|
+| Prof. Daichi | Der Stratege | visionnaire, structuré : état des lieux, plan par étapes, budget de temps, prochaine action | `ELEVENLABS_VOICE_DAICHI` |
+| Prof. Kazu | Der Spaßvogel | ludique, rapide, analogies drôles — puis la version propre (formule, unité, résultat) | `ELEVENLABS_VOICE_KAZU` |
+| Sensei Sora | Der Beobachter | socratique : une question ciblée, attendre, reformuler ; droit, philosophie | `ELEVENLABS_VOICE_SORA` |
+| Dr. Mio | Die Ärztin | rigoureuse et rassurante ; médecine, biologie, anatomie | `ELEVENLABS_VOICE_MIO` |
+| Prof. Shun | Der Analytiker | froid, logique, direct : données, inconnue, méthode, calcul, contrôle | `ELEVENLABS_VOICE_SHUN` |
+
+- **Où** : page « Mein virtueller Professor » (`/professors`) et bouton de changement dans le Hörsaal — le sélecteur existait, il affiche maintenant les neuf. Le choix s'applique dès la question suivante : le serveur relit le professeur à chaque requête.
+- **Avatars** : générés comme les quatre premiers (Flux Schnell sur Replicate, `scripts/generate-avatars.mjs`, environ 0,003 $ pièce, cinq images). Les prompts décrivent un rôle, un âge et une tenue de tous les jours. J'ai volontairement écarté tout signe distinctif d'un personnage connu (uniforme, cape, créature, marque au front, couettes, uniforme scolaire) et regardé chaque image avant de la garder. Le « farceur » est donc un humain excentrique, pas une créature jaune : cette silhouette-là aurait été reconnaissable.
+- **Garde-fous écrits dans les rôles** : l'humour ne vise jamais la personne ; l'observateur donne la solution si on la lui demande expressément ; la médecin explique le cours mais ne pose aucun diagnostic et ne donne aucun avis médical personnel ; le stratège parle en images de planification, jamais guerrières.
+- **Voix** : chacun a une voix par défaut d'ElevenLabs, modifiable par sa variable. Rien à configurer.
+- **Crédits** : `packages/web/public/avatars/CREDITS.md`. Un test refuse tout nom de personnage ou d'œuvre connue dans le vestiaire et dans ce fichier.
+- Les films promotionnels gardent les quatre professeurs du lancement (`LAUNCH_PROFESSOR_IDS`) : leurs plans sont composés pour quatre.

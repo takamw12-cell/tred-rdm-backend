@@ -25,10 +25,10 @@ describe("voix ElevenLabs par professeur", () => {
     withKey({ ELEVENLABS_API_KEY: undefined }, () => expect(premiumVoices()).toEqual([]));
   });
 
-  test("avec la clé seule : les 4 voix par défaut ; une variable remplace la voix d'un prof", () => {
+  test("avec la clé seule : une voix par défaut par professeur (9) ; une variable remplace la voix d'un prof", () => {
     withKey({ ELEVENLABS_API_KEY: "sk_test", ELEVENLABS_VOICE_AIKO: "custom-aiko-id" }, () => {
       const v = premiumVoices();
-      expect(v).toHaveLength(4);
+      expect(v).toHaveLength(9);
       expect(v.find((x) => x.id === "examiner")?.voiceId).toBe("custom-aiko-id");
       expect(resolvePremiumVoice("genius")?.style).toBe("energetic");
       expect(resolvePremiumVoice("inconnu", "strict")?.id).toBe("examiner");
