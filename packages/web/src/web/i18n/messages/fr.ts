@@ -371,6 +371,8 @@ export const fr: Messages = {
     why: "Pourquoi ?",
     explainDifferently: "Expliquer autrement",
     engineerMode: "Raisonnement d'ingénieur",
+    mission: "Mission pratique",
+    missionPrompt: "Donne-moi une courte mission pratique sur ce sujet : un petit exercice tiré de ma filière, que je calcule avec MES PROPRES chiffres (quelque chose que je peux mesurer ou choisir moi-même). Dis-moi ce que je dois déterminer et comment savoir si mon résultat est plausible – mais ne le résous pas à ma place.",
     officialLabel: "Contenu officiel du cours",
     aerostudyLabel: "Explication TRED",
     reasoningLabel: "Raisonnement d'ingénieur",

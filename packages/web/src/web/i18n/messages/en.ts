@@ -371,6 +371,8 @@ export const en: Messages = {
     why: "Why?",
     explainDifferently: "Explain differently",
     engineerMode: "Engineering reasoning",
+    mission: "Practice mission",
+    missionPrompt: "Give me a short practice mission on this topic: a small task from my field of study that I work out with my OWN numbers (something I can measure or choose myself). Tell me what to determine and how I can tell whether my result is plausible – but do not solve it for me.",
     officialLabel: "Official Course Content",
     aerostudyLabel: "TRED Explanation",
     reasoningLabel: "Engineering reasoning",

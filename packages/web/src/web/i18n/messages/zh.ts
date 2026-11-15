@@ -286,6 +286,8 @@ export const zh: PartialMessages = {
     why: "为什么？",
     explainDifferently: "换一种讲法",
     engineerMode: "工程师思路",
+    mission: "实践任务",
+    missionPrompt: "请就这个主题给我一个简短的实践任务：一个来自我所学专业的小练习，用我自己的数据来计算（我能自己测量或选择的东西）。告诉我要求什么，以及如何判断结果是否合理——但不要替我解出来。请只给出任务本身，不要给出解答过程。",
     officialLabel: "课程原文",
     aerostudyLabel: "TRED 的讲解",
     reasoningLabel: "工程师思路",

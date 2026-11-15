@@ -108,6 +108,7 @@ import { startEveningReminder } from "./lib/evening-reminder";
 import { startMorningDigest } from "./lib/morning-digest-job";
 import { recordMastery, weakestConcepts, type MasteryDb } from "./lib/concept-mastery";
 import { socraticFlags } from "./lib/socratic";
+import { realWorldRules } from "./lib/real-world";
 import { startRetentionHeartbeat } from "./lib/retention/heartbeat";
 import { detectDocumentDenial } from "./lib/denial-guard";
 import { applySubscription, endSubscription } from "./lib/billing";
@@ -816,7 +817,9 @@ app.post("/api/agent/messages", async (c) => {
     route,
     precomputedNote: fast?.modelNote ?? null,
     domainHint: fachHint || null,
-    studyProfile: studyProfileHint(studyProfile),
+    // Le profil d'études, puis l'ancrage réel (lib/real-world.ts) : un exemple
+    // de la filière par concept abstrait, et une mission pratique en fin de thème.
+    studyProfile: [studyProfileHint(studyProfile), realWorldRules(studyProfile, { examMode: examMode === true })].filter(Boolean).join("\n\n") || null,
     learningStyle,
     professor,
     sources,

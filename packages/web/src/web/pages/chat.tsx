@@ -26,6 +26,7 @@ import {
   Paperclip,
   Calculator,
   MessageCircleQuestion,
+  Target,
   NotebookPen,
   Camera,
   FolderOpen,
@@ -1338,7 +1339,7 @@ export default function ChatPage() {
 
   function handleAction(
     messageId: string,
-    action: "why" | "explain" | "engineer" | "video" | "ytsearch" | "quiz" | "flashcards",
+    action: PageAction,
   ) {
     if (action === "quiz") {
       setQuizFor(messageId);
@@ -1372,6 +1373,9 @@ export default function ChatPage() {
       send(t("chat.whyPrompt"));
     } else if (action === "engineer") {
       send(t("chat.engineerPrompt"));
+    } else if (action === "mission") {
+      // Une petite tâche de la filière, à faire avec ses propres chiffres (api/lib/real-world.ts).
+      send(t("chat.missionPrompt"));
     } else {
       const n = (explainAttempts.current[messageId] ?? 1) + 1;
       explainAttempts.current[messageId] = n;
@@ -2229,6 +2233,7 @@ export default function ChatPage() {
                           why: t("chat.why"),
                           explain: t("chat.explainDifferently"),
                           engineer: t("chat.engineerMode"),
+                          mission: t("chat.mission"),
                           // Masqués quand le serveur n'a pas la clé.
                           video: features.explainerVideo ? t("video.chip") : undefined,
                           ytsearch: features.videoSearch ? t("videoSearch.chip") : undefined,
@@ -2392,7 +2397,7 @@ export default function ChatPage() {
   );
 }
 
-type PageAction = "why" | "explain" | "engineer" | "video" | "ytsearch" | "quiz" | "flashcards";
+type PageAction = "why" | "explain" | "engineer" | "mission" | "video" | "ytsearch" | "quiz" | "flashcards";
 
 /**
  * Les gestes sous une page de la Tafel : écouter, « Pourquoi ? », autre
@@ -2417,6 +2422,7 @@ function PageActions({
     why: string;
     explain: string;
     engineer: string;
+    mission: string;
     video?: string;
     ytsearch?: string;
     quiz?: string;
@@ -2430,6 +2436,7 @@ function PageActions({
       <BoardChip icon={<HelpCircle className="size-3.5" />} label={labels.why} onClick={() => onAction("why")} />
       <BoardChip icon={<RefreshCw className="size-3.5" />} label={labels.explain} onClick={() => onAction("explain")} />
       <BoardChip icon={<Cog className="size-3.5" />} label={labels.engineer} onClick={() => onAction("engineer")} />
+      <BoardChip icon={<Target className="size-3.5" />} label={labels.mission} onClick={() => onAction("mission")} />
       {labels.quiz && <BoardChip icon={<ListChecks className="size-3.5" />} label={labels.quiz} onClick={() => onAction("quiz")} />}
       {labels.flashcards && (
         <BoardChip icon={<GalleryVerticalEnd className="size-3.5" />} label={labels.flashcards} onClick={() => onAction("flashcards")} />

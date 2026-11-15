@@ -1071,3 +1071,20 @@ Le vestiaire passe de quatre à neuf professeurs. Les cinq nouveaux sont des **a
 **Avec le Prüfungsmodus** : le mode socratique n'y est jamais appliqué. Les douze langues ont leurs textes.
 
 Code : `packages/web/src/api/lib/socratic.ts` (consigne), `src/web/lib/socratic.ts` (lecture du compteur), bouton et barre dans `src/web/pages/chat.tsx`.
+
+## Sprint « tuteur intelligent » — chantier 3 : l'ancrage réel (15 nov. 2026)
+
+**Ce que TRED faisait déjà.** La filière de l'étudiant (Studiengang, saisi à l'inscription ou dans les réglages) partait déjà au tuteur, avec une consigne molle : « choisis exemples et vocabulaire selon cette filière ».
+
+**Ce qui est nouveau.**
+
+- **Une règle, plus une suggestion** : pour chaque concept *abstrait*, UN exemple concret de la filière — une vraie pièce, un système, un cas réaliste — et l'image avant la formule. Les deux exemples de ton brief y figurent comme repères (le compresseur d'un turboréacteur pour la thermo en aéronautique, le vol à l'étalage pour le droit).
+- **Garde-fou** : aucun chiffre inventé pour faire « réel ». Le tuteur ne cite un nombre que s'il vient des documents de l'étudiant ou d'un outil de calcul. J'ai écrit « turboréacteur » et non une référence de moteur précise dans la règle : nommer un modèle pousse le tuteur à en réciter les caractéristiques de mémoire.
+- **Mission pratique** : quand un thème est bouclé (exercice résolu, chapitre résumé), le tuteur ajoute une petite tâche à faire avec ses *propres* chiffres — quelque chose à mesurer ou à choisir soi-même —, dit ce qu'il faut déterminer et comment reconnaître un résultat plausible, et ne la résout pas. Une seule par thème, jamais sur une question courte ni au milieu d'un calcul.
+- **Bouton « Praxis-Mission »** sous chaque réponse, à côté de « Ingenieur-Denkweise », pour en demander une à tout moment.
+
+Rien de tout cela en Prüfungsmodus. Sans filière renseignée, seule la mission pratique s'applique.
+
+Non essayé sur le vrai modèle (coût) : le texte remis au tuteur et le branchement sont testés ; la pertinence des exemples se juge sur une vraie conversation.
+
+Code : `packages/web/src/api/lib/real-world.ts`.

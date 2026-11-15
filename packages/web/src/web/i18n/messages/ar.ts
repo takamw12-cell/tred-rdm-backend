@@ -286,6 +286,8 @@ export const ar: PartialMessages = {
     why: "لماذا؟",
     explainDifferently: "اشرح بطريقة أخرى",
     engineerMode: "تفكير المهندس",
+    mission: "مهمة عملية",
+    missionPrompt: "أعطني مهمة عملية قصيرة حول هذا الموضوع: تمرينًا صغيرًا من تخصصي أحله بأرقامي أنا (شيء أستطيع قياسه أو اختياره بنفسي). قل لي ما الذي يجب أن أحدده وكيف أعرف أن نتيجتي معقولة، لكن لا تحلها بدلًا مني.",
     officialLabel: "محتوى المقرر الرسمي",
     aerostudyLabel: "شرح TRED",
     reasoningLabel: "تفكير المهندس",

@@ -286,6 +286,8 @@ export const ja: PartialMessages = {
     why: "なぜ？",
     explainDifferently: "別の説明で",
     engineerMode: "技術者の思考",
+    mission: "実践ミッション",
+    missionPrompt: "このテーマについて短い実践ミッションをください。自分の専攻に関係する小さな課題で、自分で測ったり選んだりした数値を使って計算するものです。何を求めるのか、結果が妥当かどうかをどう判断するのかを教えてください。ただし、代わりに解かないでください。",
     officialLabel: "講義の原文",
     aerostudyLabel: "TRED の解説",
     reasoningLabel: "技術者の思考",

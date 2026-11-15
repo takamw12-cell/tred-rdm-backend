@@ -383,6 +383,8 @@ export const es: Messages = {
     why: "¿Por qué?",
     explainDifferently: "Explícalo de otra forma",
     engineerMode: "Razonamiento de ingeniero",
+    mission: "Misión práctica",
+    missionPrompt: "Dame una misión práctica breve sobre este tema: una pequeña tarea de mi carrera que resuelvo con MIS PROPIOS números (algo que pueda medir o elegir yo). Dime qué debo determinar y cómo saber si mi resultado es plausible, pero no la resuelvas por mí.",
     officialLabel: "Contenido oficial del curso",
     aerostudyLabel: "Explicación de TRED",
     reasoningLabel: "Razonamiento de ingeniero",

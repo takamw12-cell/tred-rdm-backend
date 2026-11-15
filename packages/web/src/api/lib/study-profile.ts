@@ -62,6 +62,11 @@ function clean(v: unknown, max: number): string {
   return v.replace(/[\u0000-\u001f\u007f`<>{}[\]]+/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
 }
 
+/** La filière saisie par l'étudiant, nettoyée et bornée (une ligne, 80 caractères). Vide si absente. */
+export function studyDegree(p: StudyProfileInput | null | undefined): string {
+  return p && typeof p === "object" ? clean(p.degree, 80) : "";
+}
+
 export function studyProfileHint(p: StudyProfileInput | null | undefined): string | null {
   if (!p || typeof p !== "object") return null;
   const degree = clean(p.degree, 80);

@@ -370,6 +370,8 @@ export const de = {
     why: "Warum?",
     explainDifferently: "Anders erklären",
     engineerMode: "Ingenieur-Denkweise",
+    mission: "Praxis-Mission",
+    missionPrompt: "Gib mir eine kurze Praxis-Mission zu diesem Thema: eine kleine Aufgabe aus meinem Studiengang, die ich mit EIGENEN Zahlen rechne (etwas, das ich selbst messen oder wählen kann). Sag mir, was ich bestimmen soll und woran ich erkenne, ob mein Ergebnis plausibel ist – aber rechne sie nicht für mich.",
     officialLabel: "Offizieller Kursinhalt",
     aerostudyLabel: "TRED-Erklärung",
     reasoningLabel: "Ingenieur-Denkweise",

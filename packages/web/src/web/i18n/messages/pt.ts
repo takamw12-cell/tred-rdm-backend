@@ -286,6 +286,8 @@ export const pt: PartialMessages = {
     why: "Porquê?",
     explainDifferently: "Explica de outra forma",
     engineerMode: "Raciocínio de engenheiro",
+    mission: "Missão prática",
+    missionPrompt: "Dá-me uma missão prática curta sobre este tema: uma pequena tarefa do meu curso que resolvo com os MEUS PRÓPRIOS números (algo que eu possa medir ou escolher). Diz-me o que devo determinar e como saber se o meu resultado é plausível, mas não a resolvas por mim.",
     officialLabel: "Conteúdo oficial do curso",
     aerostudyLabel: "Explicação do TRED",
     reasoningLabel: "Raciocínio de engenheiro",
