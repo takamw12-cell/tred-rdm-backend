@@ -699,6 +699,25 @@ html:lang(ar) body { line-height: 1.7; }
   color: #fff;
 }
 
+/* ── Panneau de nuit (« Meine Kurse » dans le Hörsaal) ─────────────────
+   Le Hörsaal est une salle SOMBRE dans les deux thèmes ([data-room="dark"]).
+   La liste des cours y était posée à même la photo, sans fond, avec l'encre
+   du thème clair : du noir sur du bleu nuit (signalé le 2026-11-15).
+   Elle devient un panneau en verre bleu nuit. La classe `dark`, posée sur le
+   MÊME élément (components/document-library.tsx, tone="night"), donne à tout
+   ce qu'il contient les couleurs du thème sombre — texte blanc cassé, gris
+   clair, jaune — même quand le reste de l'app est en clair.
+   84 % : le gris clair #94A3B8 reste ≥ 4,5:1 sur une photo blanche sous le
+   voile le plus léger de la salle (tests/background-sets.test.ts). */
+.night-panel {
+  background-color: rgb(15 23 42 / 0.84);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  backdrop-filter: blur(24px) saturate(1.4);
+  color: var(--foreground);
+  /* Barres de défilement et champs natifs : sombres eux aussi. */
+  color-scheme: dark;
+}
+
 /* ── Verre dépoli, version sombre ──────────────────────────────────────
    Même principe que le verre blanc, en bleu nuit : la photo transparaît,
    le texte clair garde son contraste. Les feuilles d'exercice restent du

@@ -243,4 +243,13 @@ describe("cartes en verre : contraste AA dans le pire cas", () => {
     const card = alphaOf('[data-room="dark"] [data-slot="card"]:not(.bg-primary) {', "255 255 255");
     expect(contrast(hex("#5C5C5C"), mix(WHITE, BLACK, card))).toBeGreaterThanOrEqual(4.5);
   });
+
+  test("panneau de nuit (« Meine Kurse » dans le Hörsaal) : gris clair #94A3B8, voile le plus léger de la salle, photo blanche", () => {
+    const panel = alphaOf(".night-panel {", "15 23 42");
+    const stops = [...VEILS.vivid.matchAll(/\[(#[0-9A-Fa-f]{6})\]\/(\d+)/g)].map((m) => ({ c: hex(m[1]), a: Number(m[2]) / 100 }));
+    const lightest = stops.reduce((p, s) => (s.a < p.a ? s : p));
+    const behind = mix(lightest.c, WHITE, lightest.a); // le voile le plus léger posé sur un pixel blanc
+    expect(contrast(hex("#94A3B8"), mix(NIGHT, behind, panel))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(hex("#F1F5F9"), mix(NIGHT, behind, panel))).toBeGreaterThanOrEqual(7);
+  });
 });

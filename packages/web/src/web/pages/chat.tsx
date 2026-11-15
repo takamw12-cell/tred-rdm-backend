@@ -1540,16 +1540,20 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-[calc(100dvh-4rem)]">
-      {/* Kursliste — Schiene auf großen Bildschirmen, einklappbar */}
+      {/* Kursliste — Schiene auf großen Bildschirmen, einklappbar.
+          Sie liegt auf dem dunklen Foto des Hörsaals: Nachtglas und helle
+          Schrift in BEIDEN Themes (tone="night", styles.css › .night-panel).
+          `h-full`: die Liste füllt die Spalte und scrollt in sich. */}
       <aside
         className={cn(
-          "border-border hidden shrink-0 overflow-hidden border-r transition-[width] duration-200 lg:block",
+          "hidden shrink-0 overflow-hidden border-r border-white/10 transition-[width] duration-200 lg:block",
           railOpen ? "w-72" : "w-0 border-r-0",
         )}
         aria-hidden={!railOpen}
       >
-        <div className="w-72">
+        <div className="h-full w-72">
           <DocumentLibrary
+            tone="night"
             activeId={activeDoc?.id ?? null}
             semesterId={semesterId}
             onSelect={(id, title) => setActiveDoc(id ? { id, title: title ?? "" } : null)}

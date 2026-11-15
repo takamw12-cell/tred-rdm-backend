@@ -73,10 +73,18 @@ export function DocumentLibrary({
   activeId,
   semesterId = null,
   onSelect,
+  tone = "page",
 }: {
   activeId: string | null;
   semesterId?: string | null;
   onSelect: (id: string | null, title?: string) => void;
+  /**
+   * « night » : le panneau est posé sur la photo SOMBRE du Hörsaal (salle
+   * sombre dans les deux thèmes) — verre bleu nuit et couleurs du thème
+   * sombre, même quand l'app est en clair (styles.css › .night-panel).
+   * « page » (défaut) : il suit le thème, sur un fond que l'appelant fournit.
+   */
+  tone?: "page" | "night";
 }) {
   const { t } = useT();
   const qc = useQueryClient();
@@ -286,7 +294,7 @@ export function DocumentLibrary({
 
   return (
     <div
-      className="relative flex h-full flex-col"
+      className="relative h-full"
       // Glisser-déposer : un ou plusieurs fichiers, lâchés n'importe où sur le panneau.
       onDragOver={(e) => {
         if (busy || !e.dataTransfer.types.includes("Files")) return;
@@ -303,163 +311,168 @@ export function DocumentLibrary({
         if (!busy) void handleFiles(e.dataTransfer.files);
       }}
     >
-      {dragging && (
-        <div className="border-signature bg-background/90 pointer-events-none absolute inset-2 z-10 grid place-items-center rounded-xl border-2 border-dashed p-4 text-center" data-testid="import-drop-zone">
-          <p className="text-foreground flex flex-col items-center gap-2 text-sm font-semibold">
-            <Upload className="size-5" />
-            {t("library.dropHere")}
-          </p>
-        </div>
-      )}
-      <ImportWaitOverlay state={waitHidden ? null : wait} onHide={() => setWaitHidden(true)} />
-      <div className="border-border flex h-12 items-center gap-2 border-b px-4">
-        <FileText className="text-primary size-4" />
-        <span className="text-sm font-semibold">{t("library.title")}</span>
-      </div>
-
-      <div className="p-3">
-        <input
-          ref={inputRef}
-          type="file"
-          accept={ACCEPT_ATTR}
-          // Jusqu'à 5 fichiers d'un coup (100 Mo en tout) : voir lib/import-batch.ts.
-          multiple
-          className="hidden"
-          onChange={(e) => handleFiles(e.target.files)}
-        />
-        <Button
-          onClick={() => {
-            track("upload_opened");
-            inputRef.current?.click();
-          }}
-          disabled={busy}
-          className="brand-gradient h-10 w-full gap-2 text-sm font-semibold text-white"
-        >
-          {busy ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-          {busy ? progress : t("library.upload")}
-        </Button>
-        {uploadError && (
-          <p className="text-destructive mt-2 text-xs font-medium">{uploadError}</p>
-        )}
-        {/* La file du lot, ici quand l'écran d'attente est masqué — et après la fin, s'il reste des échecs à lire. */}
-        {queue && queueSummary && (!busy || waitHidden) && (
-          <div className="border-border bg-card mt-3 rounded-xl border p-3" data-testid="import-queue-panel">
-            <ImportQueueSummary items={queue} />
-            <ImportQueueList items={queue} className="mt-1" />
-            <div className="mt-1 flex items-center justify-between gap-3">
-              <p className="text-destructive text-xs font-medium">{queueSummary.finished && queueSummary.failed > 0 ? t("library.queue.failed", { count: queueSummary.failed }) : ""}</p>
-              <button
-                type="button"
-                onClick={() => (queueSummary.finished ? setQueue(null) : setWaitHidden(false))}
-                className="text-muted-foreground hover:text-foreground shrink-0 text-xs font-medium underline underline-offset-2"
-              >
-                {queueSummary.finished ? t("library.queue.dismiss") : t("library.queue.show")}
-              </button>
-            </div>
+      {/* Tout ce qui se LIT dans le panneau. En « night », `dark` donne à ce
+          bloc — et à lui seul — les couleurs du thème sombre ; le lecteur de
+          document, plus bas, reste hors du bloc et garde le thème de l'app. */}
+      <div className={cn("relative flex h-full flex-col", tone === "night" && "dark night-panel")} data-tone={tone} data-testid="library-panel">
+        {dragging && (
+          <div className="border-signature bg-background/90 pointer-events-none absolute inset-2 z-10 grid place-items-center rounded-xl border-2 border-dashed p-4 text-center" data-testid="import-drop-zone">
+            <p className="text-foreground flex flex-col items-center gap-2 text-sm font-semibold">
+              <Upload className="size-5" />
+              {t("library.dropHere")}
+            </p>
           </div>
         )}
-      </div>
+        <ImportWaitOverlay state={waitHidden ? null : wait} onHide={() => setWaitHidden(true)} />
+        <div className="border-border flex h-12 items-center gap-2 border-b px-4">
+          <FileText className="text-primary size-4" />
+          <span className="text-sm font-semibold">{t("library.title")}</span>
+        </div>
 
-      {/* Whole-scope selector: chat across all docs in the current scope. */}
-      <button
-        onClick={() => onSelect(null)}
-        className={cn(
-          "mx-3 mb-2 flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors",
-          activeId === null
-            ? "border-primary/50 bg-primary/10"
-            : "border-border hover:bg-accent",
-        )}
-      >
-        <span
+        <div className="p-3">
+          <input
+            ref={inputRef}
+            type="file"
+            accept={ACCEPT_ATTR}
+            // Jusqu'à 5 fichiers d'un coup (100 Mo en tout) : voir lib/import-batch.ts.
+            multiple
+            className="hidden"
+            onChange={(e) => handleFiles(e.target.files)}
+          />
+          <Button
+            onClick={() => {
+              track("upload_opened");
+              inputRef.current?.click();
+            }}
+            disabled={busy}
+            className="brand-gradient h-10 w-full gap-2 text-sm font-semibold text-white"
+          >
+            {busy ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+            {busy ? progress : t("library.upload")}
+          </Button>
+          {uploadError && (
+            <p className="text-destructive mt-2 text-xs font-medium">{uploadError}</p>
+          )}
+          {/* La file du lot, ici quand l'écran d'attente est masqué — et après la fin, s'il reste des échecs à lire. */}
+          {queue && queueSummary && (!busy || waitHidden) && (
+            <div className="border-border bg-card mt-3 rounded-xl border p-3" data-testid="import-queue-panel">
+              <ImportQueueSummary items={queue} />
+              <ImportQueueList items={queue} className="mt-1" />
+              <div className="mt-1 flex items-center justify-between gap-3">
+                <p className="text-destructive text-xs font-medium">{queueSummary.finished && queueSummary.failed > 0 ? t("library.queue.failed", { count: queueSummary.failed }) : ""}</p>
+                <button
+                  type="button"
+                  onClick={() => (queueSummary.finished ? setQueue(null) : setWaitHidden(false))}
+                  className="text-muted-foreground hover:text-foreground shrink-0 text-xs font-medium underline underline-offset-2"
+                >
+                  {queueSummary.finished ? t("library.queue.dismiss") : t("library.queue.show")}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Whole-scope selector: chat across all docs in the current scope. */}
+        <button
+          onClick={() => onSelect(null)}
           className={cn(
-            "grid size-8 shrink-0 place-items-center rounded-lg",
-            activeId === null ? "brand-gradient text-white" : "bg-secondary text-muted-foreground",
+            "mx-3 mb-2 flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors",
+            activeId === null
+              ? "border-primary/50 bg-primary/10"
+              : "border-border hover:bg-accent",
           )}
         >
-          <Sparkles className="size-4" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">{t("library.allScope")}</p>
-          <p className="text-muted-foreground text-xs">{t("library.allScopeSub")}</p>
-        </div>
-      </button>
+          <span
+            className={cn(
+              "grid size-8 shrink-0 place-items-center rounded-lg",
+              activeId === null ? "brand-gradient text-white" : "bg-secondary text-muted-foreground",
+            )}
+          >
+            <Sparkles className="size-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">{t("library.allScope")}</p>
+            <p className="text-muted-foreground text-xs">{t("library.allScopeSub")}</p>
+          </div>
+        </button>
 
-      <div className="flex-1 overflow-y-auto px-3 pb-3">
-        {isLoading ? (
-          <div className="text-muted-foreground flex items-center gap-2 px-1 py-4 text-sm">
-            <Loader2 className="size-4 animate-spin" />
-            {t("common.loading")}
-          </div>
-        ) : docs.length === 0 ? (
-          <p className="text-muted-foreground px-1 py-6 text-center text-sm">
-            {t("library.empty")}
-          </p>
-        ) : (
-          <div className="space-y-1.5">
-            <AnimatePresence initial={false}>
-              {docs.map((doc) => {
-                const Icon = KIND_ICON[(doc.kind as DocKind) ?? "other"] ?? File;
-                const active = doc.id === activeId;
-                return (
-                  <motion.div
-                    key={doc.id}
-                    layout
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className={cn(
-                      "group flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors",
-                      active
-                        ? "border-primary/50 bg-primary/10"
-                        : "border-border hover:bg-accent",
-                    )}
-                    onClick={() => onSelect(doc.id, doc.title)}
-                  >
-                    <div
+        <div className="flex-1 overflow-y-auto px-3 pb-3">
+          {isLoading ? (
+            <div className="text-muted-foreground flex items-center gap-2 px-1 py-4 text-sm">
+              <Loader2 className="size-4 animate-spin" />
+              {t("common.loading")}
+            </div>
+          ) : docs.length === 0 ? (
+            <p className="text-muted-foreground px-1 py-6 text-center text-sm">
+              {t("library.empty")}
+            </p>
+          ) : (
+            <div className="space-y-1.5">
+              <AnimatePresence initial={false}>
+                {docs.map((doc) => {
+                  const Icon = KIND_ICON[(doc.kind as DocKind) ?? "other"] ?? File;
+                  const active = doc.id === activeId;
+                  return (
+                    <motion.div
+                      key={doc.id}
+                      layout
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, height: 0 }}
                       className={cn(
-                        "grid size-8 shrink-0 place-items-center rounded-lg",
-                        active ? "brand-gradient text-white" : "bg-secondary text-muted-foreground",
+                        "group flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors",
+                        active
+                          ? "border-primary/50 bg-primary/10"
+                          : "border-border hover:bg-accent",
                       )}
+                      onClick={() => onSelect(doc.id, doc.title)}
                     >
-                      <Icon className="size-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{doc.title}</p>
-                      <p className="text-muted-foreground text-xs">
-                        {t("library.pages", { count: doc.pageCount })}
-                      </p>
-                    </div>
-                    <DocFlashcardsButton
-                      documentId={doc.id}
-                      className="hover:text-primary transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
-                    />
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setViewerDocId(doc.id);
-                      }}
-                      className="text-muted-foreground hover:text-primary shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-                      aria-label={t("library.view")}
-                      title={t("library.view")}
-                    >
-                      <Eye className="size-4" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void handleDelete(doc.id);
-                      }}
-                      className="text-muted-foreground hover:text-destructive shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-                      aria-label={t("library.delete")}
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </div>
-        )}
+                      <div
+                        className={cn(
+                          "grid size-8 shrink-0 place-items-center rounded-lg",
+                          active ? "brand-gradient text-white" : "bg-secondary text-muted-foreground",
+                        )}
+                      >
+                        <Icon className="size-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{doc.title}</p>
+                        <p className="text-muted-foreground text-xs">
+                          {t("library.pages", { count: doc.pageCount })}
+                        </p>
+                      </div>
+                      <DocFlashcardsButton
+                        documentId={doc.id}
+                        className="hover:text-primary transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+                      />
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setViewerDocId(doc.id);
+                        }}
+                        className="text-muted-foreground hover:text-primary shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                        aria-label={t("library.view")}
+                        title={t("library.view")}
+                      >
+                        <Eye className="size-4" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleDelete(doc.id);
+                        }}
+                        className="text-muted-foreground hover:text-destructive shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                        aria-label={t("library.delete")}
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
       </div>
 
       <DocumentViewer docId={viewerDocId} onClose={() => setViewerDocId(null)} />
