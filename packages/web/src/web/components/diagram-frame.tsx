@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Maximize2, Download, X, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import { useT } from "@/i18n";
+import { exportBackground } from "@/lib/chart-ink";
 import { cn } from "@/lib/utils";
 
 // ── Download helpers ──────────────────────────────────────────────────────
@@ -317,7 +318,23 @@ export function CanvasDiagramFrame({
 
   const downloadPng = useCallback(() => {
     const canvas = ref.current?.querySelector("canvas");
-    if (canvas) triggerDownload(canvas.toDataURL("image/png"), `${name}.png`);
+    if (!canvas) return;
+    // Le canevas est transparent : on le pose sur un fond plein, de la couleur
+    // de la surface pour laquelle il a été dessiné (lib/chart-ink.ts). Sans
+    // cela, un graphique dessiné clair disparaît dans une visionneuse blanche.
+    const surface = ref.current?.querySelector("[data-chart-surface]")?.getAttribute("data-chart-surface");
+    const sheet = document.createElement("canvas");
+    sheet.width = canvas.width;
+    sheet.height = canvas.height;
+    const pen = sheet.getContext("2d");
+    if (!pen) {
+      triggerDownload(canvas.toDataURL("image/png"), `${name}.png`);
+      return;
+    }
+    pen.fillStyle = exportBackground(surface === "dark" ? "dark" : "light");
+    pen.fillRect(0, 0, sheet.width, sheet.height);
+    pen.drawImage(canvas, 0, 0);
+    triggerDownload(sheet.toDataURL("image/png"), `${name}.png`);
   }, [name]);
 
   return (

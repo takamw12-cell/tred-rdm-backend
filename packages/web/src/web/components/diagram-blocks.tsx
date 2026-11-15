@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { chartInk, chartSurface, type ChartSurface } from "@/lib/chart-ink";
 import { sanitizeSvg } from "@/lib/svg-sanitize";
 import { isCompleteTikz } from "@/lib/tikz-complete";
+import { useBoardTheme } from "@/stores/board-theme";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -396,13 +398,7 @@ type ChartSpec = {
   series: Series[];
 };
 
-// Palette TRED : encre, jaune, gris, rouge, vert, gris clair. Plus d'indigo
-// ni de violet (#6366f1, #a855f7 jusqu'au 5 novembre 2026).
-const PALETTE = ["#1A1A1A", "#EAB308", "#6B6B6B", "#B3261E", "#15803D", "#A8A29E"];
-
 export function ChartBlock({ code }: { code: string }) {
-  const dark = useDarkMode();
-
   let spec: ChartSpec | null = null;
   let parseError: string | null = null;
   try {
@@ -422,14 +418,45 @@ export function ChartBlock({ code }: { code: string }) {
     );
   }
 
-  const grid = dark ? "rgba(148,163,184,0.15)" : "rgba(100,116,139,0.15)";
-  const tick = dark ? "#cbd5e1" : "#475569";
+  // Deux exemplaires, deux surfaces : dans la réponse (tableau, feuille,
+  // page) et en plein écran (panneau de l'app). Chacun lit la sienne.
+  return (
+    <CanvasDiagramFrame name="diagramm" fullscreenChildren={<ThemedChart spec={spec} />}>
+      <div className="h-64 w-full">
+        <ThemedChart spec={spec} />
+      </div>
+    </CanvasDiagramFrame>
+  );
+}
+
+/**
+ * Le graphique, dessiné pour la surface où il est posé (lib/chart-ink.ts).
+ *
+ * Un canevas ne suit aucune feuille de style : on lit, à l'endroit où il se
+ * trouve, la couleur du texte — claire, donc fond sombre (thème sombre,
+ * tableau vert ou sombre) ; foncée, donc fond clair (tableau blanc, même en
+ * thème sombre). Relu quand le thème de l'app ou la couleur du tableau
+ * change — avant la peinture, donc sans clignotement.
+ */
+function ThemedChart({ spec }: { spec: ChartSpec }) {
+  const box = useRef<HTMLDivElement>(null);
+  const dark = useDarkMode();
+  const boardTheme = useBoardTheme((s) => s.theme);
+  const boardColors = useBoardTheme((s) => s.custom);
+  const [surface, setSurface] = useState<ChartSurface>(dark ? "dark" : "light");
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    setSurface(chartSurface({ textColor: getComputedStyle(el).color, fallbackDark: dark }));
+  }, [dark, boardTheme, boardColors]);
+
+  const { tick, grid, palette } = chartInk(surface);
   const type = spec.type ?? "line";
 
   const datasets = spec.series.map((s, i) => {
     // La couleur proposée par le modèle (s.color) est ignorée : la charte
     // TRED s'applique à tous les graphiques, sans exception.
-    const color = PALETTE[i % PALETTE.length];
+    const color = palette[i % palette.length]!;
     return {
       label: s.label ?? `Serie ${i + 1}`,
       data: s.data as never,
@@ -486,13 +513,9 @@ export function ChartBlock({ code }: { code: string }) {
   const ChartComp = type === "scatter" ? Scatter : type === "bar" ? Bar : Line;
 
   return (
-    <CanvasDiagramFrame
-      name="diagramm"
-      fullscreenChildren={<ChartComp data={data} options={options} />}
-    >
-      <div className="h-64 w-full">
-        <ChartComp data={data} options={options} />
-      </div>
-    </CanvasDiagramFrame>
+    // `data-chart-surface` : le téléchargement y lit le fond à poser sous le canevas.
+    <div ref={box} data-chart-surface={surface} className="h-full w-full">
+      <ChartComp data={data} options={options} />
+    </div>
   );
 }

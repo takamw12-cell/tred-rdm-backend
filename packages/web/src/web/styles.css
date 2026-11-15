@@ -596,22 +596,44 @@ html:lang(ar) body { line-height: 1.7; }
 :is([data-board-theme="green"], [data-board-theme="dark"]) [data-slot="tafel-board"] code { background: rgb(255 255 255 / 0.1); color: var(--board-ink); }
 :is([data-board-theme="green"], [data-board-theme="dark"]) [data-slot="tafel-board"] :is(th, td) { border-color: rgb(255 255 255 / 0.25); }
 :is([data-board-theme="green"], [data-board-theme="dark"]) [data-slot="tafel-board"] th { background: rgb(255 255 255 / 0.08); }
+/* Les termes du dictionnaire (mot au soulignement pointillé) portaient la
+   couleur « primary » du THÈME de l'app : encre noire en thème clair — 2,2:1
+   sur le tableau vert, 1,2:1 sur le sombre —, jaune en thème sombre (3,1:1
+   dans un choix du tableau vert). Ils suivent la craie du tableau ; seul leur
+   pointillé prend l'accent. */
+:is([data-board-theme="green"], [data-board-theme="dark"]) [data-slot="tafel-board"] [data-slot="dict-term"] {
+  color: var(--board-ink);
+  text-decoration-color: var(--board-accent);
+}
+
+/* Rangée du haut du tableau vert (compteur de pages, « TRED schreibt … ») :
+   c'est là que l'ardoise est la plus claire — voile de craie plus pastille —,
+   et le gris du tableau n'y tenait que 4,1:1. Éclairci pour cette rangée
+   seulement ; partout ailleurs il garde sa valeur. */
+[data-board-theme="green"] [data-slot="tafel-status"] {
+  --board-muted: #e7ece8;
+}
 
 /* Les post-its de la Denkspur restent du papier clair sur tous les fonds :
    leur encre ne suit pas la craie. */
 [data-slot="tafel-board"] [data-slot="tafel-postit"],
-[data-slot="tafel-board"] [data-slot="tafel-postit"] :is(strong, a, code, .text-muted-foreground, .text-foreground) {
+[data-slot="tafel-board"] [data-slot="tafel-postit"] :is(strong, a, code, [data-slot="dict-term"], .text-muted-foreground, .text-foreground) {
   color: #1a1a1a;
 }
+[data-slot="tafel-board"] [data-slot="tafel-postit"] [data-slot="dict-term"] { text-decoration-color: rgb(26 26 26 / 0.5); }
 [data-slot="tafel-board"] [data-slot="tafel-postit"] code { background: rgb(0 0 0 / 0.06); }
 [data-slot="tafel-board"] [data-slot="tafel-postit"] :is(th, td) { border-color: rgb(0 0 0 / 0.15); }
 
-/* Schémas : transparents, et leurs traits inversés pour rester lisibles. */
+/* Schémas : transparents, et leurs traits inversés pour rester lisibles.
+   L'inversion vise les schémas (svg) et les images, tracés noir sur
+   transparent. PAS les graphiques : leur canevas est déjà dessiné pour la
+   surface (lib/chart-ink.ts) — l'inverser changeait le jaune TRED en brun et,
+   en thème sombre, rendait le texte noir sur tableau sombre. */
 :is([data-board-theme="green"], [data-board-theme="dark"]) [data-slot="diagram"] {
   background: transparent;
   border-color: rgb(255 255 255 / 0.22);
 }
-:is([data-board-theme="green"], [data-board-theme="dark"]) [data-slot="diagram"] :is(svg, canvas, img):not(.lucide) {
+:is([data-board-theme="green"], [data-board-theme="dark"]) [data-slot="diagram"] :is(svg, img):not(.lucide) {
   filter: invert(1) hue-rotate(180deg);
   mix-blend-mode: screen;
 }

@@ -1012,6 +1012,14 @@ Pour « toutes les zones où le texte pourrait être illisible », chaque texte 
 
 Restent volontairement pâles : les boutons désactivés.
 
+**Complément du 15 nov. (après-midi) — ce que cette mesure ne voyait pas.** Elle avait trois angles morts : elle ne tournait qu'avec le tableau blanc, elle ne faisait pas défiler le tableau (tout ce qui est sous sa première hauteur échappait), et elle ne voit pas les graphiques, dessinés sur un canevas et non écrits en texte. Remesuré sur les trois tableaux, dans les deux thèmes, avec une réponse complète :
+
+- **Graphiques.** En thème sombre, titre, légende et graduations étaient à 1,3–1,4:1 sur les trois tableaux — invisibles. En plein écran, la première courbe était noire sur bleu nuit. Sur les tableaux vert et sombre, le jaune TRED ressortait brun. Le graphique se dessine maintenant pour la surface où il est posé : tous ses textes sont au-dessus de 5,8:1, chaque courbe au-dessus de 3:1, et le jaune reste le jaune TRED. L'image téléchargée reçoit un fond plein. Sur tableau blanc en thème clair, rien ne change.
+- **Termes du dictionnaire** (mots au soulignement pointillé) sur les tableaux vert et sombre : ils prenaient la couleur du thème de l'app — encre noire en thème clair, soit 2,2:1 sur le vert et 1,2:1 sur le sombre. Ils suivent maintenant la craie du tableau.
+- **Rangée du haut du tableau vert** : le compteur de pages (« 2 / 2 ») était à 4,1:1 ; éclairci.
+
+Non traité : les anciens schémas « mermaid » (le tuteur n'en produit plus depuis le 5 nov.).
+
 
 ## Sprint « tuteur intelligent » — chantier 1 : le modèle de l'apprenant (15 nov. 2026)
 

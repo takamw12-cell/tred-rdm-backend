@@ -48,6 +48,9 @@ export function DictionaryTooltip({
             plat pour qu'il se lise comme un mot dans la phrase. */}
         <button
           type="button"
+          // Repère pour la feuille de style : sur les tableaux vert et sombre le
+          // terme suit la craie du tableau, pas la couleur du thème de l'app.
+          data-slot="dict-term"
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
           className="decoration-primary/50 hover:decoration-primary text-primary focus-visible:ring-ring m-0 inline cursor-help border-0 bg-transparent p-0 text-left align-baseline font-[inherit] text-[length:inherit] leading-[inherit] font-semibold underline decoration-dotted underline-offset-4 focus-visible:rounded-sm focus-visible:ring-2 focus-visible:outline-none"

@@ -604,20 +604,23 @@ export function BoardChip({ icon, label, onClick }: { icon: ReactNode; label: st
  * Le document de la session, posé en haut du tableau : « Kurs: Elektrotechnik 1 ».
  * Il dit à tout moment sur QUEL cours porte ce qui est écrit dessous — et ce
  * dont le professeur tire ses réponses. Sans `label` : la portée globale
- * (« Alle Materialien »). Couleurs du tableau : lisible sur les trois thèmes.
+ * (« Alle Materialien »).
+ *
+ * Tout le texte est à la craie du tableau (INK), libellé compris : le gris du
+ * tableau vert ne tenait que 3,7:1 sur cette pastille, là où l'ardoise est la
+ * plus claire. Le libellé se distingue du titre par sa graisse, pas par un gris.
  */
 export function BoardScope({ icon, label, title }: { icon: ReactNode; label?: string; title: string }) {
   return (
     <span
       data-testid="board-scope"
+      style={{ color: INK }}
       title={label ? `${label} ${title}` : title}
-      className="flex max-w-full min-w-0 items-center gap-1.5 rounded-full bg-[color:var(--board-pill)] px-3 py-1.5 text-xs font-medium text-[color:var(--board-muted)] ring-1 ring-[color:var(--board-pill)] backdrop-blur"
+      className="flex max-w-full min-w-0 items-center gap-1.5 rounded-full bg-[color:var(--board-pill)] px-3 py-1.5 text-xs font-medium ring-1 ring-[color:var(--board-pill)] backdrop-blur"
     >
       <span className="grid shrink-0 place-items-center text-[color:var(--board-accent)]">{icon}</span>
       {label && <span className="shrink-0">{label}</span>}
-      <span className="truncate font-semibold" style={{ color: INK }}>
-        {title}
-      </span>
+      <span className="truncate font-semibold">{title}</span>
     </span>
   );
 }
