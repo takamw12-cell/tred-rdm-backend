@@ -1108,3 +1108,12 @@ Code : `packages/web/src/api/lib/real-world.ts`.
 - Aucune migration de plus pour ce chantier.
 
 Code : `packages/web/src/api/lib/daily-review.ts` (choix des cartes), route `flashcards.progress`, `src/web/components/progress-section.tsx`.
+
+## Sprint « tuteur intelligent » — chantier 5 : les détails (15 nov. 2026)
+
+1. **Panneau « Meine Kurse »** : corrigé et en production depuis la nuit du 14 au 15 (voir « Lisibilité » plus haut), avec toutes les autres zones mesurées.
+2. **Citation surlignée dans le PDF** : quand un badge de citation ouvre le lecteur, la phrase citée est maintenant surlignée en jaune sur la page, comme dans l'onglet « Extrahierter Text ». Le lecteur lit le texte de la page affichée, y retrouve la phrase (une césure en fin de ligne, la casse ou la ponctuation ne le gênent pas) et pose le jaune dessus ; le texte reste lisible dessous. Si la phrase n'y est pas mot pour mot — une formule que le tuteur a réécrite — son début et sa fin suffisent. Sur un PDF scanné sans texte, rien n'est surligné : la page s'ouvre comme avant.
+3. **Flux PDF et R2** : test d'intégration contre un R2 simulé à chaque push (voir « Lecteur PDF et R2 » plus haut), et le scénario complet rejoué en local contre un stockage qui sert des plages d'octets : propriétaire 200 / 206, autre compte 404, sans session 401. Reste ton essai de deux minutes sur le vrai bucket — je ne peux pas le faire sans compte.
+4. **File d'attente** : elle tourne. Depuis ton clic « Deploy », le site annonce `importQueue: true`, le worker écrit `[worker] prêt — files : import-pdf ×1, generate-video ×3` à chaque démarrage et se relaie proprement à chaque déploiement (`arrêt après les travaux en cours`). Un import par lot réel est passé par la file la nuit du 15.
+
+Code du surlignage : `packages/web/src/web/lib/pdf-highlight.ts`, branché dans `components/pdf-viewer.tsx`.

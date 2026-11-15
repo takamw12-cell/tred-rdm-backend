@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { PDFDocumentProxy, RenderTask } from "pdfjs-dist";
+import type { PDFDocumentProxy, PDFPageProxy, RenderTask } from "pdfjs-dist";
 // eslint-disable-next-line import/default -- import « ?url » de Vite : l'ADRESSE du fichier, pas le module
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { AlertTriangle, ChevronLeft, ChevronRight, Loader2, Maximize2, ZoomIn, ZoomOut } from "lucide-react";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
+import { excerptItemRange, markBoxes, type MarkBox, type PdfTextItem } from "@/lib/pdf-highlight";
 
 /**
  * Lecteur PDF de l'app (2026-11-14) : l'original d'un document, ouvert
@@ -85,6 +86,7 @@ const clampPage = (n: number, total: number) => Math.min(Math.max(1, Math.round(
 export function PDFViewer({
   documentUrl,
   initialPage = 1,
+  highlight = null,
   onError,
   className,
 }: {
@@ -92,6 +94,8 @@ export function PDFViewer({
   documentUrl: string;
   /** La page à ouvrir d'emblée : celle de la citation. */
   initialPage?: number;
+  /** La phrase citée : surlignée en jaune sur la page où elle se trouve (lib/pdf-highlight.ts). */
+  highlight?: string | null;
   /** Le fichier n'a pas pu être affiché (l'appelant propose alors le texte extrait). */
   onError?: () => void;
   className?: string;
@@ -107,6 +111,8 @@ export function PDFViewer({
   const [zoom, setZoom] = useState<number | null>(null);
   const [width, setWidth] = useState(0);
   const [drawing, setDrawing] = useState(true);
+  /** Les rectangles jaunes de la phrase citée, dans les coordonnées de la page affichée. */
+  const [marks, setMarks] = useState<MarkBox[]>([]);
 
   // ── Chargement ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -169,7 +175,10 @@ export function PDFViewer({
     if (!pdf || !canvas.current || width === 0) return;
     let cancelled = false;
     let render: RenderTask | null = null;
+    // La page dessinée et son échelle : il les faut ensuite pour situer la phrase citée.
+    let shown: { page: PDFPageProxy; toViewport: (rect: number[]) => number[] } | null = null;
     setDrawing(true);
+    setMarks([]);
     void pdf
       .getPage(clampPage(page, pdf.numPages))
       .then((p) => {
@@ -177,6 +186,11 @@ export function PDFViewer({
         const natural = p.getViewport({ scale: 1 });
         const fit = Math.max(0.2, (width - 24) / natural.width);
         const viewport = p.getViewport({ scale: zoom === null ? fit : fit * zoom });
+        // Deux coins de l'espace de la page (y vers le haut) → pixels de la page affichée.
+        shown = {
+          page: p,
+          toViewport: ([x1, y1, x2, y2]) => [...viewport.convertToViewportPoint(x1 ?? 0, y1 ?? 0), ...viewport.convertToViewportPoint(x2 ?? 0, y2 ?? 0)].map(Number),
+        };
         // Net sur Retina, sans dépasser ce qu'un téléphone peut allouer.
         const density = Math.min(window.devicePixelRatio || 1, 2.5);
         const el = canvas.current;
@@ -189,6 +203,16 @@ export function PDFViewer({
       })
       .then(() => {
         if (!cancelled) setDrawing(false);
+        // La phrase citée, surlignée sur CETTE page si elle s'y trouve. Le texte
+        // de la page vient de pdf.js ; un scan sans texte ne surligne rien.
+        if (cancelled || !shown || !highlight) return;
+        const { page: drawn, toViewport } = shown;
+        return drawn.getTextContent().then((content) => {
+          if (cancelled) return;
+          const items = content.items.filter((it): it is typeof it & PdfTextItem => typeof (it as { str?: unknown }).str === "string");
+          const range = excerptItemRange(items, highlight);
+          setMarks(range ? markBoxes(items, range, toViewport) : []);
+        });
       })
       .catch((err: unknown) => {
         // Une page remplacée par la suivante avant la fin de son dessin : rien à signaler.
@@ -200,7 +224,13 @@ export function PDFViewer({
       cancelled = true;
       render?.cancel();
     };
-  }, [pdf, page, zoom, width]);
+  }, [pdf, page, zoom, width, highlight]);
+
+  // La phrase surlignée vient sous les yeux, même en bas d'une page zoomée.
+  useEffect(() => {
+    if (marks.length === 0) return;
+    frame.current?.querySelector('[data-testid="pdf-mark"]')?.scrollIntoView({ block: "center", inline: "nearest" });
+  }, [marks]);
 
   const total = pdf?.numPages ?? 0;
   const go = useCallback(
@@ -300,10 +330,23 @@ export function PDFViewer({
           </div>
         )}
         <div className="flex min-w-full justify-center p-3" style={{ width: "max-content" }}>
-          {/* Le texte de repli nomme la page pour un lecteur d'écran ; le contenu lisible est dans l'onglet « Extrahierter Text ». */}
-          <canvas ref={canvas} className={cn("bg-white shadow-md transition-opacity", drawing ? "opacity-60" : "opacity-100")}>
-            {t("viewer.pageOf", { page, total })}
-          </canvas>
+          <div className="relative">
+            {/* Le texte de repli nomme la page pour un lecteur d'écran ; le contenu lisible est dans l'onglet « Extrahierter Text ». */}
+            <canvas ref={canvas} className={cn("block bg-white shadow-md transition-opacity", drawing ? "opacity-60" : "opacity-100")}>
+              {t("viewer.pageOf", { page, total })}
+            </canvas>
+            {/* La phrase citée : du jaune POSÉ sur la page (le texte reste lisible dessous), sans gêner la souris. */}
+            {marks.map((m, i) => (
+              <div
+                // biome-ignore lint/suspicious/noArrayIndexKey: rectangles recalculés d'un bloc, sans identité propre
+                key={i}
+                aria-hidden="true"
+                data-testid="pdf-mark"
+                className="pointer-events-none absolute rounded-[2px] bg-[#FACC15]/55 mix-blend-multiply"
+                style={{ left: m.left, top: m.top, width: m.width, height: m.height }}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>

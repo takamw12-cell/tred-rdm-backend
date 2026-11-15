@@ -241,6 +241,8 @@ export function DocumentViewer({
                       key={docId}
                       documentUrl={`/api/documents/${encodeURIComponent(docId)}/stream`}
                       initialPage={page ?? (matchPage >= 0 ? (pages[matchPage]?.n ?? 1) : 1)}
+                      // La phrase citée est surlignée sur la page, comme dans l'onglet texte.
+                      highlight={highlight}
                       // L'original ne s'affiche pas : on le dit, et le texte extrait prend le relais.
                       onError={() => {
                         setPdfFailed(true);
