@@ -71,6 +71,8 @@ export interface ExplorerModel {
   keywords: string[];
   name: LocalText;
   intro: LocalText;
+  /** Mention de l'auteur d'un modèle sous licence (CC BY) : affichée sous le texte d'introduction. */
+  credit?: LocalText;
   /** Boîte englobante du modèle : cadrage de la caméra, et garde-fou des repères. */
   bounds: { min: Vec3; max: Vec3 };
   /** D'où la caméra regarde au départ. */

@@ -10,6 +10,15 @@ Il s'ouvre alors à l'adresse `/explorer?glb=herz-anatomie`.
   servi publiquement.
 - **Poids** : vise moins de 5 Mo, le fichier est téléchargé sur téléphone.
 
-Les modèles livrés avec TRED (turboréacteur, engrenage, cellule, cœur, surface,
+Les modèles livrés avec TRED (turboréacteur, engrenage, cellule, surface,
 atome, pyramide des normes) ne sont pas des fichiers : ils sont construits dans
 le navigateur (`src/web/components/Explorer3D.tsx`, `explorer-scenes.tsx`).
+
+## Bibliothèque par filière
+
+Les modèles réalistes sont rangés par filière : `medicine/`, `engineering/`,
+`mathematics/`, `physics/`, `law/`. Le premier est `medicine/heart.glb` (le
+cœur de l'onglet Médecine). Chaque fichier repris d'un tiers a sa ligne dans
+`CREDITS.md`, et sa mention s'affiche sur la page.
+
+Pour refaire ou ajouter un modèle : `packages/web/models-pipeline/README.md`.

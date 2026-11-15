@@ -1,9 +1,9 @@
-import { useContext, useEffect, useMemo, useRef } from "react";
+import { Component, Suspense, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import { ActiveContext, HIGHLIGHT, Part, Skin } from "@/components/explorer-kit";
-import { ATOM_SHELLS, NORM_LEVELS, SURFACE, surfaceHeight, surfacePoint } from "@/lib/explorer-more";
+import { ATOM_SHELLS, HEART_GLB, HEART_PART_OF, NORM_LEVELS, SURFACE, surfaceHeight, surfacePoint } from "@/lib/explorer-more";
 
 /**
  * Les scènes des autres filières (2026-11-15) : cellule, cœur, surface
@@ -105,7 +105,7 @@ function tube(points: [number, number, number][], radius: number): THREE.BufferG
   return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.map((p) => new THREE.Vector3(...p))), 40, radius, 18, false);
 }
 
-export function Heart({ playing }: { playing: boolean }) {
+function HeartSchematic({ playing }: { playing: boolean }) {
   const ventricles = useRef<THREE.Group>(null);
   const atria = useRef<THREE.Group>(null);
   const g = useMemo(
@@ -176,6 +176,79 @@ export function Heart({ playing }: { playing: boolean }) {
         </mesh>
       </Part>
     </group>
+  );
+}
+
+/* ── Médecine : le cœur anatomique (BodyParts3D, CC BY 4.0) ──────────────── */
+/**
+ * Le fichier public/models/medicine/heart.glb : une pièce nommée par repère
+ * (models-pipeline/build-heart.mjs). Chaque pièce garde la teinte écrite dans
+ * le fichier et reçoit la matière commune — elle s'allume donc comme les
+ * pièces des autres modèles. Compression meshopt : le décodeur est dans le
+ * paquet de l'app, rien n'est demandé à un tiers.
+ */
+function HeartAnatomy({ playing }: { playing: boolean }) {
+  const { scene } = useGLTF(HEART_GLB, false);
+  const beat = useRef<THREE.Group>(null);
+  const parts = useMemo(() => {
+    scene.updateMatrixWorld(true);
+    const found: { name: string; geometry: THREE.BufferGeometry; matrix: THREE.Matrix4; color: string }[] = [];
+    scene.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      const material = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) as THREE.MeshStandardMaterial;
+      found.push({ name: mesh.name, geometry: mesh.geometry, matrix: mesh.matrixWorld.clone(), color: `#${material.color.getHexString()}` });
+    });
+    return found;
+  }, [scene]);
+  useFrame(({ clock }) => {
+    if (!playing || !beat.current) return;
+    // ≈ 66 battements par minute, comme le schéma.
+    const t = (clock.elapsedTime * 1.1) % 1;
+    beat.current.scale.setScalar(1 - 0.035 * Math.exp(-Math.pow((t - 0.38) / 0.07, 2)));
+  });
+  return (
+    <group ref={beat}>
+      {parts.map((p) => {
+        const target = HEART_PART_OF[p.name] ?? null;
+        const mesh = (
+          <mesh key={p.name} geometry={p.geometry} matrix={p.matrix} matrixAutoUpdate={false}>
+            {/* Un tissu vivant : jamais métallique, un film humide en surface. */}
+            <Skin part={target ?? ""} color={p.color} metalness={0} roughness={0.46} clearcoat={0.5} />
+          </mesh>
+        );
+        return target ? (
+          <Part key={p.name} id={target}>
+            {mesh}
+          </Part>
+        ) : (
+          mesh
+        );
+      })}
+    </group>
+  );
+}
+
+/** Si le fichier du cœur ne se charge pas, le schéma le remplace : la page ne reste jamais vide. */
+class ModelFileBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
+
+/** Le cœur : le modèle anatomique ; le schéma pendant le téléchargement, ou si le fichier manque. */
+export function Heart({ playing }: { playing: boolean }) {
+  const schematic = <HeartSchematic playing={playing} />;
+  return (
+    <ModelFileBoundary fallback={schematic}>
+      <Suspense fallback={null}>
+        <HeartAnatomy playing={playing} />
+      </Suspense>
+    </ModelFileBoundary>
   );
 }
 

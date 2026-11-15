@@ -1,7 +1,7 @@
 import { Component, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Environment, Lightformer, OrbitControls } from "@react-three/drei";
+import { ContactShadows, Environment, OrbitControls } from "@react-three/drei";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { cameraStart, GEAR, gearCentres, gearPitchPoint, type ExplorerModel, type ExplorerModelId, type Vec3 } from "@/lib/explorer-models";
 import { cn } from "@/lib/utils";
@@ -615,19 +615,25 @@ function Rig({ model, focus, onResetReady }: { model: ExplorerModel; focus: Vec3
   return null;
 }
 
-function StudioLights() {
+/** L'image d'éclairage du studio (Poly Haven, CC0), servie par TRED : rien n'est demandé à un tiers. */
+const STUDIO_HDR = "/hdr/studio-small-03-1k.hdr";
+
+/**
+ * Éclairage de studio photo : une image HDR éclaire et se reflète sur les
+ * matières (rendu physique), deux projecteurs dessinent les volumes, et une
+ * ombre de contact pose le modèle sur le sol.
+ */
+function StudioLights({ floor }: { floor: number }) {
   return (
     <>
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[-3, 5, 6]} intensity={1.7} />
-      <directionalLight position={[5, 2, -4]} intensity={0.6} color="#9CC8FF" />
-      {/* Boîte à lumière d'atelier, construite dans le navigateur : aucun fichier HDR. */}
-      <Environment resolution={256} frames={1}>
-        <Lightformer form="rect" intensity={3} position={[0, 5, 6]} scale={[12, 4, 1]} />
-        <Lightformer form="rect" intensity={1.6} position={[-7, 2, 0]} rotation-y={Math.PI / 2} scale={[8, 3, 1]} />
-        <Lightformer form="rect" intensity={1.2} position={[7, 2, 0]} rotation-y={-Math.PI / 2} scale={[8, 3, 1]} />
-        <Lightformer form="ring" color="#EAB308" intensity={0.7} position={[0, 4, -6]} scale={3} />
-      </Environment>
+      <ambientLight intensity={0.15} />
+      <directionalLight position={[-3, 5, 6]} intensity={1.1} />
+      <directionalLight position={[5, 2, -4]} intensity={0.5} color="#9CC8FF" />
+      {/* Le temps que l'image arrive, les projecteurs suffisent : la scène n'attend pas. */}
+      <Suspense fallback={null}>
+        <Environment files={STUDIO_HDR} environmentIntensity={0.55} />
+      </Suspense>
+      <ContactShadows position={[0, floor, 0]} scale={14} far={6} blur={2.6} opacity={0.55} resolution={512} color="#000000" />
     </>
   );
 }
@@ -713,7 +719,7 @@ export default function Explorer3D({
       >
         <ActiveContext.Provider value={active}>
           <SelectContext.Provider value={select}>
-            <StudioLights />
+            <StudioLights floor={model.bounds.min[1] - 0.05} />
             {modelUrl ? (
               <Suspense fallback={null}>
                 <GltfModel url={modelUrl} />

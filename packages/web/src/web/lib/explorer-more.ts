@@ -91,23 +91,47 @@ export const CELL: ExplorerModel = {
   keywords: ["\\bzelle\\b", "\\bzellkern", "mitochondri", "\\bcell\\b", "\\bcellule\\b", "\\bcélula\\b", "\\bcelula\\b", "organell", "organite", "orgánulo"],
 };
 
-/* ── Médecine : le cœur, schématique, vu de face ─────────────────────────── */
+/* ── Médecine : le cœur, vu de face ──────────────────────────────────────────
+ * Modèle anatomique BodyParts3D 4.0 (CC BY 4.0), converti par
+ * models-pipeline/build-heart.mjs. Les positions des repères sont celles que
+ * ce script imprime : un point de la surface de chaque pièce, face à l'étudiant. */
+/** Le fichier servi (public/models/medicine/heart.glb). */
+export const HEART_GLB = "/models/medicine/heart.glb";
+/** Pièce du fichier → repère qu'elle allume et qu'elle ouvre au clic (null : ni l'un ni l'autre). */
+export const HEART_PART_OF: Record<string, string | null> = {
+  "right-atrium": "right-atrium",
+  "left-atrium": "left-atrium",
+  "right-ventricle": "right-ventricle",
+  "left-ventricle": "left-ventricle",
+  aorta: "aorta",
+  // Les veines caves se jettent dans l'oreillette droite ; le tronc pulmonaire part du ventricule droit.
+  "venae-cavae": "right-atrium",
+  "pulmonary-trunk": "right-ventricle",
+  "heart-other": null,
+};
+
 export const HEART: ExplorerModel = {
   id: "heart",
   discipline: "medicine",
   name: L("Herz", "Heart", "Cœur", "Corazón"),
   intro: L(
-    "Das Herz, schematisch von vorn: rechts das sauerstoffarme Blut (blau), links das sauerstoffreiche (rot). Tippe auf einen Punkt.",
-    "The heart, schematic, seen from the front: oxygen-poor blood on the right side (blue), oxygen-rich on the left (red). Tap a point.",
-    "Le cœur, schématique, vu de face : à droite le sang pauvre en oxygène (bleu), à gauche le sang riche en oxygène (rouge). Touche un point.",
-    "El corazón, esquemático, visto de frente: a la derecha la sangre pobre en oxígeno (azul), a la izquierda la rica en oxígeno (rojo). Toca un punto.",
+    "Das Herz von vorn, als anatomisches Modell: Hohlvenen und Lungenstamm (sauerstoffarmes Blut) blau, die Aorta hellrot. Tippe auf einen Punkt.",
+    "The heart from the front, as an anatomical model: venae cavae and pulmonary trunk (oxygen-poor blood) in blue, the aorta in bright red. Tap a point.",
+    "Le cœur vu de face, en modèle anatomique : veines caves et tronc pulmonaire (sang pauvre en oxygène) en bleu, l'aorte en rouge vif. Touche un point.",
+    "El corazón visto de frente, en modelo anatómico: venas cavas y tronco pulmonar (sangre pobre en oxígeno) en azul, la aorta en rojo vivo. Toca un punto.",
   ),
-  bounds: { min: [-2.1, -2.0, -1.6], max: [2.1, 2.3, 1.6] },
-  camera: [0, 0.6, 7.2],
+  credit: L(
+    "3D-Modell: BodyParts3D, © The Database Center for Life Science licensed under CC Attribution 4.0 International – für TRED umgerechnet und eingefärbt.",
+    "3D model: BodyParts3D, © The Database Center for Life Science licensed under CC Attribution 4.0 International – converted and coloured for TRED.",
+    "Modèle 3D : BodyParts3D, © The Database Center for Life Science licensed under CC Attribution 4.0 International – converti et coloré pour TRED.",
+    "Modelo 3D: BodyParts3D, © The Database Center for Life Science licensed under CC Attribution 4.0 International – convertido y coloreado para TRED.",
+  ),
+  bounds: { min: [-1.6, -1.9, -1.7], max: [1.6, 1.9, 1.7] },
+  camera: [0, 0.4, 6.6],
   hotspots: [
     {
       id: "right-atrium",
-      position: [-0.78, 0.55, 0.62],
+      position: [-0.96, -0.68, 1.11],
       title: L("Rechter Vorhof", "Right atrium", "Oreillette droite", "Aurícula derecha"),
       text: L(
         "Der rechte Vorhof sammelt das sauerstoffarme Blut aus dem Körper, das über die obere und untere Hohlvene ankommt, und gibt es an die rechte Kammer weiter.",
@@ -120,7 +144,7 @@ export const HEART: ExplorerModel = {
     },
     {
       id: "right-ventricle",
-      position: [-0.52, -0.6, 0.8],
+      position: [0.14, -1.02, 1.42],
       title: L("Rechte Kammer", "Right ventricle", "Ventricule droit", "Ventrículo derecho"),
       text: L(
         "Die rechte Kammer pumpt das Blut durch die Lungenarterie in die Lunge (kleiner Kreislauf). Dort gibt es Kohlendioxid ab und nimmt Sauerstoff auf.",
@@ -133,7 +157,7 @@ export const HEART: ExplorerModel = {
     },
     {
       id: "left-atrium",
-      position: [0.78, 0.62, 0.5],
+      position: [0.75, -0.1, 0.9],
       title: L("Linker Vorhof", "Left atrium", "Oreillette gauche", "Aurícula izquierda"),
       text: L(
         "Der linke Vorhof nimmt das sauerstoffreiche Blut aus der Lunge auf, das über die vier Lungenvenen zurückkommt, und füllt damit die linke Kammer.",
@@ -146,7 +170,7 @@ export const HEART: ExplorerModel = {
     },
     {
       id: "left-ventricle",
-      position: [0.62, -0.78, 0.78],
+      position: [0.95, -1.22, 1.05],
       title: L("Linke Kammer", "Left ventricle", "Ventricule gauche", "Ventrículo izquierdo"),
       text: L(
         "Die linke Kammer pumpt das Blut durch die Aorta in den ganzen Körper (großer Kreislauf). Ihre Wand ist deutlich dicker als die der rechten Kammer, weil sie gegen viel höheren Druck arbeitet.",
@@ -164,7 +188,7 @@ export const HEART: ExplorerModel = {
     },
     {
       id: "aorta",
-      position: [0.12, 1.62, 0.3],
+      position: [-0.42, 1.22, 0.46],
       title: L("Aorta", "Aorta", "Aorte", "Aorta"),
       text: L(
         "Die Aorta ist die Hauptschlagader. Sie entspringt der linken Kammer, verläuft im Bogen und verteilt das sauerstoffreiche Blut auf alle Arterien des Körpers.",

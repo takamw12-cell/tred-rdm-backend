@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 /**
@@ -53,7 +53,12 @@ describe("ce qu'il charge", () => {
   test("rien n'est demandé à un tiers : ni fichier de modèle, ni image d'éclairage, ni police", () => {
     expect(SCENE).not.toMatch(/https?:\/\//);
     // Les fichiers .glb viennent de NOTRE dossier public/models/ (tests/explorer-universal.test.ts).
-    expect(SCENE).not.toMatch(/useTexture|\.hdr|preset=/);
+    // L'éclairage de studio est une image HDR servie par TRED (public/hdr/) ; un « preset » de drei la téléchargerait chez un tiers.
+    expect(SCENE).not.toMatch(/useTexture|preset=/);
+    expect(SCENE).toContain('const STUDIO_HDR = "/hdr/studio-small-03-1k.hdr";');
+    expect(SCENE).toContain("<Environment files={STUDIO_HDR}");
+    expect(existsSync(join(import.meta.dir, "../public/hdr/studio-small-03-1k.hdr"))).toBe(true);
+    expect(SCENE).toContain("<ContactShadows");
     // <Text> et <Html> de drei : l'un télécharge une police, l'autre levait « removeChild ».
     expect(SCENE).not.toMatch(/<Text\b|<Html\b/);
   });

@@ -13,16 +13,25 @@ export const HIGHLIGHT = "#EAB308";
 export const ActiveContext = createContext<string | null>(null);
 export const SelectContext = createContext<(id: string) => void>(() => {});
 
-/** Matière d'une pièce : elle s'allume quand SON repère est choisi. */
-export function Skin({ part, color, metalness = 0.6, roughness = 0.36, glow, opacity }: { part: string; color: string; metalness?: number; roughness?: number; glow?: { color: string; intensity: number }; opacity?: number }) {
+/**
+ * Matière d'une pièce, en rendu physique (PBR) : elle reflète l'éclairage de
+ * studio, et s'allume quand SON repère est choisi. `clearcoat` : le film
+ * brillant d'un tissu vivant ou d'une pièce vernie.
+ */
+export function Skin({ part, color, metalness = 0.6, roughness = 0.36, glow, opacity, clearcoat = 0, sheen = 0 }: { part: string; color: string; metalness?: number; roughness?: number; glow?: { color: string; intensity: number }; opacity?: number; clearcoat?: number; sheen?: number }) {
   const on = useContext(ActiveContext) === part;
   return (
-    <meshStandardMaterial
+    <meshPhysicalMaterial
       color={color}
       metalness={metalness}
       roughness={roughness}
+      clearcoat={clearcoat}
+      clearcoatRoughness={0.28}
+      sheen={sheen}
+      sheenRoughness={0.6}
+      sheenColor="#ffd9d0"
       emissive={on ? HIGHLIGHT : (glow?.color ?? "#000000")}
-      emissiveIntensity={on ? 0.6 : (glow?.intensity ?? 0)}
+      emissiveIntensity={on ? 0.45 : (glow?.intensity ?? 0)}
       side={THREE.DoubleSide}
       transparent={opacity !== undefined}
       opacity={opacity ?? 1}

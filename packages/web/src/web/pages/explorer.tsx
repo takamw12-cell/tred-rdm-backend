@@ -267,6 +267,7 @@ export default function ExplorerPage() {
                 ) : (
                   <div className="rounded-2xl rounded-tl-sm bg-white/[0.07] p-4 ring-1 ring-white/10">
                     <p className="text-sm leading-relaxed text-white/90">{pick(model.intro, locale)}</p>
+                    {model.credit && <p data-testid="explorer-credit" className="mt-2 text-xs leading-snug text-white/70">{pick(model.credit, locale)}</p>}
                   </div>
                 )}
               </motion.div>
