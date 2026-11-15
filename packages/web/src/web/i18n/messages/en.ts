@@ -1008,6 +1008,18 @@ export const en: Messages = {
     holes: "{n} hole(s)",
     json: "Show JSON",
   },
+  progress: {
+    title: "My progress",
+    subtitle: "Your mastery by subject – and what to review today.",
+    bySubject: "Mastery by subject",
+    concepts: "Concepts: {n}",
+    subjectsEmpty: "No data yet: answer a few questions yourself in the lecture hall and it will appear here.",
+    today: "Review today",
+    todayHint: "Five cards at most – starting with your weakest concepts.",
+    todayEmpty: "No card is due today.",
+    more: "+{n} more due",
+    start: "Review now",
+  },
   flashcards: {
     title: "Flashcards",
     subtitle: "Review before you forget — every day, only the cards that are due.",

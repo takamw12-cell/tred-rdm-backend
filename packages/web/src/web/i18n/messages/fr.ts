@@ -1008,6 +1008,18 @@ export const fr: Messages = {
     holes: "{n} perçage(s)",
     json: "Voir le JSON",
   },
+  progress: {
+    title: "Ma progression",
+    subtitle: "Ta maîtrise par matière – et ce qu'il faut réviser aujourd'hui.",
+    bySubject: "Maîtrise par matière",
+    concepts: "Concepts : {n}",
+    subjectsEmpty: "Pas encore de données : réponds toi-même à quelques questions dans l'amphi, et elle apparaîtra ici.",
+    today: "À réviser aujourd'hui",
+    todayHint: "Cinq cartes au plus – d'abord celles de tes concepts les plus fragiles.",
+    todayEmpty: "Aucune carte à réviser aujourd'hui.",
+    more: "+{n} autres à réviser",
+    start: "Réviser maintenant",
+  },
   flashcards: {
     title: "Flashcards",
     subtitle: "Réviser avant d'oublier — chaque jour, seulement les cartes du jour.",

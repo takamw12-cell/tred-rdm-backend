@@ -24,6 +24,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { MemoryCard } from "@/components/memory-card";
 import { ReviewCard } from "@/components/review-card";
 import { DocFlashcardsButton, FlashcardsWidget } from "@/components/flashcards-widget";
+import { ProgressSection } from "@/components/progress-section";
 import { ExplainerVideosWidget } from "@/components/explainer-video";
 import { NotificationInbox } from "@/components/notification-inbox";
 import { Button } from "@/components/ui/button";
@@ -323,6 +324,11 @@ export default function DashboardPage() {
 
       <Reveal className="mb-6">
         <FlashcardsWidget />
+      </Reveal>
+
+      {/* « Mein Fortschritt » : maîtrise par matière et cartes du jour. Masqué tant qu'il n'y a rien à montrer. */}
+      <Reveal className="mb-6">
+        <ProgressSection />
       </Reveal>
 
       {/* « Meine Erklärvideos » : les vidéos explicatives sauvegardées depuis le Hörsaal. */}

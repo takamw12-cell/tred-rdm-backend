@@ -1008,6 +1008,18 @@ export const de = {
     holes: "{n} Bohrung(en)",
     json: "JSON anzeigen",
   },
+  progress: {
+    title: "Mein Fortschritt",
+    subtitle: "Dein Lernstand nach Fach – und was heute zu wiederholen ist.",
+    bySubject: "Lernstand nach Fach",
+    concepts: "Konzepte: {n}",
+    subjectsEmpty: "Noch kein Lernstand: beantworte im Hörsaal ein paar Fragen selbst, dann erscheint er hier.",
+    today: "Heute wiederholen",
+    todayHint: "Höchstens fünf Karten – zuerst zu deinen unsichersten Konzepten.",
+    todayEmpty: "Heute ist keine Karte fällig.",
+    more: "+{n} weitere fällig",
+    start: "Jetzt wiederholen",
+  },
   flashcards: {
     title: "Karteikarten",
     subtitle: "Wiederholen, bevor du vergisst — jeden Tag nur die Karten, die heute dran sind.",

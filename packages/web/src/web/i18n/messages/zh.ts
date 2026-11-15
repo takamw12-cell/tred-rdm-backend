@@ -370,4 +370,16 @@ export const zh: PartialMessages = {
     holes: "{n} 个孔",
     json: "显示 JSON",
   },
+  progress: {
+    title: "我的进度",
+    subtitle: "各科掌握情况，以及今天要复习的内容。",
+    bySubject: "各科掌握情况",
+    concepts: "概念：{n}",
+    subjectsEmpty: "暂无数据：在讲堂里自己回答几个问题，这里就会显示。",
+    today: "今日复习",
+    todayHint: "最多五张卡片：先复习你最薄弱的概念。",
+    todayEmpty: "今天没有需要复习的卡片。",
+    more: "还有 {n} 张待复习",
+    start: "开始复习",
+  },
 };

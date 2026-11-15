@@ -1020,6 +1020,18 @@ export const es: Messages = {
     holes: "{n} taladro(s)",
     json: "Ver JSON",
   },
+  progress: {
+    title: "Mi progreso",
+    subtitle: "Tu dominio por asignatura, y lo que toca repasar hoy.",
+    bySubject: "Dominio por asignatura",
+    concepts: "Conceptos: {n}",
+    subjectsEmpty: "Aún no hay datos: responde tú mismo a algunas preguntas en el aula y aparecerá aquí.",
+    today: "Repasar hoy",
+    todayHint: "Cinco tarjetas como máximo: primero las de tus conceptos más flojos.",
+    todayEmpty: "Hoy no hay tarjetas pendientes.",
+    more: "+{n} más pendientes",
+    start: "Repasar ahora",
+  },
   flashcards: {
     title: "Tarjetas de repaso",
     subtitle: "Repasa antes de olvidar — cada día, solo las tarjetas que tocan.",

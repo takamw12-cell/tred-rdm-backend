@@ -370,4 +370,16 @@ export const pt: PartialMessages = {
     holes: "{n} furo(s)",
     json: "Ver JSON",
   },
+  progress: {
+    title: "O meu progresso",
+    subtitle: "O teu domínio por disciplina, e o que rever hoje.",
+    bySubject: "Domínio por disciplina",
+    concepts: "Conceitos: {n}",
+    subjectsEmpty: "Ainda sem dados: responde tu mesmo a algumas perguntas no anfiteatro e aparecerá aqui.",
+    today: "Rever hoje",
+    todayHint: "Cinco cartões no máximo: primeiro os dos teus conceitos mais fracos.",
+    todayEmpty: "Hoje não há cartões para rever.",
+    more: "+{n} outros por rever",
+    start: "Rever agora",
+  },
 };

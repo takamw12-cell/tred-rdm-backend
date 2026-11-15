@@ -370,4 +370,16 @@ export const it: PartialMessages = {
     holes: "{n} foro/i",
     json: "Mostra JSON",
   },
+  progress: {
+    title: "I miei progressi",
+    subtitle: "La tua padronanza per materia, e cosa ripassare oggi.",
+    bySubject: "Padronanza per materia",
+    concepts: "Concetti: {n}",
+    subjectsEmpty: "Ancora nessun dato: rispondi tu stesso a qualche domanda in aula e comparirà qui.",
+    today: "Da ripassare oggi",
+    todayHint: "Al massimo cinque schede: prima quelle dei tuoi concetti più deboli.",
+    todayEmpty: "Oggi nessuna scheda da ripassare.",
+    more: "+{n} altre da ripassare",
+    start: "Ripassa ora",
+  },
 };

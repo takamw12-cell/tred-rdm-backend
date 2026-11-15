@@ -1088,3 +1088,23 @@ Rien de tout cela en Prüfungsmodus. Sans filière renseignée, seule la mission
 Non essayé sur le vrai modèle (coût) : le texte remis au tuteur et le branchement sont testés ; la pertinence des exemples se juge sur une vraie conversation.
 
 Code : `packages/web/src/api/lib/real-world.ts`.
+
+## Sprint « tuteur intelligent » — chantier 4 : la mémoire à long terme (15 nov. 2026)
+
+**Ce que TRED faisait déjà — presque tout le brief.**
+
+- **Créer des cartes depuis une explication** : le bouton « Karteikarten » existe sous chaque réponse du Hörsaal (et sur chaque document, et pour chaque lacune). Le tuteur écrit la question courte et la réponse. Rien à ajouter.
+- **Répétition espacée** : les cartes sont déjà planifiées par un algorithme de type SM-2 (facilité de 1,3 à 3,0, intervalle qui s'allonge à chaque réussite, retour au lendemain après un oubli). La page Karteikarten et le bloc « Heute zu wiederholen » du Dashboard s'en servent.
+
+**Ce qui est nouveau.**
+
+- **Les cinq cartes du jour.** Parmi les cartes dues, le Dashboard en propose cinq, choisies d'après les concepts fragiles du chantier 1 : d'abord les cartes qui *nomment* un concept fragile (le plus fragile en premier), puis celles de la même matière, puis les plus en retard et les plus souvent ratées. S'il y en a davantage : « +2 weitere fällig ».
+- **La section « Mein Fortschritt »** sur le Dashboard : à gauche la maîtrise par matière en barres (rouge sous 40 %, jaune sous 70 %, vert au-delà, avec le nombre de concepts), à droite les cartes du jour et le bouton de révision. Elle ne s'affiche que s'il y a quelque chose à montrer — comme les autres blocs.
+
+**À savoir.**
+
+- Les barres viennent de la table du chantier 1 : elles restent vides tant que `migre-concept-mastery.mjs` n'a pas tourné, puis se remplissent au fil des conversations. Les cartes du jour, elles, s'affichent tout de suite.
+- Ici l'étudiant voit son pourcentage — c'est le tableau de bord, il vient le chercher. Le tuteur, lui, ne le prononce jamais.
+- Aucune migration de plus pour ce chantier.
+
+Code : `packages/web/src/api/lib/daily-review.ts` (choix des cartes), route `flashcards.progress`, `src/web/components/progress-section.tsx`.

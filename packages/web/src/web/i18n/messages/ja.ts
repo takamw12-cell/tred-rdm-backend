@@ -370,4 +370,16 @@ export const ja: PartialMessages = {
     holes: "穴 {n} 個",
     json: "JSON を表示",
   },
+  progress: {
+    title: "学習の進み具合",
+    subtitle: "科目ごとの理解度と、今日復習する内容。",
+    bySubject: "科目ごとの理解度",
+    concepts: "概念：{n}",
+    subjectsEmpty: "まだデータがありません。講義室でいくつか自分で答えると、ここに表示されます。",
+    today: "今日の復習",
+    todayHint: "最大5枚。いちばん苦手な概念のカードから。",
+    todayEmpty: "今日復習するカードはありません。",
+    more: "ほかに {n} 枚",
+    start: "復習を始める",
+  },
 };

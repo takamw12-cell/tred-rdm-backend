@@ -5,6 +5,8 @@ import { authed } from "../middleware/auth";
 import { db } from "../database";
 import { flashcard, misconception } from "../database/schema";
 import { MAX_CARDS_PER_USER, endOfBerlinDay, newCardSchedule, reviewCard } from "../lib/flashcards";
+import { masteryBySubject, weakestConcepts, type MasteryDb } from "../lib/concept-mastery";
+import { pickDailyCards } from "../lib/daily-review";
 
 /**
  * Karteikarten (V2 — Pilier 1). La génération par l'IA est une route Hono
@@ -80,6 +82,38 @@ export const flashcards = {
     } catch (err) {
       console.error("[flashcards] summary — table absente ? (migre-flashcards.mjs)", (err as Error).message);
       return { available: false as const, dueToday: 0, total: 0, nextReviewDate: null, gap: null };
+    }
+  }),
+
+  // Le bloc « Mein Fortschritt » du tableau de bord, en UNE lecture : la
+  // maîtrise par matière (lib/concept-mastery.ts) et les cartes du jour —
+  // cinq au plus, d'abord celles des concepts les plus fragiles
+  // (lib/daily-review.ts). Tout est lu pour le compte de la session.
+  progress: authed.handler(async ({ context }) => {
+    const uid = context.user.id;
+    const masteryDb = db as unknown as MasteryDb;
+    try {
+      const [subjects, weak, due] = await Promise.all([
+        masteryBySubject(masteryDb, uid),
+        weakestConcepts(masteryDb, uid, 10),
+        db
+          .select()
+          .from(flashcard)
+          .where(and(eq(flashcard.userId, uid), lte(flashcard.nextReviewDate, endOfBerlinDay(new Date()))))
+          .orderBy(asc(flashcard.nextReviewDate), desc(flashcard.lapses))
+          .limit(200)
+          // Table des cartes pas encore créée : la maîtrise s'affiche quand même.
+          .catch(() => [] as (typeof flashcard.$inferSelect)[]),
+      ]);
+      return {
+        available: true as const,
+        subjects,
+        dueToday: due.length,
+        daily: pickDailyCards(due, weak).map((c) => ({ id: c.id, front: c.frontContent, topic: c.topic })),
+      };
+    } catch (err) {
+      console.error("[progress]", (err as Error).message);
+      return { available: false as const, subjects: [], dueToday: 0, daily: [] };
     }
   }),
 
