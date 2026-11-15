@@ -13,6 +13,7 @@ import {
   Sigma,
   MessageSquareText,
   GalleryVerticalEnd,
+  Box,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -33,6 +34,7 @@ export const navItems = [
   { to: "/dictionary", icon: BookMarked, key: "nav.dictionary" },
   { to: "/dna", icon: Network, key: "nav.dna" },
   { to: "/flashcards", icon: GalleryVerticalEnd, key: "nav.flashcards" },
+  { to: "/explorer", icon: Box, key: "nav.explorer" },
   { to: "/exercises", icon: PenSquare, key: "nav.exercises" },
   { to: "/formulas", icon: Sigma, key: "nav.formulas" },
   { to: "/exam", icon: GraduationCap, key: "nav.exam" },

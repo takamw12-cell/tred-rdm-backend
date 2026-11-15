@@ -24,6 +24,7 @@ export const ar: PartialMessages = {
     settings: "الإعدادات",
     pricing: "الاشتراك",
     menu: "القائمة",
+    explorer: "المستكشف ثلاثي الأبعاد",
   },
   background: {
     pause: "إيقاف الخلفية مؤقتًا",

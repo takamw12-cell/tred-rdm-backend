@@ -24,6 +24,7 @@ export const bn: PartialMessages = {
     settings: "সেটিংস",
     pricing: "সাবস্ক্রিপশন",
     menu: "মেনু",
+    explorer: "3D এক্সপ্লোরার",
   },
   background: {
     pause: "পটভূমি থামান",

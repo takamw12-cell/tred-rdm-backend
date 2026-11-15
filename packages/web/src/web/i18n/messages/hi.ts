@@ -24,6 +24,7 @@ export const hi: PartialMessages = {
     settings: "सेटिंग्स",
     pricing: "सदस्यता",
     menu: "मेन्यू",
+    explorer: "3D एक्सप्लोरर",
   },
   background: {
     pause: "पृष्ठभूमि रोकें",

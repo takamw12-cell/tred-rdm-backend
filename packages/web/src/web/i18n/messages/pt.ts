@@ -24,6 +24,7 @@ export const pt: PartialMessages = {
     settings: "Definições",
     pricing: "Subscrição",
     menu: "Menu",
+    explorer: "Explorador 3D",
   },
   background: {
     pause: "Pausar o fundo",

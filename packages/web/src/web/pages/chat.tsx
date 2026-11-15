@@ -1142,6 +1142,12 @@ export default function ChatPage() {
       }
     };
 
+    // « Den Tutor fragen » de l'Explorateur 3D (pages/explorer.tsx) : la
+    // question est POSÉE dans le champ de saisie, jamais envoyée d'office —
+    // c'est l'étudiant qui décide de dépenser une question.
+    const draft = readOnce("tred.askDraft");
+    if (typeof draft === "string" && draft.trim()) setInput(draft.slice(0, 600));
+
     const wantedDoc = readOnce("tred.openDoc") as { id?: string; title?: string } | null;
     if (wantedDoc && wantedDoc.id) {
       void selectScope({ doc: { id: wantedDoc.id, title: wantedDoc.title ?? "" }, subjectId: null }, "replace");

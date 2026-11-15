@@ -24,6 +24,7 @@ export const ja: PartialMessages = {
     settings: "設定",
     pricing: "サブスクリプション",
     menu: "メニュー",
+    explorer: "3Dエクスプローラー",
   },
   background: {
     pause: "背景を一時停止",

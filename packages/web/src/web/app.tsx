@@ -51,6 +51,8 @@ const DictionaryPage = lazyPage(() => import("./pages/dictionary"));
 const DnaPage = lazyPage(() => import("./pages/dna"));
 const ExercisesPage = lazyPage(() => import("./pages/exercises"));
 const FlashcardsPage = lazyPage(() => import("./pages/flashcards"));
+// Explorateur 3D : Three.js ne se charge qu'à l'ouverture de cette page.
+const ExplorerPage = lazyPage(() => import("./pages/explorer"));
 const FormulasPage = lazyPage(() => import("./pages/formulas"));
 const ExamPage = lazyPage(() => import("./pages/exam"));
 const SettingsPage = lazyPage(() => import("./pages/settings"));
@@ -110,6 +112,7 @@ function AuthedApp() {
             <Route path="/dna" component={DnaPage} />
             <Route path="/exercises" component={ExercisesPage} />
             <Route path="/flashcards" component={FlashcardsPage} />
+            <Route path="/explorer" component={ExplorerPage} />
             <Route path="/formulas" component={FormulasPage} />
             <Route path="/settings" component={SettingsPage} />
             <Route path="/pricing" component={PricingPage} />

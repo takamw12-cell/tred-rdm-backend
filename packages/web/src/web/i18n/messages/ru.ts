@@ -24,6 +24,7 @@ export const ru: PartialMessages = {
     settings: "Настройки",
     pricing: "Подписка",
     menu: "Меню",
+    explorer: "3D-обозреватель",
   },
   background: {
     pause: "Остановить фон",

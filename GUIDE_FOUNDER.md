@@ -1246,3 +1246,39 @@ Essai de bout en bout : `C:\Users\HP\AppData\Local\Temp\tred-perf\latency-e2e.ts
 ## Import : plus de cinq fichiers d'un coup (15 nov. 2026)
 
 Le lot entier est refusé avant tout envoi, comme avant. Le message dit maintenant la limite, que rien n'est parti, et quoi faire : « Maximum 5 fichiers par lot. Rien n'a été importé : choisis-en 5 au plus, puis recommence pour les suivants. » (« Maximal 5 Dateien pro Stapel. … »), dans les douze langues.
+
+## Test réel du lecteur PDF en production (15 nov. 2026, 18:30 UTC)
+
+Fait à ta demande, avec le compte de test jetable (« Test Pipeline »), jamais le tien. Script : `C:\Users\HP\AppData\Local\Temp\tred-perf\prod-test\4-lecteur-r2.ts`.
+
+- **Dépôt** d'un PDF de 14 pages (1 Mo, fabriqué pour le test) dans « Meine Kurse » : importé, 14 pages reconnues.
+- **Une question au vrai tuteur** sur ce document (« Wie ist die Wärmekapazität in meinem Skript definiert? Bitte mit Quelle. ») : premier bloc au tableau après 4,8 s, réponse complète après 16,7 s. Côté serveur : premier mot à 3,5 s, cache froid, une recherche dans le document avant d'écrire ; 0,2 s de préparation avant l'appel du modèle.
+- **Citation** « R2_Test_Thermo_Kapitel_3 S. 12 » : vérifiée contre le document. Un clic ouvre le PDF **à la page 12 sur 14**, la page est dessinée et le passage cité est surligné.
+- **D'où viennent les octets** : uniquement de `www.tred-tutor.de/api/documents/<id>/stream`, par plages (HTTP 206, `application/pdf`), 476 Ko lus sur 988 Ko. Le navigateur n'a contacté aucune adresse publique du stockage.
+- **Sans session** : la même adresse répond 401, sans un octet du PDF.
+- **Nettoyage** : le document de test a été supprimé ; son adresse répond ensuite 404, même à son propriétaire.
+
+Le compte de test contient donc toujours ce qu'il contenait avant (un document et une vidéo du 12 nov.). Il reste à supprimer avant l'ouverture publique.
+
+**Limite d'inscription, vérifiée en production le même soir** : 5 connexions volontairement fausses à la suite, chacune avec un `X-Real-IP` forgé différent → 401, 401, 401, 429, 429. La limite vaut par visiteur réel, un en-tête forgé ne permet pas d'y échapper, et l'avertissement « could not determine a client IP » n'apparaît plus dans les journaux.
+
+## Plateforme visuelle — chantier 1 : l'Explorateur 3D (15 nov. 2026)
+
+Nouvelle page **« 3D-Explorer »** (`/explorer`, entrée dans la barre latérale). On tourne un modèle, on touche un point, le professeur explique.
+
+- **Deux modèles** : un turboréacteur double flux à deux arbres, en coupe (soufflante, compresseur, chambre de combustion, turbine, tuyère, flux secondaire ; les deux arbres tournent, l'air s'écoule du bleu au rouge), et un engrenage droit en prise (z₁ = 16, z₂ = 40).
+- **Points cliquables** : 6 sur le moteur, 4 sur l'engrenage. Chacun ouvre le titre, l'explication, un ordre de grandeur à retenir. On peut aussi toucher la pièce elle-même, ou la choisir dans la liste (clavier, lecteur d'écran).
+- **Formule pas à pas** (GSAP) : sur la tuyère et sur la grande roue, la formule se construit étape par étape avec un effet de « pop ».
+- **« Den Tutor fragen »** ouvre le Hörsaal avec la question déjà écrite dans le champ de saisie. Elle n'est pas envoyée d'office : c'est l'étudiant qui dépense une question.
+- **Téléphone** : un doigt tourne, deux doigts zooment, la caméra recule d'elle-même pour que le modèle tienne dans l'écran.
+
+**Écarts avec ton brief, et pourquoi.**
+
+- *Three.js, React Three Fiber et drei étaient déjà installés* (le tuteur dessine déjà des maquettes 3D dans ses réponses). Rien à installer pour la 3D.
+- *Pas de modèle Sketchfab.* Y télécharger un modèle demande un compte, et chaque modèle a sa licence. Les deux modèles sont construits dans le navigateur à partir de formes simples : rien à télécharger, aucune licence de tiers, quelques Ko.
+- *Les explications ne sont pas générées au clic.* Elles sont écrites à l'avance (allemand, anglais, français, espagnol ; les autres langues lisent l'allemand) et s'affichent tout de suite : ni attente, ni coût par clic, ni phrase inventée sur une pièce de moteur. L'IA en direct reste à un bouton (« Den Tutor fragen »).
+- *Spline et Rive : non.* Les deux passent par un compte chez l'éditeur et, pour Spline, par ses serveurs à chaque affichage.
+- *GSAP 3.15.0* (et non 3.15.1, sorti il y a 12 jours : règle des 14 jours). Sa licence est gratuite pour un usage commercial, mais ce n'est pas une licence libre : Webflow peut la modifier. Elle ne sert qu'à l'animation des formules ; Framer Motion, déjà là, saurait la remplacer.
+- *Phaser 4.2.1* (MIT) est installé pour le mini-jeu du chantier 2.
+
+Code : `src/web/pages/explorer.tsx`, `src/web/components/Explorer3D.tsx` (chargé à la demande), `src/web/components/formula-steps.tsx`, `src/web/lib/explorer-models.ts` (modèles et textes). Essai : `tred-perf\explorer-shot.ts`.
