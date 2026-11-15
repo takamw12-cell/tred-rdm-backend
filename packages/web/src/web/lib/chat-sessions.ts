@@ -28,16 +28,19 @@ export function searchWithDoc(search: string, docId: string | null): string {
 export interface ScopeRef {
   documentId: string | null;
   semesterId: string | null;
+  /** Le Fach (module). Absent ou nul : « Ganzes Semester ». */
+  subjectId?: string | null;
 }
 
 /**
  * Les conversations de la portée ouverte, dans l'ordre de la liste (la plus
- * récente d'abord). Un document : les siennes. Global : celles sans document,
- * du même semestre.
+ * récente d'abord). Un document : les siennes. Sinon celles sans document, du
+ * même semestre ET du même module — « Ganzes Semester » ne montre pas les
+ * conversations tenues sous un module, et l'inverse.
  */
 export function conversationsOfScope<T extends ScopeRef>(list: readonly T[], scope: ScopeRef): T[] {
   if (scope.documentId) return list.filter((c) => c.documentId === scope.documentId);
-  return list.filter((c) => !c.documentId && (c.semesterId ?? null) === (scope.semesterId ?? null));
+  return list.filter((c) => !c.documentId && (c.semesterId ?? null) === (scope.semesterId ?? null) && (c.subjectId ?? null) === (scope.subjectId ?? null));
 }
 
 /**

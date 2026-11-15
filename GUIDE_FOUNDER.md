@@ -1165,3 +1165,30 @@ Code : `packages/web/src/api/lib/chat-sessions.ts` (session d'une portée, règl
 Depuis l'ajout du bouton du mode socratique (nuit du 15), la ligne de saisie du Hörsaal dépassait de l'écran sur téléphone : le bouton d'envoi était à moitié caché à 390 px de large, hors de l'écran à 360 px.
 
 Corrigé : la saisie rétrécit avec l'écran et le bouton d'envoi reste dans le rebord (mesuré à 390, 360 et 320 px). Le champ de texte est étroit sur un petit téléphone (110 px à 360 px), parce que la ligne porte maintenant trois boutons avant lui. **À toi de voir** : ranger « Rechenmodus » et le mode socratique dans le menu du trombone sur téléphone libérerait la place.
+
+## Documents et conversations liés au module (15 nov. 2026)
+
+Dans l'app, ton « module » s'appelle un **Fach** (« Matière » en français) : TZ, ELT… Il se choisit dans le sélecteur en haut du Hörsaal, à côté de « Kontext ».
+
+**Ce qui se passait.** Le tuteur respectait déjà le module choisi : avec « TZ », il ne lisait que les documents de TZ. Mais le panneau « Meine Kurse » listait tous les documents du semestre, donc ceux d'ELT aussi ; l'import ne rangeait le document dans aucun module ; et changer de module laissait la conversation au tableau.
+
+**Ce qui change.**
+
+- **Le panneau suit le module.** Avec « TZ » en haut, il ne liste que les documents de TZ. Aucun : « Noch keine Unterlagen in diesem Fach. Lade eine hoch. », et une ligne dit combien de documents du semestre n'ont pas encore de module et où les trouver. « Ganzes Semester » liste tout le semestre.
+- **Un document importé va dans le module choisi.** Fichier seul, lot ou glisser-déposer. Le serveur vérifie que le module est bien à ce compte.
+- **Changer de module réinitialise le tableau.** Chaque module a sa session, comme chaque document : revenir sur ELT rouvre la conversation d'ELT, jamais celle de TZ. « Ganzes Semester » a la sienne.
+- **Le badge du tableau** dit « Fach: TZ ».
+
+**Écarts avec ton brief.**
+
+- Aucune colonne à ajouter sur `document` : `semester_id` et `subject_id` existaient déjà. Le Dashboard permettait déjà de ranger des documents dans un module.
+- La migration ajoute une colonne ailleurs : `chat_conversation.subject_id`, pour savoir sous quel module une conversation a été tenue.
+
+**Migration : `migre-documents-contexte.mjs`.**
+
+1. Schéma, à lancer une fois : `node C:\dev\tred-rdm\aerostudy-ai\migre-documents-contexte.mjs`. Tant qu'il n'a pas tourné, rien ne casse : un module ouvre un tableau vide au lieu de reprendre sa conversation.
+2. Tes documents existants vers ELT : ajoute `--module=ELT --email=<ton adresse>` pour voir la liste, puis `--appliquer` pour l'écrire. Le script ne touche que le compte de cette adresse, que ses documents sans module, et que le semestre du module. `--sans-semestre` prend aussi les documents sans semestre. Pour défaire : le Dashboard.
+
+**À savoir.** Les documents des autres étudiants importés avant aujourd'hui n'ont pas de module : ils les voient sous « Ganzes Semester » et peuvent les ranger depuis le Dashboard.
+
+Code : `packages/web/src/api/lib/import-scope.ts`, `api/lib/chat-sessions.ts` (module d'une conversation), `src/web/components/document-library.tsx`, `src/web/pages/chat.tsx`.

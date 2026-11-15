@@ -353,6 +353,7 @@ export const es: Messages = {
     noHistory: "Todavía no hay conversaciones guardadas.",
     // Sessions par document (2026-11-15) : badge du tableau, tiroir d'historique.
     boardScopeLabel: "Curso:",
+    boardSubjectLabel: "Asignatura:",
     historyAll: "Todas las conversaciones",
     noHistoryScope: "Aquí todavía no hay conversaciones.",
     deleteConv: "Eliminar la conversación",
@@ -593,6 +594,10 @@ export const es: Messages = {
     title: "Mis cursos",
     allScope: "Todos los materiales",
     allScopeSub: "Chatear con todos los documentos",
+    // Module (Fach) choisi en haut du Hörsaal : le panneau ne liste que ses documents (2026-11-15).
+    emptySubject: "Todavía no hay documentos en esta asignatura. Sube uno.",
+    unassignedHint: "Documentos sin asignatura: {n}. Están en «{label}».",
+    allScopeSubjectSub: "Chatear sobre todos los documentos de esta asignatura",
     empty: "Todavía no hay documentos. Sube tu primer Skript.",
     upload: "Subir documentos",
     uploading: "Procesando …",

@@ -260,6 +260,7 @@ export const ja: PartialMessages = {
     noHistory: "保存された会話はまだありません。",
     // Sessions par document (2026-11-15) : badge du tableau, tiroir d'historique.
     boardScopeLabel: "コース：",
+    boardSubjectLabel: "科目：",
     historyAll: "すべての会話",
     noHistoryScope: "ここにはまだ会話がありません。",
     deleteConv: "会話を削除",
@@ -385,5 +386,11 @@ export const ja: PartialMessages = {
     todayEmpty: "今日復習するカードはありません。",
     more: "ほかに {n} 枚",
     start: "復習を始める",
+  },
+  library: {
+    // Module (Fach) choisi en haut du Hörsaal : le panneau ne liste que ses documents (2026-11-15).
+    emptySubject: "この科目にはまだ資料がありません。アップロードしてください。",
+    unassignedHint: "科目なしの資料：{n}件。「{label}」にあります。",
+    allScopeSubjectSub: "この科目のすべての資料について質問する",
   },
 };

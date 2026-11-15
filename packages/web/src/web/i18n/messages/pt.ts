@@ -260,6 +260,7 @@ export const pt: PartialMessages = {
     noHistory: "Ainda não há conversas guardadas.",
     // Sessions par document (2026-11-15) : badge du tableau, tiroir d'historique.
     boardScopeLabel: "Curso:",
+    boardSubjectLabel: "Disciplina:",
     historyAll: "Todas as conversas",
     noHistoryScope: "Ainda não há conversas aqui.",
     deleteConv: "Eliminar a conversa",
@@ -385,5 +386,11 @@ export const pt: PartialMessages = {
     todayEmpty: "Hoje não há cartões para rever.",
     more: "+{n} outros por rever",
     start: "Rever agora",
+  },
+  library: {
+    // Module (Fach) choisi en haut du Hörsaal : le panneau ne liste que ses documents (2026-11-15).
+    emptySubject: "Ainda não há documentos nesta disciplina. Carrega um.",
+    unassignedHint: "Documentos sem disciplina: {n}. Estão em «{label}».",
+    allScopeSubjectSub: "Conversar sobre todos os documentos desta disciplina",
   },
 };

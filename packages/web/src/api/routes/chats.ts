@@ -4,7 +4,7 @@ import { ORPCError } from "@orpc/server";
 import { authed } from "../middleware/auth";
 import { db } from "../database";
 import { chatConversation, chatMessage } from "../database/schema";
-import { conversationMessages, saveConversation, sessionForScope } from "../lib/chat-sessions";
+import { conversationMessages, conversationSubjects, saveConversation, sessionForScope } from "../lib/chat-sessions";
 
 const messageInput = z.object({
   role: z.enum(["user", "assistant"]),
@@ -18,7 +18,12 @@ const MAX_CONVERSATION_CHARS = 4_000_000;
 export const chats = {
   // List the user's saved conversations, most recently updated first.
   list: authed.handler(async ({ context }) => {
-    const rows = await db
+    // Le module (Fach) sous lequel chaque conversation a été tenue : le tiroir
+    // d'historique ne montre que celles de la portée ouverte. Colonne hors
+    // schéma, lue à part (lib/chat-sessions.ts) — vide tant que la migration
+    // n'a pas tourné. Les deux lectures partent ensemble.
+    const [rows, subjects] = await Promise.all([
+      db
       .select({
         id: chatConversation.id,
         title: chatConversation.title,
@@ -35,8 +40,10 @@ export const chats = {
           isNull(chatConversation.deletedAt),
         ),
       )
-      .orderBy(desc(chatConversation.updatedAt));
-    return rows;
+      .orderBy(desc(chatConversation.updatedAt)),
+      conversationSubjects(db, context.user.id),
+    ]);
+    return rows.map((r) => ({ ...r, subjectId: subjects.get(r.id) ?? null }));
   }),
 
   // List trashed conversations (soft-deleted), most recently deleted first.
@@ -78,25 +85,29 @@ export const chats = {
         )
         .limit(1);
       if (!conv[0]) return null;
-      const msgs = await conversationMessages(db, input.id);
-      return { conversation: conv[0], messages: msgs };
+      const [msgs, subjects] = await Promise.all([conversationMessages(db, input.id), conversationSubjects(db, context.user.id)]);
+      // `subjectId` : rouvrir une conversation remet le sélecteur de module où elle a été tenue.
+      return { conversation: { ...conv[0], subjectId: subjects.get(input.id) ?? null }, messages: msgs };
     }),
 
-  // La session d'une portée — un document, ou « Alle Materialien » : sa
-  // dernière conversation et ses messages (lib/chat-sessions.ts). Le compte est
-  // celui de la session HTTP ; le document d'un autre compte ne rend rien.
-  // Rien n'est créé : une portée sans conversation rend `conversation: null`.
+  // La session d'une portée — un document, un module (Fach) ou « Ganzes
+  // Semester » : sa dernière conversation et ses messages
+  // (lib/chat-sessions.ts). Le compte est celui de la session HTTP ; le
+  // document d'un autre compte ne rend rien. Rien n'est créé : une portée sans
+  // conversation rend `conversation: null`.
   forScope: authed
     .input(
       z.object({
         documentId: z.string().max(128).nullable(),
         semesterId: z.string().max(128).nullish(),
+        subjectId: z.string().max(128).nullish(),
       }),
     )
     .handler(({ input, context }) =>
       sessionForScope(db, context.user.id, {
         documentId: input.documentId,
         semesterId: input.semesterId ?? null,
+        subjectId: input.subjectId ?? null,
       }),
     ),
 
@@ -108,6 +119,8 @@ export const chats = {
         id: z.string().max(128),
         title: z.string().max(200).optional(),
         semesterId: z.string().max(128).nullish(),
+        /** Le module (Fach) sous lequel la conversation est tenue ; écrit à la création seulement. */
+        subjectId: z.string().max(128).nullish(),
         documentId: z.string().max(128).nullish(),
         documentTitle: z.string().max(500).nullish(),
         lang: z.string().max(5).optional(),

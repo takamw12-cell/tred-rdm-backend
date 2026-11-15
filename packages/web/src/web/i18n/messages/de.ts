@@ -340,6 +340,7 @@ export const de = {
     noHistory: "Noch keine gespeicherten Unterhaltungen.",
     // Sessions par document (2026-11-15) : badge du tableau, tiroir d'historique.
     boardScopeLabel: "Kurs:",
+    boardSubjectLabel: "Fach:",
     historyAll: "Alle Unterhaltungen",
     noHistoryScope: "Hier gibt es noch keine Unterhaltung.",
     deleteConv: "Unterhaltung löschen",
@@ -580,6 +581,10 @@ export const de = {
     title: "Meine Kurse",
     allScope: "Alle Materialien",
     allScopeSub: "Über alle Unterlagen chatten",
+    // Module (Fach) choisi en haut du Hörsaal : le panneau ne liste que ses documents (2026-11-15).
+    emptySubject: "Noch keine Unterlagen in diesem Fach. Lade eine hoch.",
+    unassignedHint: "Unterlagen ohne Fach: {n}. Du findest sie unter \"{label}\".",
+    allScopeSubjectSub: "Über alle Unterlagen dieses Fachs chatten",
     empty: "Noch keine Dokumente. Lade dein erstes Skript hoch.",
     upload: "Dokumente hochladen",
     uploading: "Wird verarbeitet …",

@@ -27,6 +27,7 @@ import {
   documentRemoveOptions,
 } from "@/queries/documents";
 import { semestersListKey } from "@/queries/semesters";
+import { subjectsListKey } from "@/queries/subjects";
 import { useFeatures } from "@/queries/features";
 import { track } from "@/lib/analytics";
 import { useT } from "@/i18n";
@@ -72,11 +73,27 @@ const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 export function DocumentLibrary({
   activeId,
   semesterId = null,
+  subjectId = null,
+  subjectName = "",
+  unassignedCount = 0,
+  wholeLabel = "",
   onSelect,
   tone = "page",
 }: {
   activeId: string | null;
   semesterId?: string | null;
+  /**
+   * Le module (Fach) choisi en haut du Hörsaal. Le panneau ne liste alors QUE
+   * ses documents, et tout ce qu'on importe ici y est rangé. `null` : tout le
+   * semestre.
+   */
+  subjectId?: string | null;
+  /** Son nom : la ligne « tout » du panneau le porte, à la place de « Alle Materialien ». */
+  subjectName?: string;
+  /** Documents du semestre encore sans module — dits sous la liste vide d'un module, pour qu'on sache où les trouver. */
+  unassignedCount?: number;
+  /** Le nom de l'entrée « tout le semestre » du sélecteur, cité dans cette indication. */
+  wholeLabel?: string;
   onSelect: (id: string | null, title?: string) => void;
   /**
    * « night » : le panneau est posé sur la photo SOMBRE du Hörsaal (salle
@@ -103,7 +120,7 @@ export function DocumentLibrary({
   const features = useFeatures();
   const [viewerDocId, setViewerDocId] = useState<string | null>(null);
 
-  const { data: docs = [], isLoading } = useQuery(documentsListOptions(semesterId));
+  const { data: docs = [], isLoading } = useQuery(documentsListOptions(semesterId, subjectId));
   const removeMut = useMutation(documentRemoveOptions());
 
   /** Envoi d'UN fichier par la route classique (elle extrait dans la requête quand le serveur n'a pas de file). */
@@ -113,6 +130,7 @@ export function DocumentLibrary({
     form.append("title", file.name.replace(/\.[a-z0-9]{1,5}$/i, ""));
     form.append("kind", guessKind(file.name));
     if (semesterId) form.append("semesterId", semesterId);
+    if (subjectId) form.append("subjectId", subjectId);
     const res = await fetch("/api/documents/upload", { method: "POST", body: form });
     if (!res.ok) {
       // Limite de documents du tarif : la fenêtre s'ouvre une fois, et les fichiers suivants ne sont pas tentés.
@@ -136,6 +154,8 @@ export function DocumentLibrary({
         form.append("kinds", guessKind(f.name));
       }
       if (semesterId) form.append("semesterId", semesterId);
+      // Le lot entier va dans le module choisi en haut (le serveur vérifie qu'il est à ce compte).
+      if (subjectId) form.append("subjectId", subjectId);
       const res = await fetch("/api/documents/upload-batch", { method: "POST", body: form });
       if (res.status === 503) return { kind: "no_queue" };
       if (!res.ok) {
@@ -168,6 +188,8 @@ export function DocumentLibrary({
       const refresh = () => {
         void qc.invalidateQueries({ queryKey: documentsListKey() });
         void qc.invalidateQueries({ queryKey: semestersListKey() });
+        // Les compteurs par module (dont « sans module ») changent aussi.
+        void qc.invalidateQueries({ queryKey: subjectsListKey() });
       };
       const final = await runImportBatch(files, {
         queue: features.importQueue,
@@ -229,6 +251,7 @@ export function DocumentLibrary({
       form.append("title", cleanTitle);
       form.append("kind", guessKind(file.name));
       if (semesterId) form.append("semesterId", semesterId);
+      if (subjectId) form.append("subjectId", subjectId);
 
       const res = await fetch("/api/documents/upload", {
         method: "POST",
@@ -269,6 +292,7 @@ export function DocumentLibrary({
       track("upload_completed", { ext, sizeMb });
       await qc.invalidateQueries({ queryKey: documentsListKey() });
       await qc.invalidateQueries({ queryKey: semestersListKey() });
+      void qc.invalidateQueries({ queryKey: subjectsListKey() });
       onSelect(id, cleanTitle);
     } catch (err) {
       console.error("[upload] failed", err);
@@ -290,6 +314,7 @@ export function DocumentLibrary({
     if (id === activeId) onSelect(null);
     await qc.invalidateQueries({ queryKey: documentsListKey() });
     await qc.invalidateQueries({ queryKey: semestersListKey() });
+    void qc.invalidateQueries({ queryKey: subjectsListKey() });
   }
 
   const busy = progress !== null;
@@ -394,8 +419,9 @@ export function DocumentLibrary({
             <Sparkles className="size-4" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">{t("library.allScope")}</p>
-            <p className="text-muted-foreground text-xs">{t("library.allScopeSub")}</p>
+            {/* Sous un module, « tout » veut dire tout le MODULE : la ligne porte son nom. */}
+            <p className="truncate text-sm font-medium">{subjectId && subjectName ? subjectName : t("library.allScope")}</p>
+            <p className="text-muted-foreground text-xs">{subjectId ? t("library.allScopeSubjectSub") : t("library.allScopeSub")}</p>
           </div>
         </button>
 
@@ -406,9 +432,19 @@ export function DocumentLibrary({
               {t("common.loading")}
             </div>
           ) : docs.length === 0 ? (
-            <p className="text-muted-foreground px-1 py-6 text-center text-sm">
-              {t("library.empty")}
-            </p>
+            subjectId ? (
+              // Un module sans document : on le dit, et on dit où sont ceux qui n'ont pas encore de module.
+              <div className="px-1 py-6 text-center" data-testid="library-empty-subject">
+                <p className="text-muted-foreground text-sm">{t("library.emptySubject")}</p>
+                {unassignedCount > 0 && (
+                  <p className="text-muted-foreground mt-2 text-xs">{t("library.unassignedHint", { n: unassignedCount, label: wholeLabel })}</p>
+                )}
+              </div>
+            ) : (
+              <p className="text-muted-foreground px-1 py-6 text-center text-sm">
+                {t("library.empty")}
+              </p>
+            )
           ) : (
             <div className="space-y-1.5">
               <AnimatePresence initial={false}>

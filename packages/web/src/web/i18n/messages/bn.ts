@@ -260,6 +260,7 @@ export const bn: PartialMessages = {
     noHistory: "এখনো কোনো সংরক্ষিত কথোপকথন নেই।",
     // Sessions par document (2026-11-15) : badge du tableau, tiroir d'historique.
     boardScopeLabel: "কোর্স:",
+    boardSubjectLabel: "বিষয়:",
     historyAll: "সব কথোপকথন",
     noHistoryScope: "এখানে এখনো কোনো কথোপকথন নেই।",
     deleteConv: "কথোপকথন মুছুন",
@@ -385,5 +386,11 @@ export const bn: PartialMessages = {
     todayEmpty: "আজ কোনো কার্ড পুনরাবৃত্তির জন্য নেই।",
     more: "আরও {n}টি বাকি",
     start: "এখনই পুনরাবৃত্তি করো",
+  },
+  library: {
+    // Module (Fach) choisi en haut du Hörsaal : le panneau ne liste que ses documents (2026-11-15).
+    emptySubject: "এই বিষয়ে এখনো কোনো নথি নেই। একটি আপলোড করো।",
+    unassignedHint: "বিষয় ছাড়া নথি: {n}। এগুলো «{label}»-এ পাবে।",
+    allScopeSubjectSub: "এই বিষয়ের সব নথি নিয়ে কথা বলো",
   },
 };

@@ -186,8 +186,14 @@ function pickStudyProfile(p: { degree: string; university: string; semester: str
 interface ChatSession {
   /** Identifiant de la conversation, choisi par le navigateur (les enregistrements sont idempotents). */
   id: string;
-  /** Le document de la conversation ; `null` = « Alle Materialien ». */
+  /** Le document de la conversation ; `null` = pas de document. */
   doc: { id: string; title: string } | null;
+  /**
+   * Le Fach (module) choisi en haut : sans document, c'est lui qui fait la
+   * portée ; `null` = « Ganzes Semester ». Avec un document, il dit seulement
+   * quelle liste le panneau « Meine Kurse » montre.
+   */
+  subjectId: string | null;
   /** Le semestre dans lequel la session a été ouverte. */
   semesterId: string | null;
   /** Les messages d'une conversation rouverte ; vide pour un tableau neuf. */
@@ -382,6 +388,7 @@ export default function ChatPage() {
   const [session, setSession] = useState<ChatSession>(() => ({
     id: crypto.randomUUID(),
     doc: null,
+    subjectId: null,
     semesterId: semesterId ?? null,
     initial: [],
   }));
@@ -393,23 +400,28 @@ export default function ChatPage() {
   // Documents in the current scope — used to resolve a chat citation's document
   // by title when the chat isn't pinned to a single document.
   const { data: scopeDocs = [] } = useQuery(documentsListOptions(semesterId));
+  // Lu hors rendu (ouverture d'une conversation) : le module de chaque document.
+  const scopeDocsRef = useRef(scopeDocs);
+  scopeDocsRef.current = scopeDocs;
 
   /**
-   * Le Fach sur lequel le tuteur travaille.
+   * Le Fach (module) sur lequel le tuteur travaille — celui de la SESSION.
    *
-   * Remis à zéro quand le semestre change : garder l'identifiant d'un Fach qui
-   * appartient à un autre semestre ferait répondre le serveur « subject not
-   * found » sur une question parfaitement normale.
+   * Changer de module, c'est changer de session : le tableau repart du
+   * message d'accueil (ou de la dernière conversation de ce module), et le
+   * panneau « Meine Kurse » ne liste plus que ses documents. Avant le 15 nov.
+   * 2026 c'était un état à part : la conversation restait au tableau et le
+   * panneau montrait les documents de tout le semestre.
+   *
+   * Remis à zéro quand le semestre change (voir l'effet sur `semesterId`) :
+   * garder l'identifiant d'un Fach d'un autre semestre ferait répondre le
+   * serveur « subject not found » sur une question parfaitement normale.
    */
-  const [chatSubject, setChatSubject] = useState<string | null>(null);
+  const chatSubject = session.subjectId;
   const { data: subjectData } = useQuery(subjectsListOptions(semesterId));
   const chatSubjects = subjectData?.subjects ?? [];
   // Temps passé dans le Hörsaal (analyse, seulement avec consentement).
   useEffect(() => startHoersaalTimer(), []);
-
-  useEffect(() => {
-    setChatSubject(null);
-  }, [semesterId]);
 
   // Source viewer: opened from an [[OFFICIAL]] citation to show the exact
   // passage the tutor quoted, highlighted in the course document.
@@ -825,7 +837,7 @@ export default function ChatPage() {
     scopeTokenRef.current += 1; // une reprise encore en route ne doit plus rien poser ici
     setScopeLoading(false);
     const current = sessionRef.current;
-    startSession({ id: crypto.randomUUID(), doc: current.doc, semesterId: current.semesterId, initial: [] });
+    startSession({ id: crypto.randomUUID(), doc: current.doc, subjectId: current.subjectId, semesterId: current.semesterId, initial: [] });
     setHistoryOpen(false);
   }
 
@@ -834,6 +846,7 @@ export default function ChatPage() {
     c: { id: string; documentId: string | null; documentTitle: string | null; semesterId: string | null; lang: string | null },
     stored: { id: string; role: string; content: string }[],
     doc: ChatSession["doc"],
+    subjectId: string | null,
   ) {
     const restored = stored.map((m) => ({
       id: m.id,
@@ -845,7 +858,7 @@ export default function ChatPage() {
     const known = !semsQuery.isSuccess || !c.semesterId || sems.some((s) => s.id === c.semesterId);
     const sem = known ? (c.semesterId ?? null) : null;
     const nativeLang = c.lang ?? "de";
-    startSession({ id: c.id, doc, semesterId: sem, initial: restored }, nativeLang);
+    startSession({ id: c.id, doc, subjectId, semesterId: sem, initial: restored }, nativeLang);
     // Seed the translation source + cache with the stored native text.
     for (const m of stored) {
       sourceRef.current[m.id] = m.content;
@@ -868,7 +881,10 @@ export default function ChatPage() {
       scopeTokenRef.current += 1;
       setScopeLoading(false);
       const c = res.conversation;
-      applyConversation(c, res.messages, c.documentId ? { id: c.documentId, title: c.documentTitle ?? "" } : null);
+      // Le sélecteur du haut revient où la conversation a été tenue : son
+      // module, ou celui de son document (le panneau liste alors ce module).
+      const fach = c.documentId ? (scopeDocsRef.current.find((d) => d.id === c.documentId)?.subjectId ?? null) : (c.subjectId ?? null);
+      applyConversation(c, res.messages, c.documentId ? { id: c.documentId, title: c.documentTitle ?? "" } : null, fach);
       syncUrl(c.documentId ?? null, url);
       setHistoryOpen(false);
     } catch {
@@ -877,40 +893,46 @@ export default function ChatPage() {
   }
 
   /**
-   * Changer de portée : un document de « Meine Kurse », ou « Alle Materialien ».
+   * Changer de portée : un document de « Meine Kurse », un module (Fach), ou
+   * « Ganzes Semester » / « Alle Materialien ».
    *
-   *   1. tout de suite : un tableau vide lié à CE document (le flux en cours
+   *   1. tout de suite : un tableau vide lié à CETTE portée (le flux en cours
    *      est coupé avec l'ancienne session) et l'adresse `/chat?doc=…` ;
-   *   2. puis la dernière conversation de ce document, demandée au serveur.
+   *   2. puis la dernière conversation de cette portée, demandée au serveur.
    *      Aucune : le tableau reste prêt. Document inconnu (lien périmé,
-   *      document d'un autre compte) : retour à « Alle Materialien ».
+   *      document d'un autre compte) : retour à la portée sans document.
    */
-  async function selectScope(doc: ChatSession["doc"], url: UrlMode = "push") {
+  async function selectScope(target: { doc: ChatSession["doc"]; subjectId: string | null }, url: UrlMode = "push") {
+    const { doc } = target;
     const token = ++scopeTokenRef.current;
     const semester = semIdRef.current ?? null;
-    const fresh: ChatSession = { id: crypto.randomUUID(), doc, semesterId: semester, initial: [] };
+    const fresh: ChatSession = { id: crypto.randomUUID(), doc, subjectId: target.subjectId, semesterId: semester, initial: [] };
     startSession(fresh);
     syncUrl(doc?.id ?? null, url);
     setHistoryOpen(false);
     // L'invitation « Die Tafel ist bereit » ne s'affiche pas pour disparaître
     // aussitôt : on attend la session quand on sait qu'elle existe.
-    const scope = { documentId: doc?.id ?? null, semesterId: semester };
+    const scope = { documentId: doc?.id ?? null, semesterId: semester, subjectId: doc ? null : target.subjectId };
     setScopeLoading(conversationsOfScope(convListRef.current, scope).length > 0);
     try {
       const res = await client.chats.forScope(scope);
       if (doc && !res.document) {
         // Ce document n'est pas (ou plus) à ce compte : on ne reste pas dessus.
-        if (token === scopeTokenRef.current) void selectScope(null, "replace");
+        if (token === scopeTokenRef.current) void selectScope({ doc: null, subjectId: target.subjectId }, "replace");
         return;
       }
       const state = { requestToken: token, currentToken: scopeTokenRef.current, freshSessionId: fresh.id, currentSessionId: sessionRef.current.id, messageCount: messagesRef.current.length };
       if (!mayApplyResume(state)) return;
       const title = res.document?.title ?? doc?.title ?? "";
+      // Un document ouvert alors qu'un AUTRE module est affiché en haut
+      // (lien direct, bouton Retour) : le sélecteur passe au module du
+      // document, sinon le panneau listerait un module où il n'est pas.
+      const fach = doc && target.subjectId && (res.document?.subjectId ?? null) !== target.subjectId ? (res.document?.subjectId ?? null) : target.subjectId;
       if (res.conversation) {
-        applyConversation(res.conversation, res.messages, doc ? { id: doc.id, title } : null);
-      } else if (doc && title !== doc.title) {
-        // Arrivé par l'adresse : le titre vient du serveur.
-        setSession((s) => (s.id === fresh.id ? { ...s, doc: { id: doc.id, title } } : s));
+        applyConversation(res.conversation, res.messages, doc ? { id: doc.id, title } : null, fach);
+      } else if (doc && (title !== doc.title || fach !== target.subjectId)) {
+        // Arrivé par l'adresse : le titre (et le module) viennent du serveur.
+        setSession((s) => (s.id === fresh.id ? { ...s, doc: { id: doc.id, title }, subjectId: fach } : s));
       }
     } catch {
       // Hors ligne : le tableau vide reste utilisable.
@@ -919,10 +941,16 @@ export default function ChatPage() {
     }
   }
 
-  /** Un clic de l'étudiant sur une portée. Celle qui est déjà ouverte : rien à refaire. */
+  /** Un clic de l'étudiant sur un document (ou « tout »), dans le module affiché. Déjà ouvert : rien à refaire. */
   function pickScope(doc: ChatSession["doc"]) {
     if ((doc?.id ?? null) === (sessionRef.current.doc?.id ?? null)) return;
-    void selectScope(doc);
+    void selectScope({ doc, subjectId: sessionRef.current.subjectId });
+  }
+
+  /** Le sélecteur de module en haut : TZ, ELT… ou « Ganzes Semester » (`null`). */
+  function pickSubject(subjectId: string | null) {
+    if (subjectId === sessionRef.current.subjectId && !sessionRef.current.doc) return;
+    void selectScope({ doc: null, subjectId });
   }
 
   function deleteConversation(id: string) {
@@ -1043,7 +1071,7 @@ export default function ChatPage() {
     function onOpenDoc(e: Event) {
       const d = (e as CustomEvent<{ id: string; title: string }>).detail;
       forget("tred.openDoc");
-      if (d && d.id) void selectScope({ id: d.id, title: d.title ?? "" });
+      if (d && d.id) void selectScope({ doc: { id: d.id, title: d.title ?? "" }, subjectId: null });
     }
     window.addEventListener("tred:open-chat", onOpenChat);
     window.addEventListener("tred:open-doc", onOpenDoc);
@@ -1073,7 +1101,7 @@ export default function ChatPage() {
 
     const wantedDoc = readOnce("tred.openDoc") as { id?: string; title?: string } | null;
     if (wantedDoc && wantedDoc.id) {
-      void selectScope({ id: wantedDoc.id, title: wantedDoc.title ?? "" }, "replace");
+      void selectScope({ doc: { id: wantedDoc.id, title: wantedDoc.title ?? "" }, subjectId: null }, "replace");
       return;
     }
 
@@ -1087,7 +1115,7 @@ export default function ChatPage() {
     // enregistré, rechargement de la page).
     const fromUrl = docFromSearch(window.location.search);
     if (fromUrl) {
-      void selectScope({ id: fromUrl, title: scopeDocs.find((d) => d.id === fromUrl)?.title ?? "" }, "none");
+      void selectScope({ doc: { id: fromUrl, title: scopeDocs.find((d) => d.id === fromUrl)?.title ?? "" }, subjectId: null }, "none");
       return;
     }
 
@@ -1103,7 +1131,8 @@ export default function ChatPage() {
   useEffect(() => {
     if (!bootRef.current || urlDocId === expectedUrlDocRef.current) return;
     expectedUrlDocRef.current = urlDocId;
-    void selectScope(urlDocId ? { id: urlDocId, title: scopeDocs.find((d) => d.id === urlDocId)?.title ?? "" } : null, "none");
+    // Le module affiché reste : revenir d'un document à « tout » ramène au module où l'on était.
+    void selectScope({ doc: urlDocId ? { id: urlDocId, title: scopeDocs.find((d) => d.id === urlDocId)?.title ?? "" } : null, subjectId: sessionRef.current.subjectId }, "none");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlDocId]);
 
@@ -1120,7 +1149,8 @@ export default function ChatPage() {
       setSession((s) => ({ ...s, semesterId: sem }));
       return;
     }
-    void selectScope(null, "replace");
+    // Un module appartient à UN semestre : on repart de « Ganzes Semester ».
+    void selectScope({ doc: null, subjectId: null }, "replace");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [semesterId]);
 
@@ -1144,6 +1174,8 @@ export default function ChatPage() {
         id: session.id,
         title,
         semesterId: semesterId ?? null,
+        // Le module ne fait la portée que sans document ; le serveur ne l'écrit qu'à la création.
+        subjectId: session.doc ? null : session.subjectId,
         documentId: session.doc?.id ?? null,
         documentTitle: session.doc?.title || null,
         lang: convLangRef.current,
@@ -1533,6 +1565,8 @@ export default function ChatPage() {
   // Le titre du document ouvert : celui de la session, sinon celui de la liste
   // (session ouverte par l'adresse, avant la réponse du serveur).
   const activeDocTitle = activeDoc ? activeDoc.title || scopeDocs.find((d) => d.id === activeDoc.id)?.title || "" : "";
+  // Le nom du module affiché en haut (même avec un document ouvert : le panneau liste toujours ce module).
+  const scopeLabelOfSubject = chatSubject ? (chatSubjects.find((f) => f.id === chatSubject)?.name ?? t("subjects.one")) : "";
   const scopeLabel = activeDoc
     ? activeDocTitle
     : chatSubject
@@ -1546,10 +1580,10 @@ export default function ChatPage() {
   const scopeBadge = activeDoc ? (
     <BoardScope icon={<FileText className="size-3.5" />} label={t("chat.boardScopeLabel")} title={activeDocTitle || "…"} />
   ) : (
-    <BoardScope icon={<Sparkles className="size-3.5" />} title={chatSubject ? scopeLabel : t("library.allScope")} />
+    <BoardScope icon={<Sparkles className="size-3.5" />} label={chatSubject ? t("chat.boardSubjectLabel") : undefined} title={chatSubject ? scopeLabel : t("library.allScope")} />
   );
   // Le tiroir d'historique montre d'abord les conversations de CETTE portée.
-  const scopeConvs = conversationsOfScope(convList, { documentId: activeDoc?.id ?? null, semesterId: semesterId ?? null });
+  const scopeConvs = conversationsOfScope(convList, { documentId: activeDoc?.id ?? null, semesterId: semesterId ?? null, subjectId: chatSubject });
   const shownConvs = historyAll ? convList : scopeConvs;
 
   const suggestions = [t("chat.q1"), t("chat.q2"), t("chat.q3")];
@@ -1822,6 +1856,10 @@ export default function ChatPage() {
             tone="night"
             activeId={activeDoc?.id ?? null}
             semesterId={semesterId}
+            subjectId={chatSubject}
+            subjectName={chatSubject ? scopeLabelOfSubject : ""}
+            unassignedCount={subjectData?.unassigned ?? 0}
+            wholeLabel={t("subjects.wholeSemester")}
             onSelect={(id, title) => pickScope(id ? { id, title: title ?? "" } : null)}
           />
         </div>
@@ -1853,6 +1891,10 @@ export default function ChatPage() {
               <DocumentLibrary
                 activeId={activeDoc?.id ?? null}
                 semesterId={semesterId}
+                subjectId={chatSubject}
+                subjectName={chatSubject ? scopeLabelOfSubject : ""}
+                unassignedCount={subjectData?.unassigned ?? 0}
+                wholeLabel={t("subjects.wholeSemester")}
                 onSelect={(id, title) => {
                   pickScope(id ? { id, title: title ?? "" } : null);
                   setLibOpen(false);
@@ -2235,7 +2277,8 @@ export default function ChatPage() {
           {!activeDoc && chatSubjects.length > 0 && (
             <select
               value={chatSubject ?? ""}
-              onChange={(e) => setChatSubject(e.target.value || null)}
+              onChange={(e) => pickSubject(e.target.value || null)}
+              data-testid="subject-select"
               aria-label={t("subjects.one")}
               className="border-border bg-background h-7 max-w-[11rem] rounded-full border px-2 text-xs"
             >

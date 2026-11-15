@@ -260,6 +260,7 @@ export const hi: PartialMessages = {
     noHistory: "अभी कोई सहेजी गई बातचीत नहीं है।",
     // Sessions par document (2026-11-15) : badge du tableau, tiroir d'historique.
     boardScopeLabel: "कोर्स:",
+    boardSubjectLabel: "विषय:",
     historyAll: "सभी बातचीत",
     noHistoryScope: "यहाँ अभी कोई बातचीत नहीं है।",
     deleteConv: "बातचीत हटाएँ",
@@ -385,5 +386,11 @@ export const hi: PartialMessages = {
     todayEmpty: "आज दोहराने के लिए कोई कार्ड नहीं।",
     more: "{n} और बाकी",
     start: "अभी दोहराएँ",
+  },
+  library: {
+    // Module (Fach) choisi en haut du Hörsaal : le panneau ne liste que ses documents (2026-11-15).
+    emptySubject: "इस विषय में अभी कोई दस्तावेज़ नहीं है। एक अपलोड करें।",
+    unassignedHint: "बिना विषय के दस्तावेज़: {n}। ये «{label}» में मिलेंगे।",
+    allScopeSubjectSub: "इस विषय के सभी दस्तावेज़ों पर बात करें",
   },
 };

@@ -341,6 +341,7 @@ export const fr: Messages = {
     noHistory: "Aucune conversation enregistrée pour le moment.",
     // Sessions par document (2026-11-15) : badge du tableau, tiroir d'historique.
     boardScopeLabel: "Cours :",
+    boardSubjectLabel: "Matière :",
     historyAll: "Toutes les conversations",
     noHistoryScope: "Aucune conversation ici pour le moment.",
     deleteConv: "Supprimer la conversation",
@@ -581,6 +582,10 @@ export const fr: Messages = {
     title: "Mes cours",
     allScope: "Tous les documents",
     allScopeSub: "Discuter sur l'ensemble des documents",
+    // Module (Fach) choisi en haut du Hörsaal : le panneau ne liste que ses documents (2026-11-15).
+    emptySubject: "Aucun document dans cette matière. Importes-en un.",
+    unassignedHint: "Documents sans matière : {n}. Tu les trouves sous « {label} ».",
+    allScopeSubjectSub: "Discuter de tous les documents de cette matière",
     empty: "Aucun document pour l'instant. Téléverse ton premier Skript.",
     upload: "Importer des documents",
     uploading: "Traitement …",

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { saveConversation, scopeMismatch, sessionForScope } from "../src/api/lib/chat-sessions";
+import { conversationSubjects, saveConversation, scopeMismatch, sessionForScope } from "../src/api/lib/chat-sessions";
 import { conversationsOfScope, docFromSearch, mayApplyResume, searchWithDoc } from "../src/web/lib/chat-sessions";
 
 /**
@@ -24,24 +24,28 @@ import { conversationsOfScope, docFromSearch, mayApplyResume, searchWithDoc } fr
 
 const T0 = 1_794_000_000; // secondes, comme la colonne (mode « timestamp »)
 
-async function memoryDb() {
+async function memoryDb(o: { subjectColumn?: boolean } = {}) {
   const libsql = await import("@libsql/client");
   const dz = await import("drizzle-orm/libsql");
   const client = libsql.createClient({ url: ":memory:" });
-  await client.execute("CREATE TABLE document (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, semester_id TEXT, title TEXT NOT NULL)");
+  await client.execute("CREATE TABLE document (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, semester_id TEXT, subject_id TEXT, title TEXT NOT NULL)");
   await client.execute(
     "CREATE TABLE chat_conversation (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, title TEXT NOT NULL DEFAULT 'Neue Unterhaltung', semester_id TEXT, document_id TEXT, document_title TEXT, lang TEXT NOT NULL DEFAULT 'de', deleted_at INTEGER, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)",
   );
+  // La colonne du Fach arrive par migre-documents-contexte.mjs : absente tant que le script n'a pas tourné.
+  const withSubject = o.subjectColumn !== false;
+  if (withSubject) await client.execute("ALTER TABLE chat_conversation ADD COLUMN subject_id TEXT");
   await client.execute("CREATE TABLE chat_message (id TEXT PRIMARY KEY, conversation_id TEXT NOT NULL, role TEXT NOT NULL, content TEXT NOT NULL, created_at INTEGER NOT NULL)");
 
-  const doc = (id: string, userId: string, title: string, sem: string | null = null) =>
-    client.execute({ sql: "INSERT INTO document (id, user_id, semester_id, title) VALUES (?,?,?,?)", args: [id, userId, sem, title] });
+  const doc = (id: string, userId: string, title: string, sem: string | null = null, subject: string | null = null) =>
+    client.execute({ sql: "INSERT INTO document (id, user_id, semester_id, subject_id, title) VALUES (?,?,?,?,?)", args: [id, userId, sem, subject, title] });
   let n = 0;
-  const conv = async (id: string, userId: string, o: { doc?: string | null; sem?: string | null; at: number; deleted?: boolean; messages?: [string, string][] }) => {
+  const conv = async (id: string, userId: string, o: { doc?: string | null; sem?: string | null; subject?: string | null; at: number; deleted?: boolean; messages?: [string, string][] }) => {
     await client.execute({
       sql: "INSERT INTO chat_conversation (id, user_id, title, semester_id, document_id, document_title, deleted_at, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?)",
       args: [id, userId, `Titel ${id}`, o.sem ?? null, o.doc ?? null, o.doc ? `Titel von ${o.doc}` : null, o.deleted ? T0 + o.at : null, T0 + o.at, T0 + o.at],
     });
+    if (o.subject && withSubject) await client.execute({ sql: "UPDATE chat_conversation SET subject_id = ? WHERE id = ?", args: [o.subject, id] });
     // Tous les messages d'un enregistrement tombent dans la MÊME seconde (la route écrit `base + i` ms).
     for (const [role, content] of o.messages ?? []) {
       await client.execute({ sql: "INSERT INTO chat_message (id, conversation_id, role, content, created_at) VALUES (?,?,?,?,?)", args: [`m${++n}`, id, role, content, T0 + o.at] });
@@ -77,7 +81,7 @@ describe("la session d'un document : sa dernière conversation, et rien d'autre"
   test("le document A rend SA conversation la plus récente, messages dans l'ordre", async () => {
     const { db } = await seeded();
     const s = await sessionForScope(db, "lena", { documentId: "dA", semesterId: "s1" });
-    expect(s.document).toEqual({ id: "dA", title: "Elektrotechnik 1 – Skript", semesterId: "s1" });
+    expect(s.document).toEqual({ id: "dA", title: "Elektrotechnik 1 – Skript", semesterId: "s1", subjectId: null });
     expect(s.conversation?.id).toBe("a-neu");
     // Quatre messages enregistrés dans la même seconde : l'ordre d'écriture tient.
     expect(texts(s)).toEqual(["A: Knotenregel?", "A: Summe aller Ströme ist null.", "A: und die Maschenregel?", "A: Summe aller Spannungen ist null."]);
@@ -132,6 +136,70 @@ describe("la session globale (« Alle Materialien ») est une portée à part", 
     expect((await sessionForScope(db, "lena", { documentId: null, semesterId: null })).conversation?.id).toBe("g-alle");
     expect((await sessionForScope(db, "lena", { documentId: null })).conversation?.id).toBe("g-alle");
     expect((await sessionForScope(db, "lena", { documentId: null, semesterId: "s2" })).conversation).toBeNull();
+  });
+});
+
+describe("chaque Fach (module) a sa session, à part de « Ganzes Semester »", () => {
+  /** Lena, semestre s1 : une conversation sous TZ, une sous ELT, une sur tout le semestre. */
+  async function withSubjects(o: { subjectColumn?: boolean } = {}) {
+    const m = await memoryDb(o);
+    await m.doc("dE", "lena", "Elektrotechnik 1 – Skript", "s1", "elt");
+    await m.conv("tz-1", "lena", { sem: "s1", subject: "tz", at: 10, messages: [["user", "TZ: Bemaßung?"], ["assistant", "TZ: nach DIN 406."]] });
+    await m.conv("elt-1", "lena", { sem: "s1", subject: "elt", at: 20, messages: [["user", "ELT: Knotenregel?"], ["assistant", "ELT: Summe der Ströme ist null."]] });
+    await m.conv("sem-1", "lena", { sem: "s1", at: 5, messages: [["user", "SEMESTER: Überblick?"]] });
+    return m;
+  }
+
+  test("TZ rend la conversation de TZ, ELT celle d'ELT : aucun message de l'autre module", async () => {
+    const { db } = await withSubjects();
+    const tz = await sessionForScope(db, "lena", { documentId: null, semesterId: "s1", subjectId: "tz" });
+    const elt = await sessionForScope(db, "lena", { documentId: null, semesterId: "s1", subjectId: "elt" });
+    expect(tz.conversation?.id).toBe("tz-1");
+    expect(texts(tz).join(" ")).not.toContain("ELT:");
+    expect(elt.conversation?.id).toBe("elt-1");
+    expect(texts(elt).join(" ")).not.toContain("TZ:");
+  });
+
+  test("« Ganzes Semester » ne reprend pas la conversation d'un module, même plus récente", async () => {
+    const { db } = await withSubjects();
+    const s = await sessionForScope(db, "lena", { documentId: null, semesterId: "s1", subjectId: null });
+    expect(s.conversation?.id).toBe("sem-1");
+    expect((await sessionForScope(db, "lena", { documentId: null, semesterId: "s1" })).conversation?.id).toBe("sem-1");
+  });
+
+  test("un module sans conversation : tableau vide", async () => {
+    const { db } = await withSubjects();
+    expect((await sessionForScope(db, "lena", { documentId: null, semesterId: "s1", subjectId: "mathe" })).conversation).toBeNull();
+  });
+
+  test("le module d'un autre compte ne rend rien", async () => {
+    const m = await withSubjects();
+    await m.conv("tz-jonas", "jonas", { sem: "s1", subject: "tz", at: 99, messages: [["user", "JONAS: TZ"]] });
+    expect((await sessionForScope(m.db, "lena", { documentId: null, semesterId: "s1", subjectId: "tz" })).conversation?.id).toBe("tz-1");
+  });
+
+  test("le document dit à quel module il appartient (pour remettre le sélecteur au bon endroit)", async () => {
+    const { db } = await withSubjects();
+    expect((await sessionForScope(db, "lena", { documentId: "dE", semesterId: "s1" })).document).toEqual({ id: "dE", title: "Elektrotechnik 1 – Skript", semesterId: "s1", subjectId: "elt" });
+  });
+
+  test("migration pas encore lancée (colonne absente) : un module ouvre un tableau vide, rien ne tombe", async () => {
+    const m = await memoryDb({ subjectColumn: false });
+    await m.conv("alt", "lena", { sem: "s1", at: 10, messages: [["user", "avant la migration"]] });
+    // Sans la colonne on ne sait pas sous quel module une conversation a été tenue : on n'en reprend aucune.
+    expect((await sessionForScope(m.db, "lena", { documentId: null, semesterId: "s1", subjectId: "tz" })).conversation).toBeNull();
+    // « Ganzes Semester » se comporte comme avant.
+    expect((await sessionForScope(m.db, "lena", { documentId: null, semesterId: "s1", subjectId: null })).conversation?.id).toBe("alt");
+  });
+
+  test("la liste d'historique sait sous quel module chaque conversation a été tenue", async () => {
+    const m = await withSubjects();
+    const map = await conversationSubjects(m.db, "lena");
+    expect(Object.fromEntries(map)).toEqual({ "tz-1": "tz", "elt-1": "elt" });
+    // Colonne absente : une carte vide, pas d'exception.
+    const old = await memoryDb({ subjectColumn: false });
+    await old.conv("alt", "lena", { sem: "s1", at: 10 });
+    expect((await conversationSubjects(old.db, "lena")).size).toBe(0);
   });
 });
 
@@ -238,6 +306,40 @@ describe("l'enregistrement (SQL réel) : la conversation reste sous SON document
     expect((await row(m, "a-neu"))!.document_title).toBe("Titel von dA");
   });
 
+  const subjectOf = async (m: Awaited<ReturnType<typeof memoryDb>>, id: string) =>
+    (await m.client.execute({ sql: "SELECT subject_id FROM chat_conversation WHERE id = ?", args: [id] })).rows[0]?.subject_id ?? null;
+
+  test("une conversation tenue sous un module est rangée sous ce module, dès sa création", async () => {
+    const m = await seeded();
+    await saveConversation(m.db, "lena", { id: "tz-neu", title: "T", semesterId: "s1", subjectId: "tz", documentId: null, messages: [{ role: "user", content: "TZ: Schnittdarstellung?" }] }, NOW);
+    expect(await subjectOf(m, "tz-neu")).toBe("tz");
+    expect((await sessionForScope(m.db, "lena", { documentId: null, semesterId: "s1", subjectId: "tz" })).conversation?.id).toBe("tz-neu");
+    // « Ganzes Semester » garde la sienne.
+    expect((await sessionForScope(m.db, "lena", { documentId: null, semesterId: "s1", subjectId: null })).conversation?.id).toBe("g-s1");
+  });
+
+  test("elle ne change plus de module ensuite, quoi qu'annonce un envoi ultérieur", async () => {
+    const m = await seeded();
+    await saveConversation(m.db, "lena", { id: "tz-neu", title: "T", semesterId: "s1", subjectId: "tz", messages: [{ role: "user", content: "Q" }] }, NOW);
+    await saveConversation(m.db, "lena", { id: "tz-neu", title: "T", semesterId: "s1", subjectId: "elt", messages: [{ role: "user", content: "Q" }, { role: "assistant", content: "A" }] }, NOW);
+    expect(await subjectOf(m, "tz-neu")).toBe("tz");
+    await saveConversation(m.db, "lena", { id: "g-s1", title: "T", semesterId: "s1", subjectId: "elt", messages: [{ role: "user", content: "Q" }] }, NOW);
+    expect(await subjectOf(m, "g-s1")).toBeNull();
+  });
+
+  test("une conversation de document n'a pas de module : c'est le document qui fait la portée", async () => {
+    const m = await seeded();
+    await saveConversation(m.db, "lena", { id: "doc-neu", title: "T", semesterId: "s1", subjectId: "elt", documentId: "dA", messages: [{ role: "user", content: "Q" }] }, NOW);
+    expect(await subjectOf(m, "doc-neu")).toBeNull();
+  });
+
+  test("migration pas encore lancée : l'enregistrement fonctionne comme avant, sans module", async () => {
+    const m = await memoryDb({ subjectColumn: false });
+    const out = await saveConversation(m.db, "lena", { id: "neu", title: "T", semesterId: "s1", subjectId: "tz", messages: [{ role: "user", content: "Q" }] }, NOW);
+    expect(out.id).toBe("neu");
+    expect(await contents(m, "neu")).toEqual(["Q"]);
+  });
+
   test("l'identifiant d'une conversation d'un autre compte : refusé, rien n'est écrasé ni effacé", async () => {
     const m = await seeded();
     expect(saveConversation(m.db, "lena", { id: "x-1", title: "Übernahme", documentId: null, messages: [{ role: "user", content: "LENA schreibt hinein" }] }, NOW)).rejects.toThrow("NOT_OWNER");
@@ -292,6 +394,14 @@ describe("le tiroir d'historique : les conversations de la portée ouverte", () 
   test("global : seulement les conversations sans document, du même semestre", () => {
     expect(conversationsOfScope(list, { documentId: null, semesterId: "s1" }).map((c) => c.id)).toEqual(["g-s1"]);
     expect(conversationsOfScope(list, { documentId: null, semesterId: null }).map((c) => c.id)).toEqual(["g-alle"]);
+  });
+
+  test("un module : ses conversations ; « Ganzes Semester » : celles qui n'ont pas de module", () => {
+    const withSubjects = [...list, { id: "tz-1", documentId: null, semesterId: "s1", subjectId: "tz" }, { id: "elt-1", documentId: null, semesterId: "s1", subjectId: "elt" }];
+    expect(conversationsOfScope(withSubjects, { documentId: null, semesterId: "s1", subjectId: "tz" }).map((c) => c.id)).toEqual(["tz-1"]);
+    expect(conversationsOfScope(withSubjects, { documentId: null, semesterId: "s1", subjectId: null }).map((c) => c.id)).toEqual(["g-s1"]);
+    // Un document ouvert : ses conversations, quel que soit le module affiché.
+    expect(conversationsOfScope(withSubjects, { documentId: "dA", semesterId: "s1", subjectId: "tz" }).map((c) => c.id)).toEqual(["a-neu", "a-alt"]);
   });
 });
 
@@ -369,8 +479,18 @@ describe("branchement", () => {
     expect(body).toContain("if (id === activeId) onSelect(null);");
   });
 
+  test("le module (Fach) fait partie de la session : en changer ouvre une autre session, donc un tableau neuf", () => {
+    expect(PAGE).toContain("const chatSubject = session.subjectId;");
+    expect(PAGE).toContain("onChange={(e) => pickSubject(e.target.value || null)}");
+    // Plus d'état à part pour le module : il ne peut pas diverger de la conversation affichée.
+    expect(PAGE).not.toContain("setChatSubject(");
+    // La question part avec le module de la session, et la conversation est rangée sous lui.
+    expect(PAGE).toContain("subIdRef.current = chatSubject;");
+    expect(PAGE).toContain("subjectId: session.doc ? null : session.subjectId");
+  });
+
   test("le tiroir d'historique montre d'abord les conversations du document ouvert", () => {
-    expect(PAGE).toContain("conversationsOfScope(convList, { documentId: activeDoc?.id ?? null");
+    expect(PAGE).toContain("conversationsOfScope(convList, { documentId: activeDoc?.id ?? null, semesterId: semesterId ?? null, subjectId: chatSubject })");
     expect(PAGE).toContain("shownConvs.map(");
   });
 

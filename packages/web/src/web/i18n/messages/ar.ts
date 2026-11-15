@@ -260,6 +260,7 @@ export const ar: PartialMessages = {
     noHistory: "لا توجد محادثات محفوظة بعد.",
     // Sessions par document (2026-11-15) : badge du tableau, tiroir d'historique.
     boardScopeLabel: "المقرر:",
+    boardSubjectLabel: "المادة:",
     historyAll: "كل المحادثات",
     noHistoryScope: "لا توجد محادثات هنا بعد.",
     deleteConv: "حذف المحادثة",
@@ -385,5 +386,11 @@ export const ar: PartialMessages = {
     todayEmpty: "لا توجد بطاقات للمراجعة اليوم.",
     more: "+{n} أخرى للمراجعة",
     start: "راجع الآن",
+  },
+  library: {
+    // Module (Fach) choisi en haut du Hörsaal : le panneau ne liste que ses documents (2026-11-15).
+    emptySubject: "لا توجد مستندات في هذه المادة بعد. ارفع واحدًا.",
+    unassignedHint: "مستندات بلا مادة: {n}. تجدها في «{label}».",
+    allScopeSubjectSub: "تحدّث عن كل مستندات هذه المادة",
   },
 };

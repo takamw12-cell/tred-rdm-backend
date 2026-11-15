@@ -260,6 +260,7 @@ export const it: PartialMessages = {
     noHistory: "Nessuna conversazione salvata.",
     // Sessions par document (2026-11-15) : badge du tableau, tiroir d'historique.
     boardScopeLabel: "Corso:",
+    boardSubjectLabel: "Materia:",
     historyAll: "Tutte le conversazioni",
     noHistoryScope: "Qui non c'è ancora nessuna conversazione.",
     deleteConv: "Elimina la conversazione",
@@ -385,5 +386,11 @@ export const it: PartialMessages = {
     todayEmpty: "Oggi nessuna scheda da ripassare.",
     more: "+{n} altre da ripassare",
     start: "Ripassa ora",
+  },
+  library: {
+    // Module (Fach) choisi en haut du Hörsaal : le panneau ne liste que ses documents (2026-11-15).
+    emptySubject: "Ancora nessun documento in questa materia. Caricane uno.",
+    unassignedHint: "Documenti senza materia: {n}. Li trovi in «{label}».",
+    allScopeSubjectSub: "Chatta su tutti i documenti di questa materia",
   },
 };

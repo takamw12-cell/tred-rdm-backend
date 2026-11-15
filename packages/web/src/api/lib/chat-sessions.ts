@@ -3,44 +3,76 @@ import type { db as Database } from "../database";
 import { chatConversation, chatMessage, document, type ChatConversation, type ChatMessage } from "../database/schema";
 
 /**
- * Sessions de chat isolées par document (2026-11-15).
+ * Sessions de chat isolées par portée (2026-11-15).
  *
- * Une PORTÉE est soit un document, soit tout le reste (« Alle Materialien »,
- * par semestre). Chaque portée a sa session : la dernière conversation qui y a
- * été tenue. Cliquer un document dans « Meine Kurse » rouvre CETTE
- * conversation — jamais celle d'un autre document, jamais celle d'un autre
- * compte.
+ * Une PORTÉE est, du plus étroit au plus large :
  *
- * Deux garanties vivent ici, côté serveur :
+ *   un document      la session du document ;
+ *   un Fach (module) la session du module, pour un semestre ;
+ *   tout le reste    « Ganzes Semester » / « Alle Materialien », par semestre.
+ *
+ * Chaque portée a sa session : la dernière conversation qui y a été tenue.
+ * Ouvrir une portée rouvre CETTE conversation — jamais celle d'une autre
+ * portée, jamais celle d'un autre compte.
+ *
+ * Trois garanties vivent ici, côté serveur :
  *
  *   sessionForScope   lit la session d'une portée pour le compte de la session
  *                     HTTP. Le document doit être à ce compte ; sinon il ne
  *                     « revient pas avec un refus », il ne revient pas du tout
  *                     (même règle que lib/document-owner.ts).
- *   saveConversation  une conversation enregistrée sous un document y reste :
- *                     un envoi qui annonce une autre portée ne la déplace pas
+ *   saveConversation  une conversation enregistrée garde SA portée : un envoi
+ *                     qui en annonce une autre ne la déplace pas
  *                     (`scopeMismatch`). Un client en retard ne peut donc plus
  *                     ranger la suite d'une conversation du document A dans
- *                     l'historique du document B, ni dans la session globale.
+ *                     l'historique du document B, ni d'un module dans l'autre.
+ *   rien n'est créé à la lecture : une portée sans conversation rend
+ *                     `conversation: null`, le navigateur ouvre un tableau
+ *                     vide et n'enregistre qu'au premier échange.
  *
- * Rien n'est créé à la lecture : une portée sans conversation rend
- * `conversation: null`, le navigateur ouvre un tableau vide et n'enregistre
- * qu'au premier échange. Créer une ligne vide à chaque clic remplirait le
- * tiroir d'historique de conversations sans un mot.
+ * ── Le module d'une conversation : une colonne hors schéma ───────────────
+ *
+ * `chat_conversation.subject_id` est ajoutée par migre-documents-contexte.mjs
+ * et n'est PAS déclarée dans database/schema.ts : Drizzle lirait cette colonne
+ * à chaque requête, et tant que le script n'a pas tourné TOUTES les lectures
+ * de conversations tomberaient (« no such column »). On la lit et l'écrit donc
+ * en SQL direct, et chaque accès tolère son absence :
+ *
+ *   - un module demandé → pas de reprise, tableau vide (on ne sait pas sous
+ *     quel module une conversation a été tenue) ;
+ *   - « Ganzes Semester » → comme avant ;
+ *   - l'enregistrement fonctionne, sans module.
  */
 
 type Db = Pick<typeof Database, "select">;
+/** Lecture / écriture en SQL direct — seulement pour la colonne hors schéma. */
+interface RawDb {
+  all: <T = unknown>(query: ReturnType<typeof sql>) => Promise<T[]>;
+  run: (query: ReturnType<typeof sql>) => Promise<unknown>;
+}
+const raw = (db: unknown) => db as RawDb;
+
+const missingColumn = (e: unknown) =>
+  /no such column|has no column/i.test(String((e as Error)?.message ?? e) + String((e as { cause?: unknown })?.cause ?? ""));
+
+let warned = false;
+function warnOnce() {
+  if (warned) return;
+  warned = true;
+  console.warn("[chats] colonne subject_id absente de chat_conversation — lancer migre-documents-contexte.mjs");
+}
 
 export interface ChatScope {
-  /** Le document de la session ; `null` = portée globale. */
+  /** Le document de la session ; `null` = pas de document. */
   documentId: string | null;
-  /** Ne compte que pour la portée globale : chaque semestre a la sienne. */
+  /** Ne comptent que sans document : chaque semestre, et chaque module, a sa session. */
   semesterId?: string | null;
+  subjectId?: string | null;
 }
 
 export interface ScopeSession {
-  /** Le document, s'il est à ce compte. `null` : portée globale — ou document inconnu. */
-  document: { id: string; title: string; semesterId: string | null } | null;
+  /** Le document, s'il est à ce compte. `null` : pas de document demandé — ou document inconnu. */
+  document: { id: string; title: string; semesterId: string | null; subjectId: string | null } | null;
   conversation: ChatConversation | null;
   messages: ChatMessage[];
 }
@@ -61,28 +93,78 @@ export function conversationMessages(db: Db, conversationId: string): Promise<Ch
     .orderBy(asc(chatMessage.createdAt), sql`rowid`);
 }
 
+/**
+ * La dernière conversation SANS document d'un semestre, pour un module donné
+ * (`null` = « Ganzes Semester » : celles qui n'ont pas de module).
+ * Colonne absente : `undefined` — à l'appelant de se rabattre.
+ */
+async function latestWithoutDocument(db: Db, userId: string, semesterId: string | null, subjectId: string | null): Promise<string | null | undefined> {
+  try {
+    const rows = await raw(db).all<{ id: string }>(sql`
+      SELECT id FROM chat_conversation
+       WHERE user_id = ${userId} AND deleted_at IS NULL AND document_id IS NULL
+         AND semester_id IS ${semesterId} AND subject_id IS ${subjectId}
+       ORDER BY updated_at DESC LIMIT 1`);
+    return rows[0]?.id ?? null;
+  } catch (error) {
+    if (!missingColumn(error)) throw error;
+    warnOnce();
+    return undefined;
+  }
+}
+
 /** La session d'une portée : sa dernière conversation (hors corbeille) et ses messages. */
 export async function sessionForScope(db: Db, userId: string, scope: ChatScope): Promise<ScopeSession> {
+  const mine = and(eq(chatConversation.userId, userId), isNull(chatConversation.deletedAt));
   let doc: ScopeSession["document"] = null;
+  let conversation: ChatConversation | undefined;
+
   if (scope.documentId) {
     const rows = await db
-      .select({ id: document.id, title: document.title, semesterId: document.semesterId })
+      .select({ id: document.id, title: document.title, semesterId: document.semesterId, subjectId: document.subjectId })
       .from(document)
       .where(and(eq(document.id, scope.documentId), eq(document.userId, userId)))
       .limit(1);
     // Pas à ce compte, supprimé ou inventé : même réponse, et aucune conversation.
     if (!rows[0]) return NOTHING;
     doc = rows[0];
+    [conversation] = await db.select().from(chatConversation).where(and(mine, eq(chatConversation.documentId, doc.id))).orderBy(desc(chatConversation.updatedAt)).limit(1);
+  } else {
+    const semesterId = scope.semesterId ?? null;
+    const subjectId = scope.subjectId ?? null;
+    const id = await latestWithoutDocument(db, userId, semesterId, subjectId);
+    if (id === undefined) {
+      // Migration pas encore lancée. Un module : on ne reprend rien. Sinon, comme avant.
+      if (subjectId) return NOTHING;
+      [conversation] = await db
+        .select()
+        .from(chatConversation)
+        .where(and(mine, isNull(chatConversation.documentId), semesterId ? eq(chatConversation.semesterId, semesterId) : isNull(chatConversation.semesterId)))
+        .orderBy(desc(chatConversation.updatedAt))
+        .limit(1);
+    } else if (id) {
+      [conversation] = await db.select().from(chatConversation).where(and(mine, eq(chatConversation.id, id))).limit(1);
+    }
   }
 
-  const mine = and(eq(chatConversation.userId, userId), isNull(chatConversation.deletedAt));
-  const inScope = doc
-    ? eq(chatConversation.documentId, doc.id)
-    : and(isNull(chatConversation.documentId), scope.semesterId ? eq(chatConversation.semesterId, scope.semesterId) : isNull(chatConversation.semesterId));
-
-  const [conversation] = await db.select().from(chatConversation).where(and(mine, inScope)).orderBy(desc(chatConversation.updatedAt)).limit(1);
   if (!conversation) return { document: doc, conversation: null, messages: [] };
   return { document: doc, conversation, messages: await conversationMessages(db, conversation.id) };
+}
+
+/**
+ * Sous quel module chaque conversation de ce compte a été tenue (celles qui en
+ * ont un). Colonne absente : carte vide.
+ */
+export async function conversationSubjects(db: Db, userId: string): Promise<Map<string, string>> {
+  try {
+    const rows = await raw(db).all<{ id: string; subject_id: string }>(sql`
+      SELECT id, subject_id FROM chat_conversation WHERE user_id = ${userId} AND subject_id IS NOT NULL`);
+    return new Map(rows.map((r) => [r.id, r.subject_id]));
+  } catch (error) {
+    if (!missingColumn(error)) throw error;
+    warnOnce();
+    return new Map();
+  }
 }
 
 /**
@@ -99,6 +181,8 @@ export interface SaveConversationInput {
   id: string;
   title?: string;
   semesterId?: string | null;
+  /** Le module sous lequel la conversation est tenue — ignoré quand un document fait la portée. */
+  subjectId?: string | null;
   documentId?: string | null;
   documentTitle?: string | null;
   lang?: string;
@@ -115,6 +199,7 @@ export interface SaveConversationInput {
  * refuse pas : l'app mobile rouvre une conversation depuis l'historique sans
  * son document, et un refus lui ferait perdre la suite de l'échange.
  * `scopeKept` le signale à la route, qui le note dans les journaux.
+ * Le module, lui, n'est écrit qu'à la création : il ne change jamais ensuite.
  */
 export async function saveConversation(
   db: Pick<typeof Database, "select" | "insert" | "update" | "delete">,
@@ -163,6 +248,15 @@ export async function saveConversation(
       createdAt: now,
       updatedAt: now,
     });
+    // Le module : seulement à la création, et seulement sans document.
+    if (input.subjectId && !input.documentId) {
+      try {
+        await raw(db).run(sql`UPDATE chat_conversation SET subject_id = ${input.subjectId} WHERE id = ${input.id} AND user_id = ${userId}`);
+      } catch (error) {
+        if (!missingColumn(error)) throw error;
+        warnOnce();
+      }
+    }
   }
 
   // Replace messages wholesale — snapshot semantics keep it simple.

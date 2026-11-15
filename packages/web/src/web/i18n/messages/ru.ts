@@ -260,6 +260,7 @@ export const ru: PartialMessages = {
     noHistory: "Сохранённых бесед пока нет.",
     // Sessions par document (2026-11-15) : badge du tableau, tiroir d'historique.
     boardScopeLabel: "Курс:",
+    boardSubjectLabel: "Предмет:",
     historyAll: "Все беседы",
     noHistoryScope: "Здесь пока нет бесед.",
     deleteConv: "Удалить беседу",
@@ -385,5 +386,11 @@ export const ru: PartialMessages = {
     todayEmpty: "Сегодня повторять нечего.",
     more: "Ещё к повторению: {n}",
     start: "Повторить сейчас",
+  },
+  library: {
+    // Module (Fach) choisi en haut du Hörsaal : le panneau ne liste que ses documents (2026-11-15).
+    emptySubject: "В этом предмете пока нет документов. Загрузи первый.",
+    unassignedHint: "Документов без предмета: {n}. Они в разделе «{label}».",
+    allScopeSubjectSub: "Чат по всем документам этого предмета",
   },
 };

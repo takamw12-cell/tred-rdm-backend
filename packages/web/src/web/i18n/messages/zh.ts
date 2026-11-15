@@ -260,6 +260,7 @@ export const zh: PartialMessages = {
     noHistory: "还没有保存的对话。",
     // Sessions par document (2026-11-15) : badge du tableau, tiroir d'historique.
     boardScopeLabel: "课程：",
+    boardSubjectLabel: "科目：",
     historyAll: "全部对话",
     noHistoryScope: "这里还没有对话。",
     deleteConv: "删除对话",
@@ -385,5 +386,11 @@ export const zh: PartialMessages = {
     todayEmpty: "今天没有需要复习的卡片。",
     more: "还有 {n} 张待复习",
     start: "开始复习",
+  },
+  library: {
+    // Module (Fach) choisi en haut du Hörsaal : le panneau ne liste que ses documents (2026-11-15).
+    emptySubject: "这门科目还没有资料。上传一份吧。",
+    unassignedHint: "未归类的资料：{n}。可在「{label}」中找到。",
+    allScopeSubjectSub: "就这门科目的全部资料提问",
   },
 };

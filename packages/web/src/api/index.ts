@@ -85,6 +85,7 @@ import { renderTikz } from "./lib/tikz";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { s3, S3_BUCKET } from "./lib/s3";
 import { storedObjectReader } from "./lib/document-storage";
+import { ownedImportScope } from "./lib/import-scope";
 import { selectRelevantContext } from "./lib/retrieval";
 import { chercherDansDocuments } from "./lib/document-search";
 import { searchYoutube, youtubeConfigured } from "./lib/youtube";
@@ -1938,7 +1939,7 @@ app.post("/api/documents/upload", async (c) => {
   const kindInput = String(form.get("kind") ?? "other");
   const kind = KINDS.has(kindInput) ? kindInput : "other";
   const semesterIdInput = form.get("semesterId");
-  const semesterId =
+  const semesterIdAnnounced =
     typeof semesterIdInput === "string" && semesterIdInput.trim()
       ? semesterIdInput.trim()
       : null;
@@ -1947,10 +1948,14 @@ app.post("/api/documents/upload", async (c) => {
   // téléverse en lot depuis le bureau, d'où le repli sur null plutôt qu'une
   // erreur : un document non classé reste un document déposé.
   const subjectIdInput = form.get("subjectId");
-  const subjectId =
+  const subjectIdAnnounced =
     typeof subjectIdInput === "string" && subjectIdInput.trim()
       ? subjectIdInput.trim()
       : null;
+  // Le contexte choisi en haut du Hörsaal, recoupé avec ce que le compte
+  // possède : module d'un autre compte → importé sans module ; le semestre du
+  // module fait foi (lib/import-scope.ts).
+  const { semesterId, subjectId } = await ownedImportScope(db, session.user.id, { semesterId: semesterIdAnnounced, subjectId: subjectIdAnnounced });
 
   if (file.size > MAX_UPLOAD_BYTES) {
     return c.json({ error: "file_too_large", maxBytes: MAX_UPLOAD_BYTES }, 413);
@@ -2147,7 +2152,8 @@ app.post("/api/documents/upload-batch", async (c) => {
   const results = await runBatch(
     userId,
     files.map((file, i) => ({ name: file.name, size: file.size, kind: kinds[i], bytes: async () => new Uint8Array(await file.arrayBuffer()) })),
-    { semesterId: field("semesterId"), subjectId: field("subjectId") },
+    // Même contrôle que pour un fichier seul : le module doit être à ce compte.
+    await ownedImportScope(db, userId, { semesterId: field("semesterId"), subjectId: field("subjectId") }),
     {
       isSupported,
       extension: fileExtension,
