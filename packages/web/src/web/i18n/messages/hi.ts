@@ -258,6 +258,10 @@ export const hi: PartialMessages = {
     newChat: "नई चैट",
     history: "इतिहास",
     noHistory: "अभी कोई सहेजी गई बातचीत नहीं है।",
+    // Sessions par document (2026-11-15) : badge du tableau, tiroir d'historique.
+    boardScopeLabel: "कोर्स:",
+    historyAll: "सभी बातचीत",
+    noHistoryScope: "यहाँ अभी कोई बातचीत नहीं है।",
     deleteConv: "बातचीत हटाएँ",
     trash: "रद्दी",
     backToHistory: "इतिहास पर वापस",

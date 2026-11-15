@@ -339,6 +339,10 @@ export const en: Messages = {
     newChat: "New chat",
     history: "History",
     noHistory: "No saved conversations yet.",
+    // Sessions par document (2026-11-15) : badge du tableau, tiroir d'historique.
+    boardScopeLabel: "Course:",
+    historyAll: "All conversations",
+    noHistoryScope: "No conversation here yet.",
     deleteConv: "Delete conversation",
     trash: "Trash",
     backToHistory: "Back to history",

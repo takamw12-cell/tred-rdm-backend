@@ -258,6 +258,10 @@ export const ja: PartialMessages = {
     newChat: "新しいチャット",
     history: "履歴",
     noHistory: "保存された会話はまだありません。",
+    // Sessions par document (2026-11-15) : badge du tableau, tiroir d'historique.
+    boardScopeLabel: "コース：",
+    historyAll: "すべての会話",
+    noHistoryScope: "ここにはまだ会話がありません。",
     deleteConv: "会話を削除",
     trash: "ごみ箱",
     backToHistory: "履歴に戻る",

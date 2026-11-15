@@ -258,6 +258,10 @@ export const pt: PartialMessages = {
     newChat: "Nova conversa",
     history: "Histórico",
     noHistory: "Ainda não há conversas guardadas.",
+    // Sessions par document (2026-11-15) : badge du tableau, tiroir d'historique.
+    boardScopeLabel: "Curso:",
+    historyAll: "Todas as conversas",
+    noHistoryScope: "Ainda não há conversas aqui.",
     deleteConv: "Eliminar a conversa",
     trash: "Reciclagem",
     backToHistory: "Voltar ao histórico",

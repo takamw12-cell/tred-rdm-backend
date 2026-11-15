@@ -50,12 +50,18 @@ export function GlassBoard({
   showHeader = true,
   composer,
   composerExtras,
+  badge,
   "aria-label": ariaLabel,
 }: {
   eyebrow?: ReactNode;
   title: ReactNode;
   /** Pastille à droite de l'en-tête (« Le professeur écrit… »). */
   status?: ReactNode;
+  /**
+   * Le document de la session (« Kurs: … »). Sous le titre tant que le
+   * tableau est vide ; ensuite en haut à gauche, devant la pastille d'état.
+   */
+  badge?: ReactNode;
   children: ReactNode;
   className?: string;
   /** La zone qui défile (le tuteur la fait suivre l'écriture). */
@@ -134,16 +140,27 @@ export function GlassBoard({
                     {title}
                   </h1>
                   <HandUnderline />
+                  {badge && (
+                    <div data-slot="tafel-scope" className="mt-3 flex max-w-full">
+                      {badge}
+                    </div>
+                  )}
                 </div>
                 {status}
               </div>
             </motion.header>
           )}
         </AnimatePresence>
-        {/* Sans titre : l'état (pages, « écrit… ») flotte en haut à gauche. */}
-        {!showHeader && status && (
-          <div data-slot="tafel-status" className="pointer-events-none absolute top-2 left-3 z-10 [&>*]:pointer-events-auto sm:top-3 sm:left-4">
-            {status}
+        {/* Sans titre : le document, puis l'état (pages, « écrit… »), flottent
+            en haut à gauche. Une seule ligne : le titre du document se
+            raccourcit, l'état garde sa place ; rien ne passe sous le professeur. */}
+        {!showHeader && (status || badge) && (
+          <div
+            data-slot="tafel-status"
+            className="pointer-events-none absolute top-2 right-3 left-3 z-10 flex items-center gap-2 [&>*]:pointer-events-auto sm:top-3 sm:left-4 md:right-48 lg:right-52"
+          >
+            {badge && <div className="min-w-0">{badge}</div>}
+            {status && <div className="shrink-0">{status}</div>}
           </div>
         )}
 
@@ -160,7 +177,7 @@ export function GlassBoard({
             // Avec titre (/classroom) : les feuilles prennent toute la largeur ;
             // sur grand écran paysage seulement, elles s'arrêtent avant le
             // professeur (sinon il cache le tampon « Berechnet »).
-            showHeader ? "pt-4 lg:pr-52" : cn(status ? "pt-12" : "pt-4", "md:pr-48 lg:pr-52"),
+            showHeader ? "pt-4 lg:pr-52" : cn(status || badge ? "pt-12" : "pt-4", "md:pr-48 lg:pr-52"),
           )}
         >
           {children}

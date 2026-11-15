@@ -1,8 +1,10 @@
 import { z } from "zod";
-import { and, asc, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import { ORPCError } from "@orpc/server";
 import { authed } from "../middleware/auth";
 import { db } from "../database";
 import { chatConversation, chatMessage } from "../database/schema";
+import { conversationMessages, saveConversation, sessionForScope } from "../lib/chat-sessions";
 
 const messageInput = z.object({
   role: z.enum(["user", "assistant"]),
@@ -76,13 +78,27 @@ export const chats = {
         )
         .limit(1);
       if (!conv[0]) return null;
-      const msgs = await db
-        .select()
-        .from(chatMessage)
-        .where(eq(chatMessage.conversationId, input.id))
-        .orderBy(asc(chatMessage.createdAt));
+      const msgs = await conversationMessages(db, input.id);
       return { conversation: conv[0], messages: msgs };
     }),
+
+  // La session d'une portée — un document, ou « Alle Materialien » : sa
+  // dernière conversation et ses messages (lib/chat-sessions.ts). Le compte est
+  // celui de la session HTTP ; le document d'un autre compte ne rend rien.
+  // Rien n'est créé : une portée sans conversation rend `conversation: null`.
+  forScope: authed
+    .input(
+      z.object({
+        documentId: z.string().max(128).nullable(),
+        semesterId: z.string().max(128).nullish(),
+      }),
+    )
+    .handler(({ input, context }) =>
+      sessionForScope(db, context.user.id, {
+        documentId: input.documentId,
+        semesterId: input.semesterId ?? null,
+      }),
+    ),
 
   // Upsert a conversation and replace its message list with the given snapshot.
   // The client owns the conversation id (a UUID) so saves are idempotent.
@@ -104,62 +120,16 @@ export const chats = {
       }),
     )
     .handler(async ({ input, context }) => {
-      const now = new Date();
-      const existing = await db
-        .select({ id: chatConversation.id })
-        .from(chatConversation)
-        .where(
-          and(
-            eq(chatConversation.id, input.id),
-            eq(chatConversation.userId, context.user.id),
-          ),
-        )
-        .limit(1);
-
-      const title = (input.title?.trim() || "Neue Unterhaltung").slice(0, 200);
-
-      if (existing[0]) {
-        await db
-          .update(chatConversation)
-          .set({
-            title,
-            semesterId: input.semesterId ?? null,
-            documentId: input.documentId ?? null,
-            documentTitle: input.documentTitle ?? null,
-            lang: input.lang ?? "de",
-            updatedAt: now,
-          })
-          .where(eq(chatConversation.id, input.id));
-      } else {
-        await db.insert(chatConversation).values({
-          id: input.id,
-          userId: context.user.id,
-          title,
-          semesterId: input.semesterId ?? null,
-          documentId: input.documentId ?? null,
-          documentTitle: input.documentTitle ?? null,
-          lang: input.lang ?? "de",
-          createdAt: now,
-          updatedAt: now,
-        });
-      }
-
-      // Replace messages wholesale — snapshot semantics keep it simple.
-      await db.delete(chatMessage).where(eq(chatMessage.conversationId, input.id));
-      if (input.messages.length > 0) {
-        const base = now.getTime();
-        await db.insert(chatMessage).values(
-          input.messages.map((m, i) => ({
-            id: crypto.randomUUID(),
-            conversationId: input.id,
-            role: m.role,
-            content: m.content,
-            // Preserve order via monotonically increasing timestamps.
-            createdAt: new Date(base + i),
-          })),
-        );
-      }
-      return { id: input.id };
+      // Création ou remplacement des messages — et une conversation déjà
+      // enregistrée garde SON document (lib/chat-sessions.ts).
+      const saved = await saveConversation(db, context.user.id, input).catch((error: unknown) => {
+        if (error instanceof Error && error.message === "NOT_OWNER") throw new ORPCError("FORBIDDEN");
+        throw error;
+      });
+      // Un client qui annonce une autre portée que celle de la conversation
+      // (app mobile ancienne, onglet en retard) : on le voit dans les journaux.
+      if (saved.scopeKept) console.warn(`[chats] ${input.id} : portée d'origine gardée`);
+      return { id: saved.id };
     }),
 
   // Soft-delete: move a conversation to the trash. Messages are kept so it can

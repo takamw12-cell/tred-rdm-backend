@@ -258,6 +258,10 @@ export const zh: PartialMessages = {
     newChat: "新对话",
     history: "历史记录",
     noHistory: "还没有保存的对话。",
+    // Sessions par document (2026-11-15) : badge du tableau, tiroir d'historique.
+    boardScopeLabel: "课程：",
+    historyAll: "全部对话",
+    noHistoryScope: "这里还没有对话。",
     deleteConv: "删除对话",
     trash: "回收站",
     backToHistory: "返回历史记录",

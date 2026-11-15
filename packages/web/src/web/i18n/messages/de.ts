@@ -338,6 +338,10 @@ export const de = {
     newChat: "Neuer Chat",
     history: "Verlauf",
     noHistory: "Noch keine gespeicherten Unterhaltungen.",
+    // Sessions par document (2026-11-15) : badge du tableau, tiroir d'historique.
+    boardScopeLabel: "Kurs:",
+    historyAll: "Alle Unterhaltungen",
+    noHistoryScope: "Hier gibt es noch keine Unterhaltung.",
     deleteConv: "Unterhaltung löschen",
     trash: "Papierkorb",
     backToHistory: "Zurück zum Verlauf",

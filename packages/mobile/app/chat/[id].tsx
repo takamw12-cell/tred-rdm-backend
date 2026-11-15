@@ -67,8 +67,18 @@ export default function ChatScreen() {
   // Les valeurs lues dans `body` doivent être fraîches à CHAQUE envoi. Une
   // dépendance directe recréerait le transport et couperait le flux en cours ;
   // des refs donnent la valeur du moment sans reconstruire quoi que ce soit.
-  const ctx = useRef({ documentId, semesterId, locale: i18n.language });
-  ctx.current = { documentId, semesterId, locale: i18n.language };
+  //
+  // La portée : celle de l'adresse pour une conversation neuve ; pour une
+  // conversation ROUVERTE depuis l'historique, celle sous laquelle elle a été
+  // tenue. L'adresse ne porte alors ni document ni semestre : sans cette
+  // lecture, la suite d'une conversation sur un Skript partait avec TOUS les
+  // documents pour contexte.
+  const stored = isNew ? undefined : existing.data?.conversation;
+  const scope = stored
+    ? { documentId: stored.documentId ?? undefined, semesterId: stored.semesterId ?? undefined }
+    : { documentId, semesterId };
+  const ctx = useRef({ ...scope, locale: i18n.language });
+  ctx.current = { ...scope, locale: i18n.language };
 
   const transport = useMemo(
     () =>
@@ -129,8 +139,8 @@ export default function ChatScreen() {
     save.mutate({
       id: convId.current,
       title: payload[0].content.slice(0, 80),
-      documentId: documentId ?? null,
-      semesterId: semesterId ?? null,
+      documentId: scope.documentId ?? null,
+      semesterId: scope.semesterId ?? null,
       lang: i18n.language.slice(0, 5),
       messages: payload,
     });

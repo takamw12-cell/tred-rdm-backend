@@ -258,6 +258,10 @@ export const it: PartialMessages = {
     newChat: "Nuova chat",
     history: "Cronologia",
     noHistory: "Nessuna conversazione salvata.",
+    // Sessions par document (2026-11-15) : badge du tableau, tiroir d'historique.
+    boardScopeLabel: "Corso:",
+    historyAll: "Tutte le conversazioni",
+    noHistoryScope: "Qui non c'è ancora nessuna conversazione.",
     deleteConv: "Elimina la conversazione",
     trash: "Cestino",
     backToHistory: "Torna alla cronologia",

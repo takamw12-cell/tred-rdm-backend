@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Brain, ChevronLeft, ChevronRight, Eye, RotateCcw, SearchCheck, Target, Wrench, type LucideIcon } from "lucide-react";
+import { Brain, ChevronLeft, ChevronRight, Eye, Loader2, RotateCcw, SearchCheck, Target, Wrench, type LucideIcon } from "lucide-react";
 import { reasoningKind, type ReasoningKind } from "../../api/lib/reasoning-engine";
 import { MarkdownContent } from "@/components/markdown-content";
 import { AiAnswer, parseAnswer, SourceCard } from "@/components/ai-answer";
@@ -54,11 +54,17 @@ export function TafelBoard({
   footer,
   composer,
   composerExtras,
+  scopeBadge,
+  loading = false,
   className,
 }: {
   page?: TafelPage;
   /** Cette page est encore en cours d'écriture (flux). */
   writing: boolean;
+  /** Le document de la session (« Kurs: … »), toujours visible en haut du tableau. */
+  scopeBadge?: ReactNode;
+  /** La session du document arrive : le tableau vide attend, sans l'invitation. */
+  loading?: boolean;
   /** Ce que fait le professeur (« analyse… », « écrit… »), en pastille. */
   status?: string;
   pager?: { index: number; count: number; onPrev: () => void; onNext: () => void };
@@ -139,13 +145,21 @@ export function TafelBoard({
       eyebrow="Digitaler Hörsaal"
       title={t("tafel.title")}
       status={pill}
+      badge={scopeBadge}
       className={className}
       bodyRef={body}
       showHeader={blank}
       composer={composer}
       composerExtras={composerExtras}
     >
-      {blank ? (
+      {blank && loading ? (
+        // La dernière conversation de ce document est en route : ni
+        // invitation ni suggestions, elles disparaîtraient aussitôt.
+        <output data-testid="board-loading" className="my-auto flex items-center gap-2 text-sm text-[color:var(--board-muted)]">
+          <Loader2 className="size-4 animate-spin" />
+          {t("common.loading")}
+        </output>
+      ) : blank ? (
         <div className="my-auto flex max-w-xl flex-col items-center gap-6">
           <p className="font-hand text-center text-3xl leading-snug text-[color:var(--board-muted)]">
             {EMPTY[locale === "de" || locale === "fr" ? locale : "en"]}
@@ -583,6 +597,28 @@ export function BoardChip({ icon, label, onClick }: { icon: ReactNode; label: st
       {icon}
       {label}
     </button>
+  );
+}
+
+/**
+ * Le document de la session, posé en haut du tableau : « Kurs: Elektrotechnik 1 ».
+ * Il dit à tout moment sur QUEL cours porte ce qui est écrit dessous — et ce
+ * dont le professeur tire ses réponses. Sans `label` : la portée globale
+ * (« Alle Materialien »). Couleurs du tableau : lisible sur les trois thèmes.
+ */
+export function BoardScope({ icon, label, title }: { icon: ReactNode; label?: string; title: string }) {
+  return (
+    <span
+      data-testid="board-scope"
+      title={label ? `${label} ${title}` : title}
+      className="flex max-w-full min-w-0 items-center gap-1.5 rounded-full bg-[color:var(--board-pill)] px-3 py-1.5 text-xs font-medium text-[color:var(--board-muted)] ring-1 ring-[color:var(--board-pill)] backdrop-blur"
+    >
+      <span className="grid shrink-0 place-items-center text-[color:var(--board-accent)]">{icon}</span>
+      {label && <span className="shrink-0">{label}</span>}
+      <span className="truncate font-semibold" style={{ color: INK }}>
+        {title}
+      </span>
+    </span>
   );
 }
 

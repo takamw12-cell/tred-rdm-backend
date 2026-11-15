@@ -38,7 +38,7 @@ import {
   PanelLeftOpen,
 } from "lucide-react";
 import { ListenButton, SourceViewContext } from "@/components/ai-answer";
-import { BoardChip, TafelBoard, type TafelPage } from "@/components/tafel-board";
+import { BoardChip, BoardScope, TafelBoard, type TafelPage } from "@/components/tafel-board";
 import { chosenKey, moveFencedToPageTop, pageSplit, tafelPage } from "@/lib/tafel";
 import { ReportAnswer } from "@/components/report-answer";
 import { CodeExplainContext, CodeSendContext } from "@/components/code-block";
@@ -59,7 +59,8 @@ import { useAdCopy } from "@/lib/use-ads";
 import { INTERSTITIAL_RULES } from "@/lib/ad-mediation";
 import { creditsMeKey } from "@/queries/credits";
 import { useFeatures } from "@/queries/features";
-import { Link } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
+import { conversationsOfScope, docFromSearch, mayApplyResume, searchWithDoc } from "@/lib/chat-sessions";
 import { Repeat2, Volume2, VolumeX } from "lucide-react";
 import { useProfessorChoreography } from "@/components/hologram-professor";
 import { spokenAnswer } from "@/lib/professor-choreography";
@@ -181,6 +182,21 @@ function pickStudyProfile(p: { degree: string; university: string; semester: str
   return { degree: p.degree, university: p.university, semester: p.semester, level: p.studyLevel || undefined };
 }
 
+/** Une conversation et sa portée — voir « La session » dans ChatPage. */
+interface ChatSession {
+  /** Identifiant de la conversation, choisi par le navigateur (les enregistrements sont idempotents). */
+  id: string;
+  /** Le document de la conversation ; `null` = « Alle Materialien ». */
+  doc: { id: string; title: string } | null;
+  /** Le semestre dans lequel la session a été ouverte. */
+  semesterId: string | null;
+  /** Les messages d'une conversation rouverte ; vide pour un tableau neuf. */
+  initial: UIMessage[];
+}
+
+/** Comment l'adresse suit un changement de portée : nouvelle entrée d'historique, remplacement, ou rien. */
+type UrlMode = "push" | "replace" | "none";
+
 export default function ChatPage() {
   /**
    * ── La langue de cette page ─────────────────────────────────────────────
@@ -208,11 +224,11 @@ export default function ChatPage() {
   // Le professeur choisi dans le vestiaire : son visage, son nom, son ton.
   const professor = useProfessor();
 
-  // ── A single selected document (null = whole scope: semester or all courses). ─
-  const [activeDoc, setActiveDoc] = useState<{ id: string; title: string } | null>(null);
   const [input, setInput] = useState("");
   const [libOpen, setLibOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  // Tiroir d'historique : les conversations du document ouvert, ou toutes.
+  const [historyAll, setHistoryAll] = useState(false);
 
   // ── Mode Calcul (MATLAB / Python) ─────────────────────────────────────
   const [calcMode, setCalcMode] = useState(false);
@@ -348,8 +364,31 @@ export default function ChatPage() {
 
   const semesterId = useReconciledSemester();
   const setActiveSemester = useSemesterStore((s) => s.setActive);
-  const { data: sems = [] } = useQuery(semestersListOptions());
+  const semsQuery = useQuery(semestersListOptions());
+  const sems = semsQuery.data ?? [];
   const activeSem = sems.find((s) => s.id === semesterId) ?? null;
+
+  // ── La session : UNE conversation, liée à UN document ────────────────
+  // (ou à « Alle Materialien » : `doc` nul). Le document APPARTIENT à la
+  // session ; il ne peut donc pas en diverger : une question part toujours
+  // avec les extraits du document de SA conversation. Changer de document,
+  // c'est changer de session — et `useChat`, qui reçoit l'identifiant de la
+  // session, coupe alors le flux en cours (voir plus bas).
+  //
+  // Avant le 15 nov. 2026, le document était un état à part : changer de
+  // document pendant qu'une réponse s'écrivait vidait le tableau sans arrêter
+  // le flux. La réponse du document A finissait sous le document B, puis dans
+  // l'historique de B.
+  const [session, setSession] = useState<ChatSession>(() => ({
+    id: crypto.randomUUID(),
+    doc: null,
+    semesterId: semesterId ?? null,
+    initial: [],
+  }));
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
+  /** Le document de la session ouverte (null = toute la portée : semestre ou tous les cours). */
+  const activeDoc = session.doc;
 
   // Documents in the current scope — used to resolve a chat citation's document
   // by title when the chat isn't pinned to a single document.
@@ -422,6 +461,9 @@ export default function ChatPage() {
   const qc = useQueryClient();
   const convQuery = useQuery(chatsListOptions());
   const convList = convQuery.data ?? [];
+  // Lue par les changements de portée, y compris ceux déclenchés hors rendu.
+  const convListRef = useRef(convList);
+  convListRef.current = convList;
   const saveMut = useMutation(chatSaveOptions());
   const removeMut = useMutation(chatRemoveOptions());
 
@@ -462,16 +504,26 @@ export default function ChatPage() {
   }
 
   // The client owns the conversation id so saves are idempotent upserts.
-  const [convId, setConvId] = useState<string>(() => crypto.randomUUID());
+  const convId = session.id;
   // Lu par le transport au moment de l'envoi (comme les autres portées).
   const convIdRef = useRef(convId);
   convIdRef.current = convId;
-  // Suppresses the scope-reset + auto-save side effects while we programmatically
-  // restore a saved conversation.
-  const restoringRef = useRef(false);
   const bootRef = useRef(false);
-  const scopeInitRef = useRef(false);
   const savedSigRef = useRef("");
+  // Chaque changement de portée prend un numéro : une session qui arrive du
+  // serveur après un AUTRE clic est ignorée (lib/chat-sessions.ts › mayApplyResume).
+  const scopeTokenRef = useRef(0);
+  // La session du document est en train d'arriver : pas d'invitation « tableau prêt » entre-temps.
+  const [scopeLoading, setScopeLoading] = useState(false);
+  // L'adresse et le semestre que CETTE page a posés elle-même. Un écart avec
+  // ce qui est affiché vient d'ailleurs (retour du navigateur, autre onglet) :
+  // c'est alors la portée qui suit. Comparer à une valeur attendue, et non à
+  // l'état de la session, ne dépend pas de l'ordre dans lequel React rend.
+  const search = useSearch();
+  const [, navigate] = useLocation();
+  const urlDocId = docFromSearch(search);
+  const expectedUrlDocRef = useRef(urlDocId);
+  const expectedSemRef = useRef<string | null>(semesterId ?? null);
 
   // ── Live translation of the displayed exchange ───────────────────────
   // Messages are stored/generated in their native language; when the user
@@ -493,7 +545,8 @@ export default function ChatPage() {
   const localeRef = useRef(locale);
   const calcModeRef = useRef(calcMode);
   const codeLangRef = useRef(codeLang);
-  docIdRef.current = activeDoc?.id ?? null;
+  // Le document envoyé au tuteur est celui de la SESSION, rien d'autre.
+  docIdRef.current = session.doc?.id ?? null;
   semIdRef.current = semesterId;
   subIdRef.current = chatSubject;
   localeRef.current = locale;
@@ -532,8 +585,12 @@ export default function ChatPage() {
     [],
   );
 
-  const { messages, sendMessage, status, setMessages, error, regenerate, clearError } =
-    useChat({ transport });
+  // UNE instance de chat PAR session. Quand `id` change, @ai-sdk/react en crée
+  // une neuve (avec `messages` pour contenu de départ) et ARRÊTE l'ancienne :
+  // un flux encore en cours ne peut plus rien écrire dans la nouvelle
+  // conversation, ni être enregistré sous son document.
+  const { messages, sendMessage, status, error, regenerate, clearError } =
+    useChat({ id: session.id, messages: session.initial, transport });
   const busy = status === "submitted" || status === "streaming";
 
   // L'abandon ne vaut que pour la requête qui vient de partir.
@@ -740,66 +797,132 @@ export default function ChatPage() {
       .filter((m) => m.content.trim());
   }
 
-  // Start a fresh conversation without touching the current scope.
-  function newChat() {
-    restoringRef.current = true;
-    setMessages([]);
-    setConvId(crypto.randomUUID());
+  // ── Sessions : ouvrir, reprendre, recommencer ────────────────────────
+  // Tout ce qui tient à UNE conversation (traductions, signature du dernier
+  // enregistrement, compteur des « autrement ») repart de zéro avec elle.
+  function startSession(next: ChatSession, nativeLang: string = locale) {
     explainAttempts.current = {};
     savedSigRef.current = "";
     sourceRef.current = {};
     transCache.current = {};
     setOverrides({});
-    convLangRef.current = locale;
-    displayLangRef.current = locale;
+    convLangRef.current = nativeLang;
+    displayLangRef.current = nativeLang;
+    giveUpRef.current = false;
+    setSession(next);
+  }
+
+  /** L'adresse suit la portée : /chat?doc=<id>, ou /chat pour « Alle Materialien ». */
+  function syncUrl(docId: string | null, mode: UrlMode) {
+    if (mode === "none" || docFromSearch(window.location.search) === docId) return;
+    expectedUrlDocRef.current = docId;
+    navigate(`/chat${searchWithDoc(window.location.search, docId)}`, { replace: mode === "replace" });
+  }
+
+  // « Neuer Chat » : une nouvelle branche pour le MÊME document. Le tableau se
+  // vide ; la conversation d'avant reste dans l'historique du document.
+  function newChat() {
+    scopeTokenRef.current += 1; // une reprise encore en route ne doit plus rien poser ici
+    setScopeLoading(false);
+    const current = sessionRef.current;
+    startSession({ id: crypto.randomUUID(), doc: current.doc, semesterId: current.semesterId, initial: [] });
     setHistoryOpen(false);
-    requestAnimationFrame(() => {
-      restoringRef.current = false;
-    });
+  }
+
+  /** Pose une conversation enregistrée au tableau, avec SA portée. */
+  function applyConversation(
+    c: { id: string; documentId: string | null; documentTitle: string | null; semesterId: string | null; lang: string | null },
+    stored: { id: string; role: string; content: string }[],
+    doc: ChatSession["doc"],
+  ) {
+    const restored = stored.map((m) => ({
+      id: m.id,
+      role: m.role as "user" | "assistant",
+      parts: [{ type: "text" as const, text: m.content }],
+    })) as unknown as UIMessage[];
+    // Un semestre supprimé depuis ne se rouvre pas : la conversation s'affiche
+    // alors dans « Alle Kurse » (même règle que hooks/use-reconciled-semester).
+    const known = !semsQuery.isSuccess || !c.semesterId || sems.some((s) => s.id === c.semesterId);
+    const sem = known ? (c.semesterId ?? null) : null;
+    const nativeLang = c.lang ?? "de";
+    startSession({ id: c.id, doc, semesterId: sem, initial: restored }, nativeLang);
+    // Seed the translation source + cache with the stored native text.
+    for (const m of stored) {
+      sourceRef.current[m.id] = m.content;
+      transCache.current[`${m.id}::${nativeLang}`] = m.content;
+    }
+    savedSigRef.current = c.id + "|" + stored.map((m) => m.content).join("¦");
+    if (sem !== (semIdRef.current ?? null)) {
+      expectedSemRef.current = sem;
+      setActiveSemester(sem);
+    }
+    // If the saved conversation isn't in the current UI language, translate.
+    if (nativeLang !== locale) void translateTo(locale, restored);
   }
 
   // Load a saved conversation: restore its scope and messages.
-  async function openConversation(id: string) {
+  async function openConversation(id: string, url: UrlMode = "push") {
     try {
       const res = await client.chats.get({ id });
       if (!res) return;
-      restoringRef.current = true;
+      scopeTokenRef.current += 1;
+      setScopeLoading(false);
       const c = res.conversation;
-      setActiveDoc(
-        c.documentId ? { id: c.documentId, title: c.documentTitle ?? "" } : null,
-      );
-      setActiveSemester(c.semesterId ?? null);
-      setConvId(id);
-      const restored = res.messages.map((m) => ({
-        id: m.id,
-        role: m.role as "user" | "assistant",
-        parts: [{ type: "text" as const, text: m.content }],
-      }));
-      // Seed the translation source + cache with the stored native text.
-      const nativeLang = c.lang ?? "de";
-      sourceRef.current = {};
-      transCache.current = {};
-      setOverrides({});
-      for (const m of res.messages) {
-        sourceRef.current[m.id] = m.content;
-        transCache.current[`${m.id}::${nativeLang}`] = m.content;
-      }
-      convLangRef.current = nativeLang;
-      displayLangRef.current = nativeLang;
-      setMessages(restored as unknown as UIMessage[]);
-      savedSigRef.current =
-        id + "|" + res.messages.map((m) => m.content).join("¦");
+      applyConversation(c, res.messages, c.documentId ? { id: c.documentId, title: c.documentTitle ?? "" } : null);
+      syncUrl(c.documentId ?? null, url);
       setHistoryOpen(false);
-      requestAnimationFrame(() => {
-        restoringRef.current = false;
-      });
-      // If the saved conversation isn't in the current UI language, translate.
-      if (nativeLang !== locale) {
-        void translateTo(locale, restored as unknown as UIMessage[]);
-      }
     } catch {
       // ignore — conversation may have been removed
     }
+  }
+
+  /**
+   * Changer de portée : un document de « Meine Kurse », ou « Alle Materialien ».
+   *
+   *   1. tout de suite : un tableau vide lié à CE document (le flux en cours
+   *      est coupé avec l'ancienne session) et l'adresse `/chat?doc=…` ;
+   *   2. puis la dernière conversation de ce document, demandée au serveur.
+   *      Aucune : le tableau reste prêt. Document inconnu (lien périmé,
+   *      document d'un autre compte) : retour à « Alle Materialien ».
+   */
+  async function selectScope(doc: ChatSession["doc"], url: UrlMode = "push") {
+    const token = ++scopeTokenRef.current;
+    const semester = semIdRef.current ?? null;
+    const fresh: ChatSession = { id: crypto.randomUUID(), doc, semesterId: semester, initial: [] };
+    startSession(fresh);
+    syncUrl(doc?.id ?? null, url);
+    setHistoryOpen(false);
+    // L'invitation « Die Tafel ist bereit » ne s'affiche pas pour disparaître
+    // aussitôt : on attend la session quand on sait qu'elle existe.
+    const scope = { documentId: doc?.id ?? null, semesterId: semester };
+    setScopeLoading(conversationsOfScope(convListRef.current, scope).length > 0);
+    try {
+      const res = await client.chats.forScope(scope);
+      if (doc && !res.document) {
+        // Ce document n'est pas (ou plus) à ce compte : on ne reste pas dessus.
+        if (token === scopeTokenRef.current) void selectScope(null, "replace");
+        return;
+      }
+      const state = { requestToken: token, currentToken: scopeTokenRef.current, freshSessionId: fresh.id, currentSessionId: sessionRef.current.id, messageCount: messagesRef.current.length };
+      if (!mayApplyResume(state)) return;
+      const title = res.document?.title ?? doc?.title ?? "";
+      if (res.conversation) {
+        applyConversation(res.conversation, res.messages, doc ? { id: doc.id, title } : null);
+      } else if (doc && title !== doc.title) {
+        // Arrivé par l'adresse : le titre vient du serveur.
+        setSession((s) => (s.id === fresh.id ? { ...s, doc: { id: doc.id, title } } : s));
+      }
+    } catch {
+      // Hors ligne : le tableau vide reste utilisable.
+    } finally {
+      if (token === scopeTokenRef.current) setScopeLoading(false);
+    }
+  }
+
+  /** Un clic de l'étudiant sur une portée. Celle qui est déjà ouverte : rien à refaire. */
+  function pickScope(doc: ChatSession["doc"]) {
+    if ((doc?.id ?? null) === (sessionRef.current.doc?.id ?? null)) return;
+    void selectScope(doc);
   }
 
   function deleteConversation(id: string) {
@@ -920,7 +1043,7 @@ export default function ChatPage() {
     function onOpenDoc(e: Event) {
       const d = (e as CustomEvent<{ id: string; title: string }>).detail;
       forget("tred.openDoc");
-      if (d && d.id) setActiveDoc({ id: d.id, title: d.title ?? "" });
+      if (d && d.id) void selectScope({ id: d.id, title: d.title ?? "" });
     }
     window.addEventListener("tred:open-chat", onOpenChat);
     window.addEventListener("tred:open-doc", onOpenDoc);
@@ -950,41 +1073,60 @@ export default function ChatPage() {
 
     const wantedDoc = readOnce("tred.openDoc") as { id?: string; title?: string } | null;
     if (wantedDoc && wantedDoc.id) {
-      setActiveDoc({ id: wantedDoc.id, title: wantedDoc.title ?? "" });
+      void selectScope({ id: wantedDoc.id, title: wantedDoc.title ?? "" }, "replace");
       return;
     }
 
     const wantedChat = readOnce("tred.openChat");
     if (typeof wantedChat === "string" && wantedChat) {
-      void openConversation(wantedChat);
+      void openConversation(wantedChat, "replace");
+      return;
+    }
+
+    // L'adresse dit quel document : /chat?doc=… rouvre SA session (lien
+    // enregistré, rechargement de la page).
+    const fromUrl = docFromSearch(window.location.search);
+    if (fromUrl) {
+      void selectScope({ id: fromUrl, title: scopeDocs.find((d) => d.id === fromUrl)?.title ?? "" }, "none");
       return;
     }
 
     const latest = convList[0];
     if (latest && (latest.semesterId ?? null) === (semesterId ?? null)) {
-      void openConversation(latest.id);
+      void openConversation(latest.id, "replace");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [convQuery.isSuccess]);
 
-  // Changing the scope (document or semester) starts a new conversation —
-  // but skip the initial mount and any programmatic restore.
+  // Retour / avance du navigateur : l'adresse a changé sans que cette page
+  // l'ait écrite. La portée suit l'adresse.
   useEffect(() => {
-    if (!scopeInitRef.current) {
-      scopeInitRef.current = true;
+    if (!bootRef.current || urlDocId === expectedUrlDocRef.current) return;
+    expectedUrlDocRef.current = urlDocId;
+    void selectScope(urlDocId ? { id: urlDocId, title: scopeDocs.find((d) => d.id === urlDocId)?.title ?? "" } : null, "none");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlDocId]);
+
+  // Le semestre a changé sans que cette page l'ait demandé (réconciliation au
+  // chargement, autre onglet) : la session ouverte n'est plus dans la portée.
+  // On repart de « Alle Materialien » du nouveau semestre.
+  useEffect(() => {
+    const sem = semesterId ?? null;
+    if (sem === expectedSemRef.current) return;
+    expectedSemRef.current = sem;
+    // Une session liée à un document ne dépend pas du semestre affiché ; et
+    // avant le premier chargement il n'y a encore rien à reprendre.
+    if (!bootRef.current || sessionRef.current.doc) {
+      setSession((s) => ({ ...s, semesterId: sem }));
       return;
     }
-    if (restoringRef.current) return;
-    setMessages([]);
-    setConvId(crypto.randomUUID());
-    explainAttempts.current = {};
-    savedSigRef.current = "";
+    void selectScope(null, "replace");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeDoc?.id, semesterId]);
+  }, [semesterId]);
 
   // Persist the conversation after each completed exchange.
   useEffect(() => {
-    if (status !== "ready" || restoringRef.current || messages.length === 0) return;
+    if (status !== "ready" || messages.length === 0) return;
     const last = messages[messages.length - 1];
     if (last.role !== "assistant") return;
     const snap = snapshotOf(messages);
@@ -994,17 +1136,23 @@ export default function ChatPage() {
     savedSigRef.current = sig;
     const firstUser = snap.find((m) => m.role === "user");
     const title = (firstUser?.content ?? t("chat.untitledConversation")).slice(0, 80);
+    // L'identifiant et le document viennent de la MÊME session : une
+    // conversation ne peut pas être rangée sous un autre document que le sien
+    // (et le serveur le refuserait : chats.save › SCOPE_MISMATCH).
     saveMut.mutate(
       {
-        id: convId,
+        id: session.id,
         title,
         semesterId: semesterId ?? null,
-        documentId: activeDoc?.id ?? null,
-        documentTitle: activeDoc?.title ?? null,
+        documentId: session.doc?.id ?? null,
+        documentTitle: session.doc?.title || null,
         lang: convLangRef.current,
         messages: snap,
       },
-      { onSuccess: () => qc.invalidateQueries({ queryKey: chatsListKey() }) },
+      {
+        onSuccess: () => qc.invalidateQueries({ queryKey: chatsListKey() }),
+        onError: (e) => console.warn("[chat] conversation non enregistrée :", e instanceof Error ? e.message : e),
+      },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, messages, convId]);
@@ -1036,7 +1184,6 @@ export default function ChatPage() {
       displayLangRef.current = locale;
       return;
     }
-    if (restoringRef.current) return;
     if (locale === displayLangRef.current) return;
     void translateTo(locale, messagesRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1383,13 +1530,27 @@ export default function ChatPage() {
     }
   }
 
+  // Le titre du document ouvert : celui de la session, sinon celui de la liste
+  // (session ouverte par l'adresse, avant la réponse du serveur).
+  const activeDocTitle = activeDoc ? activeDoc.title || scopeDocs.find((d) => d.id === activeDoc.id)?.title || "" : "";
   const scopeLabel = activeDoc
-    ? activeDoc.title
+    ? activeDocTitle
     : chatSubject
       ? (chatSubjects.find((f) => f.id === chatSubject)?.name ?? t("subjects.one"))
       : activeSem
         ? activeSem.name
         : t("dashboard.allCourses");
+
+  // Sur le tableau, à tout moment : le document de la session (« Kurs: … »),
+  // ou « Alle Materialien » pour la session globale.
+  const scopeBadge = activeDoc ? (
+    <BoardScope icon={<FileText className="size-3.5" />} label={t("chat.boardScopeLabel")} title={activeDocTitle || "…"} />
+  ) : (
+    <BoardScope icon={<Sparkles className="size-3.5" />} title={chatSubject ? scopeLabel : t("library.allScope")} />
+  );
+  // Le tiroir d'historique montre d'abord les conversations de CETTE portée.
+  const scopeConvs = conversationsOfScope(convList, { documentId: activeDoc?.id ?? null, semesterId: semesterId ?? null });
+  const shownConvs = historyAll ? convList : scopeConvs;
 
   const suggestions = [t("chat.q1"), t("chat.q2"), t("chat.q3")];
 
@@ -1661,7 +1822,7 @@ export default function ChatPage() {
             tone="night"
             activeId={activeDoc?.id ?? null}
             semesterId={semesterId}
-            onSelect={(id, title) => setActiveDoc(id ? { id, title: title ?? "" } : null)}
+            onSelect={(id, title) => pickScope(id ? { id, title: title ?? "" } : null)}
           />
         </div>
       </aside>
@@ -1693,7 +1854,7 @@ export default function ChatPage() {
                 activeId={activeDoc?.id ?? null}
                 semesterId={semesterId}
                 onSelect={(id, title) => {
-                  setActiveDoc(id ? { id, title: title ?? "" } : null);
+                  pickScope(id ? { id, title: title ?? "" } : null);
                   setLibOpen(false);
                 }}
               />
@@ -1878,10 +2039,10 @@ export default function ChatPage() {
                   {selectMode ? (
                     <div className="border-border flex items-center justify-between gap-2 border-b p-3">
                       <button
-                        onClick={() => toggleSelectAll(convList.map((c) => c.id))}
+                        onClick={() => toggleSelectAll(shownConvs.map((c) => c.id))}
                         className="text-muted-foreground hover:text-foreground text-xs font-medium"
                       >
-                        {selectedIds.size === convList.length && convList.length > 0
+                        {selectedIds.size === shownConvs.length && shownConvs.length > 0
                           ? t("chat.deselectAll")
                           : t("chat.selectAll")}
                       </button>
@@ -1914,7 +2075,7 @@ export default function ChatPage() {
                         <Plus className="size-4" />
                         {t("chat.newChat")}
                       </Button>
-                      {convList.length > 0 && (
+                      {shownConvs.length > 0 && (
                         <Button
                           variant="ghost"
                           size="icon"
@@ -1930,14 +2091,38 @@ export default function ChatPage() {
                       )}
                     </div>
                   )}
+                  {/* L'historique de CE document d'abord ; « Alle » montre tout,
+                      avec le document de chaque conversation. */}
+                  <div className="flex gap-1 px-3 pb-2">
+                    {[false, true].map((all) => (
+                      <button
+                        key={all ? "all" : "scope"}
+                        type="button"
+                        aria-pressed={historyAll === all}
+                        data-testid={all ? "history-all" : "history-scope"}
+                        onClick={() => {
+                          setHistoryAll(all);
+                          exitSelect();
+                        }}
+                        className={cn(
+                          "min-w-0 flex-1 truncate rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                          historyAll === all
+                            ? "border-primary/50 bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:bg-accent",
+                        )}
+                      >
+                        {all ? t("chat.historyAll") : activeDoc ? activeDocTitle || "…" : t("library.allScope")}
+                      </button>
+                    ))}
+                  </div>
                   <div className="flex-1 overflow-y-auto px-2 pb-4">
-                    {convList.length === 0 ? (
+                    {shownConvs.length === 0 ? (
                       <p className="text-muted-foreground px-2 py-8 text-center text-xs">
-                        {t("chat.noHistory")}
+                        {historyAll || convList.length === 0 ? t("chat.noHistory") : t("chat.noHistoryScope")}
                       </p>
                     ) : (
-                      <ul className="space-y-0.5">
-                        {convList.map((c) => (
+                      <ul className="space-y-0.5" data-testid="history-list">
+                        {shownConvs.map((c) => (
                           <li key={c.id}>
                             <div
                               className={cn(
@@ -1965,7 +2150,14 @@ export default function ChatPage() {
                                     className="flex min-w-0 flex-1 items-center gap-2 text-left"
                                   >
                                     <MessageSquare className="text-muted-foreground size-3.5 shrink-0" />
-                                    <span className="truncate text-sm">{c.title}</span>
+                                    <span className="min-w-0">
+                                      <span className="block truncate text-sm">{c.title}</span>
+                                      {historyAll && (
+                                        <span className="text-muted-foreground block truncate text-[11px]">
+                                          {c.documentTitle || t("library.allScope")}
+                                        </span>
+                                      )}
+                                    </span>
                                   </button>
                                   <button
                                     onClick={() => deleteConversation(c.id)}
@@ -2057,7 +2249,7 @@ export default function ChatPage() {
           )}
           {activeDoc && (
             <button
-              onClick={() => setActiveDoc(null)}
+              onClick={() => pickScope(null)}
               className="text-muted-foreground hover:text-foreground text-xs underline underline-offset-2"
             >
               {t("chat.wholeScope")}
@@ -2116,6 +2308,8 @@ export default function ChatPage() {
                 <TafelBoard
                   composer={composerRow}
                   composerExtras={composerExtras}
+                  scopeBadge={scopeBadge}
+                  loading={scopeLoading}
                   page={activePage}
                   writing={busy && onLastPage}
                   status={

@@ -258,6 +258,10 @@ export const bn: PartialMessages = {
     newChat: "নতুন চ্যাট",
     history: "ইতিহাস",
     noHistory: "এখনো কোনো সংরক্ষিত কথোপকথন নেই।",
+    // Sessions par document (2026-11-15) : badge du tableau, tiroir d'historique.
+    boardScopeLabel: "কোর্স:",
+    historyAll: "সব কথোপকথন",
+    noHistoryScope: "এখানে এখনো কোনো কথোপকথন নেই।",
     deleteConv: "কথোপকথন মুছুন",
     trash: "ট্র্যাশ",
     backToHistory: "ইতিহাসে ফিরে যান",

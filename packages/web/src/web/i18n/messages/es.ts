@@ -351,6 +351,10 @@ export const es: Messages = {
     newChat: "Nuevo chat",
     history: "Historial",
     noHistory: "Todavía no hay conversaciones guardadas.",
+    // Sessions par document (2026-11-15) : badge du tableau, tiroir d'historique.
+    boardScopeLabel: "Curso:",
+    historyAll: "Todas las conversaciones",
+    noHistoryScope: "Aquí todavía no hay conversaciones.",
     deleteConv: "Eliminar la conversación",
     trash: "Papelera",
     backToHistory: "Volver al historial",

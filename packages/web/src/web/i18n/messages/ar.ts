@@ -258,6 +258,10 @@ export const ar: PartialMessages = {
     newChat: "محادثة جديدة",
     history: "السجل",
     noHistory: "لا توجد محادثات محفوظة بعد.",
+    // Sessions par document (2026-11-15) : badge du tableau, tiroir d'historique.
+    boardScopeLabel: "المقرر:",
+    historyAll: "كل المحادثات",
+    noHistoryScope: "لا توجد محادثات هنا بعد.",
     deleteConv: "حذف المحادثة",
     trash: "سلة المحذوفات",
     backToHistory: "العودة إلى السجل",

@@ -258,6 +258,10 @@ export const ru: PartialMessages = {
     newChat: "Новый чат",
     history: "История",
     noHistory: "Сохранённых бесед пока нет.",
+    // Sessions par document (2026-11-15) : badge du tableau, tiroir d'historique.
+    boardScopeLabel: "Курс:",
+    historyAll: "Все беседы",
+    noHistoryScope: "Здесь пока нет бесед.",
     deleteConv: "Удалить беседу",
     trash: "Корзина",
     backToHistory: "Назад к истории",

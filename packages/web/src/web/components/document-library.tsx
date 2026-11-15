@@ -285,6 +285,9 @@ export function DocumentLibrary({
   async function handleDelete(id: string) {
     if (!confirm(t("library.deleteConfirm"))) return;
     await removeMut.mutateAsync({ id });
+    // Le document ouvert vient de disparaître : on ne reste pas dessus (une
+    // question partirait vers un document qui n'existe plus).
+    if (id === activeId) onSelect(null);
     await qc.invalidateQueries({ queryKey: documentsListKey() });
     await qc.invalidateQueries({ queryKey: semestersListKey() });
   }

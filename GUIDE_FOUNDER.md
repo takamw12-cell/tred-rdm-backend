@@ -1117,3 +1117,43 @@ Code : `packages/web/src/api/lib/daily-review.ts` (choix des cartes), route `fla
 4. **File d'attente** : elle tourne. Depuis ton clic « Deploy », le site annonce `importQueue: true`, le worker écrit `[worker] prêt — files : import-pdf ×1, generate-video ×3` à chaque démarrage et se relaie proprement à chaque déploiement (`arrêt après les travaux en cours`). Un import par lot réel est passé par la file la nuit du 15.
 
 Code du surlignage : `packages/web/src/web/lib/pdf-highlight.ts`, branché dans `components/pdf-viewer.tsx`.
+
+## Sessions de chat par document (15 nov. 2026)
+
+**Ce qui se passait vraiment — reproduit avant de corriger.**
+
+- Cliquer un autre document vidait bien le tableau… sauf pendant qu'une réponse s'écrivait. Le flux n'était pas arrêté : la réponse du document A continuait de s'écrire sous le document B, puis était **enregistrée dans l'historique de B**. C'est le mélange que tu as vu.
+- Revenir sur un document donnait un tableau vide : sa conversation existait dans l'historique, mais n'était pas reprise.
+- L'adresse restait `/chat`, quel que soit le document.
+
+**Ce qui change pour l'étudiant.**
+
+- **Une session par document.** Cliquer un document dans « Meine Kurse » rouvre SA dernière conversation, et seulement la sienne. Aucune conversation pour ce document : le tableau affiche « Die Tafel ist bereit ». « Alle Materialien » a sa propre session, à part.
+- **Le badge sur le tableau** : « Kurs: Elektrotechnik 1 – Skript » (ou « Alle Materialien »), sous le titre quand le tableau est vide, en haut à gauche ensuite. Il suit les trois couleurs de tableau.
+- **L'adresse porte le document** : `/chat?doc=<identifiant>`. Recharger la page, enregistrer le lien ou utiliser le bouton « Retour » du navigateur ramène au bon document avec sa conversation. Un lien vers un document supprimé ou d'un autre compte retombe sur « Alle Materialien ».
+- **« Neuer Chat »** vide le tableau et garde le document : c'est une nouvelle branche. L'ancienne reste dans l'historique.
+- **Le tiroir « Verlauf »** montre d'abord les conversations du document ouvert ; « Alle Unterhaltungen » montre tout, avec le document de chacune.
+- **Changer de document pendant une réponse** l'arrête. Elle n'est enregistrée nulle part : la question est à reposer.
+- **Supprimer le document ouvert** ramène à « Alle Materialien ».
+
+**Ce que TRED faisait déjà (écarts avec ton brief).**
+
+- La table `chat_conversation` avait déjà `user_id` et `document_id` : **aucune migration**.
+- Le contexte envoyé au tuteur était déjà limité au document choisi : extraits, inventaire et recherche ne lisent que lui, chaque extrait dans sa balise `<dokument titel="…">`. Je n'y ai pas touché.
+- L'app parle à son serveur par oRPC : la route est `chats.forScope`, pas `GET /api/chats?documentId=…`. L'adresse de la page est `/chat?doc=…`, pas `/hoersaal`.
+- Aucune conversation vide n'est créée au clic : elles rempliraient le tiroir d'historique. Le tableau vide n'est enregistré qu'au premier échange.
+
+**À savoir.**
+
+- La mémoire de l'étudiant (lacunes, concepts fragiles) le suit d'un document à l'autre : c'est son profil, pas le texte d'un cours.
+- Une conversation enregistrée garde son document pour toujours, même si un appareil l'enregistre avec une autre portée. La ligne `[chats] … portée d'origine gardée` dans les journaux signale ce cas.
+- **App mobile** : elle rouvrait une conversation sans son document, donc la suite partait avec tous les documents pour contexte. Corrigé dans le code (`packages/mobile/app/chat/[id].tsx`), mais sans essai sur un téléphone, et il faut un nouveau build pour que cela arrive aux étudiants. Par ailleurs `bun run typecheck` de l'app mobile signale 3 erreurs plus anciennes (authentification), à regarder avant ce build.
+- Le comportement est vérifié dans le navigateur avec des réponses simulées (le vrai modèle coûte) : sessions, enregistrement et historique sont réels, seul le texte du tuteur est fabriqué.
+
+Code : `packages/web/src/api/lib/chat-sessions.ts` (session d'une portée, règle d'enregistrement), route `chats.forScope`, `src/web/lib/chat-sessions.ts`, `src/web/pages/chat.tsx` (« La session »), badge dans `components/tafel-board.tsx`.
+
+## Téléphone : le bouton d'envoi tient dans l'écran (15 nov. 2026)
+
+Depuis l'ajout du bouton du mode socratique (nuit du 15), la ligne de saisie du Hörsaal dépassait de l'écran sur téléphone : le bouton d'envoi était à moitié caché à 390 px de large, hors de l'écran à 360 px.
+
+Corrigé : la saisie rétrécit avec l'écran et le bouton d'envoi reste dans le rebord (mesuré à 390, 360 et 320 px). Le champ de texte est étroit sur un petit téléphone (110 px à 360 px), parce que la ligne porte maintenant trois boutons avant lui. **À toi de voir** : ranger « Rechenmodus » et le mode socratique dans le menu du trombone sur téléphone libérerait la place.
