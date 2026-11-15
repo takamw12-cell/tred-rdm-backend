@@ -415,6 +415,12 @@ export const es: Messages = {
     attachCamera: "Cámara",
     attachCameraHint: "Hacer una foto",
     fileTooLarge: "«{name}» es demasiado grande (máx. 20 MB)",
+    // PDF joints à une question : 20 pages au plus, tous fichiers confondus ({pages} = le total que porterait la question).
+    pdfTooLong: "«{name}»: {pages} páginas de PDF son demasiadas para una pregunta (máximo {max}). Impórtalo en «Mis cursos»: TRED lo recorre entero y cita la página.",
+    // Dix secondes sans un mot au tableau (lib/patience.ts) : on dit ce que le tuteur lit.
+    patienceReading: "Estoy leyendo tu curso, un momento más …",
+    patienceAttachment: "Estoy leyendo tu archivo adjunto, un momento más …",
+    patienceGeneric: "Está tardando un poco más, un momento más …",
     imageFailed: "No se pudo procesar la imagen «{name}». Vuelve a hacerla o elige otra foto.",
     fileType: "«{name}» tiene un tipo de archivo no admitido",
     cameraTitle: "Hacer una foto",
@@ -565,7 +571,7 @@ export const es: Messages = {
     passwordProtected: "Este PDF está protegido con contraseña. Quita la protección y vuelve a subirlo.",
     corrupted: "Este archivo está dañado y no se puede abrir.",
     emptyFile: "Este archivo está vacío.",
-    tooManyFiles: "5 archivos como máximo a la vez.",
+    tooManyFiles: "Máximo 5 archivos por lote. No se ha importado nada: elige 5 como máximo y repite para los demás.",
     batchTooLarge: "100 MB como máximo a la vez.",
     documentLimit: "Has alcanzado el límite de documentos de tu plan.",
     dropHere: "Suelta tus archivos aquí (5 como máximo)",

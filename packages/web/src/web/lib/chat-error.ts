@@ -22,6 +22,8 @@
  * déguisé en message d'erreur. On le rouvre ici.
  */
 
+import { MAX_ATTACHED_PDF_PAGES } from "../../api/lib/chat-attachments";
+
 /** Ce que le serveur peut refuser, et ce que l'interface doit en faire. */
 export type ChatFailure =
   | {
@@ -43,6 +45,16 @@ export type ChatFailure =
       message: string;
       /** Secondes à attendre, telles que le serveur les a calculées. */
       retryAfter: number;
+    }
+  | {
+      /**
+       * Un PDF joint trop long pour une question (api/lib/chat-attachments.ts).
+       * Relancer renverrait le même fichier pour le même refus : on ne relance pas.
+       */
+      kind: "attachment";
+      /** Pages comptées par le serveur ; `null` s'il ne les a pas dites. */
+      pages: number | null;
+      max: number;
     }
   | {
       /** Tout le reste : coupure réseau, panne du modèle, 500. */
@@ -85,6 +97,14 @@ export function readChatFailure(error: Error | undefined): ChatFailure {
             : undefined,
       rewardedAd: readRewarded(body.rewardedAd),
       tokenCap: code === "TOKEN_CAP_REACHED",
+    };
+  }
+
+  if (code === "ATTACHMENT_TOO_LONG") {
+    return {
+      kind: "attachment",
+      pages: typeof body.pages === "number" ? body.pages : null,
+      max: typeof body.max === "number" ? body.max : MAX_ATTACHED_PDF_PAGES,
     };
   }
 

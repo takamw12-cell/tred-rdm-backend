@@ -315,6 +315,12 @@ export const bn: PartialMessages = {
     attachCamera: "ক্যামেরা",
     attachCameraHint: "একটি ছবি তুলুন",
     fileTooLarge: "«{name}» খুব বড় (সর্বোচ্চ ২০ MB)",
+    // PDF joints à une question : 20 pages au plus, tous fichiers confondus ({pages} = le total que porterait la question).
+    pdfTooLong: "«{name}»: একটি প্রশ্নের জন্য {pages}টি PDF পৃষ্ঠা অনেক বেশি (সর্বোচ্চ {max})। এটি «Meine Kurse»-এ ইমপোর্ট করো: তখন TRED পুরো নথি খুঁজে পৃষ্ঠা উল্লেখ করবে।",
+    // Dix secondes sans un mot au tableau (lib/patience.ts) : on dit ce que le tuteur lit.
+    patienceReading: "তোমার কোর্স পড়ছি, আর একটু অপেক্ষা করো …",
+    patienceAttachment: "তোমার সংযুক্তি পড়ছি, আর একটু অপেক্ষা করো …",
+    patienceGeneric: "একটু বেশি সময় লাগছে, আর একটু অপেক্ষা করো …",
     imageFailed: "«{name}» ছবিটি প্রক্রিয়া করা যায়নি। আবার তুলুন বা অন্য ছবি বাছুন।",
     fileType: "«{name}»-এর ফাইলের ধরন সমর্থিত নয়",
     cameraTitle: "ছবি তুলুন",
@@ -388,6 +394,8 @@ export const bn: PartialMessages = {
     start: "এখনই পুনরাবৃত্তি করো",
   },
   library: {
+    // Plus de cinq fichiers choisis d'un coup : le lot entier est refusé avant l'envoi.
+    tooManyFiles: "প্রতি ব্যাচে সর্বোচ্চ ৫টি ফাইল। কিছুই ইমপোর্ট হয়নি: সর্বোচ্চ ৫টি বেছে নাও, তারপর বাকিগুলোর জন্য আবার করো।",
     // Module (Fach) choisi en haut du Hörsaal : le panneau ne liste que ses documents (2026-11-15).
     emptySubject: "এই বিষয়ে এখনো কোনো নথি নেই। একটি আপলোড করো।",
     unassignedHint: "বিষয় ছাড়া নথি: {n}। এগুলো «{label}»-এ পাবে।",

@@ -161,6 +161,38 @@ describe("Mesure [perf]", () => {
     );
   });
 
+  test("avant le modèle : préparation, poids de la requête, pages de PDF — pour séparer l'envoi d'un fichier du temps du modèle", () => {
+    const line = perfLine({
+      route: { tier: "complex", modelId: SONNET, thinking: "adaptive", reason: "pièce jointe" },
+      marks: { firstActivityMs: 4100, firstTextMs: 9000 },
+      totalMs: 30000,
+      usage: { steps: 1, input: 90000, cacheRead: 54000, cacheWrite: 36000, output: 900 },
+      aborted: false,
+      before: { prepMs: 2300, bodyBytes: 9_400_000, pdfPages: 12 },
+    });
+    expect(line.endsWith(" aborted=no prep=2300ms body=9180kB pdf_pages=12")).toBe(true);
+    // Toujours des chiffres, jamais un nom de fichier ni un texte.
+    expect(line).not.toMatch(/\.pdf|filename/);
+  });
+
+  test("sans pièce jointe ni taille annoncée : la ligne le dit sobrement", () => {
+    const line = perfLine({
+      route: { tier: "concept", modelId: SONNET, thinking: "off", reason: "question courte sans calcul" },
+      marks: { firstActivityMs: 1800, firstTextMs: 1800 },
+      totalMs: 9100,
+      usage: { steps: 1, input: 11000, cacheRead: 8800, cacheWrite: 0, output: 600 },
+      aborted: false,
+      before: { prepMs: 410, bodyBytes: null, pdfPages: 0 },
+    });
+    expect(line.endsWith(" aborted=no prep=410ms body=-")).toBe(true);
+  });
+
+  test("câblage : la route mesure ce qui se passe avant l'appel du modèle", () => {
+    const api = readFileSync(join(import.meta.dir, "../src/api/index.ts"), "utf8");
+    expect(api).toContain("const before = { prepMs, bodyBytes, pdfPages: attached.pages };");
+    expect(api).toContain('c.req.header("content-length")');
+  });
+
   test("pièce jointe détectée sur la dernière question seulement", () => {
     expect(lastUserHasAttachment([{ role: "user", parts: [{ type: "text" }, { type: "file" }] }])).toBe(true);
     expect(lastUserHasAttachment([{ role: "user", parts: [{ type: "file" }] }, { role: "assistant", parts: [] }, { role: "user", parts: [{ type: "text" }] }])).toBe(false);

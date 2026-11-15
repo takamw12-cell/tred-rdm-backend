@@ -58,6 +58,8 @@ import { routeChat } from "./lib/chat-routing";
 import { domainContext } from "./lib/domains";
 import { resolveFastPath, withFastPathResult } from "./lib/fast-path";
 import { createStreamTimer, lastUserHasAttachment, perfLine } from "./lib/chat-perf";
+import { attachedPdfPages, MAX_ATTACHED_PDF_PAGES, pdfPagesExceeded, pruneHistoryFiles } from "./lib/chat-attachments";
+import { countPdfPages } from "./lib/pdf-pages";
 import { curriculumFor, domainPackText } from "./prompts";
 import { studyProfileHint, type StudyProfileInput } from "./lib/study-profile";
 import { mailCanReachAnyone } from "./lib/mail";
@@ -635,18 +637,8 @@ app.post("/api/agent/messages", async (c) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);
 
-  // Monatskontingent prüfen und zählen. Bewusst VOR dem Modellaufruf: die
-  // Kosten entstehen beim Aufruf, nicht erst bei der fertigen Antwort. Wer das
-  // Limit erreicht hat, bekommt 402 — die Oberfläche zeigt daraufhin die
-  // Tarifseite. Siehe LIMITS in lib/plan.ts.
-  const quota = await consume(session.user.id, "chat");
-  if (!quota.ok) return c.json(quotaError(quota), 402);
-
-  // Zweite, unabhängige Schranke: der Euro-Deckel. Der Zähler oben begrenzt die
-  // ANZAHL der Anfragen, dieser hier ihre GRÖSSE.
-  const cap = await withinTokenCap(session.user.id);
-  if (!cap.ok) return c.json(tokenCapError(cap.used, cap.cap), 402);
-
+  // Le corps d'abord : le contrôle des pièces jointes (plus bas) doit passer
+  // AVANT le décompte du quota — un refus ne coûte pas une question.
   const body = await c.req.json();
   const {
     messages,
@@ -677,6 +669,72 @@ app.post("/api/agent/messages", async (c) => {
       calcMode?: boolean;
       codeLang?: string;
     };
+
+  // Un PDF joint à la question part au modèle page par page, texte ET image.
+  // Mesuré le 15 nov. 2026 : un fichier d'une centaine de pages = 230 000
+  // tokens, 29 s avant le premier signe de vie, 36 s avant le premier mot,
+  // environ 1 $ la question. Une feuille d'exercices ou une Klausur passent ;
+  // au-delà de MAX_ATTACHED_PDF_PAGES, le document a sa place dans « Meine
+  // Kurse », où il est découpé, cherché et cité page par page. Le navigateur
+  // fait ce contrôle à l'ajout du fichier (web/lib/pdf-pages.ts) ; celui-ci
+  // vaut pour un onglet resté ouvert sur l'ancienne version.
+  const attached = await attachedPdfPages(messages, countPdfPages);
+  if (pdfPagesExceeded(attached.pages)) {
+    return c.json(
+      {
+        error: "ATTACHMENT_TOO_LONG",
+        message:
+          `Dieses PDF hat ${attached.pages} Seiten. Zu einer Frage passen höchstens ${MAX_ATTACHED_PDF_PAGES} Seiten – ` +
+          "importiere es unter „Meine Kurse“, dann durchsucht TRED das ganze Dokument und zitiert die Seite.",
+        pages: attached.pages,
+        max: MAX_ATTACHED_PDF_PAGES,
+      },
+      413,
+    );
+  }
+
+  // Monatskontingent prüfen und zählen. Bewusst VOR dem Modellaufruf: die
+  // Kosten entstehen beim Aufruf, nicht erst bei der fertigen Antwort. Wer das
+  // Limit erreicht hat, bekommt 402 — die Oberfläche zeigt daraufhin die
+  // Tarifseite. Siehe LIMITS in lib/plan.ts.
+  const quota = await consume(session.user.id, "chat");
+  if (!quota.ok) return c.json(quotaError(quota), 402);
+
+  // Zweite, unabhängige Schranke: der Euro-Deckel. Der Zähler oben begrenzt die
+  // ANZAHL der Anfragen, dieser hier ihre GRÖSSE.
+  const cap = await withinTokenCap(session.user.id);
+  if (!cap.ok) return c.json(tokenCapError(cap.used, cap.cap), 402);
+
+  // Ce qui ne dépend que du COMPTE part tout de suite, en même temps que la
+  // lecture des documents ci-dessous. La base est à ~55 ms par aller-retour
+  // (Turso eu-west-1 ↔ Railway europe-west4) : ces quatre lectures, faites
+  // l'une après l'autre, coûtaient un quart de seconde avant le modèle.
+  // Aucune ne lève — chacune a sa valeur de repli —, donc une sortie anticipée
+  // (document introuvable…) ne laisse aucune promesse rejetée derrière elle.
+  const uid = session.user.id;
+  const masteryDb = db as unknown as MasteryDb;
+  const personal = Promise.all([
+    // Sprache: was der Client mitschickt, sonst die im Konto gespeicherte.
+    // Ohne den Rückfall antwortet der Tutor auf Deutsch, obwohl der Studierende
+    // seine Oberfläche auf Französisch gestellt hat.
+    db
+      .select({ locale: userAccess.locale })
+      .from(userAccess)
+      .where(eq(userAccess.userId, uid))
+      .limit(1)
+      .then((r) => r[0]?.locale ?? "de")
+      .catch(() => "de"),
+    // Ce que le tuteur a retenu de cette personne. Une requête, plafonnée à
+    // huit lignes : au-delà, le prompt s'allonge sans que la réponse gagne.
+    openGaps(uid),
+    // Les trois concepts les plus fragiles de CE compte (lib/concept-mastery.ts) :
+    // le tuteur ralentit et vise l'erreur typique. Ne lève pas si la table manque.
+    weakestConcepts(masteryDb, uid, 3).catch(() => []),
+    // Style VARK choisi dans les réglages. Ne lève jamais (→ « interactive »).
+    readLearningStyle(uid),
+    // Professeur choisi (vestiaire). Ne lève jamais (→ « genius »).
+    readProfessor(uid),
+  ]);
 
   let rows;
   let contextLabel = "Alle Kurse";
@@ -764,29 +822,9 @@ app.post("/api/agent/messages", async (c) => {
     MAX_CONTEXT_CHARS,
   );
 
-  // Sprache: was der Client mitschickt, sonst die im Konto gespeicherte.
-  // Ohne den Rückfall antwortet der Tutor auf Deutsch, obwohl der Studierende
-  // seine Oberfläche auf Französisch gestellt hat.
-  const storedLocale = await db
-    .select({ locale: userAccess.locale })
-    .from(userAccess)
-    .where(eq(userAccess.userId, session.user.id))
-    .limit(1)
-    .then((r) => r[0]?.locale ?? "de")
-    .catch(() => "de");
-
-  // Ce que le tuteur a retenu de cette personne. Une requête, plafonnée à
-  // huit lignes : au-delà, le prompt s'allonge sans que la réponse gagne.
-  const uid = session.user.id;
-  // Avec les lacunes, les trois concepts les plus fragiles de CE compte
-  // (lib/concept-mastery.ts) : le tuteur ralentit et vise l'erreur typique.
-  // Les deux lectures partent ensemble ; aucune ne lève si sa table manque.
-  const masteryDb = db as unknown as MasteryDb;
-  const [gaps, weakest] = await Promise.all([openGaps(uid), weakestConcepts(masteryDb, uid, 3).catch(() => [])]);
-  // Style VARK choisi dans les réglages. Ne lève jamais (→ « interactive »).
-  const learningStyle = await readLearningStyle(uid);
-  // Professeur choisi (vestiaire). Ne lève jamais (→ « genius »).
-  const professor = await readProfessor(uid);
+  // Langue enregistrée, lacunes, concepts fragiles, style, professeur : lus
+  // plus haut, pendant la lecture des documents.
+  const [storedLocale, gaps, weakest, learningStyle, professor] = await personal;
 
   // Domain-Based Agent universel (lib/domains/) : matière → famille (méthode
   // du droit, de la médecine, de l'éco… ; niveau scolaire) → spécialisation
@@ -881,6 +919,12 @@ app.post("/api/agent/messages", async (c) => {
       ),
   });
 
+  // Tout ce qui précède l'appel du modèle : réception du corps (un fichier
+  // joint sur un réseau de téléphone), lectures en base, choix des extraits.
+  const prepMs = Date.now() - requestStarted;
+  const announced = Number(c.req.header("content-length"));
+  const bodyBytes = Number.isFinite(announced) && announced > 0 ? announced : null;
+
   const uiStream = await createAgentUIStream({
     agent,
     uiMessages: pruneHistoryFiles(messages),
@@ -969,80 +1013,15 @@ app.post("/api/agent/messages", async (c) => {
       }
       // Une ligne par réponse : délai avant le premier signe de vie, avant le
       // premier mot, durée totale, et ce que le cache a réellement servi.
-      console.log(perfLine({ route, marks: timer.marks(), totalMs: Date.now() - requestStarted, usage, aborted }));
+      const before = { prepMs, bodyBytes, pdfPages: attached.pages };
+      console.log(perfLine({ route, marks: timer.marks(), totalMs: Date.now() - requestStarted, usage, aborted, before }));
     },
     (chunk) => timer.observe(chunk),
   );
 });
 
-// Bilder und PDFs werden als Data-URLs in den Nachrichten mitgeschickt. Da der
-// Client bei jeder Frage den kompletten Verlauf erneut sendet, summieren sich
-// alte Anhänge — die Anfrage wird immer größer, bis sie an der Größengrenze
-// scheitert ("Verbindung unterbrochen"). Für die aktuelle Frage sind nur die
-// Anhänge der letzten Nachricht relevant; ältere werden durch einen kurzen
-// Hinweis ersetzt.
-const MAX_FILES_PER_MESSAGE = 4;
-
-function pruneHistoryFiles(msgs: unknown[]): unknown[] {
-  if (!Array.isArray(msgs) || msgs.length === 0) return msgs;
-
-  let lastUserIndex = -1;
-  for (let i = msgs.length - 1; i >= 0; i -= 1) {
-    const role = (msgs[i] as { role?: string })?.role;
-    if (role === "user") {
-      lastUserIndex = i;
-      break;
-    }
-  }
-
-  return msgs.map((msg, index) => {
-    const m = msg as { role?: string; parts?: unknown[] };
-    if (!Array.isArray(m.parts)) return msg;
-
-    const isCurrent = index === lastUserIndex;
-    let kept = 0;
-    const parts: unknown[] = [];
-
-    for (const part of m.parts) {
-      const p = part as { type?: string; mediaType?: string };
-      const isFile =
-        p?.type === "file" &&
-        (String(p.mediaType ?? "").startsWith("image/") ||
-          p.mediaType === "application/pdf");
-
-      if (!isFile) {
-        parts.push(part);
-        continue;
-      }
-
-      // Letzte Verteidigungslinie: ein Anhang ohne brauchbare Daten lässt sonst
-      // die komplette Anfrage mit HTTP 400 scheitern ("Input should be a valid
-      // string"). Lieber den Anhang weglassen als das Gespräch abbrechen.
-      const url = (part as { url?: unknown }).url;
-      const usable =
-        typeof url === "string" &&
-        ((url.startsWith("data:") && url.includes(";base64,") && url.length > 200) ||
-          url.startsWith("http://") ||
-          url.startsWith("https://"));
-      if (!usable) {
-        parts.push({
-          type: "text",
-          text: "[Anhang konnte nicht gelesen werden]",
-        });
-        continue;
-      }
-      if (isCurrent && kept < MAX_FILES_PER_MESSAGE) {
-        parts.push(part);
-        kept += 1;
-        continue;
-      }
-      // Older (or excess) attachment: keep the trace, drop the payload.
-      parts.push({ type: "text", text: "[Anhang aus einer früheren Nachricht]" });
-    }
-
-    return { ...m, parts };
-  });
-}
+// Pièces jointes des questions passées : lib/chat-attachments.ts
+// (`pruneHistoryFiles`, partagée avec le navigateur, qui élague avant l'envoi).
 
 // Translate an existing conversation into the selected UI language, so a
 // student can flip the language toggle and have the whole exchange follow —

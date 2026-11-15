@@ -1192,3 +1192,57 @@ Dans l'app, ton « module » s'appelle un **Fach** (« Matière » en français)
 **À savoir.** Les documents des autres étudiants importés avant aujourd'hui n'ont pas de module : ils les voient sous « Ganzes Semester » et peuvent les ranger depuis le Dashboard.
 
 Code : `packages/web/src/api/lib/import-scope.ts`, `api/lib/chat-sessions.ts` (module d'une conversation), `src/web/components/document-library.tsx`, `src/web/pages/chat.tsx`.
+
+**État au 15 nov. au soir.** Les deux migrations de schéma ont été lancées sur la base de production (`concept_mastery` créée, `chat_conversation.subject_id` ajoutée). L'étape 2 n'avait rien à écrire : tes 8 documents sont déjà rangés dans « ELT (SEMESTRE 1) ». À noter : ton compte garde 7 modules dont le semestre a été supprimé (ELK, ELT, Elektrotechnik, GWF, PHYSIK, TM2, TZ), vides et invisibles dans l'app ; ils ne gênent rien.
+
+## Latence du Hörsaal : d'où venaient les 36 secondes (15 nov. 2026)
+
+**Le constat, dans les journaux de production.** La question lente du 15 nov. à 07:58 a envoyé 292 547 tokens au modèle en un seul appel, premier signe de vie après 29 s, premier mot après 36 s. Ce n'était pas la recherche dans les documents :
+
+| Ce que le modèle reçoit | Taille |
+|---|---|
+| Règles du tuteur (bloc fixe, mis en cache 1 h) | ≈ 88 000 caractères |
+| Outils (23 : solveurs, recherche, schémas…) | ≈ 50 000 caractères |
+| **Les deux ensemble, mesurés en production** | **≈ 54 000 tokens** |
+| Extraits du cours choisis pour la question | 24 000 caractères au plus (16 extraits, ≈ 9 500 tokens) |
+| **Un PDF joint à la question par le trombone** | **≈ 230 000 tokens ce jour-là** |
+
+Un PDF joint au trombone partait entier au modèle, page par page, texte et image (jusqu'à 20 Mo). Et le navigateur le renvoyait ensuite avec chaque question suivante, pour que le serveur le jette à l'arrivée.
+
+**Une question normale est déjà rapide** : premier mot en 1,2 à 3,5 s (cache chaud : 1,2 à 2 s). Les cas lents sont les pièces jointes, les calculs (le tuteur réfléchit avant d'écrire : 5 à 50 s) et les questions où il cherche dans le cours avant de répondre (2 à 5 s par recherche).
+
+**Ce qui change.**
+
+- **20 pages de PDF au plus par question**, tous fichiers confondus. Le navigateur compte les pages à l'ajout (le fichier ne quitte pas le téléphone pour être refusé), et le serveur recompte avant de décompter une question du quota. Au-delà : « „Skript.pdf“: 120 PDF-Seiten sind zu viel für eine Frage (höchstens 20). Importiere das Dokument unter „Meine Kurse“ … ». Le seuil est `MAX_ATTACHED_PDF_PAGES` dans `packages/web/src/api/lib/chat-attachments.ts` : dis-moi si tu veux un autre chiffre.
+- **Une pièce jointe ne voyage qu'avec sa question.** Les questions suivantes ne la renvoient plus.
+- **Dix secondes sans un mot** : le tableau écrit « Ich lese dein Skript, noch einen Moment … » (« Je lis ton cours, encore un instant … »). Avec un fichier joint : « Ich lese deinen Anhang … ». Sans aucun document : « Das dauert etwas länger … » — on ne dit pas « je lis ton cours » à quelqu'un qui n'en a pas.
+- **Bouton d'envoi** : pendant la réponse il est désactivé et tourne.
+- **Lectures en base en parallèle** avant l'appel du modèle (≈ un quart de seconde de moins par question).
+- **Ligne `[perf]` des journaux** : trois champs de plus, `prep=` (temps avant l'appel du modèle : réception du fichier, lectures en base), `body=` (poids de la requête), `pdf_pages=`. `first_activity − prep` = le temps du modèle seul.
+
+**Ce qui n'a pas changé, à ta demande.** La recherche dans les documents (16 extraits, 24 000 caractères). La réduire à 3 ou 4 extraits aurait économisé ≈ 7 000 tokens sur 65 000, sans effet mesurable sur le délai, et le tuteur aurait cherché plus souvent avant de répondre.
+
+**Pistes non faites, à décider par toi.**
+
+- *Garder le cache chaud.* Le bloc fixe est en cache une heure ; après une heure sans question, la suivante le réécrit (≈ +1 s). Un appel d'entretien toutes les 55 min coûterait ≈ 0,40 $ par jour.
+- *Un cache par langue et par mode.* La règle de langue est en tête du bloc fixe : chaque langue (et chaque mode : examen, calcul) a son propre cache. La déplacer après le bloc partagerait le cache entre toutes les langues ; c'est une retouche du prompt, à tester sur le vrai modèle.
+- *Alléger les 54 000 tokens de règles et d'outils.* C'est le levier de coût le plus fort, et un changement de comportement du tuteur.
+- *Importer en un geste.* Quand un PDF est refusé au trombone, proposer un bouton « In Meine Kurse importieren ».
+
+Essai de bout en bout : `C:\Users\HP\AppData\Local\Temp\tred-perf\latency-e2e.ts` (vrai navigateur, 32 vérifications). Code : `api/lib/chat-attachments.ts`, `api/lib/pdf-pages.ts`, `api/lib/chat-perf.ts`, `src/web/lib/pdf-pages.ts`, `src/web/lib/patience.ts`.
+
+## Inscription : la limite « 3 requêtes / 10 s » valait pour tout le monde (15 nov. 2026)
+
+**Le défaut.** Better Auth limite l'inscription et la connexion à 3 requêtes par 10 secondes et par visiteur. Depuis sa version 1.7.13 (montée le 9 nov.), il ne reconnaissait plus le visiteur derrière Railway et rangeait tous les visiteurs dans le même compteur. Trois inscriptions dans les mêmes dix secondes bloquaient la quatrième personne.
+
+**Corrigé, avec ton accord** : il lit maintenant `x-real-ip`, l'en-tête que le réseau de Railway pose lui-même avec l'adresse du client. Chaque visiteur a son compteur ; la limite elle-même ne change pas.
+
+**Un point de vie privée, réglé au passage.** Dès que Better Auth sait lire l'adresse du visiteur, il la range aussi dans chaque session (colonne `ip_address`, vide jusqu'ici en production). J'ai empêché cela : l'adresse sert au compteur, en mémoire, dix secondes ; elle n'est pas enregistrée. Rien à ajouter à la Datenschutzerklärung pour ce changement.
+
+**À savoir.** Si un jour un autre service passe devant le site (Cloudflare, un CDN), `x-real-ip` deviendra l'adresse de ce service : il faudra revoir `packages/web/src/api/lib/client-ip.ts`.
+
+**Vérifié au passage** (15 nov., une requête d'essai avec des en-têtes forgés, visible dans les journaux sous `verification-entetes`) : le réseau de Railway remplace un `X-Forwarded-For` écrit par le visiteur. La limite de débit propre à l'app (`api/middleware/rate-limit.ts`), qui lit la première adresse de cet en-tête, ne se contourne donc pas ainsi.
+
+## Import : plus de cinq fichiers d'un coup (15 nov. 2026)
+
+Le lot entier est refusé avant tout envoi, comme avant. Le message dit maintenant la limite, que rien n'est parti, et quoi faire : « Maximum 5 fichiers par lot. Rien n'a été importé : choisis-en 5 au plus, puis recommence pour les suivants. » (« Maximal 5 Dateien pro Stapel. … »), dans les douze langues.

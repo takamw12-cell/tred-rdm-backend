@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Brain, ChevronLeft, ChevronRight, Eye, Loader2, RotateCcw, SearchCheck, Target, Wrench, type LucideIcon } from "lucide-react";
 import { reasoningKind, type ReasoningKind } from "../../api/lib/reasoning-engine";
@@ -6,6 +6,7 @@ import { MarkdownContent } from "@/components/markdown-content";
 import { AiAnswer, parseAnswer, SourceCard } from "@/components/ai-answer";
 import { BoardStatus, GlassBoard, INK, PaperNote, SolverStamp, StepChecklist } from "@/components/hoersaal";
 import { isFinalStep, splitChoices, writingChunks, type Choice, type TafelBlock } from "@/lib/tafel";
+import { PATIENCE_MS } from "@/lib/patience";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
 
@@ -45,6 +46,7 @@ export interface TafelPage {
 export function TafelBoard({
   page,
   writing,
+  patience,
   status,
   pager,
   emptyExtra,
@@ -61,6 +63,8 @@ export function TafelBoard({
   page?: TafelPage;
   /** Cette page est encore en cours d'écriture (flux). */
   writing: boolean;
+  /** Dix secondes sans un mot : la phrase écrite à la place de la réponse (lib/patience.ts). */
+  patience?: string;
   /** Le document de la session (« Kurs: … »), toujours visible en haut du tableau. */
   scopeBadge?: ReactNode;
   /** La session du document arrive : le tableau vide attend, sans l'invitation. */
@@ -257,7 +261,7 @@ export function TafelBoard({
           })}
 
           {/* Rien d'écrit encore : la place de la réponse est déjà là. */}
-          {writing && blocks.length === 0 && <WritingPlaceholder />}
+          {writing && blocks.length === 0 && <WritingPlaceholder patience={patience} />}
 
           {notice && <div className="w-full">{notice}</div>}
 
@@ -576,12 +580,27 @@ function ReasoningPostIt({
 }
 
 /** Avant le premier mot : trois traits de feutre pâles. */
-function WritingPlaceholder() {
+function WritingPlaceholder({ patience }: { patience?: string }) {
+  // Dix secondes sans un mot (lib/patience.ts). Le compte part quand la place
+  // de la réponse apparaît — la question vient de partir — et s'arrête avec
+  // elle : au premier mot ce bloc disparaît, et sa phrase aussi.
+  const [late, setLate] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setLate(true), PATIENCE_MS);
+    return () => clearTimeout(timer);
+  }, []);
   return (
-    <div aria-hidden className="w-full max-w-xl space-y-3 py-2 motion-safe:animate-pulse">
-      <div className="h-3 w-11/12 rounded-full bg-[color:var(--board-pill)]" />
-      <div className="h-3 w-4/5 rounded-full bg-[color:var(--board-pill)]" />
-      <div className="h-3 w-2/3 rounded-full bg-[color:var(--board-pill)]" />
+    <div className="w-full max-w-xl py-2">
+      <div aria-hidden className="space-y-3 motion-safe:animate-pulse">
+        <div className="h-3 w-11/12 rounded-full bg-[color:var(--board-pill)]" />
+        <div className="h-3 w-4/5 rounded-full bg-[color:var(--board-pill)]" />
+        <div className="h-3 w-2/3 rounded-full bg-[color:var(--board-pill)]" />
+      </div>
+      {late && patience && (
+        <output data-testid="board-patience" className="font-hand mt-4 block text-2xl leading-snug text-[color:var(--board-muted)]">
+          {patience}
+        </output>
+      )}
     </div>
   );
 }

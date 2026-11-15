@@ -6,6 +6,7 @@ import { DefaultChatTransport, type UIMessage } from "ai";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
+  Loader2,
   Sparkles,
   X,
   Library,
@@ -52,6 +53,9 @@ import { CameraCapture } from "@/components/camera-capture";
 import { Scratchpad } from "@/components/scratchpad";
 import { downscaleImageToDataUrl, downscaleDataUrl, isUsableDataUrl } from "@/lib/image";
 import { readChatFailure } from "@/lib/chat-error";
+import { countPdfPages } from "@/lib/pdf-pages";
+import { patienceKey } from "@/lib/patience";
+import { MAX_ATTACHED_PDF_PAGES, pdfPagesExceeded, pruneHistoryFiles } from "../../api/lib/chat-attachments";
 import { QuotaBanner } from "@/components/quota-banner";
 import { useAdStore } from "@/stores/ads";
 import { SmartPaywallModal } from "@/components/SmartPaywallModal";
@@ -260,6 +264,8 @@ export default function ChatPage() {
     name: string;
     url: string; // data URL
     mediaType: string;
+    /** Pages d'un PDF, comptées à l'ajout (lib/pdf-pages.ts). Absent : image, texte, PDF illisible ici. */
+    pages?: number;
     kind: "image" | "doc"; // image → thumbnail + vision; doc → file chip
     text?: string; // extracted plain text for .txt files
   };
@@ -308,6 +314,13 @@ export default function ChatPage() {
     if (!files || files.length === 0) return;
     setAttachError(null);
     const accepted: File[] = [];
+    // Un PDF joint part au modèle page par page (texte + image) : une centaine
+    // de pages, c'était 230 000 tokens et 36 s avant le premier mot (15 nov.
+    // 2026). La limite vaut pour TOUS les PDF de la question ; un Skript entier
+    // va dans « Meine Kurse ». Compté ici, avant l'envoi : le fichier ne quitte
+    // pas le téléphone pour être refusé à l'arrivée.
+    const pagesOf = new Map<File, number>();
+    let pdfPages = attachments.reduce((n, a) => n + (a.pages ?? 0), 0);
     for (const f of Array.from(files)) {
       const isImage = f.type.startsWith("image/");
       if (imagesOnly && !isImage) continue;
@@ -318,6 +331,18 @@ export default function ChatPage() {
       if (f.size > MAX_FILE_BYTES) {
         setAttachError(t("chat.fileTooLarge", { name: f.name }));
         continue;
+      }
+      if (f.type === "application/pdf" || /\.pdf$/i.test(f.name)) {
+        // `null` : PDF illisible ici (protégé, abîmé) — il passe comme avant, le serveur recompte.
+        const pages = await countPdfPages(f);
+        if (pages !== null && pdfPagesExceeded(pdfPages + pages)) {
+          setAttachError(t("chat.pdfTooLong", { name: f.name, pages: pdfPages + pages, max: MAX_ATTACHED_PDF_PAGES }));
+          continue;
+        }
+        if (pages !== null) {
+          pdfPages += pages;
+          pagesOf.set(f, pages);
+        }
       }
       accepted.push(f);
     }
@@ -344,6 +369,7 @@ export default function ChatPage() {
             : f.type || (isText ? "text/plain" : "application/octet-stream"),
           kind: isImage ? "image" : "doc",
           text: isText ? await fileToText(f) : undefined,
+          pages: pagesOf.get(f),
         };
       }),
     );
@@ -593,6 +619,14 @@ export default function ChatPage() {
           // Rattache les calculs des solveurs à cette conversation (vidéo explicative).
           conversationId: convIdRef.current,
         }),
+        // Une pièce jointe ne voyage qu'avec SA question. Sans cela, chaque
+        // question suivante réexpédiait les fichiers des précédentes (jusqu'à
+        // 20 Mo par PDF, sur un réseau de téléphone) pour que le serveur les
+        // jette à l'arrivée. Même élagage que lui (api/lib/chat-attachments.ts) ;
+        // l'affichage, lui, garde ses vignettes : seul le corps envoyé change.
+        prepareSendMessagesRequest: ({ id, messages, body, trigger, messageId }) => ({
+          body: { ...body, id, messages: pruneHistoryFiles(messages), trigger, messageId },
+        }),
       }),
     [],
   );
@@ -630,6 +664,15 @@ export default function ChatPage() {
     busy && (lastMsg?.role !== "assistant" || !isStreamingText(lastMsg));
   // Libellé : l'étape en cours — analyse, recherche, calcul… (lib/chat-phase.ts).
   const phase = chatPhase(busy && lastMsg?.role === "assistant" ? lastMsg.parts : undefined);
+  // Le bouton d'envoi dit la même chose aux lecteurs d'écran pendant qu'il tourne.
+  const busyLabel = waitingForText ? t(PHASE_KEY[phase]) : t("tafel.writing");
+  // Dix secondes sans un mot : le tableau dit ce que le tuteur lit (lib/patience.ts).
+  // La question en cours porte-t-elle un fichier ? Sa portée a-t-elle des documents ?
+  const questionHasFiles = useMemo(() => {
+    const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    return (lastUser?.parts ?? []).some((p) => p.type === "file");
+  }, [messages]);
+  const scopeHasDocs = !!session.doc || scopeDocs.some((d) => !chatSubject || d.subjectId === chatSubject);
   // Flux terminé sans un mot (boucle d'outils, coupure…) : on le dit.
   const emptyAnswer = !busy && !error && lastAssistantEmpty !== null;
 
@@ -1256,6 +1299,16 @@ export default function ChatPage() {
    * dans `error.message`, déguisé par le transport.
    */
   const echec = useMemo(() => readChatFailure(error), [error]);
+  // Le ou les PDF de la question refusée, pour les nommer dans le message.
+  const refusedPdfName = useMemo(() => {
+    if (echec.kind !== "attachment") return "";
+    const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    const names = (lastUser?.parts ?? []).flatMap((p) => {
+      const f = p as { type: string; mediaType?: string; filename?: string };
+      return f.type === "file" && f.mediaType === "application/pdf" ? [f.filename || "PDF"] : [];
+    });
+    return names.join(", ") || "PDF";
+  }, [echec, messages]);
 
   /**
    * Paywall intelligent : un quota épuisé ouvre la modale (Premium / vidéo
@@ -1315,7 +1368,8 @@ export default function ChatPage() {
   const autoRetried = useRef<string | null>(null);
   useEffect(() => {
     if (!error || busy) return;
-    if (echec.kind === "quota") return;
+    // Pièce jointe refusée : relancer renverrait le même fichier pour le même refus.
+    if (echec.kind === "quota" || echec.kind === "attachment") return;
     const lastUser = [...messagesRef.current].reverse().find((m) => m.role === "user");
     const turnKey = lastUser?.id ?? "none";
     if (autoRetried.current === turnKey) return;
@@ -1734,9 +1788,13 @@ export default function ChatPage() {
           className="brand-gradient size-8 shrink-0 text-white"
           onClick={() => send(input)}
           disabled={(!input.trim() && attachments.length === 0) || busy}
-          aria-label={t("common.send")}
+          // Pendant la réponse : désactivé ET visiblement au travail. L'avion en
+          // papier pâli ne disait rien — on a vu des clics répétés sur téléphone.
+          aria-busy={busy}
+          aria-label={busy ? busyLabel : t("common.send")}
+          data-testid="send-button"
         >
-          <Send className="size-4" />
+          {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
         </Button>
       </div>
     </div>
@@ -1751,7 +1809,14 @@ export default function ChatPage() {
       <QuotaBanner />
       {/* Upload error (unsupported type / too large) */}
       {attachError && (
-        <div className="text-destructive mb-2 flex items-center gap-2 text-xs">
+        // Sur une carte claire, aux couleurs FIXES : le rebord du tableau est
+        // gris-bleu dans les deux thèmes. En rouge directement dessus, le texte
+        // était à 2,9:1 ; sur la carte du thème sombre, sous 4,5:1 (mesuré le
+        // 15 nov. 2026). Ici #991B1B sur #FEF2F2 = 7,6:1, quel que soit le
+        // thème. mr-12 : la carte s'arrête AVANT le bouton rond « pause du
+        // fond » (components/dynamic-background.tsx) — le refus d'un PDF trop
+        // long tient sur deux lignes.
+        <div role="alert" data-testid="attach-error" className="mr-12 mb-2 flex items-center gap-2 rounded-lg bg-[#FEF2F2] px-3 py-2 text-xs font-medium text-[#991B1B] shadow-sm ring-1 ring-[#FCA5A5]">
           <X className="size-3.5 shrink-0" />
           <span>{attachError}</span>
         </div>
@@ -2355,6 +2420,7 @@ export default function ChatPage() {
                   loading={scopeLoading}
                   page={activePage}
                   writing={busy && onLastPage}
+                  patience={t(patienceKey({ attachment: questionHasFiles, documents: scopeHasDocs }))}
                   status={
                     translating
                       ? t("chat.translating")
@@ -2440,6 +2506,11 @@ export default function ChatPage() {
                               }}
                             />
                           </>
+                        ) : echec.kind === "attachment" ? (
+                          /* Pas de bouton « relancer » : le même fichier donnerait le même refus. */
+                          <p className="text-destructive" data-testid="attachment-refused">
+                            {t("chat.pdfTooLong", { name: refusedPdfName, pages: echec.pages ?? `> ${echec.max}`, max: echec.max })}
+                          </p>
                         ) : (
                           <>
                             <p className="text-destructive">

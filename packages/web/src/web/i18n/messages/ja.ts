@@ -315,6 +315,12 @@ export const ja: PartialMessages = {
     attachCamera: "カメラ",
     attachCameraHint: "写真を撮る",
     fileTooLarge: "「{name}」が大きすぎます（最大 20 MB）",
+    // PDF joints à une question : 20 pages au plus, tous fichiers confondus ({pages} = le total que porterait la question).
+    pdfTooLong: "「{name}」：PDF {pages}ページは1つの質問には多すぎます（最大{max}ページ）。「Meine Kurse」に取り込むと、TREDが全体を検索してページを引用します。",
+    // Dix secondes sans un mot au tableau (lib/patience.ts) : on dit ce que le tuteur lit.
+    patienceReading: "講義資料を読んでいます。もう少しお待ちください …",
+    patienceAttachment: "添付ファイルを読んでいます。もう少しお待ちください …",
+    patienceGeneric: "少し時間がかかっています。もう少しお待ちください …",
     imageFailed: "画像「{name}」を処理できませんでした。撮り直すか、別の写真を選んでください。",
     fileType: "「{name}」は対応していないファイル形式です",
     cameraTitle: "写真を撮る",
@@ -388,6 +394,8 @@ export const ja: PartialMessages = {
     start: "復習を始める",
   },
   library: {
+    // Plus de cinq fichiers choisis d'un coup : le lot entier est refusé avant l'envoi.
+    tooManyFiles: "1回にインポートできるのは最大5ファイルです。何もインポートされていません。5ファイルまで選び、残りは繰り返してください。",
     // Module (Fach) choisi en haut du Hörsaal : le panneau ne liste que ses documents (2026-11-15).
     emptySubject: "この科目にはまだ資料がありません。アップロードしてください。",
     unassignedHint: "科目なしの資料：{n}件。「{label}」にあります。",

@@ -315,6 +315,12 @@ export const ru: PartialMessages = {
     attachCamera: "Камера",
     attachCameraHint: "Сделать фото",
     fileTooLarge: "«{name}» слишком большой (до 20 МБ)",
+    // PDF joints à une question : 20 pages au plus, tous fichiers confondus ({pages} = le total que porterait la question).
+    pdfTooLong: "«{name}»: {pages} стр. PDF — слишком много для одного вопроса (не больше {max}). Импортируй файл в «Meine Kurse»: TRED просмотрит его целиком и укажет страницу.",
+    // Dix secondes sans un mot au tableau (lib/patience.ts) : on dit ce que le tuteur lit.
+    patienceReading: "Читаю твой конспект, ещё минутку …",
+    patienceAttachment: "Читаю твоё вложение, ещё минутку …",
+    patienceGeneric: "Это занимает чуть больше времени, ещё минутку …",
     imageFailed: "Не удалось обработать изображение «{name}». Сними заново или выбери другое фото.",
     fileType: "«{name}» — неподдерживаемый тип файла",
     cameraTitle: "Сделать фото",
@@ -388,6 +394,8 @@ export const ru: PartialMessages = {
     start: "Повторить сейчас",
   },
   library: {
+    // Plus de cinq fichiers choisis d'un coup : le lot entier est refusé avant l'envoi.
+    tooManyFiles: "Не больше 5 файлов за раз. Ничего не импортировано: выбери до 5 файлов, затем повтори для остальных.",
     // Module (Fach) choisi en haut du Hörsaal : le panneau ne liste que ses documents (2026-11-15).
     emptySubject: "В этом предмете пока нет документов. Загрузи первый.",
     unassignedHint: "Документов без предмета: {n}. Они в разделе «{label}».",

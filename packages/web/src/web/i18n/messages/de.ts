@@ -402,6 +402,12 @@ export const de = {
     attachCamera: "Kamera",
     attachCameraHint: "Ein Foto aufnehmen",
     fileTooLarge: "„{name}“ ist zu groß (max. 20 MB)",
+    // PDF joints à une question : 20 pages au plus, tous fichiers confondus ({pages} = le total que porterait la question).
+    pdfTooLong: "„{name}“: {pages} PDF-Seiten sind zu viel für eine Frage (höchstens {max}). Importiere das Dokument unter „Meine Kurse“ – dann durchsucht TRED es ganz und zitiert die Seite.",
+    // Dix secondes sans un mot au tableau (lib/patience.ts) : on dit ce que le tuteur lit.
+    patienceReading: "Ich lese dein Skript, noch einen Moment …",
+    patienceAttachment: "Ich lese deinen Anhang, noch einen Moment …",
+    patienceGeneric: "Das dauert etwas länger, noch einen Moment …",
     imageFailed: "Bild „{name}“ konnte nicht verarbeitet werden. Bitte erneut aufnehmen oder ein anderes Foto wählen.",
     fileType: "„{name}“ hat einen nicht unterstützten Dateityp",
     cameraTitle: "Foto aufnehmen",
@@ -552,7 +558,7 @@ export const de = {
     passwordProtected: "Diese PDF ist mit einem Passwort geschützt. Entferne den Schutz und lade sie erneut hoch.",
     corrupted: "Diese Datei ist beschädigt und lässt sich nicht öffnen.",
     emptyFile: "Diese Datei ist leer.",
-    tooManyFiles: "Höchstens 5 Dateien auf einmal.",
+    tooManyFiles: "Maximal 5 Dateien pro Stapel. Es wurde nichts importiert: Wähle höchstens 5 aus und wiederhole den Import für die übrigen.",
     batchTooLarge: "Zusammen höchstens 100 MB auf einmal.",
     documentLimit: "Das Dokumenten-Limit deines Tarifs ist erreicht.",
     dropHere: "Dateien hier ablegen (höchstens 5)",

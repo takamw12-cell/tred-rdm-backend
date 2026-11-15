@@ -315,6 +315,12 @@ export const ar: PartialMessages = {
     attachCamera: "الكاميرا",
     attachCameraHint: "التقاط صورة",
     fileTooLarge: "«{name}» كبير جداً (20 ميغابايت كحد أقصى)",
+    // PDF joints à une question : 20 pages au plus, tous fichiers confondus ({pages} = le total que porterait la question).
+    pdfTooLong: "«{name}»: {pages} صفحة PDF كثيرة على سؤال واحد (الحد الأقصى {max}). استورده في «Meine Kurse»: عندها يبحث TRED في المستند كاملاً ويذكر الصفحة.",
+    // Dix secondes sans un mot au tableau (lib/patience.ts) : on dit ce que le tuteur lit.
+    patienceReading: "أقرأ مادّتك، لحظة أخرى …",
+    patienceAttachment: "أقرأ مرفقك، لحظة أخرى …",
+    patienceGeneric: "يستغرق الأمر وقتاً أطول قليلاً، لحظة أخرى …",
     imageFailed: "تعذّرت معالجة الصورة «{name}». التقطها من جديد أو اختر صورة أخرى.",
     fileType: "«{name}» من نوع ملف غير مدعوم",
     cameraTitle: "التقاط صورة",
@@ -388,6 +394,8 @@ export const ar: PartialMessages = {
     start: "راجع الآن",
   },
   library: {
+    // Plus de cinq fichiers choisis d'un coup : le lot entier est refusé avant l'envoi.
+    tooManyFiles: "5 ملفات كحد أقصى في الدفعة الواحدة. لم يُستورد أي ملف: اختر 5 على الأكثر ثم كرّر العملية للبقية.",
     // Module (Fach) choisi en haut du Hörsaal : le panneau ne liste que ses documents (2026-11-15).
     emptySubject: "لا توجد مستندات في هذه المادة بعد. ارفع واحدًا.",
     unassignedHint: "مستندات بلا مادة: {n}. تجدها في «{label}».",

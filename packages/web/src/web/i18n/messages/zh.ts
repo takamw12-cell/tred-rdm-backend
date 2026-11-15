@@ -315,6 +315,12 @@ export const zh: PartialMessages = {
     attachCamera: "相机",
     attachCameraHint: "拍一张照片",
     fileTooLarge: "「{name}」过大（最大 20 MB）",
+    // PDF joints à une question : 20 pages au plus, tous fichiers confondus ({pages} = le total que porterait la question).
+    pdfTooLong: "「{name}」：{pages} 页 PDF 对一个问题来说太多了（最多 {max} 页）。请在「Meine Kurse」中导入：TRED 会检索整份文档并标明页码。",
+    // Dix secondes sans un mot au tableau (lib/patience.ts) : on dit ce que le tuteur lit.
+    patienceReading: "我正在读你的课程资料，请再稍等 …",
+    patienceAttachment: "我正在读你的附件，请再稍等 …",
+    patienceGeneric: "这次需要多一点时间，请再稍等 …",
     imageFailed: "无法处理图片「{name}」。请重拍或换一张。",
     fileType: "「{name}」的文件类型不受支持",
     cameraTitle: "拍照",
@@ -388,6 +394,8 @@ export const zh: PartialMessages = {
     start: "开始复习",
   },
   library: {
+    // Plus de cinq fichiers choisis d'un coup : le lot entier est refusé avant l'envoi.
+    tooManyFiles: "每批最多 5 个文件。尚未导入任何文件：请最多选择 5 个，其余的再分批导入。",
     // Module (Fach) choisi en haut du Hörsaal : le panneau ne liste que ses documents (2026-11-15).
     emptySubject: "这门科目还没有资料。上传一份吧。",
     unassignedHint: "未归类的资料：{n}。可在「{label}」中找到。",

@@ -379,7 +379,7 @@ export function DocumentLibrary({
             {busy ? progress : t("library.upload")}
           </Button>
           {uploadError && (
-            <p className="text-destructive mt-2 text-xs font-medium">{uploadError}</p>
+            <p role="alert" data-testid="upload-error" className="text-destructive mt-2 text-xs font-medium">{uploadError}</p>
           )}
           {/* La file du lot, ici quand l'écran d'attente est masqué — et après la fin, s'il reste des échecs à lire. */}
           {queue && queueSummary && (!busy || waitHidden) && (

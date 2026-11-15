@@ -315,6 +315,12 @@ export const pt: PartialMessages = {
     attachCamera: "Câmara",
     attachCameraHint: "Tirar uma foto",
     fileTooLarge: "«{name}» é demasiado grande (máx. 20 MB)",
+    // PDF joints à une question : 20 pages au plus, tous fichiers confondus ({pages} = le total que porterait la question).
+    pdfTooLong: "«{name}»: {pages} páginas de PDF são demasiadas para uma pergunta (máximo {max}). Importa-o em «Meine Kurse»: o TRED percorre-o por inteiro e cita a página.",
+    // Dix secondes sans un mot au tableau (lib/patience.ts) : on dit ce que le tuteur lit.
+    patienceReading: "Estou a ler o teu curso, só mais um momento …",
+    patienceAttachment: "Estou a ler o teu anexo, só mais um momento …",
+    patienceGeneric: "Está a demorar um pouco mais, só mais um momento …",
     imageFailed: "Não foi possível processar a imagem «{name}». Tira-a de novo ou escolhe outra.",
     fileType: "«{name}» tem um tipo de ficheiro não suportado",
     cameraTitle: "Tirar uma foto",
@@ -388,6 +394,8 @@ export const pt: PartialMessages = {
     start: "Rever agora",
   },
   library: {
+    // Plus de cinq fichiers choisis d'un coup : le lot entier est refusé avant l'envoi.
+    tooManyFiles: "Máximo de 5 ficheiros por lote. Nada foi importado: escolhe no máximo 5 e repete para os restantes.",
     // Module (Fach) choisi en haut du Hörsaal : le panneau ne liste que ses documents (2026-11-15).
     emptySubject: "Ainda não há documentos nesta disciplina. Carrega um.",
     unassignedHint: "Documentos sem disciplina: {n}. Estão em «{label}».",

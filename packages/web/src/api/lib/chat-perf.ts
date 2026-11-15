@@ -11,6 +11,14 @@
  *
  * Mesuré côté serveur depuis l'arrivée de la requête : requêtes en base,
  * choix des extraits et modèle compris. Ni texte, ni identité dans la ligne.
+ *
+ * Depuis le 15 nov. 2026, la ligne dit aussi ce qui s'est passé AVANT le modèle :
+ *
+ *   prep       de l'arrivée de la requête à l'appel du modèle : réception du
+ *              corps (un fichier joint sur un réseau de téléphone), lectures en
+ *              base, choix des extraits. `first_activity − prep` = le modèle seul.
+ *   body       poids du corps de la requête (en-tête Content-Length)
+ *   pdf_pages  pages de PDF jointes à la question (absent s'il n'y en a pas)
  */
 import type { Route } from "./chat-routing";
 
@@ -55,12 +63,19 @@ export function perfLine(a: {
   totalMs: number;
   usage: { steps: number; input: number; cacheRead: number; cacheWrite: number; output: number };
   aborted: boolean;
+  /** Ce qui précède l'appel du modèle. Absent = ligne d'avant, inchangée. */
+  before?: { prepMs: number; bodyBytes: number | null; pdfPages: number };
 }): string {
   const ms = (v: number | null) => (v === null ? "-" : `${v}ms`);
+  const before = a.before
+    ? ` prep=${a.before.prepMs}ms body=${a.before.bodyBytes === null ? "-" : `${Math.round(a.before.bodyBytes / 1024)}kB`}` +
+      (a.before.pdfPages > 0 ? ` pdf_pages=${a.before.pdfPages}` : "")
+    : "";
   return (
     `[perf] tier=${a.route.tier} model=${a.route.modelId.replace(/^anthropic\//, "")} thinking=${a.route.thinking}` +
     ` reason="${a.route.reason}" first_activity=${ms(a.marks.firstActivityMs)} first_text=${ms(a.marks.firstTextMs)}` +
     ` total=${a.totalMs}ms steps=${a.usage.steps} in=${a.usage.input}tok cache_read=${a.usage.cacheRead}tok` +
-    ` cache_write=${a.usage.cacheWrite}tok out=${a.usage.output}tok aborted=${a.aborted ? "yes" : "no"}`
+    ` cache_write=${a.usage.cacheWrite}tok out=${a.usage.output}tok aborted=${a.aborted ? "yes" : "no"}` +
+    before
   );
 }
