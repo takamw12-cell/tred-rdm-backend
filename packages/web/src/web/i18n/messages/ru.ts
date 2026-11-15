@@ -25,6 +25,7 @@ export const ru: PartialMessages = {
     pricing: "Подписка",
     menu: "Меню",
     explorer: "3D-обозреватель",
+    minigame: "Мини-игра",
   },
   background: {
     pause: "Остановить фон",

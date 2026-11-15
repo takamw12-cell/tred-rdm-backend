@@ -73,6 +73,7 @@ export const es: Messages = {
     pricing: "Precios",
     menu: "Menú",
     explorer: "Explorador 3D",
+    minigame: "Minijuego",
   },
   common: {
     student: "Estudiante",
@@ -248,6 +249,13 @@ export const es: Messages = {
     errorTerms: "Debes aceptar las condiciones.",
   },
   dashboard: {
+    // Section « cartes qui se retournent » du Dashboard (components/flip-deck.tsx).
+    cardsTitle: "Tarjetas interactivas",
+    cardsHint: "Toca la tarjeta para girarla.",
+    cardsQuestion: "Pregunta",
+    cardsAnswer: "Respuesta",
+    cardsNext: "Siguiente tarjeta",
+    cardsMine: "Mis tarjetas",
     programPlaceholder: "p. ej. Luft- und Raumfahrttechnik",
     deleteSemester: "Eliminar semestre",
     greeting: "Hola {name}",
@@ -1128,5 +1136,30 @@ export const es: Messages = {
     askHint: "La pregunta queda en el campo de texto: la envías tú.",
     test: "Ponte a prueba",
     professorSays: "{name} explica",
+  },
+  // Mini-jeu « Triebwerk-Check » (pages/minigame.tsx).
+  minigame: {
+    title: "Reto del motor",
+    subtitle: "Toca la pieza correcta en el corte.",
+    loading: "Cargando el juego …",
+    round: "Pregunta {n} de {total}",
+    score: "puntos",
+    streak: "Racha ×{n}",
+    correct: "¡Correcto!",
+    wrong: "No del todo: era «{name}»",
+    next: "Siguiente",
+    finishedTitle: "¡Hecho!",
+    result: "{correct} de {total} correctas · {points} puntos",
+    again: "Jugar otra vez",
+    toExplorer: "Ver en el Explorador 3D",
+    zone: "Zona {n}",
+    keysHint: "Toca o teclas 1–6",
+    canvasLabel: "Corte de un motor turbofán con seis zonas numeradas.",
+    medal: {
+      gold: "Oro: conoces el motor al dedillo.",
+      silver: "Plata: casi todo está en su sitio.",
+      bronze: "Bronce: un buen comienzo.",
+      retry: "Echa otro vistazo al modelo en el Explorador 3D.",
+    },
   },
 };

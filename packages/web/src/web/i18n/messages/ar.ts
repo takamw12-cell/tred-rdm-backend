@@ -25,6 +25,7 @@ export const ar: PartialMessages = {
     pricing: "الاشتراك",
     menu: "القائمة",
     explorer: "المستكشف ثلاثي الأبعاد",
+    minigame: "لعبة صغيرة",
   },
   background: {
     pause: "إيقاف الخلفية مؤقتًا",

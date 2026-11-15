@@ -1,4 +1,5 @@
 import { Route, Switch, Redirect, useLocation, useSearch } from "wouter";
+import { PageTransition } from "./components/page-transition";
 import LegalPage from "@/pages/legal";
 import SecurityPage from "@/pages/security";
 import LandingPage from "@/pages/landing";
@@ -53,6 +54,8 @@ const ExercisesPage = lazyPage(() => import("./pages/exercises"));
 const FlashcardsPage = lazyPage(() => import("./pages/flashcards"));
 // Explorateur 3D : Three.js ne se charge qu'à l'ouverture de cette page.
 const ExplorerPage = lazyPage(() => import("./pages/explorer"));
+// Mini-jeu : Phaser ne se charge qu'à l'ouverture de cette page.
+const MiniGamePage = lazyPage(() => import("./pages/minigame"));
 const FormulasPage = lazyPage(() => import("./pages/formulas"));
 const ExamPage = lazyPage(() => import("./pages/exam"));
 const SettingsPage = lazyPage(() => import("./pages/settings"));
@@ -105,6 +108,7 @@ function AuthedApp() {
               zone de la page affiche l'écran de secours ; changer de page
               réessaie (resetKey). La barrière « app » reste le dernier filet. */}
           <ErrorBoundary area="page" resetKey={location}>
+          <PageTransition location={location}>
           <Switch>
             <Route path="/dashboard" component={DashboardPage} />
             <Route path="/chat" component={ChatPage} />
@@ -113,6 +117,7 @@ function AuthedApp() {
             <Route path="/exercises" component={ExercisesPage} />
             <Route path="/flashcards" component={FlashcardsPage} />
             <Route path="/explorer" component={ExplorerPage} />
+            <Route path="/minigame" component={MiniGamePage} />
             <Route path="/formulas" component={FormulasPage} />
             <Route path="/settings" component={SettingsPage} />
             <Route path="/pricing" component={PricingPage} />
@@ -128,6 +133,7 @@ function AuthedApp() {
             <Route path="/admin">{() => <AdminGate><AdminPage /></AdminGate>}</Route>
             <Route component={RootRedirect} />
           </Switch>
+          </PageTransition>
           </ErrorBoundary>
         </AppLayout>
         </ErrorBoundary>

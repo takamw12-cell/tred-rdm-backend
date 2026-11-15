@@ -1282,3 +1282,21 @@ Nouvelle page **« 3D-Explorer »** (`/explorer`, entrée dans la barre latéral
 - *Phaser 4.2.1* (MIT) est installé pour le mini-jeu du chantier 2.
 
 Code : `src/web/pages/explorer.tsx`, `src/web/components/Explorer3D.tsx` (chargé à la demande), `src/web/components/formula-steps.tsx`, `src/web/lib/explorer-models.ts` (modèles et textes). Essai : `tred-perf\explorer-shot.ts`.
+
+## Plateforme visuelle — chantiers 2 à 5 : mini-jeu, cartes, transitions (15 nov. 2026)
+
+- **Mini-jeu « Triebwerk-Check »** (`/minigame`, Phaser 4.2.1) : huit questions, on touche la bonne pièce sur la coupe du moteur. Points, bonus de rapidité, série (×1,5 à trois bonnes réponses de suite, ×2 à cinq), médaille à la fin. Le professeur hoche la tête ou la secoue. Jouable au clavier (touches 1–6, Entrée). Les questions sont celles de l'Explorateur : on apprend là-bas, on vérifie ici. Il se lance depuis le Dashboard (« Mini-Spiel ») et depuis l'Explorateur (« Wissen testen »).
+- **Dashboard** : deux nouvelles tuiles d'accès rapide (« 3D-Explorer », « Mini-Spiel ») et une section **« Interaktive Karteikarten »** : une carte qui se retourne en 3D, question au recto, réponse au verso. Les cartes tirées des documents de l'étudiant restent sur la page « Karteikarten », à un clic.
+- **Transitions** : chaque page arrive en fondu-glissé sur un ressort (Framer Motion). Le Hörsaal est laissé tel quel, il a sa propre chorégraphie.
+- **Ressorts** : tous les boutons s'enfoncent à l'appui et reviennent sur une courbe de ressort ; les tuiles du Dashboard et la carte se soulèvent au survol.
+- **Mouvement réduit** (réglage du téléphone ou de l'ordinateur) : aucune de ces animations ne joue.
+
+**Écarts avec ton brief.**
+
+- *Les cartes qui se retournent en 3D existaient déjà* sur la page « Karteikarten ». La section du Dashboard en est une vitrine, avec les cartes du moteur.
+- *Les pages animaient déjà l'arrivée de leurs blocs.* La transition ajoutée couvre toutes les pages d'un seul geste, à l'entrée seulement : aucune animation de sortie ne retarde la navigation.
+- *Le ressort des boutons est en CSS*, pas en Framer Motion : il vaut ainsi pour tous les boutons de l'app sans les réécrire.
+- *Pas de personnage Rive.* Le hochement de tête du professeur est fait avec Framer Motion, sur son portrait existant.
+- *Poids de Phaser* : 1,4 Mo (372 Ko compressé), téléchargé seulement à l'ouverture du mini-jeu. C'est le prix d'un vrai moteur de jeu ; si le mini-jeu reste à ce niveau de simplicité, il pourrait s'en passer.
+
+Code : `src/web/pages/minigame.tsx`, `src/web/components/MiniGame.tsx`, `src/web/lib/minigame.ts` (règles), `src/web/components/flip-deck.tsx`, `src/web/components/page-transition.tsx`. Essai : `tred-perf\visuel-e2e.ts`.

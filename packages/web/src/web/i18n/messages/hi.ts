@@ -25,6 +25,7 @@ export const hi: PartialMessages = {
     pricing: "सदस्यता",
     menu: "मेन्यू",
     explorer: "3D एक्सप्लोरर",
+    minigame: "मिनी गेम",
   },
   background: {
     pause: "पृष्ठभूमि रोकें",

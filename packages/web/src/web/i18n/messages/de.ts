@@ -60,6 +60,7 @@ export const de = {
     pricing: "Abo",
     menu: "Menü",
     explorer: "3D-Explorer",
+    minigame: "Mini-Spiel",
   },
   common: {
     student: "Student",
@@ -235,6 +236,13 @@ export const de = {
     errorTerms: "Du musst die Bedingungen akzeptieren.",
   },
   dashboard: {
+    // Section « cartes qui se retournent » du Dashboard (components/flip-deck.tsx).
+    cardsTitle: "Interaktive Karteikarten",
+    cardsHint: "Tippe auf die Karte, um sie umzudrehen.",
+    cardsQuestion: "Frage",
+    cardsAnswer: "Antwort",
+    cardsNext: "Nächste Karte",
+    cardsMine: "Meine Karteikarten",
     programPlaceholder: "Luft- und Raumfahrttechnik",
     deleteSemester: "Semester löschen",
     greeting: "Hallo {name}",
@@ -1116,5 +1124,30 @@ export const de = {
     askHint: "Die Frage steht dann im Eingabefeld – du schickst sie selbst ab.",
     test: "Wissen testen",
     professorSays: "{name} erklärt",
+  },
+  // Mini-jeu « Triebwerk-Check » (pages/minigame.tsx).
+  minigame: {
+    title: "Triebwerk-Check",
+    subtitle: "Tippe im Schnittbild auf das richtige Bauteil.",
+    loading: "Das Spiel wird geladen …",
+    round: "Frage {n} von {total}",
+    score: "Punkte",
+    streak: "Serie ×{n}",
+    correct: "Richtig!",
+    wrong: "Nicht ganz – gesucht war: {name}",
+    next: "Weiter",
+    finishedTitle: "Geschafft!",
+    result: "{correct} von {total} richtig · {points} Punkte",
+    again: "Nochmal spielen",
+    toExplorer: "Im 3D-Explorer ansehen",
+    zone: "Zone {n}",
+    keysHint: "Tippen oder Tasten 1–6",
+    canvasLabel: "Schnittbild eines Turbofan-Triebwerks mit sechs nummerierten Zonen.",
+    medal: {
+      gold: "Gold – du kennst das Triebwerk in- und auswendig.",
+      silver: "Silber – fast alles sitzt.",
+      bronze: "Bronze – ein guter Anfang.",
+      retry: "Schau dir das Modell noch einmal im 3D-Explorer an.",
+    },
   },
 } as const;

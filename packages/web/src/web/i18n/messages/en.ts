@@ -61,6 +61,7 @@ export const en: Messages = {
     pricing: "Pricing",
     menu: "Menu",
     explorer: "3D Explorer",
+    minigame: "Mini game",
   },
   common: {
     student: "Student",
@@ -236,6 +237,13 @@ export const en: Messages = {
     errorTerms: "You must accept the terms.",
   },
   dashboard: {
+    // Section « cartes qui se retournent » du Dashboard (components/flip-deck.tsx).
+    cardsTitle: "Interactive flashcards",
+    cardsHint: "Tap the card to flip it.",
+    cardsQuestion: "Question",
+    cardsAnswer: "Answer",
+    cardsNext: "Next card",
+    cardsMine: "My flashcards",
     programPlaceholder: "e.g. Luft- und Raumfahrttechnik",
     deleteSemester: "Delete semester",
     greeting: "Hello {name}",
@@ -1116,5 +1124,30 @@ export const en: Messages = {
     askHint: "The question is placed in the input box – you send it yourself.",
     test: "Test yourself",
     professorSays: "{name} explains",
+  },
+  // Mini-jeu « Triebwerk-Check » (pages/minigame.tsx).
+  minigame: {
+    title: "Engine check",
+    subtitle: "Tap the right part in the cutaway.",
+    loading: "Loading the game …",
+    round: "Question {n} of {total}",
+    score: "points",
+    streak: "Streak ×{n}",
+    correct: "Correct!",
+    wrong: "Not quite – the answer was: {name}",
+    next: "Next",
+    finishedTitle: "Done!",
+    result: "{correct} of {total} correct · {points} points",
+    again: "Play again",
+    toExplorer: "View in the 3D Explorer",
+    zone: "Zone {n}",
+    keysHint: "Tap or keys 1–6",
+    canvasLabel: "Cutaway of a turbofan engine with six numbered zones.",
+    medal: {
+      gold: "Gold – you know the engine inside out.",
+      silver: "Silver – almost everything is in place.",
+      bronze: "Bronze – a good start.",
+      retry: "Have another look at the model in the 3D Explorer.",
+    },
   },
 };

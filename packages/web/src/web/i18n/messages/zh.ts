@@ -25,6 +25,7 @@ export const zh: PartialMessages = {
     pricing: "订阅",
     menu: "菜单",
     explorer: "3D 探索",
+    minigame: "小游戏",
   },
   background: {
     pause: "暂停背景",

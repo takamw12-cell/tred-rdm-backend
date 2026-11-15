@@ -6,6 +6,8 @@ import {
   BookMarked,
   Network,
   Dumbbell,
+  Box,
+  Gamepad2,
   Upload,
   Plus,
   FileText,
@@ -19,6 +21,7 @@ import {
   Loader2,
   Eye,
 } from "lucide-react";
+import { FlipDeck } from "@/components/flip-deck";
 import { PageContainer, Reveal } from "@/components/page";
 import { Card, CardContent } from "@/components/ui/card";
 import { MemoryCard } from "@/components/memory-card";
@@ -233,6 +236,9 @@ export default function DashboardPage() {
     { to: "/dictionary", icon: BookMarked, key: "nav.dictionary" },
     { to: "/dna", icon: Network, key: "nav.dna" },
     { to: "/exam", icon: Dumbbell, key: "dashboard.exercises" },
+    // Plateforme visuelle (15 nov. 2026) : le modèle 3D et le mini-jeu.
+    { to: "/explorer", icon: Box, key: "nav.explorer" },
+    { to: "/minigame", icon: Gamepad2, key: "nav.minigame" },
   ];
 
   return (
@@ -513,8 +519,8 @@ export default function DashboardPage() {
               <h2 className="font-display mb-3 text-xl font-semibold">{t("dashboard.quickAccess")}</h2>
               <div className="grid grid-cols-2 gap-2">
                 {quick.map(({ to, icon: Icon, key }) => (
-                  <Link key={key + to} to={to}>
-                    <div className="border-border hover:border-signature/60 hover:bg-accent/60 flex cursor-pointer items-center gap-2 rounded-xl border p-3 transition-colors">
+                  <Link key={key + to} to={to} data-testid={`quick-${to.slice(1)}`}>
+                    <div className="border-border hover:border-signature/60 hover:bg-accent/60 flex cursor-pointer items-center gap-2 rounded-xl border p-3 transition-[colors,transform] motion-safe:hover:-translate-y-0.5 motion-safe:active:scale-[0.97]">
                       <span className="bg-accent text-foreground grid size-8 place-items-center rounded-lg">
                         <Icon className="size-4" />
                       </span>
@@ -523,6 +529,13 @@ export default function DashboardPage() {
                   </Link>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Cartes qui se retournent en 3D (components/flip-deck.tsx). */}
+          <Card className="rounded-2xl">
+            <CardContent className="pt-0">
+              <FlipDeck />
             </CardContent>
           </Card>
         </Reveal>

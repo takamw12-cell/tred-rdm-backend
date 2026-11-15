@@ -25,6 +25,7 @@ export const bn: PartialMessages = {
     pricing: "সাবস্ক্রিপশন",
     menu: "মেনু",
     explorer: "3D এক্সপ্লোরার",
+    minigame: "মিনি গেম",
   },
   background: {
     pause: "পটভূমি থামান",

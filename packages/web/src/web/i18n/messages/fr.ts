@@ -61,6 +61,7 @@ export const fr: Messages = {
     pricing: "Abonnement",
     menu: "Menu",
     explorer: "Explorateur 3D",
+    minigame: "Mini-jeu",
   },
   common: {
     student: "Étudiant",
@@ -236,6 +237,13 @@ export const fr: Messages = {
     errorTerms: "Vous devez accepter les conditions.",
   },
   dashboard: {
+    // Section « cartes qui se retournent » du Dashboard (components/flip-deck.tsx).
+    cardsTitle: "Flashcards interactives",
+    cardsHint: "Touche la carte pour la retourner.",
+    cardsQuestion: "Question",
+    cardsAnswer: "Réponse",
+    cardsNext: "Carte suivante",
+    cardsMine: "Mes flashcards",
     programPlaceholder: "p. ex. Luft- und Raumfahrttechnik",
     deleteSemester: "Supprimer le semestre",
     greeting: "Bonjour {name}",
@@ -1116,5 +1124,30 @@ export const fr: Messages = {
     askHint: "La question est placée dans le champ de saisie : c'est toi qui l'envoies.",
     test: "Teste-toi",
     professorSays: "{name} explique",
+  },
+  // Mini-jeu « Triebwerk-Check » (pages/minigame.tsx).
+  minigame: {
+    title: "Défi moteur",
+    subtitle: "Touche la bonne pièce sur la coupe.",
+    loading: "Le jeu se charge …",
+    round: "Question {n} sur {total}",
+    score: "points",
+    streak: "Série ×{n}",
+    correct: "Exact !",
+    wrong: "Pas tout à fait : c'était « {name} »",
+    next: "Suivant",
+    finishedTitle: "Terminé !",
+    result: "{correct} sur {total} justes · {points} points",
+    again: "Rejouer",
+    toExplorer: "Voir dans l'Explorateur 3D",
+    zone: "Zone {n}",
+    keysHint: "Touche l'image ou les touches 1–6",
+    canvasLabel: "Coupe d'un turboréacteur double flux avec six zones numérotées.",
+    medal: {
+      gold: "Or : tu connais le moteur par cœur.",
+      silver: "Argent : presque tout est en place.",
+      bronze: "Bronze : un bon début.",
+      retry: "Regarde encore le modèle dans l'Explorateur 3D.",
+    },
   },
 };

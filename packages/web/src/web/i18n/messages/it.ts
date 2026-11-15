@@ -25,6 +25,7 @@ export const it: PartialMessages = {
     pricing: "Abbonamento",
     menu: "Menu",
     explorer: "Esploratore 3D",
+    minigame: "Mini-gioco",
   },
   background: {
     pause: "Metti in pausa lo sfondo",
