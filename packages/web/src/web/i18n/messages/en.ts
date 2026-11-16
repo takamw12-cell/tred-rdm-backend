@@ -1117,6 +1117,8 @@ export const en: Messages = {
     reset: "Reset view",
     fullscreen: "Full screen",
     exitFullscreen: "Exit full screen",
+    section: "Cut through the model",
+    sectionDepth: "Cut depth",
     hint: "Drag: rotate · Two fingers or mouse wheel: zoom",
     parts: "Parts",
     pickPart: "Pick a part",

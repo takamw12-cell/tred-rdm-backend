@@ -1129,6 +1129,8 @@ export const es: Messages = {
     reset: "Restablecer vista",
     fullscreen: "Pantalla completa",
     exitFullscreen: "Salir de pantalla completa",
+    section: "Corte del modelo",
+    sectionDepth: "Profundidad del corte",
     hint: "Arrastrar: girar · Dos dedos o rueda: zoom",
     parts: "Piezas",
     pickPart: "Elige una pieza",

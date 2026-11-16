@@ -1117,6 +1117,8 @@ export const fr: Messages = {
     reset: "Réinitialiser la vue",
     fullscreen: "Plein écran",
     exitFullscreen: "Quitter le plein écran",
+    section: "Coupe du modèle",
+    sectionDepth: "Profondeur de coupe",
     hint: "Glisser : tourner · Deux doigts ou molette : zoomer",
     parts: "Pièces",
     pickPart: "Choisis une pièce",

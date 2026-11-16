@@ -7,6 +7,7 @@ import { EXPLORER_MODELS, TURBOFAN_FILE } from "@/lib/explorer-models";
 import { ATOM_SHELLS, descend, HEART_GLB, HEART_PART_OF, NORM_LEVELS, SURFACE, surfaceGradient, surfaceHeight, surfacePoint } from "@/lib/explorer-more";
 import { ORBITALS, sampleOrbital } from "@/lib/orbitals";
 import { draggedSinceDown } from "@/lib/tap-guard";
+import { machinedMetalShader } from "@/components/explorer-effects";
 
 /**
  * Les scènes des autres filières (2026-11-15) : cellule, cœur, surface
@@ -217,7 +218,7 @@ function HeartAnatomy({ playing }: { playing: boolean }) {
         const mesh = (
           <mesh key={p.name} geometry={p.geometry} matrix={p.matrix} matrixAutoUpdate={false}>
             {/* Un tissu vivant : jamais métallique, un film humide en surface. */}
-            <Skin part={target ?? ""} color={p.color} metalness={0} roughness={0.46} clearcoat={0.5} />
+            <Skin part={target ?? ""} color={p.color} metalness={0} roughness={0.52} clearcoat={0.4} sheen={0.25} tissue />
           </mesh>
         );
         return target ? (
@@ -250,8 +251,10 @@ function TurbofanFile({ playing }: { playing: boolean }) {
       if (!mesh.isMesh) return;
       const physical = new THREE.MeshPhysicalMaterial();
       THREE.MeshStandardMaterial.prototype.copy.call(physical, mesh.material as THREE.MeshStandardMaterial);
-      physical.clearcoat = 0.25;
-      physical.clearcoatRoughness = 0.35;
+      physical.anisotropy = 0.35;
+      physical.envMapIntensity = 1.25;
+      physical.onBeforeCompile = machinedMetalShader;
+      physical.customProgramCacheKey = () => "tred-machined-metal";
       mesh.material = physical;
     });
     return copy;

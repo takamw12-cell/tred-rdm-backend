@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, type ReactNode } from "react";
 import * as THREE from "three";
 import type { ThreeEvent } from "@react-three/fiber";
+import { tissueShader } from "@/components/explorer-effects";
 import { draggedSinceDown } from "@/lib/tap-guard";
 
 /**
@@ -13,14 +14,17 @@ export const HIGHLIGHT = "#EAB308";
 /** Le repère choisi (surbrillance) et le geste « choisir cette pièce ». */
 export const ActiveContext = createContext<string | null>(null);
 export const SelectContext = createContext<(id: string) => void>(() => {});
+/** Mode coupe : les plans qui tranchent les pièces (aucun = modèle entier). */
+export const SectionContext = createContext<THREE.Plane[] | null>(null);
 
 /**
  * Matière d'une pièce, en rendu physique (PBR) : elle reflète l'éclairage de
  * studio, et s'allume quand SON repère est choisi. `clearcoat` : le film
  * brillant d'un tissu vivant ou d'une pièce vernie.
  */
-export function Skin({ part, color, metalness = 0.6, roughness = 0.36, glow, opacity, clearcoat = 0, sheen = 0 }: { part: string; color: string; metalness?: number; roughness?: number; glow?: { color: string; intensity: number }; opacity?: number; clearcoat?: number; sheen?: number }) {
+export function Skin({ part, color, metalness = 0.6, roughness = 0.36, glow, opacity, clearcoat = 0, sheen = 0, tissue = false }: { part: string; color: string; metalness?: number; roughness?: number; glow?: { color: string; intensity: number }; opacity?: number; clearcoat?: number; sheen?: number; tissue?: boolean }) {
   const on = useContext(ActiveContext) === part;
+  const planes = useContext(SectionContext);
   return (
     <meshPhysicalMaterial
       color={color}
@@ -34,6 +38,9 @@ export function Skin({ part, color, metalness = 0.6, roughness = 0.36, glow, opa
       emissive={on ? HIGHLIGHT : (glow?.color ?? "#000000")}
       emissiveIntensity={on ? 0.45 : (glow?.intensity ?? 0)}
       side={THREE.DoubleSide}
+      clippingPlanes={planes}
+      onBeforeCompile={tissue ? tissueShader : undefined}
+      customProgramCacheKey={() => (tissue ? "tred-tissue" : "tred-plain")}
       transparent={opacity !== undefined}
       opacity={opacity ?? 1}
     />

@@ -1117,6 +1117,8 @@ export const de = {
     reset: "Ansicht zurücksetzen",
     fullscreen: "Vollbild",
     exitFullscreen: "Vollbild verlassen",
+    section: "Schnitt durch das Modell",
+    sectionDepth: "Schnitttiefe",
     hint: "Ziehen: drehen · Zwei Finger oder Mausrad: zoomen",
     parts: "Bauteile",
     pickPart: "Wähle ein Bauteil",

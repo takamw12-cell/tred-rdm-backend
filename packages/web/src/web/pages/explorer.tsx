@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Gamepad2, Lightbulb, Loader2, Maximize2, MessageCircleQuestion, Minimize2, Pause, Play, RotateCcw } from "lucide-react";
+import { Gamepad2, Lightbulb, Loader2, Maximize2, MessageCircleQuestion, Minimize2, Pause, Play, RotateCcw, Scissors } from "lucide-react";
 import { PageContainer, PageHeader, Reveal } from "@/components/page";
 import { ProfessorPortrait } from "@/components/professor-portrait";
 import { FormulaSteps } from "@/components/formula-steps";
@@ -48,6 +48,9 @@ export default function ExplorerPage() {
   // Mouvement réduit : la scène démarre à l'arrêt, l'étudiant la lance s'il le veut.
   const [playing, setPlaying] = useState(!reduced);
   const hotspot = hotspotOf(model, active);
+  // Mode coupe (cœur) : la profondeur du plan, ou null pour le modèle entier.
+  const [section, setSection] = useState<number | null>(null);
+  const canSection = !modelUrl && modelId === "heart";
 
   const labels = useMemo(() => Object.fromEntries(model.hotspots.map((h) => [h.id, pick(h.title, locale)])), [model, locale]);
   const steps = useMemo(() => hotspot?.steps?.map((s) => ({ tex: s.tex, note: pick(s.note, locale) })) ?? null, [hotspot, locale]);
@@ -62,6 +65,7 @@ export default function ExplorerPage() {
     setModelUrl(null);
     setModelId(id);
     setActive(null);
+    setSection(null);
   }
   /** Changer de filière ouvre son premier modèle. */
   function switchDiscipline(next: Discipline) {
@@ -131,14 +135,14 @@ export default function ExplorerPage() {
           data-testid="explorer-stage"
           data-model={model.id}
           className={cn(
-            "grid overflow-hidden border border-white/10 bg-[#0B1220] text-white shadow-xl lg:grid-cols-[minmax(0,1fr)_23rem]",
+            "grid overflow-hidden border border-white/10 bg-[#05070C] text-white shadow-[0_30px_80px_-30px_rgba(0,0,0,0.8)] lg:grid-cols-[minmax(0,1fr)_23rem]",
             full ? "h-screen grid-rows-[minmax(0,1fr)_auto] rounded-none lg:grid-rows-1" : "rounded-3xl",
           )}
         >
           {/* ── La scène ─────────────────────────────────────────────────── */}
           <div
             className={cn(
-              "relative bg-[radial-gradient(ellipse_at_30%_15%,#1E3154_0%,#0B1220_62%)]",
+              "relative bg-[radial-gradient(ellipse_at_35%_20%,#1A2233_0%,#07090E_68%)]",
               full ? "min-h-0 lg:h-full" : "aspect-[4/3] sm:aspect-[16/10] lg:aspect-auto lg:h-[min(72vh,680px)]",
             )}
           >
@@ -158,6 +162,7 @@ export default function ExplorerPage() {
               <Explorer3D
                 model={model}
                 modelUrl={modelUrl}
+                section={canSection ? section : null}
                 active={active}
                 onSelect={setActive}
                 playing={playing}
@@ -193,6 +198,11 @@ export default function ExplorerPage() {
               <button type="button" className={tool} onClick={() => setPlaying((p) => !p)} aria-label={playing ? t("explorer.pause") : t("explorer.play")} title={playing ? t("explorer.pause") : t("explorer.play")} data-testid="explorer-play">
                 {playing ? <Pause className="size-4" /> : <Play className="size-4" />}
               </button>
+              {canSection && (
+                <button type="button" className={cn(tool, section !== null && "bg-[#EAB308] text-[#0F172A] hover:bg-[#EAB308] hover:text-[#0F172A]")} onClick={() => setSection((v) => (v === null ? 0.15 : null))} aria-pressed={section !== null} aria-label={t("explorer.section")} title={t("explorer.section")} data-testid="explorer-section">
+                  <Scissors className="size-4" />
+                </button>
+              )}
               <button type="button" className={tool} onClick={() => resetView.current()} aria-label={t("explorer.reset")} title={t("explorer.reset")} data-testid="explorer-reset">
                 <RotateCcw className="size-4" />
               </button>
@@ -203,11 +213,19 @@ export default function ExplorerPage() {
               )}
             </div>
 
+            {/* Profondeur de la coupe : on avance ou on recule le plan dans le cœur. */}
+            {canSection && section !== null && (
+              <label className="absolute top-16 right-3 flex items-center gap-2 rounded-lg bg-[#05070C]/80 px-3 py-2 text-[11px] font-medium text-white ring-1 ring-white/15 backdrop-blur">
+                {t("explorer.sectionDepth")}
+                <input type="range" min={-1.1} max={1.4} step={0.02} value={-section} onChange={(e) => setSection(-Number(e.target.value))} data-testid="explorer-section-depth" className="h-1 w-28 accent-[#EAB308] sm:w-36" />
+              </label>
+            )}
+
             <p className="pointer-events-none absolute bottom-3 left-3 hidden rounded-full bg-[#0F172A]/75 px-3 py-1 text-[11px] text-white/80 ring-1 ring-white/10 backdrop-blur sm:block">{t("explorer.hint")}</p>
           </div>
 
           {/* ── Le professeur explique ───────────────────────────────────── */}
-          <aside className={cn("flex min-h-0 flex-col gap-4 overflow-y-auto border-t border-white/10 bg-[#0F172A] p-4 sm:p-5 lg:border-t-0 lg:border-l", full ? "max-h-[45vh] lg:max-h-none" : "lg:max-h-[min(72vh,680px)]")} data-testid="explorer-panel">
+          <aside className={cn("flex min-h-0 flex-col gap-4 overflow-y-auto border-t border-white/10 bg-[#05070C] p-4 sm:p-5 lg:border-t-0 lg:border-l", full ? "max-h-[45vh] lg:max-h-none" : "lg:max-h-[min(72vh,680px)]")} data-testid="explorer-panel">
             <div className="flex items-center gap-3">
               <span className="size-12 shrink-0 overflow-hidden rounded-full ring-2 ring-[#EAB308]">
                 <ProfessorPortrait professor={professor} eager />
@@ -230,7 +248,7 @@ export default function ExplorerPage() {
               >
                 {hotspot ? (
                   <>
-                    <div className="rounded-2xl rounded-tl-sm bg-white/[0.07] p-4 ring-1 ring-white/10" data-testid="explorer-explanation">
+                    <div className="rounded-xl bg-white/[0.04] p-4 ring-1 ring-white/[0.08]" data-testid="explorer-explanation">
                       <h2 className="font-display text-lg font-bold text-[#EAB308]">{pick(hotspot.title, locale)}</h2>
                       <p className="mt-1.5 text-sm leading-relaxed text-white/90">{pick(hotspot.text, locale)}</p>
                     </div>

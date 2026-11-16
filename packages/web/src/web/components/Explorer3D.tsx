@@ -1,11 +1,12 @@
 import { Component, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { ContactShadows, Environment, OrbitControls } from "@react-three/drei";
+import { ContactShadows, Environment, GizmoHelper, GizmoViewcube, OrbitControls } from "@react-three/drei";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { cameraStart, GEAR, gearCentres, gearPitchPoint, type ExplorerModel, type ExplorerModelId, type Vec3 } from "@/lib/explorer-models";
 import { cn } from "@/lib/utils";
-import { ActiveContext, HIGHLIGHT, Part, SelectContext, Skin } from "@/components/explorer-kit";
+import { ActiveContext, HIGHLIGHT, Part, SectionContext, SelectContext, Skin } from "@/components/explorer-kit";
+import { StudioEffects } from "@/components/explorer-effects";
 import { Atom, Cell, GltfModel, Heart, Norms, Surface, TurbofanModel } from "@/components/explorer-scenes";
 
 /**
@@ -22,6 +23,8 @@ import { Atom, Cell, GltfModel, Heart, Norms, Surface, TurbofanModel } from "@/c
  */
 
 const FOV = 35;
+/** Pièce choisie : la caméra vient à cette fraction de sa distance de départ. */
+const ZOOM_ON_PART = 0.76;
 
 
 /* ── Briques ─────────────────────────────────────────────────────────────── */
@@ -551,19 +554,20 @@ function Markers({ model, active, onSelect, labels, buttons, compact }: { model:
             // Petit écran : repères plus petits pour ne pas se recouvrir (la liste à côté offre des cibles de 44 px).
             className={cn("group pointer-events-auto absolute top-0 left-0 grid place-items-center rounded-full focus-visible:outline-none", compact ? "size-6" : "size-9", on && "z-10")}
           >
-            <span aria-hidden className={cn("absolute rounded-full motion-safe:animate-ping", compact ? "size-5" : "size-7", on ? "bg-[#EAB308]/60" : "bg-white/35")} />
+            {/* Un anneau de verre dépoli, fin, qui respire doucement : il montre la pièce sans la cacher. */}
+            <span aria-hidden className={cn("absolute rounded-full motion-safe:animate-[pulse_3.2s_ease-in-out_infinite]", compact ? "size-6" : "size-9", on ? "bg-[#EAB308]/25 ring-1 ring-[#EAB308]/70" : "bg-white/10 ring-1 ring-white/35")} />
             <span
               className={cn(
-                "relative grid place-items-center rounded-full font-bold shadow-lg ring-2 transition-transform group-hover:scale-110 group-focus-visible:ring-4",
-                compact ? "size-5 text-[10px]" : "size-7 text-xs",
-                on ? "bg-[#EAB308] text-[#0F172A] ring-white" : "bg-[#0F172A]/90 text-white ring-[#EAB308]",
+                "relative grid place-items-center rounded-full font-semibold tabular-nums backdrop-blur-md transition-[transform,background-color,box-shadow] duration-200 group-hover:scale-110 group-focus-visible:ring-2",
+                compact ? "size-5 text-[10px]" : "size-6 text-[11px]",
+                on ? "bg-[#EAB308]/90 text-[#0B1220] shadow-[0_0_18px_rgba(234,179,8,0.55)] ring-1 ring-white/80" : "bg-white/15 text-white shadow-[0_2px_10px_rgba(0,0,0,0.45)] ring-1 ring-white/60",
               )}
             >
               {i + 1}
             </span>
             <span
               className={cn(
-                "pointer-events-none absolute top-full mt-0.5 rounded-full bg-[#0F172A]/90 px-2 py-0.5 text-[11px] font-medium whitespace-nowrap text-white shadow",
+                "pointer-events-none absolute top-full mt-1 rounded-md bg-[#05070C]/85 px-2 py-0.5 text-[11px] font-medium tracking-wide whitespace-nowrap text-white ring-1 ring-white/15 backdrop-blur",
                 // Écran tactile : pas de survol — une étiquette « collée » après un toucher couvrirait le repère voisin.
                 on ? "block" : compact ? "hidden" : "hidden group-hover:block group-focus-visible:block",
               )}
@@ -603,12 +607,34 @@ function Rig({ model, focus, onResetReady }: { model: ExplorerModel; focus: Vec3
   useEffect(frame, [frame, portrait]);
   useEffect(() => onResetReady(frame), [frame, onResetReady]);
 
+  // Choisir une pièce rapproche la caméra ; la quitter la ramène. Entre les deux, la molette reste libre.
+  const zoomGoal = useRef<number | null>(null);
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    const { width, height } = sizeRef.current;
+    const start = Math.hypot(...cameraStart(model, width / Math.max(height, 1), FOV));
+    zoomGoal.current = focus ? Math.max(3.4, start * ZOOM_ON_PART) : start;
+  }, [focus, model]);
+
   useFrame((_, dt) => {
     if (!controls) return;
+    const ease = 1 - Math.exp(-4.2 * Math.min(dt, 0.05));
+    if (zoomGoal.current !== null) {
+      const arm = camera.position.clone().sub(controls.target);
+      const next = THREE.MathUtils.lerp(arm.length(), zoomGoal.current, ease);
+      if (Math.abs(next - zoomGoal.current) < 0.01) zoomGoal.current = null;
+      camera.position.copy(controls.target).add(arm.setLength(next));
+      controls.update();
+      invalidate();
+    }
     // Vers le repère, sans y coller : le modèle reste dans le cadre.
-    wanted.set(focus ? focus[0] * 0.45 : 0, focus ? focus[1] * 0.45 : 0, focus ? focus[2] * 0.45 : 0);
+    wanted.set(focus ? focus[0] * 0.6 : 0, focus ? focus[1] * 0.6 : 0, focus ? focus[2] * 0.6 : 0);
     if (controls.target.distanceToSquared(wanted) < 1e-6) return;
-    controls.target.lerp(wanted, 1 - Math.exp(-5 * Math.min(dt, 0.05)));
+    controls.target.lerp(wanted, ease);
     controls.update();
     invalidate();
   });
@@ -648,6 +674,9 @@ class WebGLBoundary extends Component<{ fallback: ReactNode; children: ReactNode
   }
 }
 
+/** Les six faces du cube de vues, en lettres : compris dans toutes les langues de l'app. */
+const VIEW_FACES = ["R", "L", "T", "B", "F", "H"];
+
 /** Le turboréacteur : le fichier .glb ; la coupe construite reste le repli si le fichier ne se charge pas. */
 function TurbofanScene({ playing }: { playing: boolean }) {
   return <TurbofanModel playing={playing} fallback={<Turbofan playing={playing} />} />;
@@ -667,6 +696,7 @@ const SCENES: Record<ExplorerModelId, ComponentType<{ playing: boolean }>> = {
 export default function Explorer3D({
   model,
   modelUrl,
+  section = null,
   active,
   onSelect,
   playing,
@@ -678,6 +708,8 @@ export default function Explorer3D({
   model: ExplorerModel;
   /** Un fichier .glb à charger À LA PLACE de la scène construite (public/models/). */
   modelUrl?: string | null;
+  /** Mode coupe : profondeur du plan (axe z de la scène), ou null pour le modèle entier. */
+  section?: number | null;
   /** Le repère choisi, ou aucun. */
   active: string | null;
   onSelect: (id: string | null) => void;
@@ -698,6 +730,8 @@ export default function Explorer3D({
   resetRef.current = onResetReady;
   const onReady = useCallback((fn: () => void) => resetRef.current(fn), []);
   const fallback = <div className="grid h-full place-items-center p-6 text-center text-sm text-white/80">{noWebGL}</div>;
+  // Tout ce qui est DEVANT le plan (z > profondeur) est retiré : on regarde dans les cavités.
+  const planes = useMemo(() => (section === null ? null : [new THREE.Plane(new THREE.Vector3(0, 0, -1), section)]), [section]);
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
   const [compact, setCompact] = useState(false);
   // Le curseur « main » ne doit pas survivre à la scène.
@@ -715,7 +749,12 @@ export default function Explorer3D({
       <Canvas
         frameloop={playing ? "always" : "demand"}
         dpr={[1, 2]}
-        gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+        // Sans courbe de tons ici : elle est appliquée à la fin, par la passe ACES (explorer-effects.tsx).
+        flat
+        gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
+        onCreated={({ gl }) => {
+          gl.localClippingEnabled = true;
+        }}
         camera={{ position: model.camera, fov: FOV, near: 0.1, far: 120 }}
         fallback={fallback}
         // Un doigt fait tourner, deux doigts zooment : la page ne défile pas sous la scène.
@@ -724,6 +763,7 @@ export default function Explorer3D({
       >
         <ActiveContext.Provider value={active}>
           <SelectContext.Provider value={select}>
+           <SectionContext.Provider value={planes}>
             <StudioLights floor={model.bounds.min[1] - 0.05} />
             {modelUrl ? (
               <Suspense fallback={null}>
@@ -735,6 +775,14 @@ export default function Explorer3D({
             <MarkerTracker model={model} buttons={buttons} onCompact={setCompact} />
             <Rig model={model} focus={focus} onResetReady={onReady} />
             <OrbitControls makeDefault enableDamping dampingFactor={0.1} enablePan={false} minDistance={3.2} maxDistance={26} rotateSpeed={0.8} />
+            <StudioEffects light={compact} />
+            {/* Le cube de vues, comme dans un logiciel de CAO : un clic sur une face oriente la caméra. */}
+            {!compact && (
+              <GizmoHelper alignment="bottom-right" margin={[58, 62]} renderPriority={2}>
+                <GizmoViewcube color="#273244" textColor="#F8FAFC" strokeColor="#475569" hoverColor="#EAB308" opacity={0.95} faces={VIEW_FACES} />
+              </GizmoHelper>
+            )}
+           </SectionContext.Provider>
           </SelectContext.Provider>
         </ActiveContext.Provider>
       </Canvas>
