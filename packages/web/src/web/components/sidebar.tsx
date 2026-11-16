@@ -108,14 +108,18 @@ export function SidebarContent({
           <MessageSquareText className="size-[18px] text-[#EAB308]" aria-hidden />
           {t("feedback.fab")}
         </button>
-        <Link
-          to="/pricing"
-          onClick={onNavigate}
-          className="brand-gradient mb-3 flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition-transform hover:scale-[1.01]"
-        >
-          <Sparkles className="size-4" />
-          {t("nav.pricing")}
-        </Link>
+        {/* Bêta gratuite (et compte fondateur) : rien à vendre, donc pas de bouton « Abo ». */}
+        {plan !== "beta" && plan !== "founder" && (
+          <Link
+            to="/pricing"
+            onClick={onNavigate}
+            data-testid="sidebar-pricing"
+            className="brand-gradient mb-3 flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition-transform hover:scale-[1.01]"
+          >
+            <Sparkles className="size-4" />
+            {t("nav.pricing")}
+          </Link>
+        )}
         <div className="flex items-center gap-3 rounded-xl bg-white/5 p-2.5">
           <Avatar>
             <AvatarFallback className="brand-gradient text-xs font-bold text-white">

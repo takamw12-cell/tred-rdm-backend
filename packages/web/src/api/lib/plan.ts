@@ -130,19 +130,28 @@ export const TOKEN_METRIC = "tokens_out";
  * einen Wert hat — und nicht der Moment, in dem der Nutzer nie an eine Grenze
  * stößt und deshalb nie zahlt.
  */
+/**
+ * Documents pendant la bêta (et pour le fondateur) : 10 000, autrement dit
+ * aucune limite qu'un humain atteigne. À 200 (jusqu'au 2026-11-16), le
+ * fondateur a été bloqué en important ses cours : décision, personne ne doit
+ * voir « limite de documents » pendant la bêta. Le nombre reste fini pour
+ * qu'un script ne remplisse pas la base.
+ */
+export const BETA_DOCUMENTS = 10_000;
+
 export const LIMITS: Record<PlanId, Record<Metric | "documents", number>> = {
   free: { chat: 50, exercise: 10, video: 5, formulas: 3, documents: 10 },
   // Essai : affiché « illimité ». Les valeurs ci-dessous sont un garde-fou
   // anti-abus (trois fois l'abonnement), pas une limite qu'un étudiant
   // atteint en 14 jours. Voir aussi TOKEN_CAPS.trial.
-  trial: { chat: 3000, exercise: 600, video: 150, formulas: 180, documents: 200 },
+  trial: { chat: 3000, exercise: 600, video: 150, formulas: 180, documents: BETA_DOCUMENTS },
   // Bêta gratuite : illimité en pratique pour un testeur, avec le même
   // garde-fou anti-abus que l'essai.
-  beta: { chat: 3000, exercise: 600, video: 150, formulas: 180, documents: 200 },
+  beta: { chat: 3000, exercise: 600, video: 150, formulas: 180, documents: BETA_DOCUMENTS },
   // Une seule offre payante (mensuelle ou semestrielle), mêmes droits.
   standard: { chat: 1000, exercise: 200, video: 50, formulas: 60, documents: 200 },
   premium: { chat: 1000, exercise: 200, video: 50, formulas: 60, documents: 200 },
-  founder: { chat: 1000, exercise: 200, video: 50, formulas: 60, documents: 200 },
+  founder: { chat: 1000, exercise: 200, video: 50, formulas: 60, documents: BETA_DOCUMENTS },
 };
 
 /** Les tarifs dont les compteurs sont présentés comme « illimités ». */
@@ -349,6 +358,16 @@ export async function consume(
   };
 }
 
+/**
+ * Peut-on ajouter un document de plus ? `used` = les documents ENREGISTRÉS du
+ * compte. Un import refusé ou en erreur (format, fichier abîmé, sans texte)
+ * n'enregistre aucun document et ne consomme donc rien. Pure (testée).
+ */
+export function documentRoom(plan: PlanId, used: number): { ok: boolean; limit: number } {
+  const limit = LIMITS[plan].documents;
+  return { ok: used < limit, limit };
+}
+
 /** Documents are capped by total count, not per month. */
 export async function canAddDocument(userId: string): Promise<QuotaResult> {
   // Deux lectures indépendantes, lancées ensemble : un aller-retour de moins sur chaque import.
@@ -359,9 +378,9 @@ export async function canAddDocument(userId: string): Promise<QuotaResult> {
       .from(document)
       .where(eq(document.userId, userId)),
   ]);
-  const limit = LIMITS[plan].documents;
   const used = Number(rows[0]?.n ?? 0);
-  return { ok: used < limit, plan, used, limit };
+  const { ok, limit } = documentRoom(plan, used);
+  return { ok, plan, used, limit };
 }
 
 /** Body returned with HTTP 402 so every client can react the same way. */
