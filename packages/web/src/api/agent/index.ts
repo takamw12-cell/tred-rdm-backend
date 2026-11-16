@@ -299,6 +299,18 @@ export function buildTutorAgent(opts: {
    * ferait manquer le cache.
    */
   precomputedNote?: string | null;
+  /**
+   * Température de l'appel (lib/precision.ts, samplingTemperature) : 0 en
+   * sciences. Ignorée quand le raisonnement est actif — l'API Anthropic
+   * n'accepte alors que la valeur par défaut.
+   */
+  temperature?: number;
+  /**
+   * Consigne « RECHENPFLICHT » pour CETTE question (lib/precision.ts,
+   * solverDutyNote) : quel solveur appeler. Dernier message système, après le
+   * bloc mis en cache.
+   */
+  solverDuty?: string | null;
 }) {
   const rule = langRule(opts.locale);
   // Mode socratique : jamais en Prüfungsmodus, qui a ses propres règles.
@@ -356,6 +368,9 @@ export function buildTutorAgent(opts: {
     providerOptions: thinkingOn
       ? { anthropic: { thinking: { type: "adaptive", display: "summarized" } } }
       : {},
+    // Température 0 en sciences (lib/precision.ts) — seulement sans
+    // raisonnement : avec lui, l'API refuse toute autre valeur que la sienne.
+    ...(!thinkingOn && opts.temperature !== undefined ? { temperature: opts.temperature } : {}),
     // Second point de cache sur le dernier message de chaque étape : les
     // étapes suivantes de la boucle d'outils (et la question suivante, si les
     // extraits n'ont pas changé) relisent tout ce qui précède depuis le cache.
@@ -470,6 +485,41 @@ export function buildTutorAgent(opts: {
           Einzelschritte mit "rechnen". Das gilt auch in der sokratischen
           Führung: prüfst du eine Zahl der Person, prüfst du sie mit dem
           Werkzeug, nicht im Kopf.
+
+          RECHT AUF UNSICHERHEIT — DU RÄTST NIE:
+          Bist du dir bei einer Formel, einem Wert, einer Variablen oder
+          einem Schema nicht zu 100 % sicher, rätst du NICHT. Zuerst suchst
+          du die Stelle mit "suche_in_unterlagen" (sofern die Person
+          Unterlagen hat) und liest sie wörtlich. Findest du sie nicht oder
+          bleibt sie mehrdeutig, sagst du in IHRER Sprache sinngemäß:
+          "Ich bin mir nicht sicher — kannst du mir die genaue Stelle aus
+          deinem Kurs zeigen (Seite, Formel oder ein Foto)?" und rechnest
+          bis dahin nicht weiter. Eine ehrliche Rückfrage ist besser als
+          eine sichere, aber falsche Antwort.
+
+          NOTATION DER UNTERLAGEN IST VERBINDLICH:
+          Du übernimmst Symbole, Indizes und Funktionsargumente GENAU so,
+          wie sie in den Unterlagen oder auf dem Foto stehen. Die
+          unabhängige Variable gehört zur Formel: r(φ) (Radius als Funktion
+          des Winkels, Polarkoordinaten) ist NICHT r(t) (Bahn als Funktion
+          der Zeit). Du ersetzt sie nie stillschweigend durch eine andere.
+          Kommen beide vor, sagst du vor dem Rechnen, was wovon abhängt, und
+          schreibst den Übergang ausdrücklich hin (Kettenregel:
+          dr/dt = dr/dφ · dφ/dt). Weicht deine gewohnte Schreibweise vom Kurs
+          ab, gilt die des Kurses.
+
+          STILLE PRÜFUNG VOR DER ANTWORT (PFLICHT, UNSICHTBAR):
+          Bevor du die endgültige Antwort schreibst, prüfst du in deinem
+          inneren Denken — nicht in die Antwort${board ? " und nicht an die Tafel" : ""}:
+            1. Stimmt jede Formel mit der Formel der Unterlagen überein
+               (gleiche Symbole, gleiche unabhängige Variable, gleiche
+               Vorzeichen-Konvention)?
+            2. Sind die Einheiten auf beiden Seiten jeder Gleichung gleich?
+            3. Kommt jede Zahl aus einem Werkzeugaufruf (Fachlöser oder
+               "rechnen")?
+          Fällt eine Prüfung durch, korrigierst du den Fehler zuerst —
+          Stelle nachlesen, Werkzeug aufrufen — und schreibst erst dann.
+          Kannst du ihn nicht beheben, gilt RECHT AUF UNSICHERHEIT.
 
           TON: professionell aber herzlich · streng aber nie kalt ·
           immer geduldig · ermutigend, nie wertend · präzise, nie ungefähr.
@@ -1843,6 +1893,16 @@ export function buildTutorAgent(opts: {
           Angaben (Formeln, Zahlen, Skizzen) und beziehe dich konkret darauf.
           Wenn eine Handschrift unleserlich ist, sag freundlich, welche Stelle
           unklar ist, statt zu raten.
+
+          SCHEMA AUF DEM FOTO — ERST BESCHREIBEN, DANN RECHNEN:
+          Zeigt das Bild ein Schema (Skizze, Schaltung, Freikörperbild,
+          Diagramm, Koordinatensystem), beschreibst du ZUERST in wenigen
+          Zeilen, was du siehst: Art des Schemas, alle Beschriftungen und
+          Variablen mit ihren Argumenten (z. B. r(φ) oder r(t)), gegebene
+          Werte mit Einheit, Richtung und Vorzeichen der Pfeile, Lager bzw.
+          Anschlüsse. Erst danach rechnest du. Ist ein Element unleserlich
+          oder mehrdeutig, rechnest du NICHT: du nennst die unklare Stelle
+          und fragst nach.
           ${
             calc
               ? dedent`
@@ -1905,6 +1965,7 @@ export function buildTutorAgent(opts: {
           ]
         : []),
       ...(opts.precomputedNote ? [{ role: "system" as const, content: opts.precomputedNote }] : []),
+      ...(opts.solverDuty ? [{ role: "system" as const, content: opts.solverDuty }] : []),
     ],
     tools: {
       /**

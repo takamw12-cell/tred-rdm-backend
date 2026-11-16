@@ -116,6 +116,7 @@ import { socraticFlags } from "./lib/socratic";
 import { realWorldRules } from "./lib/real-world";
 import { startRetentionHeartbeat } from "./lib/retention/heartbeat";
 import { detectDocumentDenial } from "./lib/denial-guard";
+import { detectSolverSkip, samplingTemperature, solverDutyNote } from "./lib/precision";
 import { applySubscription, endSubscription } from "./lib/billing";
 import { grantCredits } from "./lib/credits";
 import {
@@ -854,10 +855,17 @@ app.post("/api/agent/messages", async (c) => {
   const route = fast ? { ...routed, tier: "concept" as const, thinking: "off" as const, reason: `fast-path ${fast.name}` } : routed;
   const timer = createStreamTimer(requestStarted);
   const usage = { steps: 0, input: 0, cacheRead: 0, cacheWrite: 0, output: 0 };
+  // Garde « résultat sans solveur » : outils et texte de toute la réponse.
+  const turnTools: string[] = [];
+  let turnText = "";
 
   const agent = buildTutorAgent({
     route,
     precomputedNote: fast?.modelNote ?? null,
+    // Rigueur en sciences (lib/precision.ts) : température 0 sans
+    // raisonnement, et le solveur à appeler pour CETTE question.
+    temperature: samplingTemperature({ domain: fach.domain, thinking: route.thinking, text: lastUserText }),
+    solverDuty: fast ? null : solverDutyNote({ text: lastUserText, domain: fach.domain }),
     domainHint: fachHint || null,
     // Le profil d'études, puis l'ancrage réel (lib/real-world.ts) : un exemple
     // de la filière par concept abstrait, et une mission pratique en fin de thème.
@@ -972,29 +980,44 @@ app.post("/api/agent/messages", async (c) => {
       // On ne réécrit rien : le texte est déjà à l'écran, et le corriger en
       // cours de route serait pire. On le SIGNALE, ce qui fait remonter la
       // panne dans « Gemeldete Antworten » au lieu de la laisser invisible.
+      const signaler = (excerpt: string, note: string) =>
+        void db
+          .insert(contentReport)
+          .values({
+            id: `rep_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`,
+            userId: session.user.id,
+            conversationId: null,
+            messageId: null,
+            reason: "wrong",
+            excerpt,
+            note,
+            locale: locale ?? "de",
+          })
+          .catch(() => {
+            /* Un signalement qui échoue ne doit pas casser la réponse en cours.
+               Le console.error qui le précède reste, lui. */
+          });
+
+      // Rigueur en sciences (lib/precision.ts) : un résultat chiffré sorti
+      // sans aucun solveur sur toute la réponse. Vérifié à la dernière étape,
+      // quand on connaît tous les outils appelés.
+      for (const tc of step.toolCalls ?? []) if (tc?.toolName) turnTools.push(tc.toolName);
+      turnText += step.text ?? "";
+      if (!fast && step.finishReason && step.finishReason !== "tool-calls") {
+        const skip = detectSolverSkip({ question: lastUserText, toolNames: turnTools, answer: turnText });
+        if (skip) {
+          console.error(`[garde] ${skip.label} — outils=${turnTools.join(",") || "-"}`);
+          signaler(skip.excerpt, `[automatique] ${skip.label} — aucun solveur appelé pour une question de calcul`);
+        }
+      }
+
       const denial = detectDocumentDenial(step.text ?? "", rows.length);
       if (!denial) return;
 
       console.error(
         `[garde] le tuteur a nié ${rows.length} document(s) — ${denial.label}`,
       );
-
-      void db
-        .insert(contentReport)
-        .values({
-          id: `rep_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`,
-          userId: session.user.id,
-          conversationId: null,
-          messageId: null,
-          reason: "wrong",
-          excerpt: denial.excerpt,
-          note: `[automatique] ${denial.label} — ${rows.length} document(s) étaient fournis`,
-          locale: locale ?? "de",
-        })
-        .catch(() => {
-          /* Un signalement qui échoue ne doit pas casser la réponse en cours.
-             Le console.error ci-dessus reste, lui. */
-        });
+      signaler(denial.excerpt, `[automatique] ${denial.label} — ${rows.length} document(s) étaient fournis`);
     },
   });
 
