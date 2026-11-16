@@ -6,6 +6,7 @@ import type { Cue, VoFile } from "../promo/voice";
 import { BRoll, GOLD, H, NIGHT, Sticker, W, clamp, easeInOut, faceCam, media, pop, progress, s } from "./kit";
 import { SurviveVideo, type SurviveScene } from "./engine";
 import { SurviveVisual } from "./sk4";
+import { SurviveProof, SurviveReal3D } from "./sk5";
 import { CamRing, CodeScroll, CompressorSchematic, CtaOverlay, EndCard, PdfScroll, ProfHologram, TafelCam, TopCta, camAt, type Band, type Cam } from "./scenes";
 import vo1Json from "../assets/vo-t-de1.json";
 import vo2Json from "../assets/vo-t-de2.json";
@@ -577,4 +578,6 @@ export const SURVIVE = [
   ["SK-2-Physik-verstehen", SurvivePhysik, s(20)],
   ["SK-3-Founder-Story", SurviveFounder, s(25)],
   ["SK-4-Visual-Learning", SurviveVisual, s(20)],
+  ["SK-5-3D-Real", SurviveReal3D, s(19)],
+  ["SK-6-Zero-Hallucination", SurviveProof, s(19.5)],
 ] as const;

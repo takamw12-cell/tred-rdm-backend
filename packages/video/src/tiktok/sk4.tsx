@@ -31,7 +31,7 @@ const cue = (at: number, src: string, volume: number): Cue => ({ frame: Math.rou
 /** Le téléphone : un cadre, et dedans une prise de vue de l'app (1000 × 1778), cadrée sur sa partie utile. */
 const PHONE = { w: 470, h: 850, radius: 50, bezel: 9 };
 
-function Phone({ children, tilt = 0 }: { children: ReactNode; tilt?: number }) {
+export function Phone({ children, tilt = 0 }: { children: ReactNode; tilt?: number }) {
   const frame = useCurrentFrame();
   const k = pop(frame, 0, 14);
   return (
@@ -60,7 +60,7 @@ function Phone({ children, tilt = 0 }: { children: ReactNode; tilt?: number }) {
  * à la LARGEUR de l'écran, remontée de `top` px de capture (pour passer sous
  * la barre du haut de l'app quand elle n'apporte rien).
  */
-function Shot({ src, from, rate, top = 0 }: { src: string; from: number; rate: number; top?: number }) {
+export function Shot({ src, from, rate, top = 0 }: { src: string; from: number; rate: number; top?: number }) {
   const scale = (PHONE.w - 2 * PHONE.bezel) / 1000;
   return (
     <OffthreadVideo
@@ -74,7 +74,7 @@ function Shot({ src, from, rate, top = 0 }: { src: string; from: number; rate: n
 }
 
 /** Un mot posé sur le téléphone (« Tafel », « 3D », « Mini-Spiel »). */
-function Tag({ text, at }: { text: string; at: number }) {
+export function Tag({ text, at }: { text: string; at: number }) {
   const frame = useCurrentFrame();
   if (frame < at) return null;
   const k = pop(frame, at, 10);
@@ -85,15 +85,16 @@ function Tag({ text, at }: { text: string; at: number }) {
   );
 }
 
-/** « Falsch. » : le mot barre l'écran, puis s'efface. */
-function Wrong() {
+/** « Falsch. » (ou un autre verdict) : le mot barre l'écran, puis s'efface. */
+export function Wrong({ word = "Falsch" }: { word?: string }) {
   const frame = useCurrentFrame();
   const k = pop(frame, 2, 9);
   return (
     <AbsoluteFill style={{ background: NIGHT, alignItems: "center", justifyContent: "center" }}>
       <AbsoluteFill style={{ background: "radial-gradient(70% 40% at 50% 50%, rgb(255 87 34 / 0.35), rgb(10 14 39 / 0) 70%)" }} />
       <div style={{ transform: `scale(${0.5 + 0.5 * k}) rotate(-4deg)`, color: "#fff", fontWeight: 900, fontSize: 104, letterSpacing: -2, textShadow: "0 12px 40px rgb(0 0 0 / 0.5)" }}>
-        Falsch<span style={{ color: "#FF5722" }}>.</span>
+        {word}
+        <span style={{ color: "#FF5722" }}>.</span>
       </div>
     </AbsoluteFill>
   );

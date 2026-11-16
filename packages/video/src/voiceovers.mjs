@@ -193,4 +193,10 @@ export const TIKTOK = [
   { id: "t-de4", language: "de", voiceId: "TX3LPaxmHKxFdv7VOQHJ", model: "eleven_v4", // Liam, comme SK-1 : « Ce n'est pas juste du texte »
     settings: { stability: 0.3, similarity_boost: 0.75, style: 0.4, use_speaker_boost: true, speed: 1.06 },
     text: "Lernen mit KI ist nur Text? Falsch. In TRED erklärt mir der Professor die Aufgabe an der Tafel. Dann drehe ich das Triebwerk in 3D und tippe auf die Brennkammer. Und am Ende teste ich mich im Mini-Spiel. Das ist nicht nur Text. TRED — Link im Profil." },
+  { id: "t-de5", language: "de", voiceId: "TX3LPaxmHKxFdv7VOQHJ", model: "eleven_v4", // Liam : SK-5 « 3D réel » (texte validé par le fondateur le 2026-11-16)
+    settings: { stability: 0.3, similarity_boost: 0.75, style: 0.4, use_speaker_boost: true, speed: 1.06 },
+    text: "Anatomie aus dem Lehrbuch? Flach. Bei TRED drehst du ein anatomisches Herzmodell, schneidest es auf und siehst in die Kammern. Oder du schaust in ein Triebwerk – Stufe für Stufe. Tippe auf ein Bauteil, und dein Prof erklärt es. Jetzt kostenlos ausprobieren: tred-tutor.de." },
+  { id: "t-de6", language: "de", voiceId: "TX3LPaxmHKxFdv7VOQHJ", model: "eleven_v4", // Liam : SK-6 « Zéro hallucination » (texte validé par le fondateur le 2026-11-16)
+    settings: { stability: 0.3, similarity_boost: 0.75, style: 0.4, use_speaker_boost: true, speed: 1.06 },
+    text: "KI erfindet Antworten? Nicht hier. TRED macht aus deinem eigenen Skript Prüfungsfälle. Nach jeder Antwort siehst du den Satz aus deinem Dokument, der sie belegt – mit Seitenzahl. Ein Tipp, und das Dokument öffnet sich genau dort. Lernen mit Beleg: tred-tutor.de." },
 ];
