@@ -196,6 +196,11 @@ export const USER_LIMITS = {
   import: () => ({ scope: "user-import", limit: envInt("IMPORT_RATE_PER_HOUR", 100), windowMs: HOUR_MS }),
   /** Vidéos explicatives : 5 par jour. */
   video: () => ({ scope: "user-video", limit: envInt("VIDEO_RATE_PER_DAY", 5), windowMs: DAY_MS }),
+  /**
+   * Plan de révision (« Mein Lernprofil ») : 30 par heure. Aucun modèle n'est
+   * appelé, mais chaque plan relit le texte de quelques documents.
+   */
+  studyPlan: () => ({ scope: "user-study-plan", limit: envInt("STUDY_PLAN_RATE_PER_HOUR", 30), windowMs: HOUR_MS }),
 } as const;
 
 /**

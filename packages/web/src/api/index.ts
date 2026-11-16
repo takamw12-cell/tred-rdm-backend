@@ -68,6 +68,7 @@ import { registerFlashcardRoutes } from "./flashcards/routes";
 import { registerVideoRoutes, recordSolverRun } from "./video/routes";
 import { registerVisionRoutes } from "./vision/routes";
 import { flashcards } from "./routes/flashcards";
+import { learning } from "./routes/learning";
 import { examPredictor } from "./routes/exam-predictor";
 import { sharedKnowledgeRoutes } from "./routes/shared-knowledge";
 import { readLearningStyle } from "./lib/learning-style-store";
@@ -147,6 +148,7 @@ export const router = {
   subjects,
   courses,
   flashcards,
+  learning,
   examPredictor,
   sharedKnowledge: sharedKnowledgeRoutes,
   retention,

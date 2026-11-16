@@ -148,7 +148,7 @@ export interface ConceptState {
 
 export type MasteryResult = { saved: true; score: number } | { saved: false; reason: "invalid" | "full" | "not_migrated" };
 
-const missingTable = (e: unknown) => /no such table/i.test(String((e as Error)?.message ?? e) + String((e as { cause?: unknown })?.cause ?? ""));
+export const missingTable = (e: unknown) => /no such table/i.test(String((e as Error)?.message ?? e) + String((e as { cause?: unknown })?.cause ?? ""));
 
 let warned = false;
 function warnOnce() {

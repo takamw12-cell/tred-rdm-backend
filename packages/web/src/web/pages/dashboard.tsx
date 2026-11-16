@@ -28,6 +28,7 @@ import { MemoryCard } from "@/components/memory-card";
 import { ReviewCard } from "@/components/review-card";
 import { DocFlashcardsButton, FlashcardsWidget } from "@/components/flashcards-widget";
 import { ProgressSection } from "@/components/progress-section";
+import { LernprofilSection } from "@/components/lernprofil-section";
 import { ExplainerVideosWidget } from "@/components/explainer-video";
 import { NotificationInbox } from "@/components/notification-inbox";
 import { Button } from "@/components/ui/button";
@@ -335,6 +336,11 @@ export default function DashboardPage() {
       {/* « Mein Fortschritt » : maîtrise par matière et cartes du jour. Masqué tant qu'il n'y a rien à montrer. */}
       <Reveal className="mb-6">
         <ProgressSection />
+      </Reveal>
+
+      {/* « Mein Lernprofil » : forces et faiblesses par matière, plan de révision sur 7 jours. */}
+      <Reveal className="mb-6">
+        <LernprofilSection />
       </Reveal>
 
       {/* « Meine Erklärvideos » : les vidéos explicatives sauvegardées depuis le Hörsaal. */}

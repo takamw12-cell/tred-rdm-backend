@@ -1364,3 +1364,29 @@ Une routine cloud « TRED - verification quotidienne 8h » tourne chaque jour à
 - Voir les rapports, la mettre en pause ou la supprimer : `https://claude.ai/code/routines` (chaque passage y apparaît comme une session, le rapport est sa dernière réponse).
 - Elle ne t'envoie pas d'e-mail. Si tu veux recevoir le rapport par e-mail ou sur Slack, demande-le : il faut lui ajouter ce connecteur.
 - En été, pour rester à 8 h, change l'heure de la routine à 6 h UTC.
+
+## « Mein Lernprofil » et plan de révision sur 7 jours (2026-11-16)
+
+Nouvelle section du tableau de bord, sous « Mein Fortschritt ».
+
+**Ce qu'elle montre.**
+
+- Par matière : combien de concepts sont sûrs, en construction, fragiles (une barre par matière, les nombres écrits dessous).
+- Les trois concepts les plus sûrs, les cinq plus fragiles avec leur erreur typique, les trois types d'erreur les plus fréquents, le style d'apprentissage choisi.
+- Le bouton « Lernplan erstellen » : un plan sur 7 jours pour les cinq concepts les plus fragiles. Chaque concept est appris le jour J, remémoré à J+2, appliqué à J+5 ; le jour 7 est un auto-test sur tous.
+
+**D'où viennent les données.** Uniquement de la table `concept_mastery` : ce que le tuteur a noté quand l'étudiant a répondu lui-même. Un compte qui n'a encore rien répondu voit un texte qui explique comment le profil se construit, pas de graphique.
+
+**Le plan n'est pas rédigé par un modèle.** Il est calculé par le serveur : aucun appel à Claude, donc aucun coût, et il s'affiche tout de suite.
+
+**Les pages citées.** Pour chaque concept, le serveur cherche le mot dans les documents de l'étudiant, page par page. Une page n'est citée que si le concept y est écrit. S'il n'est écrit nulle part, la tâche affiche « In deinen Unterlagen nicht gefunden » : il n'y a jamais de page par défaut. Un clic sur une page ouvre le PDF à cette page, concept surligné.
+
+**Les boutons « Mit dem Tutor üben », « Abfragen lassen »…** Ils ouvrent le Hörsaal avec la question déjà écrite dans le champ. Rien n'est envoyé tant que l'étudiant n'appuie pas sur Envoyer.
+
+**Où le plan est gardé.** Dans le navigateur de l'étudiant, pour la semaine, avec ses coches. Rien de plus n'est enregistré côté serveur, donc pas de migration à lancer. Conséquence : le plan ne suit pas l'étudiant d'un appareil à l'autre ; sur un autre appareil, il en crée un nouveau. Si tu veux un plan synchronisé entre appareils, il faudra une table et une migration : dis-le-moi.
+
+**Limite.** 30 créations de plan par heure et par compte (variable `STUDY_PLAN_RATE_PER_HOUR`).
+
+**Mode socratique.** Il reste un choix de l'étudiant (bouton dans le Hörsaal), jamais le réglage par défaut : décision du 2026-11-16, figée par un test.
+
+Code : `packages/web/src/api/lib/learning-profile.ts`, `src/api/routes/learning.ts`, `src/web/components/lernprofil-section.tsx`, `src/web/lib/study-plan.ts`. Tests : `tests/learning-profile.test.ts`.
