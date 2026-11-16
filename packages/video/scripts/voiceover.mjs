@@ -9,7 +9,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { CAMPAIGN, CINE_A, CINE_B, DEMO, TIKTOK, V4, VOICEOVERS } from "../src/voiceovers.mjs";
+import { CAMPAIGN, CINE_A, CINE_B, DEMO, PEPITE, STYLES, TIKTOK, V4, VOICEOVERS } from "../src/voiceovers.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const assets = join(here, "../src/assets");
@@ -45,9 +45,9 @@ function toWords(al) {
 
 const [only, flag] = process.argv.slice(2);
 const key = apiKey();
-for (const vo of [...VOICEOVERS, ...CAMPAIGN, ...DEMO, ...V4, ...CINE_A, ...CINE_B, ...TIKTOK]) {
-  // « c » = toute la campagne de 30 s, « d » = la campagne de démonstration, « v » = la campagne V4, « k » = Cinematic série A, « b » = Cinematic série B, « t » = TikTok « Survive Your Klausur » ; sinon un id exact.
-  if (only && only !== vo.id && !((only === "c" || only === "d" || only === "v" || only === "k" || only === "b" || only === "t") && vo.id.startsWith(only))) continue;
+for (const vo of [...VOICEOVERS, ...CAMPAIGN, ...DEMO, ...V4, ...CINE_A, ...CINE_B, ...TIKTOK, ...PEPITE, ...STYLES]) {
+  // « c » = toute la campagne de 30 s, « d » = la campagne de démonstration, « v » = la campagne V4, « k » = Cinematic série A, « b » = Cinematic série B, « t » = TikTok « Survive Your Klausur », « p » = campagne V5 « la pépite », « s » = campagne V8 « six styles » ; sinon un id exact.
+  if (only && only !== vo.id && !((only === "c" || only === "d" || only === "v" || only === "k" || only === "b" || only === "t" || only === "p" || only === "s") && vo.id.startsWith(only))) continue;
   const mp3 = join(assets, `vo-${vo.id}.mp3`);
   const json = join(assets, `vo-${vo.id}.json`);
   if (existsSync(mp3) && existsSync(json) && flag !== "--force") {

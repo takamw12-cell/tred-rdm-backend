@@ -1390,3 +1390,61 @@ Nouvelle section du tableau de bord, sous « Mein Fortschritt ».
 **Mode socratique.** Il reste un choix de l'étudiant (bouton dans le Hörsaal), jamais le réglage par défaut : décision du 2026-11-16, figée par un test.
 
 Code : `packages/web/src/api/lib/learning-profile.ts`, `src/api/routes/learning.ts`, `src/web/components/lernprofil-section.tsx`, `src/web/lib/study-plan.ts`. Tests : `tests/learning-profile.test.ts`.
+
+## Campagne V5 « la pépite » — 6 vidéos TikTok / Snapchat (2026-11-16)
+
+Trois vidéos en anglais, trois en allemand, 1080 × 1920, de 17 à 21 secondes. Aucune 3D, aucun mini-jeu : seulement le tuteur, l'import, les preuves PDF, la vidéo explicative et le plan de révision.
+
+| Fichier | Sujet | Voix |
+|---|---|---|
+| `V5-EN1-The-Proof.mp4` | La citation ouvre le PDF à la page 12, phrase surlignée | Laura |
+| `V5-EN2-The-Magic-Video.mp4` | « Explain as video » | Liam |
+| `V5-EN3-University-in-your-Pocket.mp4` | Import PDF + PowerPoint, choix du professeur, réponse pas à pas | Laura |
+| `V5-DE1-Die-Klausur-Rettung.mp4` | Skript de 80 pages, Lernprofil, plan sur 7 jours avec les pages | Jessica |
+| `V5-DE2-Der-Tafel-Erklaerer.mp4` | Question de mécanique, tableau écrit étape par étape | Hale |
+| `V5-DE3-Die-perfekte-Antwort.mp4` | Question tapée, réponse avec citation, Skript ouvert à la page | Jessica |
+
+Fichiers livrés dans `C:\Users\HP\Downloads\TRED-Campagne-V5\`.
+
+**Les voix.** « Elektra », « Mia » et « Jonas » n'existent pas sur ton compte ElevenLabs ; je n'en ai pas ajouté (cela modifie le compte). J'ai pris les voix jeunes déjà disponibles : Laura pour Elektra, Jessica pour Mia, Hale pour Jonas. 1 349 caractères facturés, plus 450 pour les deux voix refaites (voir ci-dessous).
+
+**Aucune promesse absolue (ta règle du 2026-11-16, UWG).** Tes textes sont repris tels quels, sauf deux phrases remplacées par une formulation factuelle, voix régénérées :
+
+- EN 1 : « Every answer comes with a proof … 100% reliable. 100% Zero Hallucination. » → « Answers from your documents come with a proof … Every citation is checked against your own PDF. » À l'écran : « Checked citations. Real proofs. »
+- DE 3 : « Jede Antwort wird mit deinem eigenen Skript verlinkt. » → « Antworten aus deinem Skript führen direkt zur genauen Seite. »
+
+**Ce qui est réel à l'image, ce qui est simulé.** L'app est filmée sur le serveur local, compte de démonstration, avec des documents fabriqués pour l'occasion. Réel : l'import, la vérification de la citation, le lecteur PDF et son surlignage, le Lernprofil, le plan sur 7 jours, le lecteur de la vidéo explicative. Simulé : le texte des réponses du tuteur et le contenu de la vidéo explicative, écrits au format exact de l'app (le serveur local n'a pas de clé de modèle).
+
+**Une phrase à relire avant de publier.** DE 1, « Lade dein PDF hoch, und TRED erstellt dir einen persönlichen 7-Tage-Lernplan » : le plan ne naît pas de l'import seul. Il se construit à partir des réponses de l'étudiant au tuteur ; les pages viennent ensuite de son PDF. Pour la changer, il faut régénérer la voix (environ 250 caractères) et refaire le rendu.
+
+**Musique.** Les nappes déjà présentes dans le dépôt (`music-en1…3`, `music-de1…3`). Une « musique tendance » se choisit dans TikTok au moment de publier, depuis la bibliothèque de sons commerciaux : je ne peux pas l'intégrer au fichier sans droits.
+
+**Refaire une vidéo.**
+
+1. Prises de vue : copier `packages/video/scripts/v5-captures.ts` et `v5-pdf.ts` dans `tred-perf\v5`, lancer le serveur local et le faux stockage, puis `bun.exe v5/v5-captures.ts <nom>`. Le navigateur doit être lancé avec `--force-device-scale-factor=2`, sinon les images sortent en 500 × 889.
+2. Voix : `node scripts/voiceover.mjs p` (ou un identifiant `p-en1` … `p-de3`, avec `--force` pour refaire).
+3. Encodage des prises : `scripts/v5-encode.sh <prise> <nom>` (sans images B, une image clé par seconde).
+4. Rendu : `scripts/tiktok-render.sh V5-EN1-The-Proof` (identifiants dans l'en-tête du script). Mettre l'assemblage sur disque, pas dans `/tmp` : sous WSL, `/tmp` vit en mémoire vive et un rendu qui manque de mémoire échoue avec « No frame found at position ». Exemple : `TIKTOK_BUNDLE=$HOME/.cache/tred-video/bundle TMPDIR=$HOME/.cache/tred-video/tmp`.
+
+Code : `packages/video/src/tiktok/v5.tsx`, textes dans `src/voiceovers.mjs` (`PEPITE`).
+
+
+## Ce que TRED peut affirmer dans une publicité (2026-11-16)
+
+Vérifié dans le code, la configuration et ta propre page Sécurité. À relire avant tout nouveau script.
+
+| Sujet | On peut dire | On ne dit pas |
+|---|---|---|
+| Solveurs | « Zahlen aus deterministischen Solvern, nicht geraten » (mécanique, électrotechnique, thermodynamique, chimie, matériaux, finance, maths) | « für jede Formel », « 100 % exakt », « zéro hallucination » : hors de ces domaines le modèle raisonne, et il rédige toujours le texte |
+| Citations | « Every citation is checked against your own PDF », « Real proofs from your own files » | « Every answer comes with a proof » : une réponse sans document n'a pas de citation |
+| Chiffrement | « verschlüsselt übertragen und gespeichert » (HTTPS/TLS vérifié ; chiffrement au repos de R2 et Turso d'après les fournisseurs) | « fully encrypted », « bout en bout » : le serveur lit les documents pour répondre |
+| Hébergement | « gespeichert auf Servern in der EU » (Railway europe-west4 et Turso aws-eu-west-1 vérifiés ; région du bucket R2 non vérifiée) | « deine Daten bleiben in Europa » : questions et extraits partent chez Anthropic (USA), sous clauses contractuelles types |
+| Conformité | « Hosting in der EU », « alle Empfänger stehen in der Datenschutzerklärung » | un sceau ou badge « DSGVO-konform » (aucune certification), « 100 % secure », « garantie » |
+
+## Campagne V8 « six styles » — deux pilotes (2026-11-16)
+
+Fichiers dans `C:\Users\HP\Downloads\TRED-Campagne-V8\` : `V8-EN2-Documentary-Study-Plan.mp4` (documentaire, voix Sarah) et `V8-DE1-Comedy-Morgen-Klausur.mp4` (comédie, voix Charlie). 423 caractères facturés. Chaque vidéo a sa palette, sa typographie, ses sous-titres et son cadre pour l'app ; rien n'est repris du moteur des séries SK et V5.
+
+Les quatre autres vidéos de V8 attendent tes textes corrigés : EN 3 (« Fully encrypted, GDPR compliant, hosted in Europe »), DE 2 (le bouton « Prüfen » et la coche « Exakt berechnet » n'existent pas dans l'app ; « für jede Formel » est trop large), EN 1 (le badge « Solver Verified » demande un vrai calcul du solveur, donc une question réelle au tuteur). V7 n'est pas tournée.
+
+Code : `packages/video/src/tiktok/v8.tsx`, voix `STYLES` dans `src/voiceovers.mjs` (`node scripts/voiceover.mjs s`), prises `en-doc-*`, `de-import3`, `de-summary` dans `scripts/v5-captures.ts`.

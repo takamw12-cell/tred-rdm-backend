@@ -4,6 +4,11 @@
 #
 #   scripts/tiktok-render.sh                          (les 3)
 #   scripts/tiktok-render.sh SK-1-Die-Klausur-morgen
+#   scripts/tiktok-render.sh $V5        (campagne V5 « la pépite », voir ci-dessous)
+#
+# Campagne V5 (2026-11-16), à passer en arguments :
+#   V5-EN1-The-Proof V5-EN2-The-Magic-Video V5-EN3-University-in-your-Pocket
+#   V5-DE1-Die-Klausur-Rettung V5-DE2-Der-Tafel-Erklaerer V5-DE3-Die-perfekte-Antwort
 #
 # Sorties : out/tiktok/<id>.mp4 (ou TIKTOK_OUT=<dossier>).
 #

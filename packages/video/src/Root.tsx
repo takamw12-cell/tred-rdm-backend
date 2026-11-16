@@ -15,6 +15,8 @@ import { FILM } from "./cinematic/engine";
 import { CINEMATIC_A } from "./cinematic/series-a";
 import { CINEMATIC_B } from "./cinematic/series-b";
 import { SURVIVE } from "./tiktok/videos";
+import { PEPITE } from "./tiktok/v5";
+import { STYLES } from "./tiktok/v8";
 import "./style.css";
 
 /**
@@ -78,6 +80,18 @@ export function Root() {
       {/* Campagne TikTok / Snapchat « Survive Your Klausur » (2026-11-14) : 3 pilotes verticaux, freeze + slash orange, gros sous-titres. */}
       <Folder name="TikTok-Survive-Your-Klausur">
         {SURVIVE.map(([id, component, frames]) => (
+          <Composition key={id} id={id} component={component} durationInFrames={frames} {...PHONE} />
+        ))}
+      </Folder>
+      {/* Campagne V5 « la pépite » (2026-11-16) : 3 vidéos en anglais, 3 en allemand — tuteur, import, preuves PDF, vidéo explicative, plan de révision. */}
+      {/* Campagne V8 « six styles » (2026-11-16) : les deux pilotes — documentaire (EN 2) et comédie (DE 1). */}
+      <Folder name="TikTok-V8-Styles">
+        {STYLES.map(([id, component, frames]) => (
+          <Composition key={id} id={id} component={component} durationInFrames={frames} {...PHONE} />
+        ))}
+      </Folder>
+      <Folder name="TikTok-V5-Pepite">
+        {PEPITE.map(([id, component, frames]) => (
           <Composition key={id} id={id} component={component} durationInFrames={frames} {...PHONE} />
         ))}
       </Folder>

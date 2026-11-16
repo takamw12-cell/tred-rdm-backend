@@ -200,3 +200,39 @@ export const TIKTOK = [
     settings: { stability: 0.3, similarity_boost: 0.75, style: 0.4, use_speaker_boost: true, speed: 1.06 },
     text: "KI erfindet Antworten? Nicht hier. TRED macht aus deinem eigenen Skript Prüfungsfälle. Nach jeder Antwort siehst du den Satz aus deinem Dokument, der sie belegt – mit Seitenzahl. Ein Tipp, und das Dokument öffnet sich genau dort. Lernen mit Beleg: tred-tutor.de." },
 ];
+
+// ── Campagne V5 « la pépite » (2026-11-16) : 3 vidéos en anglais, 3 en allemand ──
+// Textes du fondateur. Règle du 2026-11-16 : aucune promesse absolue (UWG) — « 100% reliable. 100% Zero
+// Hallucination. » et « Every answer / Jede Antwort » sont remplacés par des formulations factuelles
+// (EN 1 et DE 3, voix régénérées). Il demandait les voix « Elektra », « Mia »
+// et « Jonas » : elles n'existent pas sur le compte ElevenLabs (et en ajouter
+// une modifie le compte). Voix du compte les plus proches, jeunes et vives :
+// Laura pour Elektra, Jessica pour Mia, Hale pour Jonas. Liam est bien Liam.
+const YOUNG = { stability: 0.32, similarity_boost: 0.75, style: 0.4, use_speaker_boost: true, speed: 1.05 };
+export const PEPITE = [
+  { id: "p-en1", language: "en", voiceId: "FGY2WhTYpPnrIDTdsKH5", model: "eleven_v4", settings: YOUNG, // Laura (pour « Elektra ») : la preuve
+    text: "Tired of AI making things up? TRED doesn't guess. Answers from your documents come with a proof. Click on the citation, and it opens the exact page of your own PDF. Every citation is checked against your own PDF. Try it now on tred-tutor.de." },
+  { id: "p-en2", language: "en", voiceId: "TX3LPaxmHKxFdv7VOQHJ", model: "eleven_v4", settings: YOUNG, // Liam : la vidéo explicative
+    text: "What if you could turn a boring text explanation into a private movie? Just click 'Explain as video', and TRED generates a custom animated video with a voiceover, just for you. It's like having a Hollywood studio for your lecture notes. Link in bio." },
+  { id: "p-en3", language: "en", voiceId: "FGY2WhTYpPnrIDTdsKH5", model: "eleven_v4", settings: YOUNG, // Laura (pour « Elektra ») : l'université dans la poche
+    text: "Law, Medicine, Engineering. TRED adapts to your major. Upload your PDFs or PowerPoints, choose your virtual professor, and get step-by-step explanations in your language. The ultimate university in your pocket." },
+  { id: "p-de1", language: "de", voiceId: "cgSgspJ2msm6clMCkdW9", model: "eleven_v4", settings: YOUNG, // Jessica (pour « Mia ») : le plan sur 7 jours
+    text: "Klausur in zwei Tagen und 80 Seiten Skript? Keine Panik. Lade dein PDF hoch, und TRED erstellt dir einen persönlichen 7-Tage-Lernplan. Es zeigt dir genau, welche Seiten du wann lernen musst. Dein persönlicher Coach für die Klausur. Jetzt testen." },
+  { id: "p-de2", language: "de", voiceId: "wWWn96OtTHu1sn8SRGEr", model: "eleven_v4", settings: YOUNG, // Hale (pour « Jonas ») : l'explication au tableau
+    text: "Hör auf, seitenlange Skripte zu lesen. Stell TRED einfach deine Frage. Der virtuelle Professor erklärt dir die Lösung Schritt für Schritt auf dem interaktiven Whiteboard. Wie in einer echten Nachhilfestunde. Probiere es aus." },
+  { id: "p-de3", language: "de", voiceId: "cgSgspJ2msm6clMCkdW9", model: "eleven_v4", settings: YOUNG, // Jessica (pour « Mia ») : la réponse avec sa preuve
+    text: "Keine Lust mehr auf verwirrende Antworten von KI-Chatbots? TRED gibt dir nicht nur die Lösung, sondern auch den Beweis. Antworten aus deinem Skript führen direkt zur genauen Seite. Lerne smarter, nicht härter." },
+];
+
+// ── Campagne V8 « six styles » (2026-11-16) : chaque vidéo a sa voix, son ton, son identité ──
+// Textes du fondateur, mot pour mot. Deux pilotes d'abord, pour valider la diversité visuelle :
+// EN 2 (documentaire, voix chaleureuse) et DE 1 (comédie, voix jeune et vive). Les quatre autres
+// attendent ses réponses (voir GUIDE_FOUNDER.md, « Campagne V8 »).
+export const STYLES = [
+  { id: "s-en2", language: "en", voiceId: "EXAVITQu4vr4xnSDxMaL", model: "eleven_v4", // Sarah — posée, rassurante : le documentaire étudiant
+    settings: { stability: 0.5, similarity_boost: 0.8, style: 0.25, use_speaker_boost: true, speed: 0.98 },
+    text: "Drowning in lecture notes? You don't need to work harder. You need to work smarter. Upload your PDFs, and TRED builds a personalized 7-day study plan. It tells you exactly what to read, day by day. Take back your weekend." },
+  { id: "s-de1", language: "de", voiceId: "IKne3meq5aSn9XLyUdCD", model: "eleven_v4", // Charlie — jeune, plein d'énergie : la comédie du stress
+    settings: { stability: 0.28, similarity_boost: 0.75, style: 0.5, use_speaker_boost: true, speed: 1.08 },
+    text: "Morgen Klausur und null Plan? Tief durchatmen. Wirf deine Skripte in TRED. Unsere KI liest sie und erklärt dir das Wichtigste in Sekunden. Schritt für Schritt. Entspann dich, du hast das jetzt im Griff." },
+];
