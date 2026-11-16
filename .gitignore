@@ -94,6 +94,8 @@ packages/web/scripts/*
 !packages/web/scripts/check-bundle-secrets.ts
 # Le résumé du matin, à la demande (voir GUIDE_FOUNDER.md, « Résumé du matin »).
 !packages/web/scripts/resume-lancement.ts
+# Flyer A5 recto verso : PDF et captures depuis marketing/flyer-tred.html.
+!packages/web/scripts/generate-flyer.mjs
 _a-supprimer/
 
 # Sauvegardes des scripts de correctif

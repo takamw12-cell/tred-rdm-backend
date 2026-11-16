@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TRED Flyer A5</title>
+<!--
+  Flyer TRED, A5 portrait (148 × 210 mm), recto Encre + verso Ivoire.
+  PDF et aperçus :  node packages/web/scripts/generate-flyer.mjs
+  Planche A4, deux flyers par feuille à couper au milieu :  flyer-tred.html?bogen=a4
+
+  Charte : Ivoire #FDFBF7, Encre #1A1A1A, Jaune TRED #EAB308, Fraunces + Inter.
+  Les polices sont celles de l'app, lues dans public/fonts : aucune requête externe.
+  Le logo reprend les tracés du kit (public/brand, via components/logo-paths.ts) avec
+  les couleurs de l'app : losanges de la couleur du texte, gland jaune.
+  Marge de sécurité : 15 mm sur les quatre bords, aucun texte ni logo au-delà.
+-->
+<style>
+  @font-face {
+    font-family: "Fraunces";
+    font-style: normal;
+    font-weight: 500 700;
+    src: url("../public/fonts/fraunces-latin.woff2") format("woff2");
+  }
+  @font-face {
+    font-family: "Inter";
+    font-style: normal;
+    font-weight: 400 700;
+    src: url("../public/fonts/inter-latin.woff2") format("woff2");
+  }
+
+  :root {
+    --elfenbein: #FDFBF7;
+    --tinte: #1A1A1A;
+    --gelb: #EAB308;
+    --weiss: #FFFFFF;
+    --text-leise: #4A463F;
+    --linie: #D9D2C3;
+    --rand: 15mm;      /* marge de sécurité */
+    --radius: 16px;
+    --serif: "Fraunces", Georgia, serif;
+    --sans: "Inter", "Segoe UI", Arial, sans-serif;
+  }
+
+  @page { size: 148mm 210mm; margin: 0; }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body {
+    font-family: var(--sans);
+    color: var(--tinte);
+    background: var(--elfenbein);
+  }
+
+  .vorrat { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+  /* ── Une face ──────────────────────────────────────────────────────── */
+  .seite {
+    width: 148mm;
+    height: 210mm;
+    padding: var(--rand);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    overflow: hidden;
+    break-after: page;
+    break-inside: avoid;
+  }
+  .seite:last-child { break-after: auto; }
+
+  h1, h2, .leitsatz {
+    font-family: var(--serif);
+    font-weight: 600;
+    letter-spacing: -0.014em;
+  }
+
+  .logo { display: block; height: 8mm; aspect-ratio: 574.81 / 228; }
+
+  /* ── Recto : Encre ─────────────────────────────────────────────────── */
+  /* La lueur est un dégradé à couleurs pleines (jaune déjà mélangé à l'encre) :
+     pas de transparence, donc le même rendu à l'écran, en PDF et sur papier. */
+  .vorn {
+    color: var(--weiss);
+    background:
+      radial-gradient(ellipse 78mm 70mm at 74% 49%, #5E4C10 0%, #453912 26%, #2B2616 58%, #1A1A1A 100%),
+      var(--tinte);
+  }
+  .vorn .logo { align-self: flex-start; color: var(--weiss); }
+
+  .mitte {
+    margin: auto 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .vorn h1 {
+    font-size: 49pt;
+    line-height: 1.03;
+  }
+  .vorn h1 span { display: block; width: max-content; margin: 0 auto; }
+
+  /* Verre dépoli : voile clair, liseré lumineux, ombre douce. La lueur passe dessous. */
+  .glas {
+    margin-top: 8mm;
+    padding: 5.5mm 9mm 5.8mm;
+    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.075);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      0 10px 28px rgba(0, 0, 0, 0.28);
+    font-size: 13pt;
+    line-height: 1.5;
+    font-weight: 500;
+  }
+  .glas p { white-space: nowrap; }
+
+  .scan {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .kachel {
+    padding: 1.5mm;
+    border-radius: var(--radius);
+    background: var(--weiss);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
+    line-height: 0;
+  }
+  .kachel img { display: block; width: 60mm; height: 60mm; border-radius: 10px; }
+  .scan p {
+    margin-top: 4.5mm;
+    font-size: 13pt;
+    line-height: 1.2;
+    font-weight: 700;
+    color: var(--gelb);
+  }
+
+  /* ── Verso : Ivoire ────────────────────────────────────────────────── */
+  .hinten { background: var(--elfenbein); }
+  .hinten h2 {
+    margin-top: 7mm;
+    font-size: 42pt;
+    line-height: 1.05;
+  }
+  /* Carte et bénéfices : centrés ensemble entre le titre et le pied. */
+  .karte {
+    margin-top: auto;
+    width: 100%;
+    padding: 10.5mm 9mm 11mm;
+    border-radius: var(--radius);
+    background: var(--weiss);
+    box-shadow:
+      0 1px 2px rgba(26, 26, 26, 0.05),
+      0 8px 26px rgba(26, 26, 26, 0.08);
+  }
+  .leitsatz {
+    font-size: 22pt;
+    line-height: 1.15;
+  }
+  .karte p + p {
+    margin-top: 5mm;
+    font-size: 13pt;
+    line-height: 1.55;
+    color: var(--text-leise);
+    text-wrap: balance;
+  }
+
+  .vorteile {
+    list-style: none;
+    margin-top: 12mm;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3mm;
+  }
+  .vorteile li {
+    font-size: 9.6pt;
+    line-height: 1.3;
+    font-weight: 600;
+    text-wrap: balance;
+  }
+  .vorteile .symbol {
+    width: 15mm;
+    height: 15mm;
+    margin: 0 auto 3.2mm;
+    border-radius: 12px;
+    background: var(--weiss);
+    box-shadow:
+      0 1px 2px rgba(26, 26, 26, 0.05),
+      0 5px 14px rgba(26, 26, 26, 0.08);
+    display: grid;
+    place-items: center;
+  }
+  .vorteile svg {
+    width: 8mm;
+    height: 8mm;
+    fill: none;
+    stroke: var(--tinte);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .vorteile svg .gelb { fill: var(--gelb); stroke: none; }
+
+  .fuss {
+    margin-top: auto;
+    width: 100%;
+    padding-top: 5mm;
+    border-top: 0.3mm solid var(--linie);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .fuss .logo { height: 7mm; color: var(--tinte); }
+  .adresse { font-size: 14pt; line-height: 1; font-weight: 700; }
+
+  /* ── Écran : les deux faces côte à côte, pour relire ───────────────── */
+  @media screen {
+    body {
+      background: #77736A;
+      min-height: 100vh;
+      padding: 28px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 28px;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .seite, .bogen { flex: none; box-shadow: 0 3px 18px rgba(0, 0, 0, 0.35); }
+  }
+
+  /* ── Impression ────────────────────────────────────────────────────── */
+  @media print {
+    body { background: none; padding: 0; display: block; }
+  }
+
+  /* ── Planche A4 paysage : deux flyers par feuille (?bogen=a4) ──────── */
+  .bogen {
+    position: relative;
+    width: 297mm;
+    height: 210mm;
+    background: var(--weiss);
+    display: flex;
+    justify-content: space-evenly;
+    break-after: page;
+    break-inside: avoid;
+    overflow: hidden;
+  }
+  .bogen:last-child { break-after: auto; }
+  .bogen .seite { break-after: auto; box-shadow: none; }
+</style>
+</head>
+<body>
+
+  <svg class="vorrat" aria-hidden="true" focusable="false">
+    <symbol id="tred-logo" viewBox="24 12 574.81 228">
+      <path fill="currentColor" d="M132.95 16.95L168.05 52.05A7 7 0 0 1 168.05 61.95L132.95 97.05A7 7 0 0 1 123.05 97.05L87.95 61.95A7 7 0 0 1 87.95 52.05L123.05 16.95A7 7 0 0 1 132.95 16.95ZM191.95 75.95L227.05 111.05A7 7 0 0 1 227.05 120.95L191.95 156.05A7 7 0 0 1 182.05 156.05L146.95 120.95A7 7 0 0 1 146.95 111.05L182.05 75.95A7 7 0 0 1 191.95 75.95ZM132.95 134.95L168.05 170.05A7 7 0 0 1 168.05 179.95L132.95 215.05A7 7 0 0 1 123.05 215.05L87.95 179.95A7 7 0 0 1 87.95 170.05L123.05 134.95A7 7 0 0 1 132.95 134.95ZM73.95 75.95L109.05 111.05A7 7 0 0 1 109.05 120.95L73.95 156.05A7 7 0 0 1 64.05 156.05L28.95 120.95A7 7 0 0 1 28.95 111.05L64.05 75.95A7 7 0 0 1 73.95 75.95Z"/>
+      <path fill="#EAB308" d="M121 116A7 7 0 1 1 135 116A7 7 0 1 1 121 116ZM130.83 113.17L182.83 165.17L177.17 170.83L125.17 118.83L130.83 113.17ZM176 168A4 4 0 1 1 184 168A4 4 0 1 1 176 168ZM184 168L184 208L176 208L176 168L184 168ZM175 202L185 202A5 5 0 0 1 190 207L190 235A5 5 0 0 1 185 240L175 240A5 5 0 0 1 170 235L170 207A5 5 0 0 1 175 202Z"/>
+      <path fill="currentColor" d="M278 71.38L347.32 71.38L347.32 88.87L323.57 88.87L323.57 161L301.74 161L301.74 88.87L278 88.87L278 71.38ZM431.19 161L406.55 161L387.91 127.17L382.68 127.17L382.68 161L360.85 161L360.85 71.38L397.49 71.38C404.55 71.38 410.57 72.62 415.55 75.09C420.53 77.55 424.26 80.94 426.72 85.23C429.19 89.53 430.43 94.32 430.43 99.6L430.43 99.6C430.43 105.55 428.74 110.87 425.38 115.55C422.02 120.23 417.06 123.55 410.51 125.51L410.51 125.51L431.19 161ZM382.68 89.51L382.68 111.72L396.21 111.72C400.21 111.72 403.21 110.74 405.21 108.79C407.21 106.83 408.21 104.06 408.21 100.49L408.21 100.49C408.21 97.09 407.21 94.4 405.21 92.45C403.21 90.49 400.21 89.51 396.21 89.51L396.21 89.51L382.68 89.51ZM501.53 88.87L468.47 88.87L468.47 107L497.7 107L497.7 123.85L468.47 123.85L468.47 143.51L501.53 143.51L501.53 161L446.64 161L446.64 71.38L501.53 71.38L501.53 88.87ZM551.83 71.38C561.28 71.38 569.53 73.26 576.6 77C583.66 80.74 589.13 86 593 92.77C596.87 99.53 598.81 107.34 598.81 116.19L598.81 116.19C598.81 124.96 596.87 132.74 593 139.55C589.13 146.36 583.64 151.64 576.53 155.38C569.43 159.13 561.19 161 551.83 161L551.83 161L518.26 161L518.26 71.38L551.83 71.38ZM550.43 142.11C558.68 142.11 565.11 139.85 569.7 135.34C574.3 130.83 576.6 124.45 576.6 116.19L576.6 116.19C576.6 107.94 574.3 101.51 569.7 96.91C565.11 92.32 558.68 90.02 550.43 90.02L550.43 90.02L540.09 90.02L540.09 142.11L550.43 142.11Z"/>
+    </symbol>
+  </svg>
+
+  <!-- RECTO -->
+  <section class="seite vorn" data-seite="recto">
+    <svg class="logo" role="img" aria-label="TRED" data-sicher><use href="#tred-logo"/></svg>
+
+    <div class="mitte">
+      <h1><span data-sicher>Klausurpanik?</span><span data-sicher>Nein.</span></h1>
+
+      <div class="glas" data-sicher>
+        <p>Lade dein Skript hoch.</p>
+        <p>Lass es dir erklären.</p>
+        <p>Bestehe.</p>
+      </div>
+    </div>
+
+    <div class="scan">
+      <div class="kachel" data-sicher>
+        <img src="QR-Code-TRED.svg" alt="QR-Code: www.tred-tutor.de">
+      </div>
+      <p data-sicher>Scannen &amp; kostenlos testen</p>
+    </div>
+  </section>
+
+  <!-- VERSO -->
+  <section class="seite hinten" data-seite="verso">
+    <h2 data-sicher>Warum TRED?</h2>
+
+    <div class="karte" data-sicher>
+      <p class="leitsatz">Belege statt Behauptungen.</p>
+      <p>Jedes Zitat wird in deinen eigenen Dokumenten geprüft und führt dich zur genauen Seite.</p>
+    </div>
+
+    <ul class="vorteile" data-sicher>
+      <li>
+        <div class="symbol">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect class="gelb" x="6.5" y="11" width="11" height="3.4" rx="0.6"/>
+            <path d="M14 2.5H6.5a1.5 1.5 0 0 0-1.5 1.5v16a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5V7.5z"/>
+            <path d="M14 2.5v5h5"/>
+            <path d="M8.5 12.7h7M8.5 17h5"/>
+          </svg>
+        </div>
+        Zitierte Beweise (PDF)
+      </li>
+      <li>
+        <div class="symbol">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="2.5" y="4.5" width="19" height="15" rx="2"/>
+            <path class="gelb" d="M10 8.6v6.8a.5.5 0 0 0 .76.43l5.6-3.4a.5.5 0 0 0 0-.86l-5.6-3.4A.5.5 0 0 0 10 8.6z"/>
+          </svg>
+        </div>
+        Erklärvideos
+      </li>
+      <li>
+        <div class="symbol">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect class="gelb" x="6.6" y="12" width="3.6" height="3.6" rx="0.6"/>
+            <rect x="3" y="4.5" width="18" height="16.5" rx="2"/>
+            <path d="M3 9.5h18M8 2.5v4M16 2.5v4"/>
+            <path d="M13.2 13.8h.01M16.9 13.8h.01M8.4 17.6h.01M13.2 17.6h.01M16.9 17.6h.01" stroke-width="2"/>
+          </svg>
+        </div>
+        7-Tage-Lernplan
+      </li>
+    </ul>
+
+    <footer class="fuss" data-sicher>
+      <svg class="logo" role="img" aria-label="TRED"><use href="#tred-logo"/></svg>
+      <p class="adresse">www.tred-tutor.de</p>
+    </footer>
+  </section>
+
+  <script>
+    // flyer-tred.html?bogen=a4 : chaque face est posée deux fois sur une feuille A4 paysage.
+    // Feuille 1 = deux rectos, feuille 2 = deux versos : imprimer en recto verso, couper au milieu.
+    if (new URLSearchParams(location.search).get("bogen") === "a4") {
+      const format = document.createElement("style");
+      format.textContent = "@page { size: 297mm 210mm; margin: 0; }";
+      document.head.appendChild(format);
+      for (const seite of [...document.querySelectorAll("body > .seite")]) {
+        const bogen = document.createElement("div");
+        bogen.className = "bogen";
+        seite.replaceWith(bogen);
+        bogen.append(seite, seite.cloneNode(true));
+      }
+    }
+  </script>
+</body>
+</html>
