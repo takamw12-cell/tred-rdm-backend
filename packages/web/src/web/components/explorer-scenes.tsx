@@ -6,6 +6,7 @@ import { ActiveContext, HIGHLIGHT, Part, SelectContext, Skin } from "@/component
 import { EXPLORER_MODELS, TURBOFAN_FILE } from "@/lib/explorer-models";
 import { ATOM_SHELLS, descend, HEART_GLB, HEART_PART_OF, NORM_LEVELS, SURFACE, surfaceGradient, surfaceHeight, surfacePoint } from "@/lib/explorer-more";
 import { ORBITALS, sampleOrbital } from "@/lib/orbitals";
+import { draggedSinceDown } from "@/lib/tap-guard";
 
 /**
  * Les scènes des autres filières (2026-11-15) : cellule, cœur, surface
@@ -264,7 +265,7 @@ function TurbofanFile({ playing }: { playing: boolean }) {
     if (playing && rotor.current) rotor.current.rotation.x += Math.min(dt, 0.05) * 1.6;
   });
   const onClick = (e: ThreeEvent<MouseEvent>) => {
-    if (e.delta > 6) return;
+    if (e.delta > 6 || draggedSinceDown()) return;
     e.stopPropagation();
     let best: { id: string; d: number } | null = null;
     for (const h of EXPLORER_MODELS.turbofan.hotspots) {

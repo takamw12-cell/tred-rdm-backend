@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, type ReactNode } from "react";
 import * as THREE from "three";
 import type { ThreeEvent } from "@react-three/fiber";
+import { draggedSinceDown } from "@/lib/tap-guard";
 
 /**
  * Les briques communes aux scènes de l'Explorateur 3D (Explorer3D.tsx,
@@ -44,7 +45,7 @@ export function Part({ id, children }: { id: string; children: ReactNode }) {
   const select = useContext(SelectContext);
   const onClick = useCallback(
     (e: ThreeEvent<MouseEvent>) => {
-      if (e.delta > 6) return;
+      if (e.delta > 6 || draggedSinceDown()) return;
       e.stopPropagation();
       select(id);
     },
