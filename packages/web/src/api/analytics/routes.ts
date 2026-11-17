@@ -82,7 +82,7 @@ async function posthogMetrics() {
     }
   };
 
-  const [hoersaal, clicks, funnel] = await Promise.all([
+  const [hoersaal, clicks, funnel, consent] = await Promise.all([
     // Minuten im Hörsaal (Chat) je Person und Tag: Mittelwert und Median.
     settle(
       hogql(`
@@ -125,6 +125,18 @@ async function posthogMetrics() {
         };
       }),
     ),
+    // Wer hat der Analyse zugestimmt? PostHog sieht NUR diese Personen : jede
+    // Person mit irgendeinem Ereignis hat zugestimmt (30 Tage, dazu 7 Tage).
+    // Dazu die Importe, die PostHog gesehen hat (einzeln + im Stapel) —
+    // Vergleichsbasis für die Abdeckung (consent-coverage.ts).
+    settle(
+      hogql(`
+        SELECT count(DISTINCT person_id),
+               count(DISTINCT if(timestamp > now() - INTERVAL 7 DAY, person_id, NULL)),
+               countIf(event = 'upload_completed') + sumIf(toFloat(properties.done), event = 'upload_batch_completed')
+        FROM events
+        WHERE timestamp > now() - INTERVAL 30 DAY`).then(([r]) => ({ visitors30d: num(r?.[0]), visitors7d: num(r?.[1]), trackedUploads30d: num(r?.[2]) })),
+    ),
   ]);
 
   return {
@@ -132,6 +144,7 @@ async function posthogMetrics() {
     hoersaal,
     clicks,
     funnel,
+    consent,
     heatmapUrl: `${POSTHOG_API()}/project/${process.env.POSTHOG_PROJECT_ID}/heatmaps`,
     replayUrl: `${POSTHOG_API()}/project/${process.env.POSTHOG_PROJECT_ID}/replay/home`,
   };

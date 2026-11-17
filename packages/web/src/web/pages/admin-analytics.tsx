@@ -1,3 +1,4 @@
+import { trackingCoverage } from "../../api/analytics/consent-coverage";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ExternalLink, Loader2, RefreshCw } from "lucide-react";
@@ -39,6 +40,7 @@ interface Analytics {
         hoersaal: { avgMinutes: number; medianMinutes: number; sessions: number } | { error: string };
         clicks: { label: string; page: string; count: number }[] | { error: string };
         funnel: { opened: number; started: number; completed: number; failed: number } | { error: string };
+        consent?: { visitors30d: number; visitors7d: number; trackedUploads30d: number } | { error: string };
         heatmapUrl: string;
         replayUrl: string;
       };
@@ -192,6 +194,12 @@ export default function AdminAnalyticsPage() {
                 hint={`Median · Mittel ${posthog.hoersaal.avgMinutes} min · ${posthog.hoersaal.sessions} Personentage`}
               />
             )}
+            {posthog.consent &&
+              (isErr(posthog.consent) ? (
+                <ErrorCard what="Zustimmung zur Analyse" error={posthog.consent.error} />
+              ) : (
+                <ConsentCard c={posthog.consent} realUploads={core.uploads30d} />
+              ))}
             {isErr(posthog.funnel) ? (
               <ErrorCard what="Import-Trichter" error={posthog.funnel.error} />
             ) : (
@@ -340,6 +348,37 @@ function Funnel({ f }: { f: { opened: number; started: number; completed: number
           </li>
         ))}
       </ul>
+    </Card>
+  );
+}
+
+/**
+ * Wie belastbar sind die PostHog-Zahlen? PostHog sieht nur, wer zugestimmt
+ * hat. Die Abdeckung vergleicht die Importe, die PostHog gesehen hat, mit
+ * den Importen in der Datenbank (api/analytics/consent-coverage.ts).
+ */
+function ConsentCard({ c, realUploads }: { c: { visitors30d: number; visitors7d: number; trackedUploads30d: number }; realUploads: number }) {
+  const { share, level } = trackingCoverage(c.trackedUploads30d, realUploads);
+  const verdict = {
+    verlaesslich: { text: "Statistiken verlässlich", dot: "bg-emerald-500" },
+    vorsicht: { text: "Mit Vorsicht lesen", dot: "bg-amber-500" },
+    duenn: { text: "Nicht belastbar: zu wenige Zustimmungen", dot: "bg-red-500" },
+    unbekannt: { text: "Noch keine Vergleichsbasis", dot: "bg-slate-400" },
+  }[level];
+  return (
+    <Card className="p-4" data-testid="consent-card">
+      <p className="text-muted-foreground text-xs">Zustimmung zur Analyse (30 T.)</p>
+      <p className="mt-1 text-2xl font-semibold tabular-nums">{c.visitors30d}</p>
+      <p className="text-sm">Besucher haben dem Tracking zugestimmt · {c.visitors7d} in den letzten 7 Tagen</p>
+      <p className="mt-2 flex items-center gap-2 text-sm font-medium">
+        <span className={`inline-block size-2.5 rounded-full ${verdict.dot}`} aria-hidden="true" />
+        {verdict.text}
+      </p>
+      <p className="text-muted-foreground mt-1 text-xs">
+        {share === null
+          ? "Abdeckung unbekannt: in 30 Tagen kein Import in der Datenbank."
+          : `Abdeckung ${Math.round(share * 100)} %: PostHog hat ${c.trackedUploads30d} von ${realUploads} Importen gesehen. Der Rest stammt von Personen ohne Zustimmung.`}
+      </p>
     </Card>
   );
 }
