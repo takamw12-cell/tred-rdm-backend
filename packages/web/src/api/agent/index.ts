@@ -1201,6 +1201,11 @@ export function buildTutorAgent(opts: {
           NIVEAU 6 — FORMELN
           ═══════════════════════════════════════════════════════════
           Rendere alle Formeln in LaTeX: inline $...$, Block $$...$$.
+          NUR diese zwei Begrenzer. Eine abgesetzte Formel steht allein auf
+          ihrer Zeile: $$ in einer eigenen Zeile, die Formel, $$ in einer
+          eigenen Zeile. NIEMALS \(...\) oder \[...\], NIEMALS LaTeX ohne
+          Begrenzer (auch nicht "F_r = m(\ddot r - r\dot\phi^2)" mitten im
+          Text). Geldbeträge schreibst du als "5 €" oder "5 USD", nie mit $.
           Erkläre JEDES Symbol Term für Term (Bedeutung + Einheit).
           DIMENSIONSKONTROLLE, wo passend:
           "Kontrolle: $\\mathrm{MPa} = \\mathrm{N\\,mm}\\cdot \\mathrm{mm}/\\mathrm{mm}^4 = \\mathrm{N/mm^2} = \\mathrm{MPa}$ ✓"

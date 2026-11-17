@@ -2,6 +2,7 @@ import Markdown from "react-markdown";
 import remarkMath from "remark-math";
 import remarkGfm from "remark-gfm";
 import rehypeKatex from "rehype-katex";
+import rehypeSanitize, { defaultSchema, type Options as SanitizeSchema } from "rehype-sanitize";
 import type { Components } from "react-markdown";
 import { cn } from "@/lib/utils";
 import { MermaidDiagram, ChartBlock, TikzDiagram, SvgBlock } from "./diagram-blocks";
@@ -17,6 +18,12 @@ import { MODEL3D_LANG } from "@/lib/model3d";
 import { Model3DBlock } from "./model3d-block";
 import { ErrorBoundary } from "./error-boundary";
 import type { ReactNode } from "react";
+import {
+  escapeCurrencyDollars,
+  expandDisplayLines,
+  normalizeMathDelimiters,
+  wrapBareLatexLines,
+} from "../../api/lib/math-delimiters";
 
 // Intercept fenced code blocks: ```mermaid renders a real diagram, ```chart
 // renders a plotted graph (Q/M curves, Mohr circle, …). Everything else keeps
@@ -369,6 +376,49 @@ export function repairMath(text: string): string {
   return out + text.slice(last);
 }
 
+/**
+ * Ce que l'assainissement laisse passer : le schéma de GitHub, plus les deux
+ * classes que remark-math pose sur une formule (`math-inline`,
+ * `math-display`). Sans elles, rehype-katex ne distinguerait plus une
+ * formule en ligne d'une formule en bloc.
+ */
+const SANITIZE_SCHEMA: SanitizeSchema = {
+  ...defaultSchema,
+  attributes: {
+    ...defaultSchema.attributes,
+    code: [["className", /^language-./, "math-inline", "math-display"]],
+  },
+};
+
+/**
+ * L'ordre compte :
+ *   1. rehype-sanitize nettoie l'arbre issu du Markdown (liens javascript:,
+ *      attributs inconnus) AVANT KaTeX — sinon il arracherait le HTML que
+ *      KaTeX vient de produire ;
+ *   2. rehype-katex construit les formules : `throwOnError: false` affiche
+ *      une formule invalide en rouge au lieu de faire planter la réponse,
+ *      `trust: false` refuse \href, \url et \html* (aucun lien ni attribut
+ *      venu du LaTeX) ;
+ *   3. l'enrichissement passe en dernier et sait reconnaître — et éviter —
+ *      les sous-arbres de KaTeX.
+ */
+const REHYPE_PLUGINS = [
+  [rehypeSanitize, SANITIZE_SCHEMA],
+  [rehypeKatex, { throwOnError: false, strict: false, trust: false }],
+  rehypeEnrich,
+] as const satisfies Parameters<typeof Markdown>[0]["rehypePlugins"];
+
+/**
+ * Le texte du modèle, remis aux conventions de remark-math avant le rendu.
+ * Le serveur convertit déjà \( \) et \[ \] dans le flux
+ * (api/lib/math-delimiters.ts) ; on le refait ici pour les anciens messages
+ * et pour les contenus générés hors du chat (exercices, fiches, examens).
+ */
+export function prepareMarkdown(content: string): string {
+  const md = splitGluedMath(normalizeMathDelimiters(dropDuplicateBeamCharts(content)));
+  return repairSvgFences(expandDisplayLines(escapeCurrencyDollars(wrapBareLatexLines(repairMath(md)))));
+}
+
 // Renders Markdown with LaTeX (KaTeX). German technical terms stay bold inline.
 export function MarkdownContent({
   content,
@@ -386,12 +436,10 @@ export function MarkdownContent({
     >
       <Markdown
         remarkPlugins={[remarkMath, remarkGfm]}
-        // L'ordre compte : KaTeX construit ses formules d'abord, l'enrichissement
-        // passe ensuite et sait alors reconnaître — et éviter — ses sous-arbres.
-        rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }], rehypeEnrich]}
+        rehypePlugins={REHYPE_PLUGINS}
         components={components}
       >
-        {repairSvgFences(repairMath(splitGluedMath(dropDuplicateBeamCharts(content))))}
+        {prepareMarkdown(content)}
       </Markdown>
     </div>
   );

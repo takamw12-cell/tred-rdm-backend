@@ -117,6 +117,7 @@ import { realWorldRules } from "./lib/real-world";
 import { startRetentionHeartbeat } from "./lib/retention/heartbeat";
 import { detectDocumentDenial } from "./lib/denial-guard";
 import { detectSolverSkip, samplingTemperature, solverDutyNote } from "./lib/precision";
+import { mathDelimiterTransform } from "./lib/math-delimiters";
 import { applySubscription, endSubscription } from "./lib/billing";
 import { grantCredits } from "./lib/credits";
 import {
@@ -939,6 +940,9 @@ app.post("/api/agent/messages", async (c) => {
   const uiStream = await createAgentUIStream({
     agent,
     uiMessages: pruneHistoryFiles(messages),
+    // \( \) et \[ \] → $ et $$ avant l'envoi : remark-math, côté client,
+    // ne lit que ces deux délimiteurs (lib/math-delimiters.ts).
+    experimental_transform: mathDelimiterTransform(),
     // Echte Abrechnung: jeder Schritt des Werkzeug-Loops meldet seinen
     // Verbrauch. Feuern und vergessen — ein Schreibfehler darf den laufenden
     // Stream nicht abbrechen.
