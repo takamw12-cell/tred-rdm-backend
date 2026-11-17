@@ -118,6 +118,7 @@ import { startRetentionHeartbeat } from "./lib/retention/heartbeat";
 import { detectDocumentDenial } from "./lib/denial-guard";
 import { detectSolverSkip, samplingTemperature, solverDutyNote } from "./lib/precision";
 import { mathDelimiterTransform } from "./lib/math-delimiters";
+import { netlistGate } from "./lib/circuit/netlist";
 import { applySubscription, endSubscription } from "./lib/billing";
 import { grantCredits } from "./lib/credits";
 import {
@@ -897,6 +898,9 @@ app.post("/api/agent/messages", async (c) => {
       : undefined,
     // Chaque calcul réussi est conservé : « Als Video erklären » s'appuie dessus.
     onSolver: (run) => recordSolverRun(uid, typeof conversationId === "string" ? conversationId.slice(0, 100) : null, run),
+    // Schaltplan als Bild/PDF : rechnen nur mit einer bestätigten Netzliste
+    // (lib/circuit/netlist.ts). Gelesen aus dem Verlauf, den der Browser schickt.
+    netlistGate: netlistGate(Array.isArray(messages) ? messages : []),
     memory: {
       open: gaps,
       note: (input) => noteGap(uid, { ...input, semesterId: semesterId ?? null }),

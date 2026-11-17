@@ -12,6 +12,7 @@ import { MARK, rehypeEnrich } from "./enrich";
 import { DictionaryTooltip } from "./dictionary-tooltip";
 import { SourceCitation } from "./source-citation";
 import { BEAM_LANG, BeamDiagram, dropDuplicateBeamCharts } from "./beam-diagram";
+import { NETLIST_LANG, NetlistCard, PROOF_LANG, ProofCard } from "./netlist-card";
 import { MarkdownMedia, MediaCard } from "./media-card";
 import { MEDIA_LANG } from "@/lib/media-block";
 import { MODEL3D_LANG } from "@/lib/model3d";
@@ -105,6 +106,8 @@ const components: Components = {
       if (curriculum) return guard(<Curriculum data={curriculum} />);
     }
     if (lang === BEAM_LANG) return guard(<BeamDiagram code={raw} />);
+    if (lang === NETLIST_LANG) return guard(<NetlistCard code={raw} />);
+    if (lang === PROOF_LANG) return guard(<ProofCard code={raw} />);
     if (lang === MEDIA_LANG) return guard(<MediaCard code={raw} />);
     if (lang === MODEL3D_LANG) return guard(<Model3DBlock code={raw} />);
     if (lang === "mermaid") return guard(<MermaidDiagram code={raw} />);
@@ -129,6 +132,8 @@ const components: Components = {
     const lang = codeLang(node);
     if (
       lang === BEAM_LANG ||
+      lang === NETLIST_LANG ||
+      lang === PROOF_LANG ||
       lang === MEDIA_LANG ||
       lang === MODEL3D_LANG ||
       lang === "mermaid" ||

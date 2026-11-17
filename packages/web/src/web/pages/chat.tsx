@@ -48,6 +48,7 @@ import { DocumentViewer } from "@/components/document-viewer";
 import { CitationContext } from "@/lib/citations";
 import { BEAM_LANG, beamBlockFromPart } from "@/components/beam-diagram";
 import { solverChartBlockFromPart } from "@/lib/solver-charts";
+import { NETLIST_EVENT, netlistBlockFromPart, proofBlockFromPart, type NetlistEventDetail } from "@/lib/netlist-block";
 import { chatPhase, PHASE_KEY } from "@/lib/chat-phase";
 import { MEDIA_LANG, mediaBlockFromPart } from "@/lib/media-block";
 import { CameraCapture } from "@/components/camera-capture";
@@ -151,6 +152,10 @@ function rawMessageText(m: UIMessage): string {
       if (p.type === "text") return p.text;
       const beam = beamBlockFromPart(p);
       if (beam) return beam;
+      // Schaltplan : la netlist à confirmer, puis les équations et la probe
+      // exacte (lib/netlist-block.ts) — écrites par le code, pas par le modèle.
+      const netlist = netlistBlockFromPart(p) ?? proofBlockFromPart(p);
+      if (netlist) return netlist;
       const chart = solverChartBlockFromPart(p);
       if (chart) {
         if (seenCharts.has(chart)) return "";
@@ -1271,6 +1276,23 @@ export default function ChatPage() {
     void translateTo(locale, messagesRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locale]);
+
+  // Les boutons de la carte « Netzliste » (components/netlist-card.tsx) :
+  // « Stimmt so » envoie la confirmation, « Etwas stimmt nicht » prépare la
+  // correction dans la saisie. Une référence, parce que `send` lit l'état du
+  // rendu courant.
+  const sendRef = useRef<(text: string) => void>(() => {});
+  sendRef.current = send;
+  useEffect(() => {
+    function onNetlist(e: Event) {
+      const d = (e as CustomEvent<NetlistEventDetail>).detail;
+      if (!d || typeof d.text !== "string") return;
+      if (d.action === "confirm") sendRef.current(d.text);
+      else setInput(d.text);
+    }
+    window.addEventListener(NETLIST_EVENT, onNetlist);
+    return () => window.removeEventListener(NETLIST_EVENT, onNetlist);
+  }, []);
 
   function send(text: string) {
     const q = text.trim();

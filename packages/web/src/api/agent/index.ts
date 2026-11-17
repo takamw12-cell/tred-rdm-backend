@@ -5,7 +5,8 @@ import { langOf } from "../lib/languages";
 import { z } from "zod";
 import { calculate } from "../lib/calc";
 import { runBalkenstatik } from "../lib/beam-tool";
-import { circuitInputSchema, solveCircuit } from "../lib/solvers/solveCircuit";
+import { runCircuitPipeline, schaltungBerechnenSchema } from "../lib/circuit/pipeline";
+import { checkNetlist, schaltplanInputSchema, type NetlistGate } from "../lib/circuit/netlist";
 import { mathInputSchema, solveMath } from "../lib/solvers/solveMath";
 import { solveThermo, thermoInputSchema } from "../lib/solvers/solveThermo";
 import { physicsInputSchema, solvePhysics } from "../lib/physics-solver";
@@ -276,6 +277,11 @@ export function buildTutorAgent(opts: {
    * calculés. Absent = rien n'est enregistré.
    */
   onSolver?: (run: { solver: string; input: unknown; output: unknown }) => void;
+  /**
+   * Schaltplan als Bild/PDF im Gespräch? Welche Netzlisten sind bestätigt?
+   * (lib/circuit/netlist.ts → netlistGate). Absent = keine Sperre.
+   */
+  netlistGate?: NetlistGate;
   /**
    * Fachgebiet der letzten Frage (lib/solvers/domain.ts → domainHint).
    * Geht als ZWEITE System-Nachricht mit, damit der lange, gecachte Prompt
@@ -660,6 +666,20 @@ export function buildTutorAgent(opts: {
             AUSNAHME: Die Schaltung einer Aufgabe aus den UNTERLAGEN wird
             nicht nachgezeichnet — du zeigst das Original (NIVEAU 4,
             "Abbildungen aus den Unterlagen").
+          • SCHALTPLAN ALS FOTO ODER PDF — erst lesen lassen, dann rechnen:
+            1. Lies Bauteile, Knoten und Werte ab und ruf "schaltplan_erfassen"
+               auf (quelle "bild"/"pdf"). Bauteilnamen GENAU wie im Plan
+               (R1, R2, …), Knoten "0" = Masse. Unlesbares in "unklar", nie
+               raten.
+            2. Die Tafel zeigt die Netzliste (vom Code gezeichnet). Bitte um
+               Vergleich mit dem Plan und um Bestätigung. In dieser Antwort
+               KEINE Zahl, kein Strom, kein Ersatzwiderstand.
+            3. Erst nach der Bestätigung "schaltung_berechnen" mit GENAU
+               diesen elementen und der netzliste_id. Der Code sperrt jede
+               andere Eingabe. Gleichungen und exakte Probe erscheinen
+               AUTOMATISCH auf der Tafel — nicht abschreiben, erklären.
+            4. Korrigiert die Person etwas: neue Netzliste erfassen, wieder
+               bestätigen lassen.
           • THERMODYNAMIK — Kreisprozesse (Carnot, Otto, Diesel, Joule/
             Brayton, Clausius-Rankine) als svg im p-v- bzw. T-s-Diagramm:
             beschriftete Achsen mit Einheit, nummerierte Zustandspunkte
@@ -2224,9 +2244,25 @@ export function buildTutorAgent(opts: {
           "Quellen mit Betrag und phase in Grad). Elemente: R, L, C (wert mit " +
           'Präfix, z. B. "4.7k", "100n", "10mH"), Z (re/im in Ohm), V (a = Pluspol), ' +
           'I (speist in a ein), OPV (ideal, mit Gegenkopplung). Masse = Knoten "0". ' +
+          "Bei Gleichstrom zusätzlich exakte Probe (Brüche) aller Knoten- und Maschengleichungen. " +
+          "Liegt ein Schaltplan als Bild/PDF vor: nur mit netzliste_id einer BESTÄTIGTEN Netzliste (schaltplan_erfassen). " +
           "Für Teiler, Kirchhoff, Impedanzen, Thevenin IMMER dieses Werkzeug, nie selbst rechnen.",
-        inputSchema: circuitInputSchema,
-        execute: guardSolver("schaltung_berechnen", solveCircuit, opts.onSolver),
+        inputSchema: schaltungBerechnenSchema,
+        // Sperre (bestätigte Netzliste bei Bild/PDF) + exakte Probe in
+        // Bruchrechnung : lib/circuit/pipeline.ts.
+        execute: guardSolver("schaltung_berechnen", (input: z.infer<typeof schaltungBerechnenSchema>) => runCircuitPipeline(input, opts.netlistGate), opts.onSolver),
+      }),
+
+      // Schaltplan aus Bild/PDF → Netzliste, die die Person bestätigt.
+      // Rechnet NICHTS : prüft nur den Aufbau (lib/circuit/netlist.ts).
+      schaltplan_erfassen: tool({
+        description:
+          "Schaltplan aus Foto/PDF: schreib die Netzliste auf, die du im Bild liest (Bauteile aus dem Katalog " +
+          "R, L, C, Z, V, I, OPV mit den Namen aus dem Plan, Knoten, Werte; Masse \"0\"). Der Code prüft den Aufbau " +
+          "(doppelte Namen, getrennte Teilnetze, offene Enden) und zeigt die Liste auf der Tafel zur Bestätigung. " +
+          "Rechnet nichts. Pflicht vor schaltung_berechnen, sobald ein Schaltplan als Bild oder PDF vorliegt.",
+        inputSchema: schaltplanInputSchema,
+        execute: async (input) => checkNetlist(input),
       }),
 
       thermo_berechnen: tool({
