@@ -1,0 +1,35 @@
+{
+ "id": "n-en3b",
+ "words": [
+  {
+   "text": "Wait,",
+   "startMs": 0,
+   "endMs": 480
+  },
+  {
+   "text": "explain",
+   "startMs": 560,
+   "endMs": 1040
+  },
+  {
+   "text": "that",
+   "startMs": 1120,
+   "endMs": 1200
+  },
+  {
+   "text": "like",
+   "startMs": 1280,
+   "endMs": 1360
+  },
+  {
+   "text": "I'm",
+   "startMs": 1400,
+   "endMs": 1520
+  },
+  {
+   "text": "12.",
+   "startMs": 1600,
+   "endMs": 2400
+  }
+ ]
+}

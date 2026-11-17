@@ -1,0 +1,155 @@
+{
+ "id": "n-en3a",
+ "words": [
+  {
+   "text": "The",
+   "startMs": 0,
+   "endMs": 160
+  },
+  {
+   "text": "derivative",
+   "startMs": 240,
+   "endMs": 720
+  },
+  {
+   "text": "of",
+   "startMs": 800,
+   "endMs": 880
+  },
+  {
+   "text": "x",
+   "startMs": 1040,
+   "endMs": 1200
+  },
+  {
+   "text": "squared",
+   "startMs": 1280,
+   "endMs": 1760
+  },
+  {
+   "text": "is",
+   "startMs": 1920,
+   "endMs": 2080
+  },
+  {
+   "text": "2",
+   "startMs": 2160,
+   "endMs": 2320
+  },
+  {
+   "text": "x.",
+   "startMs": 2400,
+   "endMs": 3040
+  },
+  {
+   "text": "Imagine",
+   "startMs": 3280,
+   "endMs": 3760
+  },
+  {
+   "text": "a",
+   "startMs": 3840,
+   "endMs": 3920
+  },
+  {
+   "text": "square",
+   "startMs": 4120,
+   "endMs": 4320
+  },
+  {
+   "text": "growing.",
+   "startMs": 4480,
+   "endMs": 5440
+  },
+  {
+   "text": "The",
+   "startMs": 5520,
+   "endMs": 5600
+  },
+  {
+   "text": "rate",
+   "startMs": 5720,
+   "endMs": 5840
+  },
+  {
+   "text": "it",
+   "startMs": 5880,
+   "endMs": 5920
+  },
+  {
+   "text": "grows",
+   "startMs": 6000,
+   "endMs": 6480
+  },
+  {
+   "text": "is",
+   "startMs": 6560,
+   "endMs": 6800
+  },
+  {
+   "text": "2",
+   "startMs": 6920,
+   "endMs": 7040
+  },
+  {
+   "text": "times",
+   "startMs": 7120,
+   "endMs": 7360
+  },
+  {
+   "text": "its",
+   "startMs": 7440,
+   "endMs": 7600
+  },
+  {
+   "text": "side.",
+   "startMs": 7800,
+   "endMs": 8480
+  },
+  {
+   "text": "TRED",
+   "startMs": 8520,
+   "endMs": 8800
+  },
+  {
+   "text": "breaks",
+   "startMs": 8880,
+   "endMs": 9120
+  },
+  {
+   "text": "it",
+   "startMs": 9160,
+   "endMs": 9200
+  },
+  {
+   "text": "down",
+   "startMs": 9280,
+   "endMs": 9600
+  },
+  {
+   "text": "step",
+   "startMs": 9760,
+   "endMs": 9920
+  },
+  {
+   "text": "by",
+   "startMs": 10000,
+   "endMs": 10080
+  },
+  {
+   "text": "step.",
+   "startMs": 10160,
+   "endMs": 10880
+  },
+  {
+   "text": "Try",
+   "startMs": 11000,
+   "endMs": 11120
+  },
+  {
+   "text": "it.",
+   "startMs": 11200,
+   "endMs": 11600
+  }
+ ]
+}

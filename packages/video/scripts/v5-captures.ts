@@ -249,8 +249,8 @@ const newChat = async (p: Page) => {
 interface Take {
   lang: "en" | "de";
   professor: string;
-  /** La réponse que le tuteur écrira (simulée). */
-  answer?: string;
+  /** La réponse que le tuteur écrira (simulée). Un tableau : une réponse par question, dans l'ordre. */
+  answer?: string | string[];
   /** Repartir sans document. */
   dropDocs?: boolean;
   /** Documents à importer AVANT la prise (hors champ), s'ils n'y sont pas déjà. */
@@ -272,7 +272,7 @@ async function film(name: string, take: Take) {
   mkdirSync(dir, { recursive: true });
   const ctx = await b.newContext({ viewport: view, deviceScaleFactor: 2, locale: take.lang === "de" ? "de-DE" : "en-GB", timezoneId: "Europe/Berlin", storageState });
   await ctx.addInitScript(
-    ({ lang, answer }) => {
+    ({ lang, answers }) => {
       localStorage.setItem("tred.guide.v1", new Date().toISOString());
       localStorage.setItem("tred-analytics-consent", "denied");
       localStorage.setItem("tred-professor-autospeak", "0");
@@ -302,11 +302,13 @@ async function film(name: string, take: Take) {
       addEventListener("DOMContentLoaded", mount);
 
       // Le tuteur : la réponse s'écrit au fil de l'eau, comme la vraie.
-      if (answer) {
+      if (answers.length) {
+        let asked = 0;
         const orig = window.fetch.bind(window);
         window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
           const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
           if (!url.includes("/api/agent/messages")) return orig(input, init);
+          const answer = answers[Math.min(asked++, answers.length - 1)]!;
           const sse = (o: unknown) => `data: ${JSON.stringify(o)}\n\n`;
           const parts = [sse({ type: "start" }), sse({ type: "start-step" }), sse({ type: "text-start", id: "t1" })];
           for (let i = 0; i < answer.length; i += 6) parts.push(sse({ type: "text-delta", id: "t1", delta: answer.slice(i, i + 6) }));
@@ -326,7 +328,7 @@ async function film(name: string, take: Take) {
         };
       }
     },
-    { lang: take.lang, answer: take.answer ?? "" },
+    { lang: take.lang, answers: take.answer === undefined ? [] : Array.isArray(take.answer) ? take.answer : [take.answer] },
   );
   const p = await ctx.newPage();
   const errors: string[] = [];
@@ -614,6 +616,37 @@ await film("en-doc-plan", {
     await glide(p, 300, 560, 300);
     await wheel(p, 1300, 6500);
     await p.waitForTimeout(1200);
+  },
+});
+
+/* ══ Campagne V6 « StudyTok » (2026-11-17) ═════════════════════════════ */
+
+/* EN 3 · le dialogue : la dérivée de x², puis « explain that like I'm 12 » — deux questions, deux réponses à la Tafel. */
+await film("n-en-voice", {
+  lang: "en", professor: "genius", dropDocs: true,
+  answer: [
+    ['[[TAFEL schritt="Derivative"]]', "$$\\frac{d}{dx}\\,x^2 = 2x$$", "", "The power rule: bring the exponent down, lower it by one.", "[[/TAFEL]]"].join("\n"),
+    [
+      '[[TAFEL schritt="1 · Picture a square"]]',
+      "A square with side $x$ has the area $x^2$.",
+      "[[/TAFEL]]",
+      '[[TAFEL schritt="2 · Let it grow"]]',
+      "Make each side a tiny bit longer. **Two thin strips** appear, each as long as the side $x$.",
+      "[[/TAFEL]]",
+      '[[TAFEL schritt="3 · The rate"]]',
+      "$$\\text{growth of the area} \\approx 2 \\cdot x$$",
+      "",
+      "That rate is the derivative: $2x$.",
+      "[[/TAFEL]]",
+    ].join("\n"),
+  ],
+  prepare: openChat,
+  act: async (p) => {
+    await p.waitForTimeout(600);
+    await askTyped(p, "What is the derivative of x²?");
+    await p.waitForTimeout(4200);
+    await askTyped(p, "Wait, explain that like I'm 12.");
+    await p.waitForTimeout(9000);
   },
 });
 

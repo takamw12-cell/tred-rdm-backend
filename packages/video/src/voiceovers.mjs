@@ -236,3 +236,33 @@ export const STYLES = [
     settings: { stability: 0.28, similarity_boost: 0.75, style: 0.5, use_speaker_boost: true, speed: 1.08 },
     text: "Morgen Klausur und null Plan? Tief durchatmen. Wirf deine Skripte in TRED. Unsere KI liest sie und erklärt dir das Wichtigste in Sekunden. Schritt für Schritt. Entspann dich, du hast das jetzt im Griff." },
 ];
+
+// ── Campagne V6 « StudyTok » (2026-11-17) : contenu natif, 3 vidéos en anglais, 3 en allemand ──
+// Textes du fondateur, mot pour mot, sauf DE 1 : « ChatGPT » est remplacé par « KI-Chatbots »
+// (nommer un concurrent en lui prêtant des formules inventées relève de la publicité comparative,
+// § 6 UWG ; sa propre V5 disait déjà « KI-Chatbots »). Mêmes voix de remplacement que V5 :
+// Laura pour « Elektra », Jessica pour « Mia », Hale pour « Jonas » ; Liam est Liam.
+// EN 3 est un dialogue : la voix de l'IA (n-en3a) et celle de l'étudiant (n-en3b) sont deux fichiers.
+export const NATIVE = [
+  { id: "n-en1", language: "en", voiceId: "TX3LPaxmHKxFdv7VOQHJ", model: "eleven_v4", // Liam — stressé, puis soulagé
+    settings: { stability: 0.28, similarity_boost: 0.75, style: 0.5, use_speaker_boost: true, speed: 1.06 },
+    text: "POV: You have an exam tomorrow and 80 pages to read. Yeah, we've all been there. But what if you could just upload the PDF and get a personalized 7-day study plan in seconds? That's TRED. Link in bio." },
+  { id: "n-en2", language: "en", voiceId: "FGY2WhTYpPnrIDTdsKH5", model: "eleven_v4", // Laura (pour « Elektra ») — calme, sûre d'elle
+    settings: { stability: 0.5, similarity_boost: 0.8, style: 0.25, use_speaker_boost: true, speed: 0.98 },
+    text: "Here's a study hack nobody talks about: stop re-reading your notes. Just ask TRED a question, and it will show you the exact page of your PDF that proves the answer. It's like having a cheat sheet, but for real life. Link in bio." },
+  { id: "n-en3a", language: "en", voiceId: "FGY2WhTYpPnrIDTdsKH5", model: "eleven_v4", // Laura — la voix du tuteur
+    settings: { stability: 0.45, similarity_boost: 0.8, style: 0.3, use_speaker_boost: true, speed: 1 },
+    text: "The derivative of x squared is 2 x. Imagine a square growing. The rate it grows is 2 times its side. TRED breaks it down step by step. Try it." },
+  { id: "n-en3b", language: "en", voiceId: "TX3LPaxmHKxFdv7VOQHJ", model: "eleven_v4", // Liam — l'étudiant qui coupe
+    settings: { stability: 0.3, similarity_boost: 0.75, style: 0.5, use_speaker_boost: true, speed: 1.04 },
+    text: "Wait, explain that like I'm 12." },
+  { id: "n-de1", language: "de", voiceId: "wWWn96OtTHu1sn8SRGEr", model: "eleven_v4", // Hale (pour « Jonas ») — exagéré, comique
+    settings: { stability: 0.22, similarity_boost: 0.75, style: 0.65, use_speaker_boost: true, speed: 1.08 },
+    text: "Meine Studenten nutzen KI-Chatbots und erfinden Formeln! Aber mit TRED sehen sie die exakte Seite aus ihrem Skript. Keine Ausreden mehr! Probiert es aus." },
+  { id: "n-de2", language: "de", voiceId: "cgSgspJ2msm6clMCkdW9", model: "eleven_v4", // Jessica (pour « Mia ») — empathique
+    settings: { stability: 0.42, similarity_boost: 0.78, style: 0.35, use_speaker_boost: true, speed: 1 },
+    text: "POV: Die Klausur ist morgen und du hast 80 Seiten Skript. Kein Stress. Lade dein PDF hoch, und TRED erstellt dir einen 7-Tage-Plan. Lerne smarter, nicht härter. Link in Bio." },
+  { id: "n-de3", language: "de", voiceId: "cgSgspJ2msm6clMCkdW9", model: "eleven_v4", // Jessica (pour « Mia ») — chaleureuse, douce
+    settings: { stability: 0.48, similarity_boost: 0.8, style: 0.3, use_speaker_boost: true, speed: 0.97 },
+    text: "Der ultimative Study-Hack: Verschwende keine Zeit mit Suchen. Stell TRED eine Frage, und es zeigt dir die exakte Seite in deinem Skript. Beweise statt Vermutungen. Jetzt testen." },
+];

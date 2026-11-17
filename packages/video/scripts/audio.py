@@ -308,6 +308,82 @@ TIKTOK = {
 }
 
 
+# ── Lofi / study beats (campagne V6 « StudyTok ») ────────────────────────
+def rhodes(note: float, sec: float) -> np.ndarray:
+    """Piano électrique feutré : fondamentale, un peu d'octave qui s'éteint vite, trémolo lent."""
+    t = t_axis(sec)
+    f = midi(note)
+    x = np.sin(2 * np.pi * f * t) + 0.3 * np.sin(2 * np.pi * 2 * f * t) * np.exp(-t * 6) + 0.08 * np.sin(2 * np.pi * 3 * f * t) * np.exp(-t * 10)
+    trem = 1 - 0.12 * (0.5 + 0.5 * np.sin(2 * np.pi * 4.3 * t))
+    return x * trem * np.exp(-t * 1.6) * adsr(len(t), 0.006, 0.0, 1.0, 0.12)
+
+
+def snare_soft() -> np.ndarray:
+    t = t_axis(0.22)
+    noise = lowpass_fft(rng.standard_normal(len(t)), 4200) * np.exp(-t * 26)
+    body = np.sin(2 * np.pi * 190 * t) * np.exp(-t * 34) * 0.6
+    return noise * 0.8 + body
+
+
+def lofi(bpm: float, sec: float, chords: list[list[int]], seed: int = 3) -> np.ndarray:
+    """Boucle lofi : accords de septième au piano électrique, basse ronde, batterie traînante, craquement de vinyle."""
+    r = np.random.default_rng(seed)
+    beat = 60 / bpm
+    bar = 4 * beat
+    keys = np.zeros(int(sec * SR))
+    low = np.zeros_like(keys)
+    drums = np.zeros_like(keys)
+    swing = beat * 0.16
+    for b in range(int(np.ceil(sec / bar))):
+        t0 = b * bar
+        ch = chords[b % len(chords)]
+        # Accord égrené (un léger décalage entre les notes), repris après le 3e temps.
+        for i, n in enumerate(ch):
+            place(keys, rhodes(n + 12, bar * 0.95), t0 + i * 0.022, 0.2)
+        for i, n in enumerate(ch[1:]):
+            place(keys, rhodes(n + 12, beat * 1.6), t0 + 2.5 * beat + swing + i * 0.02, 0.11)
+        place(keys, rhodes(ch[-1] + 24, beat * 1.2), t0 + 3.5 * beat + swing, 0.08)
+        place(low, sub(ch[0] - 12, beat * 1.7), t0, 0.6)
+        place(low, sub(ch[0] - 12, beat * 0.8), t0 + 2.5 * beat + swing, 0.45)
+        # Batterie : en retard d'un souffle, vélocités irrégulières.
+        lag = 0.012
+        place(drums, kick(depth=0.9), t0 + lag, 0.75)
+        place(drums, kick(depth=0.7), t0 + 2.5 * beat + swing + lag, 0.55)
+        for k in (1, 3):
+            place(drums, snare_soft(), t0 + k * beat + lag * 2, 0.5)
+        for i in range(8):
+            place(drums, hat(), t0 + i * beat / 2 + (swing if i % 2 else 0) + lag, float(r.uniform(0.07, 0.16)))
+    keys = lowpass_fft(keys, 2600)
+    drums = lowpass_fft(drums, 6500)
+    mono = keys + low
+    stereo = reverb(mono, 1.4, 0.22, seed) + np.stack([drums, drums]) * 0.8
+    # Vinyle : souffle très bas et craquements épars.
+    n = stereo.shape[1]
+    crackle = np.zeros(n)
+    idx = r.integers(0, n, size=int(sec * 9))
+    crackle[idx] = r.uniform(-1, 1, size=len(idx)) * 0.5
+    crackle = lowpass_fft(crackle, 5000) * 6 + lowpass_fft(r.standard_normal(n), 3000) * 0.006
+    stereo = stereo / np.max(np.abs(stereo)) * 0.8 + np.stack([crackle, np.roll(crackle, 37)]) * 0.05
+    stereo = np.tanh(stereo * 1.15)
+    fade = np.ones(n)
+    n_in, n_out = int(0.25 * SR), int(1.5 * SR)
+    fade[:n_in] = np.linspace(0, 1, n_in)
+    fade[-n_out:] = np.linspace(1, 0, n_out) ** 2
+    stereo = stereo * fade
+    return stereo / np.max(np.abs(stereo)) * 0.85
+
+
+# Campagne V6 « StudyTok » : une boucle par vidéo (tempo, accords de septième).
+NATIVE = {
+    "n-en1": (84, [[50, 53, 57, 60], [55, 59, 62, 65], [48, 52, 55, 59], [45, 48, 52, 55]]),   # Dm7 G7 Cmaj7 Am7
+    "n-en2": (72, [[53, 57, 60, 64], [52, 55, 59, 62], [50, 53, 57, 60], [48, 52, 55, 59]]),   # Fmaj7 Em7 Dm7 Cmaj7
+    "n-en3": (80, [[45, 48, 52, 55], [50, 53, 57, 60], [43, 47, 50, 54], [48, 52, 55, 59]]),   # Am7 Dm7 Gmaj7 Cmaj7
+    "n-de1": (90, [[52, 55, 59, 62], [45, 49, 52, 55], [50, 54, 57, 61], [47, 50, 54, 57]]),   # Em7 A7 Dmaj7 Bm7
+    "n-de2": (82, [[57, 60, 64, 67], [50, 53, 57, 60], [55, 59, 62, 65], [48, 52, 55, 59]]),   # Am7 Dm7 G7 Cmaj7
+    "n-de3": (70, [[51, 55, 58, 62], [48, 51, 55, 58], [53, 56, 60, 63], [46, 50, 53, 57]]),   # Ebmaj7 Cm7 Fm7 Bb7
+}
+
+
 def write(name: str, x: np.ndarray) -> None:
     if x.ndim == 1:
         x = np.stack([x, x])
@@ -348,6 +424,10 @@ if __name__ == "__main__":
     import sys
 
     OUT.mkdir(parents=True, exist_ok=True)
+    if len(sys.argv) > 1 and sys.argv[1] == "native":
+        for i, (key, (bpm, chords)) in enumerate(NATIVE.items()):
+            write(f"music-{key}.wav", lofi(bpm, 26.0, chords, seed=11 + i))
+        raise SystemExit
     if len(sys.argv) > 1 and sys.argv[1] == "campaign":
         for key, (bpm, chords, style) in CAMPAIGN.items():
             write(f"music-{key}.wav", song(bpm, 30.5, chords, style))

@@ -17,6 +17,7 @@ import { CINEMATIC_B } from "./cinematic/series-b";
 import { SURVIVE } from "./tiktok/videos";
 import { PEPITE } from "./tiktok/v5";
 import { STYLES } from "./tiktok/v8";
+import { NATIVE } from "./tiktok/v6";
 import "./style.css";
 
 /**
@@ -87,6 +88,12 @@ export function Root() {
       {/* Campagne V8 « six styles » (2026-11-16) : les deux pilotes — documentaire (EN 2) et comédie (DE 1). */}
       <Folder name="TikTok-V8-Styles">
         {STYLES.map(([id, component, frames]) => (
+          <Composition key={id} id={id} component={component} durationInFrames={frames} {...PHONE} />
+        ))}
+      </Folder>
+      {/* Campagne V6 « StudyTok » (2026-11-17) : contenu natif — POV, busy hands, sketch ; texte cinétique, app plein cadre. */}
+      <Folder name="TikTok-V6-StudyTok">
+        {NATIVE.map(([id, component, frames]) => (
           <Composition key={id} id={id} component={component} durationInFrames={frames} {...PHONE} />
         ))}
       </Folder>

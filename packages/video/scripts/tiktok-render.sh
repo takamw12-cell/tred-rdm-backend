@@ -10,6 +10,10 @@
 #   V5-EN1-The-Proof V5-EN2-The-Magic-Video V5-EN3-University-in-your-Pocket
 #   V5-DE1-Die-Klausur-Rettung V5-DE2-Der-Tafel-Erklaerer V5-DE3-Die-perfekte-Antwort
 #
+# Campagne V6 « StudyTok » (2026-11-17) :
+#   V6-EN1-POV-Exam-Tomorrow V6-EN2-Busy-Hands-Study-Hack V6-EN3-AI-Voice-Tutoring
+#   V6-DE1-Der-Mad-Professor V6-DE2-POV-Die-Klausur V6-DE3-Das-Study-Hack
+#
 # Sorties : out/tiktok/<id>.mp4 (ou TIKTOK_OUT=<dossier>).
 #
 # Clips face caméra du fondateur : public/facecam/intro.* et outro.* (voir le
