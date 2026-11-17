@@ -143,7 +143,9 @@ describe("Fast-path Collatz : résultat", () => {
     const api = readFileSync(join(import.meta.dir, "../src/api/index.ts"), "utf8");
     expect(api).toContain("const fast = resolveFastPath(lastUserText);");
     expect(api).toContain('thinking: "off" as const, reason: `fast-path ${fast.name}`');
-    expect(api).toContain("stream: fast ? withFastPathResult(uiStream, fast) : uiStream,");
+    // Sans fast-path, le flux passe par le verrou solveur (lib/solver-gate.ts).
+    expect(api).toContain("stream: fast ? withFastPathResult(await runAgent(agent, c.req.raw.signal), fast) : gate.stream,");
+    expect(api).toContain("enabled: solverGateEnabled(lastUserText, Boolean(fast)),");
     const chat = readFileSync(join(import.meta.dir, "../src/web/pages/chat.tsx"), "utf8");
     expect(chat).toContain("if (seenCharts.has(chart)) return \"\";");
   });

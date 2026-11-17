@@ -13,6 +13,7 @@ import { DictionaryTooltip } from "./dictionary-tooltip";
 import { SourceCitation } from "./source-citation";
 import { BEAM_LANG, BeamDiagram, dropDuplicateBeamCharts } from "./beam-diagram";
 import { NETLIST_LANG, NetlistCard, PROOF_LANG, ProofCard } from "./netlist-card";
+import { fenceRawSvg } from "@/lib/raw-svg";
 import { MarkdownMedia, MediaCard } from "./media-card";
 import { MEDIA_LANG } from "@/lib/media-block";
 import { MODEL3D_LANG } from "@/lib/model3d";
@@ -420,7 +421,8 @@ const REHYPE_PLUGINS = [
  * et pour les contenus générés hors du chat (exercices, fiches, examens).
  */
 export function prepareMarkdown(content: string): string {
-  const md = splitGluedMath(normalizeMathDelimiters(dropDuplicateBeamCharts(content)));
+  // SVG brut écrit par le modèle → bloc ```svg dessiné, jamais du texte (lib/raw-svg.ts).
+  const md = splitGluedMath(normalizeMathDelimiters(dropDuplicateBeamCharts(fenceRawSvg(content))));
   return repairSvgFences(expandDisplayLines(escapeCurrencyDollars(wrapBareLatexLines(repairMath(md)))));
 }
 

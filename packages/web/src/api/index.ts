@@ -119,6 +119,7 @@ import { detectDocumentDenial } from "./lib/denial-guard";
 import { detectSolverSkip, samplingTemperature, solverDutyNote } from "./lib/precision";
 import { mathDelimiterTransform } from "./lib/math-delimiters";
 import { netlistGate } from "./lib/circuit/netlist";
+import { SOLVER_RETRY_NOTE, solverGateEnabled, solverGateStream, solverToolsFor } from "./lib/solver-gate";
 import { applySubscription, endSubscription } from "./lib/billing";
 import { grantCredits } from "./lib/credits";
 import {
@@ -861,7 +862,7 @@ app.post("/api/agent/messages", async (c) => {
   const turnTools: string[] = [];
   let turnText = "";
 
-  const agent = buildTutorAgent({
+  const agentOptions: Parameters<typeof buildTutorAgent>[0] = {
     route,
     precomputedNote: fast?.modelNote ?? null,
     // Rigueur en sciences (lib/precision.ts) : température 0 sans
@@ -933,7 +934,8 @@ app.post("/api/agent/messages", async (c) => {
         requete,
         titre,
       ),
-  });
+  };
+  const agent = buildTutorAgent(agentOptions);
 
   // Tout ce qui précède l'appel du modèle : réception du corps (un fichier
   // joint sur un réseau de téléphone), lectures en base, choix des extraits.
@@ -941,8 +943,28 @@ app.post("/api/agent/messages", async (c) => {
   const announced = Number(c.req.header("content-length"));
   const bodyBytes = Number.isFinite(announced) && announced > 0 ? announced : null;
 
-  const uiStream = await createAgentUIStream({
-    agent,
+  // Un signalement dans « Gemeldete Antworten » (tableau de bord admin).
+  const signaler = (excerpt: string, note: string) =>
+    void db
+      .insert(contentReport)
+      .values({
+        id: `rep_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`,
+        userId: session.user.id,
+        conversationId: null,
+        messageId: null,
+        reason: "wrong",
+        excerpt,
+        note,
+        locale: locale ?? "de",
+      })
+      .catch(() => {
+        /* Un signalement qui échoue ne doit pas casser la réponse en cours.
+           Le console.error qui le précède reste, lui. */
+      });
+
+  const runAgent = (a: typeof agent, abortSignal: AbortSignal) => createAgentUIStream({
+    agent: a,
+    abortSignal,
     uiMessages: pruneHistoryFiles(messages),
     // \( \) et \[ \] → $ et $$ avant l'envoi : remark-math, côté client,
     // ne lit que ces deux délimiteurs (lib/math-delimiters.ts).
@@ -988,24 +1010,6 @@ app.post("/api/agent/messages", async (c) => {
       // On ne réécrit rien : le texte est déjà à l'écran, et le corriger en
       // cours de route serait pire. On le SIGNALE, ce qui fait remonter la
       // panne dans « Gemeldete Antworten » au lieu de la laisser invisible.
-      const signaler = (excerpt: string, note: string) =>
-        void db
-          .insert(contentReport)
-          .values({
-            id: `rep_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`,
-            userId: session.user.id,
-            conversationId: null,
-            messageId: null,
-            reason: "wrong",
-            excerpt,
-            note,
-            locale: locale ?? "de",
-          })
-          .catch(() => {
-            /* Un signalement qui échoue ne doit pas casser la réponse en cours.
-               Le console.error qui le précède reste, lui. */
-          });
-
       // Rigueur en sciences (lib/precision.ts) : un résultat chiffré sorti
       // sans aucun solveur sur toute la réponse. Vérifié à la dernière étape,
       // quand on connaît tous les outils appelés.
@@ -1029,8 +1033,40 @@ app.post("/api/agent/messages", async (c) => {
     },
   });
 
+  // ── Verrou « pas de résultat sans solveur » (lib/solver-gate.ts) ───────
+  // Question de calcul : le texte est retenu ligne par ligne tant qu'aucun
+  // solveur n'a été appelé. Un résultat calculé à la main arrête le modèle
+  // AVANT d'atteindre l'écran, puis un second essai démarre avec l'appel
+  // d'un solveur imposé (toolChoice "required", sans raisonnement étendu :
+  // l'API refuse les deux ensemble).
+  const duty = agentOptions.solverDuty ?? null;
+  const gate = solverGateStream({
+    question: lastUserText,
+    enabled: solverGateEnabled(lastUserText, Boolean(fast)),
+    locale: locale ?? storedLocale,
+    signal: c.req.raw.signal,
+    first: (signal) => runAgent(agent, signal),
+    retry: (signal) => {
+      // Le premier essai est jeté : le garde d'après coup ne lit que le second.
+      turnTools.length = 0;
+      turnText = "";
+      const forced = buildTutorAgent({
+        ...agentOptions,
+        route: { ...route, thinking: "off" },
+        temperature: 0,
+        solverDuty: [duty, SOLVER_RETRY_NOTE].filter(Boolean).join("\n\n"),
+        forceSolverTools: solverToolsFor(duty),
+      });
+      return runAgent(forced, signal);
+    },
+    onBlocked: ({ excerpt }) => {
+      console.error(`[verrou] résultat calculé sans solveur, essai coupé et relancé avec solveur imposé`);
+      signaler(excerpt, "[automatique] calcul sans solveur BLOQUÉ avant affichage — relancé avec solveur imposé");
+    },
+  });
+
   const streamResponse = createUIMessageStreamResponse({
-    stream: fast ? withFastPathResult(uiStream, fast) : uiStream,
+    stream: fast ? withFastPathResult(await runAgent(agent, c.req.raw.signal), fast) : gate.stream,
   });
 
   // Battement toutes les 5 s pendant les silences (réflexion longue) : sans

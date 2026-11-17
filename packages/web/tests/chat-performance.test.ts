@@ -202,7 +202,9 @@ describe("Mesure [perf]", () => {
     const api = readFileSync(join(import.meta.dir, "../src/api/index.ts"), "utf8");
     expect(api).toContain("const routed = routeChat({");
     expect(api).toContain("console.log(perfLine({");
-    expect(api).toMatch(/buildTutorAgent\(\{\n\s+route,/);
+    // Les options sont réutilisées par le second essai du verrou solveur (lib/solver-gate.ts).
+    expect(api).toMatch(/const agentOptions: Parameters<typeof buildTutorAgent>\[0\] = \{\n\s+route,/);
+    expect(api).toContain("const agent = buildTutorAgent(agentOptions);");
   });
 });
 

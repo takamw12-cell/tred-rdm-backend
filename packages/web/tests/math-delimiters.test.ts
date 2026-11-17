@@ -145,7 +145,9 @@ describe("câblage", () => {
 
   test("le flux du chat passe par la conversion avant d'atteindre le navigateur", async () => {
     const src = await Bun.file(new URL("../src/api/index.ts", import.meta.url)).text();
-    const call = src.slice(src.indexOf("await createAgentUIStream({"), src.indexOf("onStepEnd:", src.indexOf("await createAgentUIStream({")));
+    // Les deux essais (verrou solveur) passent par runAgent → createAgentUIStream.
+    const call = src.slice(src.indexOf("=> createAgentUIStream({"), src.indexOf("onStepEnd:", src.indexOf("=> createAgentUIStream({")));
+    expect(call.length).toBeGreaterThan(0);
     expect(call).toContain("experimental_transform: mathDelimiterTransform()");
   });
 });

@@ -1,6 +1,7 @@
 import { stepCountIs, tool, ToolLoopAgent } from "ai";
 import { UNTRUSTED_NOTE, UNTRUSTED_RESULT_NOTE, wrapDocument } from "../lib/untrusted";
 import { guardSolver } from "../lib/solver-guard";
+import { forcedSolverStep } from "../lib/solver-gate";
 import { langOf } from "../lib/languages";
 import { z } from "zod";
 import { calculate } from "../lib/calc";
@@ -283,6 +284,13 @@ export function buildTutorAgent(opts: {
    */
   netlistGate?: NetlistGate;
   /**
+   * Second essai après un blocage (lib/solver-gate.ts) : le premier pas DOIT
+   * appeler l'un de ces solveurs (toolChoice "required"). L'API refuse un
+   * appel d'outil imposé avec le raisonnement étendu : l'appelant passe donc
+   * route.thinking = "off". Absent = boucle libre, comme avant.
+   */
+  forceSolverTools?: string[];
+  /**
    * Fachgebiet der letzten Frage (lib/solvers/domain.ts → domainHint).
    * Geht als ZWEITE System-Nachricht mit, damit der lange, gecachte Prompt
    * davor unverändert bleibt und der Cache greift.
@@ -380,7 +388,12 @@ export function buildTutorAgent(opts: {
     // Second point de cache sur le dernier message de chaque étape : les
     // étapes suivantes de la boucle d'outils (et la question suivante, si les
     // extraits n'ont pas changé) relisent tout ce qui précède depuis le cache.
-    prepareStep: ({ messages }) => ({ messages: withConversationCacheBreakpoint(messages) }),
+    // Second essai du verrou « pas de résultat sans solveur »
+    // (lib/solver-gate.ts) : au premier pas, appel d'un solveur IMPOSÉ.
+    prepareStep: ({ messages, stepNumber }) => ({
+      messages: withConversationCacheBreakpoint(messages),
+      ...((forcedSolverStep(stepNumber, opts.forceSolverTools ?? []) ?? {}) as { toolChoice?: "required"; activeTools?: never[] }),
+    }),
     instructions: [
       {
         role: "system",
@@ -1244,6 +1257,12 @@ export function buildTutorAgent(opts: {
           ═══════════════════════════════════════════════════════════
           NIVEAU 9 — VISUALISIERUNG (ECHTE DIAGRAMME, KEIN ASCII)
           ═══════════════════════════════════════════════════════════
+          ABSOLUTE REGEL — KEIN ROHES SVG/XML: Du schreibst NIEMALS rohe
+          SVG- oder XML-Tags (<svg>, <path>, <text>, <line>, <g>, <?xml …>)
+          in den Fließtext oder in einen [[TAFEL]]-Block. Zeichnen NUR über
+          das Werkzeug "skizze" oder die vorgesehenen Blöcke (\`\`\`svg,
+          \`\`\`circuitikz, \`\`\`chart, \`\`\`mermaid). Ein Tag außerhalb eines
+          solchen Blocks wird nicht gezeichnet.
           Zeichne NIEMALS mit ASCII-Zeichen, Bindestrichen, Pipes oder
           Text-"Kästchen". Alle Skizzen und Graphen werden als echte,
           gerenderte Diagramme ausgegeben — in einem der beiden Formate:
