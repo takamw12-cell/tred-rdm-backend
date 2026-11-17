@@ -1,14 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 
-// markdown-content importe, par ses blocs riches, le client RPC qui lit window.location.
-// Le faux `window` ne sert qu'à l'import : on le retire aussitôt, sinon les
-// autres fichiers de test (même processus) croiraient tourner dans un navigateur.
-const g = globalThis as { window?: unknown };
-const hadWindow = "window" in g;
-g.window ??= { location: { origin: "http://localhost" } };
-const { MarkdownContent } = await import("../src/web/components/markdown-content");
-if (!hadWindow) delete g.window;
+// Aucun faux `window` : les modules (stores zustand…) le captureraient au
+// chargement, et le cache de modules le partagerait avec les autres fichiers.
+import { MarkdownContent } from "../src/web/components/markdown-content";
 
 const html = (md: string) => renderToStaticMarkup(<MarkdownContent content={md} />);
 const katexCount = (h: string) => (h.match(/class="katex"/g) ?? []).length;

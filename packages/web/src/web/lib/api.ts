@@ -26,7 +26,9 @@ async function fetchWithAccessGuard(
 }
 
 const link = new RPCLink({
-  url: `${window.location.origin}/api/rpc`,
+  // Lu à chaque appel, pas au chargement du module : un test peut importer un
+  // composant qui dépend de ce client sans simuler un navigateur.
+  url: () => `${window.location.origin}/api/rpc`,
   // Session auth rides on the better-auth cookie (same-origin fetch sends it
   // automatically) — no bearer token needed since the Runable plugin removal.
   fetch: fetchWithAccessGuard,
