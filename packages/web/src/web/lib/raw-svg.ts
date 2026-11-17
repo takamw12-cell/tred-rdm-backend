@@ -26,20 +26,37 @@
 const CODE_SPLIT = /(```[\s\S]*?(?:```|$)|~~~[\s\S]*?(?:~~~|$)|`[^`\n]*`)/g;
 
 const SVG_ELEMENTS =
-  "path|text|tspan|line|polyline|polygon|rect|circle|ellipse|g|defs|marker|use|symbol|lineargradient|radialgradient|stop|clippath|mask|pattern|foreignobject|title|desc";
-const PAIRED = new RegExp(`<(${SVG_ELEMENTS})\\b[^>]*>[\\s\\S]*?<\\/\\1\\s*>`, "gi");
-const SINGLE = new RegExp(`<\\/?(?:${SVG_ELEMENTS})\\b[^>]*\\/?>`, "gi");
+  "path|text|tspan|textpath|line|polyline|polygon|rect|circle|ellipse|g|defs|marker|use|symbol|image|switch|style|" +
+  "lineargradient|radialgradient|stop|clippath|mask|pattern|filter|fe[a-z]+|foreignobject|title|desc|metadata|" +
+  "animate|animatemotion|animatetransform|set|mpath";
+const PAIRED = new RegExp(`<(${SVG_ELEMENTS})\\b[^<>]*>[\\s\\S]*?<\\/\\1\\s*>`, "gi");
+/**
+ * Une balise seule n'est retirée que si elle ne peut pas être autre chose :
+ * une fermeture, une balise avec attribut (`x="155"`), une balise auto-fermée,
+ * ou un nom sans ambiguïté. Un « <text> » ou un « <title> » nu dans une phrase
+ * (un exemple, un espace réservé) reste lisible.
+ */
+const UNAMBIGUOUS = "svg|g|defs|path|tspan|textpath|polyline|polygon|rect|circle|ellipse|lineargradient|radialgradient|clippath|foreignobject|marker";
+const SINGLE = new RegExp(
+  `<\\/(?:${SVG_ELEMENTS}|svg)\\s*>|<(?:${SVG_ELEMENTS}|svg)\\b[^<>]*(?:=[^<>]*|\\/)>|<(?:${UNAMBIGUOUS})\\s*>`,
+  "gi",
+);
+/** Une balise SVG commencée mais pas encore fermée par « > » (réponse en cours d'écriture). */
+const UNFINISHED = new RegExp(`<\\/?(?:${SVG_ELEMENTS}|svg)\\b[^<>]*$`, "i");
+const TRIGGER = new RegExp(`<(?:\\?xml|\\/?(?:${SVG_ELEMENTS}|svg)\\b)`, "i");
 
 function fixText(part: string): string {
-  if (!/<(?:svg|\?xml|\/?(?:path|text|line|g|rect|circle|polyline|polygon)\b)/i.test(part)) return part;
+  if (!TRIGGER.test(part)) return part;
   const strip = (s: string) =>
     s
       .replace(/<\?xml[^>]*\?>/gi, "")
+      .replace(/<!DOCTYPE\s+svg[^>]*>/gi, "")
       // Ouvert, pas encore fermé (flux) : caché pour l'instant.
       .replace(/<svg\b[\s\S]*$/i, "")
-      // Isolés : retirés.
+      // Isolés (un morceau de dessin sans son <svg>, une fermeture seule) : retirés.
       .replace(PAIRED, "")
-      .replace(SINGLE, "");
+      .replace(SINGLE, "")
+      .replace(UNFINISHED, "");
   // Les <svg> complets (indices impairs) deviennent des blocs ```svg ; le
   // reste est nettoyé sans toucher à leur contenu.
   return part

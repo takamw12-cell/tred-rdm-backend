@@ -6,29 +6,41 @@
  * solveur (question « avion à 120 km/h », TM3). Trop tard : le chiffre était
  * déjà à l'écran.
  *
- * Pour une question de calcul (`needsSolver`), le flux du modèle passe par
- * ce verrou :
+ * Deux protections, l'une derrière l'autre :
+ *
+ * A. APPEL IMPOSÉ DÈS LE PREMIER PAS (`mustCallToolFirst`, `firstCallForce`,
+ *    `forcedToolStep`) : pour une question technique, le modèle n'a pas le
+ *    droit d'écrire un mot avant d'avoir appelé un solveur — ou l'outil de
+ *    sortie `kein_loeser_vorhanden` quand aucun solveur ne couvre la tâche.
+ *    L'API refuse un outil imposé avec le raisonnement étendu : ces tours
+ *    tournent donc sans lui.
+ *
+ * B. LE FLUX RETENU, pour toute question de calcul (`needsSolver`) :
  *
  *   1. Tant qu'aucun solveur n'a été appelé, le texte est retenu LIGNE PAR
  *      LIGNE. Une ligne n'est envoyée au navigateur qu'une fois complète et
  *      vérifiée : sans résultat calculé (un nombre absent de la question,
- *      après « = » ou suivi d'une unité).
+ *      après « = » ou suivi d'une unité). Le dessin et le code (blocs ```,
+ *      balises) ne sont pas lus : ce ne sont pas des résultats.
  *   2. Une ligne fautive : le modèle est arrêté (abortSignal), la ligne n'est
  *      jamais envoyée. Le navigateur reçoit « Ich muss den Löser benutzen … »
- *      puis un SECOND essai démarre, où le premier pas DOIT appeler un
- *      solveur (`toolChoice: "required"`, outils limités aux solveurs — voir
- *      `forcedSolverStep`).
+ *      puis un SECOND essai démarre, limité aux solveurs (`retryForce`).
  *   3. Dès qu'un solveur est appelé, le texte passe sans retenue : les
  *      chiffres viennent alors de l'outil.
  *
+ * Un blocage est un rattrapage INTERNE réussi : il va dans le journal du
+ * serveur (console.warn), pas dans « Gemeldete Antworten ». Seul un résultat
+ * qui a réellement atteint l'écran sans solveur y est signalé
+ * (`detectSolverSkip`, lib/precision.ts).
+ *
  * Le raisonnement (résumé de la réflexion) n'est pas filtré : il n'est pas
  * une réponse. Le second essai n'est pas re-filtré : son premier pas est un
- * appel d'outil imposé par l'API.
+ * appel de solveur imposé par l'API.
  *
  * Module pur (aucun accès réseau, aucune base) : testé dans
  * tests/solver-gate.test.ts.
  */
-import { SOLVER_TOOLS, needsSolver } from "./precision";
+import { NO_SOLVER_TOOL, SOLVER_TOOLS, needsSolver } from "./precision";
 
 /* -------------------------------------------------------------------------- */
 /* Détection                                                                  */
@@ -60,18 +72,60 @@ export function computedResult(line: string, given: Set<string>): string | null 
   return null;
 }
 
+/**
+ * Ce que la ligne AFFIRME : sans balises (un `<path d="M 248,195 L 300,200">`
+ * n'est pas « 195 litres ») et sans code en ligne. Les blocs de code entiers
+ * sont écartés par l'appelant.
+ */
+export function assertedText(line: string): string {
+  return line.replace(/`[^`\n]*`/g, " ").replace(/<[^<>]{0,2000}>/g, " ").replace(/<[A-Za-z?/][^<>]*$/, " ");
+}
+
 /* -------------------------------------------------------------------------- */
-/* Second essai : appel de solveur imposé                                     */
+/* Appel d'outil imposé                                                       */
 /* -------------------------------------------------------------------------- */
 
+export interface ToolForce {
+  /** Les seuls outils proposés tant que l'appel est imposé. */
+  tools: string[];
+  /** L'appel reste imposé tant qu'aucun de ceux-ci n'a été appelé. */
+  until: string[];
+}
+
 /**
- * Réglages du pas `stepNumber` quand l'appel d'un solveur est imposé : au
- * premier pas, `toolChoice: "required"` et seuls les solveurs sont proposés.
- * Ensuite, la boucle redevient libre (expliquer avec les chiffres de l'outil).
+ * Réglages d'un pas de la boucle quand un appel d'outil est imposé :
+ * `toolChoice: "required"` et outils limités, tant qu'aucun outil de `until`
+ * n'a été appelé pendant ce tour. Ensuite la boucle redevient libre
+ * (expliquer avec les chiffres de l'outil). Le modèle ne peut donc écrire
+ * AUCUN texte avant son premier appel.
  */
-export function forcedSolverStep(stepNumber: number, tools: readonly string[]): { toolChoice: "required"; activeTools: string[] } | null {
-  if (stepNumber !== 0 || tools.length === 0) return null;
-  return { toolChoice: "required", activeTools: [...tools] };
+export function forcedToolStep(priorToolNames: readonly string[], force: ToolForce | undefined): { toolChoice: "required"; activeTools: string[] } | null {
+  if (!force || force.tools.length === 0) return null;
+  if (priorToolNames.some((t) => force.until.includes(t))) return null;
+  return { toolChoice: "required", activeTools: [...force.tools] };
+}
+
+/**
+ * PREMIER essai d'une question de calcul (`mustCallToolFirst`) : un solveur,
+ * ou l'une des trois sorties honnêtes —
+ *   - `kein_loeser_vorhanden` : aucun solveur ne couvre la tâche, une donnée
+ *     manque, ou la question est purement conceptuelle ;
+ *   - `schaltplan_erfassen` : la netlist d'abord (lib/circuit/netlist.ts) ;
+ *   - `suche_in_unterlagen` : lire l'énoncé dans le cours — mais l'appel
+ *     reste imposé après une recherche, elle ne remplace pas le solveur.
+ */
+export function firstCallForce(): ToolForce {
+  const solvers = [...SOLVER_TOOLS];
+  return {
+    tools: [...solvers, NO_SOLVER_TOOL, "schaltplan_erfassen", "suche_in_unterlagen"],
+    until: [...solvers, NO_SOLVER_TOOL, "schaltplan_erfassen"],
+  };
+}
+
+/** SECOND essai, après un blocage : un solveur, rien d'autre. */
+export function retryForce(duty: string | null | undefined): ToolForce {
+  const tools = solverToolsFor(duty);
+  return { tools, until: tools };
 }
 
 /** Les solveurs proposés au second essai : ceux de la consigne, sinon tous. */
@@ -157,16 +211,29 @@ export function solverGateStream<C>(opts: SolverGateOptions<C>): SolverGateResul
       let stepOpen = false;
       let blockedExcerpt: string | null = null;
 
+      /** Bloc de code ouvert (```svg, ```chart, ```python…) par bloc de texte : son contenu n'est pas lu. */
+      const fences = new Map<string, string | null>();
       /** Envoie les lignes complètes et sûres ; renvoie l'extrait fautif sinon. */
       const release = (id: string, final: boolean): string | null => {
         const buf = pending.get(id) ?? "";
         const cut = final ? buf.length : buf.lastIndexOf("\n") + 1;
         if (cut <= 0) return null;
         const ready = buf.slice(0, cut);
+        let fence = fences.get(id) ?? null;
         for (const line of ready.split("\n")) {
-          const hit = computedResult(line, given);
+          const mark = /^\s*(`{3,}|~{3,})/.exec(line)?.[1] ?? null;
+          if (fence) {
+            if (mark && mark[0] === fence[0] && mark.length >= fence.length) fence = null;
+            continue;
+          }
+          if (mark) {
+            fence = mark;
+            continue;
+          }
+          const hit = computedResult(assertedText(line), given);
           if (hit) return line.trim().slice(0, 240) || hit;
         }
+        fences.set(id, fence);
         pending.set(id, buf.slice(cut));
         emit({ type: "text-delta", id, delta: ready });
         return null;

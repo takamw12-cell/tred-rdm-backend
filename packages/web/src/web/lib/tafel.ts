@@ -25,6 +25,8 @@
  * Module pur, testé dans tests/tafel.test.ts.
  */
 
+import { fenceRawSvg } from "./raw-svg";
+
 export interface TafelStep {
   /** Libellé de l'étape (« Beobachtung », « Physik », « Gleichung », …). */
   label: string;
@@ -209,7 +211,11 @@ export function moveFencedToPageTop(blocks: TafelBlock[], lang: string, label: s
  * formule $$…$$, ni dans la suite indentée d'un élément de liste (sinon
  * elle deviendrait un bloc de code).
  */
-export function writingChunks(md: string): string[] {
+export function writingChunks(source: string): string[] {
+  // Un <svg> brut (sans ```svg) contient des lignes vides : découpé en
+  // paragraphes, chaque morceau s'afficherait en balises. On le met en bloc
+  // AVANT le découpage : il reste entier et il est dessiné (lib/raw-svg.ts).
+  const md = fenceRawSvg(source);
   const chunks: string[] = [];
   let cur: string[] = [];
   let fence: RegExp | null = null;

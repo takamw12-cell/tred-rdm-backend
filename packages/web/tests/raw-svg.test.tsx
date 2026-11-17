@@ -57,3 +57,39 @@ describe("SVG brut du tuteur", () => {
     expect(fenceRawSvg(t)).toBe(t);
   });
 });
+
+describe("SVG brut : cas de la capture du 17 nov. (morceaux orphelins)", () => {
+  const visible = (h: string) => h.replace(/<svg[\s\S]*?<\/svg>/g, "").replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"');
+
+  test('<text x="155" …> et <path d="M 248,195 …"> orphelins disparaissent', () => {
+    const md = 'Die Kraft greift hier an: <text x="155" y="80" font-size="14">F_A</text> <path d="M 248,195 L 300,200" stroke="#000"/> und wirkt nach unten.';
+    const shown = visible(renderToStaticMarkup(<MarkdownContent content={md} />));
+    expect(shown).not.toContain("<text");
+    expect(shown).not.toContain("<path");
+    expect(shown).not.toContain("248,195");
+    expect(shown).toContain("und wirkt nach unten.");
+  });
+
+  test("fermeture seule, balise pas finie d'écrire, en-tête XML", () => {
+    expect(fenceRawSvg('Ende der Skizze </g></svg> weiter')).toBe("Ende der Skizze  weiter");
+    expect(fenceRawSvg('Text <path d="M 10,20 L 30')).toBe("Text ");
+    expect(fenceRawSvg('<?xml version="1.0"?>\nHallo')).toBe("\nHallo");
+  });
+
+  test("un mot entre chevrons dans une phrase reste (espace réservé, exemple)", () => {
+    const t = "Ersetze <text> durch deinen Namen und <title> durch die Überschrift.";
+    expect(fenceRawSvg(t)).toBe(t);
+  });
+
+  test("Tafel : un <svg> brut avec des lignes vides reste UN bloc dessiné", async () => {
+    const { writingChunks } = await import("../src/web/lib/tafel");
+    const raw = 'Freikörperbild:\n\n<svg viewBox="0 0 200 100">\n\n<text x="155" y="20">F</text>\n\n<path d="M 248,195 L 10,10"/>\n\n</svg>\n\nDanach rechnen wir.';
+    const chunks = writingChunks(raw);
+    const svgChunks = chunks.filter((c) => c.includes("<svg"));
+    expect(svgChunks).toHaveLength(1);
+    expect(svgChunks[0].startsWith("```svg")).toBe(true);
+    expect(svgChunks[0]).toContain("</svg>");
+    // Aucun autre morceau ne porte de balise.
+    expect(chunks.filter((c) => !c.startsWith("```svg")).join("\n")).not.toMatch(/<\/?(?:text|path|svg)/);
+  });
+});

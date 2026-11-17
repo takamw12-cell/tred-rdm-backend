@@ -86,7 +86,17 @@ const KEYWORDS: Keyword[] = [
   { label: "Geschwindigkeit", re: word("\\p{L}*geschwindigkeit(?:en)?|vitesses?|velocit(?:y|ies)|velocidad(?:es)?"), tools: PHYSIK },
   { label: "Beschleunigung", re: word("\\p{L}*beschleunigung(?:en)?|accélérations?|accelerations?|aceleraci(?:ón|ones)"), tools: PHYSIK },
   { label: "Energie", re: word("\\p{L}*energie[n]?|énergies?|energ(?:y|ies)|energías?"), tools: PHYSIK },
+  // Grenzwerte : aucun solveur ne les couvre (solveMath, LIMITS) — voir `isLimitQuestion`.
+  { label: "Grenzwert", re: /grenzwert\p{L}*|(?<!\p{L})(?:limes|lim)(?!\p{L})|(?<!\p{L})[a-z]\s*(?:→|->|\\to)\s*[-+−]?\s*(?:\d|∞|\\infty|unendlich|inf)|limit (?:of|as)|limite (?:de|quand|en|pour)|límite/iu, tools: [] },
 ];
+
+/** La question porte-t-elle sur une limite (lim, x → a) ? Aucun solveur ne la calcule. */
+export function isLimitQuestion(text: string): boolean {
+  return calcKeywords(text).includes("Grenzwert");
+}
+
+/** L'outil de sortie : « aucun solveur ne couvre cette tâche » (agent/index.ts). */
+export const NO_SOLVER_TOOL = "kein_loeser_vorhanden";
 
 /** Les mots-clés de calcul présents dans la question (étiquettes allemandes). */
 export function calcKeywords(text: string): string[] {
@@ -102,6 +112,30 @@ export function needsSolver(text: string): boolean {
   if (calcKeywords(text).length > 0) return true;
   const why = complexityReason({ text: text ?? "" });
   return why !== null && CALC_REASONS.has(why);
+}
+
+/** Signaux forts de calcul : une formule, une grandeur avec unité, un verbe de calcul. */
+const STRONG_REASONS = new Set(["formule", "grandeur avec unité", "verbe de calcul"]);
+
+/**
+ * Le PREMIER appel du modèle doit-il être un appel d'outil imposé
+ * (`toolChoice: "required"`, lib/solver-gate.ts) ?
+ *
+ * Oui pour une question technique qui porte un signal fort (formule, grandeur
+ * avec unité, verbe de calcul), un mot de calcul accompagné d'un nombre, ou
+ * une limite. Non dans les matières de méthode (droit, langues…), et non
+ * avec une image ou un PDF joint : lire un schéma demande le raisonnement
+ * étendu, que l'API refuse avec un outil imposé — là, le verrou du flux
+ * (texte retenu, essai coupé) reste la protection.
+ */
+export function mustCallToolFirst(input: { text: string; domain?: Domain; hasAttachments?: boolean }): boolean {
+  if (input.hasAttachments) return false;
+  if (input.domain && METHOD_DOMAINS.has(input.domain)) return false;
+  const text = input.text ?? "";
+  if (isLimitQuestion(text)) return true;
+  const why = complexityReason({ text });
+  if (why !== null && STRONG_REASONS.has(why)) return true;
+  return calcKeywords(text).length > 0 && /\d/.test(text);
 }
 
 /**
@@ -146,7 +180,12 @@ export function solverDutyNote(input: { text: string; domain?: Domain }): string
     `RECHENPFLICHT FÜR DIESE FRAGE${why}:`,
     `Jede Zahl, jedes Ergebnis einer Ableitung, eines Integrals, einer Matrix, jede Kraft und jedes Moment in deiner Antwort kommt aus einem Werkzeugaufruf — passend hier: ${unique}.`,
     "Du rechnest NICHT im Text, auch keine Zwischenschritte und keine \"einfachen\" Zahlen. Das Werkzeug ist die einzige Quelle für Zahlen; du übernimmst seine Ergebnisse wörtlich.",
-    "Ist die Frage rein begrifflich (keine Zahl, kein Ergebnis verlangt), brauchst du kein Werkzeug. Bildet kein Werkzeug die Aufgabe ab, sag das offen und rechne die Einzelschritte mit \"rechnen\".",
+    `Ist die Frage rein begrifflich (keine Zahl, kein Ergebnis verlangt), fehlt eine Angabe oder bildet kein Werkzeug die Aufgabe ab: ruf "${NO_SOLVER_TOOL}" auf und folge seiner Anweisung — sag es offen, erkläre die Methode, nenne KEIN selbst gerechnetes Ergebnis.`,
+    ...(isLimitQuestion(input.text)
+      ? [
+          `GRENZWERT: Kein Löser berechnet Grenzwerte. Ruf "${NO_SOLVER_TOOL}" (grund "nicht_abgedeckt") auf, sag der Person offen sinngemäß „Diesen Grenzwert kann ich mit dem Löser nicht berechnen — hier ist die theoretische Methode“, und erkläre die Methode (Einsetzen, Kürzen/Faktorisieren, L'Hospital) OHNE Zahlenergebnis. Rechne den Grenzwert NICHT von Hand aus, auch nicht Schritt für Schritt mit "rechnen".`,
+        ]
+      : []),
   ].join("\n");
 }
 
@@ -154,6 +193,17 @@ export function solverDutyNote(input: { text: string; domain?: Domain }): string
 const RESULT = /[=≈]\s*[-−]?\s*(\d+(?:[.,]\d+)?)|(\d+(?:[.,]\d+)?)\s*(?:k|M|m|µ|n|G|c)?(?:N|Nm|m|s|V|A|W|J|Pa|K|Hz|Ω|m\/s|m\/s²|rad\/s|kg)(?![\p{L}\d])/gu;
 
 const numbersIn = (s: string) => new Set((s.match(/\d+(?:[.,]\d+)?/g) ?? []).map((n) => n.replace(",", ".")));
+
+/**
+ * Le texte sans ses blocs de code (```svg, ```chart, ```python…), sans code
+ * en ligne et sans balises : ce qui reste est ce que le tuteur AFFIRME.
+ */
+export function proseOnly(text: string): string {
+  return (text ?? "")
+    .replace(/```[\s\S]*?(?:```|$)|~~~[\s\S]*?(?:~~~|$)/g, "\n")
+    .replace(/`[^`\n]*`/g, " ")
+    .replace(/<[^<>\n]{0,2000}>/g, " ");
+}
 
 export interface SolverSkip {
   label: string;
@@ -171,7 +221,9 @@ export interface SolverSkip {
 export function detectSolverSkip(input: { question: string; toolNames: string[]; answer: string }): SolverSkip | null {
   if (!needsSolver(input.question)) return null;
   if (input.toolNames.some((t) => SOLVER_TOOLS.has(t))) return null;
-  const answer = input.answer ?? "";
+  // Le dessin et le code ne sont pas des résultats : « M 248,195 L 300,200 »
+  // dans un <path> n'est pas « 195 litres ».
+  const answer = proseOnly(input.answer ?? "");
   const lastLine = answer.trim().split("\n").filter((l) => l.trim()).pop() ?? "";
   if (/\?\s*\**\s*$/.test(lastLine)) return null;
   const given = numbersIn(input.question);

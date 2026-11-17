@@ -23,7 +23,7 @@ import { retention } from "./routes/retention";
 import { credits } from "./routes/credits";
 import { ads } from "./routes/ads";
 import { account } from "./routes/account";
-import { reports, listOpenReports, resolveReport } from "./routes/reports";
+import { reports, listOpenReports, resolveInternalGateReports, resolveReport } from "./routes/reports";
 import { feedbackRoutes } from "./routes/feedback";
 import { subjects } from "./routes/subjects";
 import { courses, myCourseIds } from "./routes/courses";
@@ -116,10 +116,10 @@ import { socraticFlags } from "./lib/socratic";
 import { realWorldRules } from "./lib/real-world";
 import { startRetentionHeartbeat } from "./lib/retention/heartbeat";
 import { detectDocumentDenial } from "./lib/denial-guard";
-import { detectSolverSkip, samplingTemperature, solverDutyNote } from "./lib/precision";
+import { detectSolverSkip, mustCallToolFirst, samplingTemperature, solverDutyNote } from "./lib/precision";
 import { mathDelimiterTransform } from "./lib/math-delimiters";
 import { netlistGate } from "./lib/circuit/netlist";
-import { SOLVER_RETRY_NOTE, solverGateEnabled, solverGateStream, solverToolsFor } from "./lib/solver-gate";
+import { SOLVER_RETRY_NOTE, firstCallForce, retryForce, solverGateEnabled, solverGateStream } from "./lib/solver-gate";
 import { applySubscription, endSubscription } from "./lib/billing";
 import { grantCredits } from "./lib/credits";
 import {
@@ -176,6 +176,9 @@ startRetentionHeartbeat();
 // « X visiteurs, Y inscriptions, Z imports, W vidéos générées » et le détail
 // par vidéo. Un envoi par jour (verrou en base) — voir lib/morning-digest-job.ts.
 startMorningDigest();
+// Les blocages internes du verrou solveur écrits par erreur dans « Gemeldete
+// Antworten » le 17 nov. 2026 : marqués traités (routes/reports.ts).
+void resolveInternalGateReports();
 
 // ── Limitation de débit ───────────────────────────────────────────────────
 // Montée AVANT tout le reste : une requête refusée ne doit toucher ni la
@@ -855,7 +858,15 @@ app.post("/api/agent/messages", async (c) => {
     calcMode: calcMode === true,
   });
   // Déjà calculé : plus rien à raisonner, seulement à expliquer.
-  const route = fast ? { ...routed, tier: "concept" as const, thinking: "off" as const, reason: `fast-path ${fast.name}` } : routed;
+  // Question technique : le PREMIER pas du modèle est un appel d'outil imposé
+  // (lib/solver-gate.ts). L'API le refuse avec le raisonnement étendu, donc
+  // ce tour tourne sans lui (et à température 0, lib/precision.ts).
+  const forceFirst = !fast && mustCallToolFirst({ text: lastUserText, domain: fach.domain, hasAttachments: lastUserHasAttachment(messages) });
+  const route = fast
+    ? { ...routed, tier: "concept" as const, thinking: "off" as const, reason: `fast-path ${fast.name}` }
+    : forceFirst
+      ? { ...routed, thinking: "off" as const, reason: `${routed.reason} · outil imposé` }
+      : routed;
   const timer = createStreamTimer(requestStarted);
   const usage = { steps: 0, input: 0, cacheRead: 0, cacheWrite: 0, output: 0 };
   // Garde « résultat sans solveur » : outils et texte de toute la réponse.
@@ -902,6 +913,8 @@ app.post("/api/agent/messages", async (c) => {
     // Schaltplan als Bild/PDF : rechnen nur mit einer bestätigten Netzliste
     // (lib/circuit/netlist.ts). Gelesen aus dem Verlauf, den der Browser schickt.
     netlistGate: netlistGate(Array.isArray(messages) ? messages : []),
+    // Premier pas imposé : un solveur, ou la sortie honnête « kein_loeser_vorhanden ».
+    forceTools: forceFirst ? firstCallForce() : undefined,
     memory: {
       open: gaps,
       note: (input) => noteGap(uid, { ...input, semesterId: semesterId ?? null }),
@@ -1055,13 +1068,15 @@ app.post("/api/agent/messages", async (c) => {
         route: { ...route, thinking: "off" },
         temperature: 0,
         solverDuty: [duty, SOLVER_RETRY_NOTE].filter(Boolean).join("\n\n"),
-        forceSolverTools: solverToolsFor(duty),
+        forceTools: retryForce(duty),
       });
       return runAgent(forced, signal);
     },
+    // Rattrapage interne réussi : journal du serveur seulement. Rien dans
+    // « Gemeldete Antworten », qui ne montre que ce qui a atteint l'écran.
+    // Ni la question ni la réponse dans le journal : seulement la forme.
     onBlocked: ({ excerpt }) => {
-      console.error(`[verrou] résultat calculé sans solveur, essai coupé et relancé avec solveur imposé`);
-      signaler(excerpt, "[automatique] calcul sans solveur BLOQUÉ avant affichage — relancé avec solveur imposé");
+      console.warn(`[verrou] user=${session.user.id.slice(0, 8)} calcul sans solveur coupé avant affichage (${excerpt.length} c), relancé avec solveur imposé — outil imposé au 1er pas : ${forceFirst ? "oui" : "non"}`);
     },
   });
 

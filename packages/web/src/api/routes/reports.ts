@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, like } from "drizzle-orm";
 
 import { authed } from "../middleware/auth";
 import { db } from "../database";
@@ -104,4 +104,29 @@ export async function resolveReport(id: string): Promise<void> {
     .update(contentReport)
     .set({ resolvedAt: new Date() })
     .where(eq(contentReport.id, id));
+}
+
+/**
+ * Le 17 nov. 2026, pendant quelques heures, le verrou « pas de résultat sans
+ * solveur » (lib/solver-gate.ts) a écrit ici chacun de ses rattrapages
+ * internes, sous le motif « wrong » : l'essai était pourtant coupé AVANT
+ * l'écran et relancé avec le solveur. Ces lignes ne sont pas des erreurs vues
+ * par un étudiant. Elles sont marquées traitées (pas supprimées), une fois,
+ * au démarrage du serveur ; la requête ne touche plus rien ensuite.
+ */
+export const INTERNAL_GATE_NOTE = "[automatique] calcul sans solveur BLOQUÉ";
+
+export async function resolveInternalGateReports(): Promise<number> {
+  try {
+    const rows = await db
+      .update(contentReport)
+      .set({ resolvedAt: new Date() })
+      .where(and(isNull(contentReport.resolvedAt), like(contentReport.note, `${INTERNAL_GATE_NOTE}%`)))
+      .returning({ id: contentReport.id });
+    if (rows.length) console.log(`[reports] ${rows.length} blocage(s) interne(s) du verrou solveur marqué(s) traité(s)`);
+    return rows.length;
+  } catch (err) {
+    console.error("[reports] nettoyage des blocages internes :", err instanceof Error ? err.message : String(err));
+    return 0;
+  }
 }

@@ -1,7 +1,8 @@
 import { stepCountIs, tool, ToolLoopAgent } from "ai";
 import { UNTRUSTED_NOTE, UNTRUSTED_RESULT_NOTE, wrapDocument } from "../lib/untrusted";
 import { guardSolver } from "../lib/solver-guard";
-import { forcedSolverStep } from "../lib/solver-gate";
+import { forcedToolStep, type ToolForce } from "../lib/solver-gate";
+import { NO_SOLVER_TOOL } from "../lib/precision";
 import { langOf } from "../lib/languages";
 import { z } from "zod";
 import { calculate } from "../lib/calc";
@@ -284,12 +285,14 @@ export function buildTutorAgent(opts: {
    */
   netlistGate?: NetlistGate;
   /**
-   * Second essai après un blocage (lib/solver-gate.ts) : le premier pas DOIT
-   * appeler l'un de ces solveurs (toolChoice "required"). L'API refuse un
-   * appel d'outil imposé avec le raisonnement étendu : l'appelant passe donc
-   * route.thinking = "off". Absent = boucle libre, comme avant.
+   * Appel d'outil imposé (lib/solver-gate.ts) : `toolChoice: "required"`,
+   * outils limités à `tools`, tant qu'aucun outil de `until` n'a été appelé.
+   * Premier essai d'une question de calcul (`firstCallForce`) ou second
+   * essai après un blocage (`retryForce`). L'API refuse un outil imposé avec
+   * le raisonnement étendu : l'appelant passe route.thinking = "off".
+   * Absent = boucle libre.
    */
-  forceSolverTools?: string[];
+  forceTools?: ToolForce;
   /**
    * Fachgebiet der letzten Frage (lib/solvers/domain.ts → domainHint).
    * Geht als ZWEITE System-Nachricht mit, damit der lange, gecachte Prompt
@@ -390,9 +393,12 @@ export function buildTutorAgent(opts: {
     // extraits n'ont pas changé) relisent tout ce qui précède depuis le cache.
     // Second essai du verrou « pas de résultat sans solveur »
     // (lib/solver-gate.ts) : au premier pas, appel d'un solveur IMPOSÉ.
-    prepareStep: ({ messages, stepNumber }) => ({
+    prepareStep: ({ messages, steps }) => ({
       messages: withConversationCacheBreakpoint(messages),
-      ...((forcedSolverStep(stepNumber, opts.forceSolverTools ?? []) ?? {}) as { toolChoice?: "required"; activeTools?: never[] }),
+      ...((forcedToolStep(
+        steps.flatMap((st) => st.toolCalls.map((tc) => tc.toolName as string)),
+        opts.forceTools,
+      ) ?? {}) as { toolChoice?: "required"; activeTools?: never[] }),
     }),
     instructions: [
       {
@@ -498,6 +504,13 @@ export function buildTutorAgent(opts: {
               Pythagoras) → "schule_berechnen"
             Offene Probleme (Collatz/3n+1, Goldbach, Primzahllücken,
               Primzahlzwillinge) → "solve_open_math"
+            KEIN Löser passt (Grenzwerte, Reihen, partielle DGL,
+              nichtlineare Bauteile …), eine Angabe fehlt, oder es ist nur
+              eine Begriffsfrage → "kein_loeser_vorhanden": du sagst es
+              offen ("Das kann ich mit dem Löser nicht berechnen — hier ist
+              die theoretische Methode") und erklärst die Methode OHNE
+              selbst gerechnete Zahl. Einen Grenzwert rechnest du NIE von
+              Hand aus.
             alles andere (Einheiten, Einzelwerte, Passungsmaße) → "rechnen"
             Datenverarbeitung → python-Block, die Person führt ihn aus
           Deckt kein Löser die Aufgabe ab, sag das offen und rechne die
@@ -2270,6 +2283,33 @@ export function buildTutorAgent(opts: {
         // Sperre (bestätigte Netzliste bei Bild/PDF) + exakte Probe in
         // Bruchrechnung : lib/circuit/pipeline.ts.
         execute: guardSolver("schaltung_berechnen", (input: z.infer<typeof schaltungBerechnenSchema>) => runCircuitPipeline(input, opts.netlistGate), opts.onSolver),
+      }),
+
+      // Ausweg bei erzwungenem Werkzeugaufruf (lib/solver-gate.ts) : kein
+      // Löser deckt die Aufgabe ab, eine Angabe fehlt, oder die Frage ist
+      // rein begrifflich. Rechnet nichts ; die Antwort sagt dem Modell, was
+      // es ehrlich sagen soll.
+      [NO_SOLVER_TOOL]: tool({
+        description:
+          "Nur wenn KEIN Löser passt: (nicht_abgedeckt) die Aufgabe liegt außerhalb aller Löser — z. B. Grenzwerte, Reihen, " +
+          "partielle DGL, nichtlineare Bauteile; (angabe_fehlt) ohne eine fehlende Angabe lässt sich nichts rechnen; " +
+          "(begriffsfrage) es wird gar kein Ergebnis verlangt. Danach erklärst du ehrlich und OHNE selbst gerechnete Zahl.",
+        inputSchema: z.object({
+          grund: z.enum(["nicht_abgedeckt", "angabe_fehlt", "begriffsfrage"]),
+          thema: z.string().min(2).max(120).describe('Worum es geht, z. B. "Grenzwert einer gebrochenrationalen Funktion"'),
+        }),
+        execute: async ({ grund }: { grund: "nicht_abgedeckt" | "angabe_fehlt" | "begriffsfrage" }) => ({
+          ok: false as const,
+          fehler: "kein_loeser",
+          grund,
+          anweisung:
+            grund === "nicht_abgedeckt"
+              ? "Sag der Person offen in IHRER Sprache sinngemäß: „Das kann ich mit dem Löser nicht berechnen — hier ist die theoretische Methode.“ " +
+                "Erkläre dann den Lösungsweg (Ansatz, Regeln, Schritte) und nenne KEIN selbst gerechnetes Zahlenergebnis, auch kein Zwischenergebnis."
+              : grund === "angabe_fehlt"
+                ? "Nenne genau, welche Angabe fehlt, und frage danach. Rechne nichts und schätze nichts, bis die Angabe da ist."
+                : "Beantworte die Begriffsfrage ohne Rechnung. Nenne keine selbst gerechnete Zahl; Zahlen aus der Frage oder aus den Unterlagen darfst du zitieren.",
+        }),
       }),
 
       // Schaltplan aus Bild/PDF → Netzliste, die die Person bestätigt.
