@@ -1,3 +1,4 @@
+import { captureServerError } from "../sentry";
 import { DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { UnrecoverableError, type Job } from "bullmq";
 import { db } from "../../database";
@@ -44,6 +45,7 @@ export async function processImport(job: Job<ImportJobData, ImportJobResult>): P
     const refusal = extractionRefusal(err);
     if (refusal) throw new UnrecoverableError(refusal);
     console.error(`[import] ${job.id} : extraction`, err instanceof Error ? err.message.slice(0, 300) : err);
+    captureServerError(err, { feature: "pdf_parsing", userId: d.userId, action: "import job", tags: { stage: "extraction" } });
     throw new Error("extraction_failed");
   }
   await job.updateProgress(80);

@@ -1,3 +1,4 @@
+import { captureServerError } from "../lib/sentry";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { generateObject } from "ai";
 import { eq } from "drizzle-orm";
@@ -214,6 +215,8 @@ export function runPipelineInline(job: VideoJobData): void {
   void runPipeline(job).catch(async (err) => {
     const code = err instanceof PipelineError ? err.code : "script_failed";
     if (!(err instanceof PipelineError)) console.error(`[video] ${job.id} : pipeline`, (err as Error).message?.slice(0, 300));
+    // Un refus prévu (limite du jour) n'est pas une panne ; tout le reste part dans Sentry.
+    if (code !== "daily_limit") captureServerError(err, { feature: "video_generation", userId: job.userId, action: "video pipeline", tags: { code } });
     await failVideo(job.id, code).catch(() => {});
   });
 }

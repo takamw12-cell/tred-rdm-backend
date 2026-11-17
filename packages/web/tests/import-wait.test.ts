@@ -37,7 +37,10 @@ describe("film d'attente", () => {
     // Le visage de la campagne TikTok : toujours lui, avec son vrai portrait de l'app.
     expect(OVERLAY).toContain("WAIT_PROFESSOR = PROFESSORS.genius");
     expect(OVERLAY).toContain('data-testid="import-wait-professor"');
-    expect(OVERLAY).toContain('t("library.wait.professorLine")');
+    // Depuis le 17 nov. 2026 la bulle change toutes les 5 s (lib/import-wait-lines.ts) ;
+    // la phrase du fondateur reste la première.
+    expect(OVERLAY).toContain("waitLineKey(elapsed)");
+    expect(read("src/web/i18n/messages/de.ts")).toContain('step1: "Ich lese dein Skript … einen Moment bitte."');
     expect(statSync(join(ROOT, "public/avatars/kenta.webp")).size).toBeGreaterThan(1000);
     // La phrase du fondateur, mot pour mot (points de suspension à la typographie de l'app).
     expect(read("src/web/i18n/messages/de.ts")).toContain('professorLine: "Ich lese dein Skript … einen Moment bitte."');

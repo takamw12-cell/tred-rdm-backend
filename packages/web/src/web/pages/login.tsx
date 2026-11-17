@@ -1,3 +1,4 @@
+import { funnel } from "@/lib/funnel";
 import { utmHeaders, withUtm } from "@/lib/attribution";
 import { useState } from "react";
 import { useSearch } from "wouter";
@@ -113,7 +114,11 @@ export default function LoginPage() {
         } else {
           setError(err.message ?? t("auth.errorGeneric"));
         }
-      } else if (isSignup && !(res.data as { token?: string | null } | null)?.token) {
+      } else if (isSignup) {
+        // Tunnel d'activation, étape 1 (lib/funnel.ts) : le compte est créé.
+        funnel.signedUp("email");
+      }
+      if (!res.error && isSignup && !(res.data as { token?: string | null } | null)?.token) {
         // Inscription créée SANS session : la vérification par e-mail est
         // active, l'étudiant doit cliquer sur le lien reçu.
         setVerifySent(email.trim());

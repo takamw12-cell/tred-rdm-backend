@@ -51,6 +51,7 @@
     "@react-three/fiber": "9.8.2",
     "@react-three/postprocessing": "3.2.2",
     "@remotion/player": "4.0.539",
+    "@sentry/bun": "11.9.0",
     "@sentry/react": "11.9.0",
     "@tanstack/react-query": "^5.105.0",
     "@xyflow/react": "^12.12.0",

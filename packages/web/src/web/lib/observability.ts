@@ -39,3 +39,16 @@ export function initObservability() {
   // PostHog : chargé SEULEMENT après consentement (lib/analytics.ts).
   initAnalytics();
 }
+
+/**
+ * Signale une erreur du navigateur à Sentry, avec des étiquettes courtes
+ * (zone de l'écran, nature). Sans DSN : rien. Ne lève jamais.
+ */
+export function captureClientError(error: unknown, tags: Record<string, string> = {}): void {
+  if (!import.meta.env.VITE_SENTRY_DSN) return;
+  void import("@sentry/react")
+    .then((Sentry) => Sentry.captureException(error, { tags }))
+    .catch(() => {
+      /* un rapport perdu ne doit pas provoquer une seconde erreur */
+    });
+}

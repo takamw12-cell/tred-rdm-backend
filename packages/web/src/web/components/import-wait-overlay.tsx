@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { WAIT_LONG_SECONDS, waitLineKey } from "@/lib/import-wait-lines";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ImportQueueList, ImportQueueSummary } from "@/components/import-queue";
@@ -81,6 +82,20 @@ export function ImportWaitOverlay({ state, onHide }: { state: ImportWaitState | 
     return () => window.removeEventListener("keydown", onKey);
   }, [state, onHide]);
 
+  // La bulle du professeur change toutes les 5 s ; après 30 s, le mot pour
+  // les gros documents (lib/import-wait-lines.ts). Le compteur repart à
+  // chaque nouvel import.
+  const active = state !== null && state.status !== "done";
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    setElapsed(0);
+    const started = Date.now();
+    const id = window.setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 1000);
+    return () => window.clearInterval(id);
+  }, [active]);
+  const professorLine = t(waitLineKey(elapsed) as Parameters<typeof t>[0]);
+
   if (typeof document === "undefined") return null;
 
   const label =
@@ -120,7 +135,7 @@ export function ImportWaitOverlay({ state, onHide }: { state: ImportWaitState | 
                   <WaitProfessor still={Boolean(reduced)} />
                   <p className="bg-secondary text-foreground min-w-0 rounded-2xl rounded-bl-sm px-3 py-2 text-sm leading-snug font-medium">
                     <span className="label-tech mb-0.5 block">{WAIT_PROFESSOR.name}</span>
-                    {t("library.wait.professorLineBatch")}
+                    {elapsed >= WAIT_LONG_SECONDS ? t("library.wait.long") : t("library.wait.professorLineBatch")}
                   </p>
                 </div>
                 <ImportQueueSummary items={state.queue} />
@@ -157,7 +172,10 @@ export function ImportWaitOverlay({ state, onHide }: { state: ImportWaitState | 
                 <WaitProfessor still={Boolean(reduced)} />
                 <p className="bg-secondary text-foreground min-w-0 rounded-2xl rounded-bl-sm px-3 py-2 text-sm leading-snug font-medium">
                   <span className="label-tech mb-0.5 block">{WAIT_PROFESSOR.name}</span>
-                  {t("library.wait.professorLine")}
+                  {/* Annoncé aux lecteurs d'écran quand la phrase change. */}
+                  <span aria-live="polite" data-testid="import-wait-line">
+                    {professorLine}
+                  </span>
                 </p>
               </div>
 

@@ -1,3 +1,4 @@
+import { funnel } from "@/lib/funnel";
 import { followImportJob } from "@/lib/import-job";
 import { checkSelection, runImportBatch, summarize, type BatchTransport, type QueueItem } from "@/lib/import-batch";
 import { ImportQueueList, ImportQueueSummary, importErrorText } from "./import-queue";
@@ -182,6 +183,7 @@ export function DocumentLibrary({
     }
     // Jamais les noms des fichiers : seulement leur nombre et leur poids.
     track("upload_batch_started", { count: files.length, sizeMb });
+    funnel.uploadStarted({ count: files.length, sizeMb, batch: true });
     try {
       setProgress(t("library.processing"));
       setWaitHidden(false);
@@ -204,6 +206,7 @@ export function DocumentLibrary({
       });
       const result = summarize(final);
       track("upload_batch_completed", { count: result.total, done: result.done, failed: result.failed });
+      if (result.done > 0) funnel.uploadCompleted({ count: result.done, batch: true });
       // Tout est passé : la file disparaît. Sinon elle reste, pour dire quoi et pourquoi.
       setQueue(result.failed > 0 ? final : null);
     } finally {
@@ -228,6 +231,7 @@ export function DocumentLibrary({
     const ext = (file.name.match(/\.([a-z0-9]{1,5})$/i)?.[1] ?? "?").toLowerCase();
     const sizeMb = Math.round(file.size / 100_000) / 10;
     track("upload_started", { ext, sizeMb });
+    funnel.uploadStarted({ ext, sizeMb, batch: false });
     if (!hasAcceptedExtension(file.name)) {
       setUploadError(t("library.onlyPdf"));
       track("upload_failed", { ext, reason: "format" });
@@ -290,6 +294,7 @@ export function DocumentLibrary({
         return;
       }
       track("upload_completed", { ext, sizeMb });
+      funnel.uploadCompleted({ ext, sizeMb, batch: false });
       await qc.invalidateQueries({ queryKey: documentsListKey() });
       await qc.invalidateQueries({ queryKey: semestersListKey() });
       void qc.invalidateQueries({ queryKey: subjectsListKey() });

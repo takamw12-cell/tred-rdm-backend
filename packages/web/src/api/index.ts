@@ -119,6 +119,8 @@ import { detectDocumentDenial } from "./lib/denial-guard";
 import { detectSolverSkip, mustCallToolFirst, samplingTemperature, solverDutyNote } from "./lib/precision";
 import { mathDelimiterTransform } from "./lib/math-delimiters";
 import { netlistGate } from "./lib/circuit/netlist";
+import { captureServerError } from "./lib/sentry";
+import { HTTPException } from "hono/http-exception";
 import { SOLVER_RETRY_NOTE, firstCallForce, retryForce, solverGateEnabled, solverGateStream } from "./lib/solver-gate";
 import { applySubscription, endSubscription } from "./lib/billing";
 import { grantCredits } from "./lib/credits";
@@ -163,6 +165,29 @@ export type AppRouter = typeof router;
 export type AppRouterClient = RouterClient<AppRouter>;
 
 const app = createApp(router);
+
+// ── Erreurs 500 → Sentry (lib/sentry.ts), avec le compte et l'action ─────
+// Inerte sans SENTRY_DSN. La réponse reste un 500 sobre : aucun détail
+// technique ne part vers le navigateur. Les routes oRPC (/api/rpc/*) gèrent
+// leurs erreurs elles-mêmes et ne passent pas ici.
+app.onError(async (err, c) => {
+  if (err instanceof HTTPException) return err.getResponse();
+  const action = `${c.req.method} ${c.req.routePath ?? c.req.path}`;
+  console.error(`[500] ${action} :`, err instanceof Error ? err.message.slice(0, 300) : String(err).slice(0, 300));
+  let userId: string | null = null;
+  try {
+    userId = (await requestSession(c.req.raw))?.user.id ?? null;
+  } catch {
+    /* session illisible : l'erreur part sans compte */
+  }
+  const path = c.req.path;
+  captureServerError(err, {
+    feature: path.startsWith("/api/documents/upload") ? "pdf_parsing" : path.startsWith("/api/video") ? "video_generation" : "http",
+    userId,
+    action,
+  });
+  return c.json({ error: "internal_error" }, 500);
+});
 
 // La relance du soir. Elle ne fait rien avant 19 h à Berlin, et rien du tout
 // si une autre réplique a déjà pris le verrou du jour — voir
@@ -2165,6 +2190,7 @@ app.post("/api/documents/upload", async (c) => {
     const refusal = extractionRefusal(err);
     if (refusal) return c.json({ error: refusal }, 422);
     console.error("[upload] extraction failed", err);
+    captureServerError(err, { feature: "pdf_parsing", userId: session.user.id, action: "POST /api/documents/upload", tags: { stage: "extraction" } });
     const detail = err instanceof Error ? err.message : String(err);
     return c.json({ error: "extraction_failed", detail: detail.slice(0, 300) }, 422);
   }

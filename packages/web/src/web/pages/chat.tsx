@@ -113,7 +113,8 @@ import {
   chatRestoreManyOptions,
   chatPurgeManyOptions,
 } from "@/queries/chats";
-import { startHoersaalTimer } from "@/lib/analytics";
+import { identifiedUserId, startHoersaalTimer } from "@/lib/analytics";
+import { funnel, noteQuestionAsked } from "@/lib/funnel";
 import { useT } from "@/i18n";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { cn } from "@/lib/utils";
@@ -1315,6 +1316,8 @@ export default function ChatPage() {
       .map((a) => `--- ${a.name} ---\n${a.text}`)
       .join("\n\n");
     const finalText = textBlocks ? (q ? `${q}\n\n${textBlocks}` : textBlocks) : q;
+    // Tunnel d'activation, étape 4 (lib/funnel.ts) : la première question du compte.
+    noteQuestionAsked({ userId: identifiedUserId(), savedChats: convQuery.data?.length ?? 0, messagesInChat: messages.length, withAttachment: files.length > 0 });
     void sendMessage(
       files.length > 0 ? { text: finalText, files } : { text: finalText },
     );
@@ -1570,6 +1573,8 @@ export default function ChatPage() {
     const msg = messages.find((m) => m.id === messageId);
     const answer = displayText(msg ?? ({} as UIMessage));
     lastExplainerMessage.current = messageId;
+    // Tunnel d'activation, étape 5 : « Als Video erklären » demandé.
+    funnel.videoGenerated({ with_document: Boolean(activeDoc) });
     explainerAbort.current?.abort();
     const control = new AbortController();
     explainerAbort.current = control;

@@ -107,6 +107,9 @@ export function identifyUser(userId: string | null | undefined) {
   void load().then((ph) => ph?.identify(userId));
 }
 
+/** Die pseudonyme Konto-ID der laufenden Sitzung (von app.tsx gesetzt), oder null. */
+export const identifiedUserId = (): string | null => pendingId;
+
 /** Ereignis senden — ohne Zustimmung ein No-op. */
 export function track(event: string, props?: Record<string, string | number | boolean>, beacon = false) {
   if (getConsent() !== "granted") return;

@@ -1441,6 +1441,56 @@ Vérifié dans le code, la configuration et ta propre page Sécurité. À relire
 | Hébergement | « gespeichert auf Servern in der EU » (Railway europe-west4 et Turso aws-eu-west-1 vérifiés ; région du bucket R2 non vérifiée) | « deine Daten bleiben in Europa » : questions et extraits partent chez Anthropic (USA), sous clauses contractuelles types |
 | Conformité | « Hosting in der EU », « alle Empfänger stehen in der Datenschutzerklärung » | un sceau ou badge « DSGVO-konform » (aucune certification), « 100 % secure », « garantie » |
 
+## Tunnel d'activation (PostHog) et erreurs (Sentry) — 2026-11-17
+
+**Les cinq événements du tunnel**, envoyés par le navigateur (`packages/web/src/web/lib/funnel.ts`) :
+
+| Événement | Quand |
+|---|---|
+| `user_signed_up` | l'inscription par e-mail a réussi |
+| `pdf_upload_started` | un import commence (un fichier ou un lot) |
+| `pdf_upload_completed` | l'import est terminé avec succès |
+| `first_question_asked` | la première question du compte au tuteur |
+| `video_generated` | clic sur « Als Video erklären » |
+
+**Voir le tunnel dans PostHog** (eu.posthog.com, projet TRED) : *Product analytics* → *New insight* → onglet *Funnels* → ajouter les cinq événements dans cet ordre → *Conversion window* : 7 jours → *Save*. Chaque barre montre combien de personnes passent l'étape et combien abandonnent ; un clic sur la partie grise d'une barre liste les personnes perdues à cette étape, avec leurs enregistrements de session.
+
+**Limite à connaître.** PostHog ne reçoit rien sans consentement (bannière « Analyse erlauben », § 25 TDDDG). Le tunnel compte donc les visiteurs qui ont accepté, pas tous les comptes : il donne des proportions fiables, pas des totaux. Le nombre exact d'inscriptions reste dans `/admin/analytics`. Envoyer ces événements depuis le serveur contournerait le consentement : je ne l'ai pas fait.
+
+**Sentry côté serveur.** Nouvelle variable à poser sur Railway (services TRED et worker) : `SENTRY_DSN` (sentry.io → Project → Settings → Client Keys (DSN) ; le même projet que le front convient, plan gratuit « Developer » : 5 000 erreurs par mois, vérifié sur sentry.io/pricing le 2026-11-17 — à revérifier). Sans elle, rien ne part. Avec elle : chaque erreur 500, chaque extraction de PDF en échec (`feature:pdf_parsing`) et chaque vidéo en échec (`feature:video_generation`) arrive dans Sentry avec l'identifiant pseudonyme du compte et l'action en cours — jamais le nom, l'e-mail, l'IP ni le contenu. Dans Sentry, taper `feature:pdf_parsing` dans la recherche des *Issues*. L'ErrorBoundary du navigateur envoie aussi ses erreurs (étiquettes `kind:render`, `area:…`). À ajouter à la Datenschutzerklärung si Sentry n'y figure pas déjà comme destinataire côté serveur.
+
+**Écran d'attente de l'import.** La bulle de Prof. Kenta change toutes les 5 secondes (lecture, texte et formules, numéros de page pour les citations) ; après 30 secondes : « Das ist ein großes Dokument! Hol dir einen Kaffee, ich kümmere mich darum ☕ ». Je n'ai pas repris « Je prépare le plan d'étude » : le plan ne se prépare pas pendant l'import.
+
+## Campagne V6 « StudyTok » — 6 vidéos natives TikTok / Snapchat (2026-11-17)
+
+Trois vidéos en anglais, trois en allemand, 1080 × 1920, de 15 à 19 secondes. Formats repris de StudyTok : POV avant/après, « busy hands », sketch. L'app est montrée plein cadre comme un enregistrement d'écran, les accroches sont des étiquettes blanches à texte noir, et la voix est suivie par un texte cinétique (chaque mot arrive en rebondissant, le mot en cours est surligné, les mots-clés restent en orange).
+
+| Fichier | Format | Voix |
+|---|---|---|
+| `V6-EN1-POV-Exam-Tomorrow.mp4` | POV : polycopié flou de 80 pages, coupe « flash », import puis plan sur 7 jours | Liam |
+| `V6-EN2-Busy-Hands-Study-Hack.mp4` | Mains qui versent le thé, puis la citation qui ouvre le PDF à la page 12 | Laura |
+| `V6-EN3-AI-Voice-Tutoring.mp4` | Dialogue : dérivée de x², « explain that like I'm 12 », réponse en trois étapes | Laura + Liam |
+| `V6-DE1-Der-Mad-Professor.mp4` | Sketch : Prof. Ren paniqué entouré de formules fausses, puis la preuve PDF | Hale |
+| `V6-DE2-POV-Die-Klausur.mp4` | POV : étudiant stressé, « 80 SEITEN » en rouge, import, plan sur 7 jours, étudiant soulagé | Jessica |
+| `V6-DE3-Das-Study-Hack.mp4` | Main qui allume une bougie, puis le Skript ouvert à la page 12 | Jessica |
+
+Fichiers livrés dans `C:\Users\HP\Downloads\TRED-Campagne-V6\`.
+
+**Écarts par rapport à ton brief.**
+
+- **DE 1 : « ChatGPT » remplacé par « KI-Chatbots ».** Nommer un concurrent en lui prêtant des formules inventées relève de la publicité comparative (§ 6 UWG) ; ta V5 disait déjà « KI-Chatbots ». Pour revenir à ton texte : changer la phrase dans `src/voiceovers.mjs` (`n-de1`), `node scripts/voiceover.mjs n-de1 --force` (153 caractères), refaire le rendu.
+- **Voix.** Comme en V5 : Laura pour « Elektra », Jessica pour « Mia », Hale pour « Jonas » (ces trois voix n'existent pas sur ton compte ElevenLabs). 1 105 caractères facturés.
+- **Plans de mains.** Il n'y en avait aucun dans le dépôt. Deux clips Pexels (licence gratuite, usage publicitaire permis) : le thé et la bougie. Détails dans `packages/video/src/assets/tiktok/CREDITS.md`.
+- **Le professeur de DE 1** est le portrait de Prof. Ren tel que l'app le sert : il sourit. La panique vient du montage (tremblement, « !? », goutte de sueur, formules fausses). Un vrai visage choqué demanderait une image générée, donc une dépense.
+- **EN 3 :** le bouton qui « coupe » l'IA n'existe pas dans l'app, je ne l'ai pas dessiné. L'étudiant coupe en tapant sa relance pendant que la réponse est à l'écran.
+- **Musique.** Six boucles lofi synthétisées par `scripts/audio.py native` (accords de septième, batterie traînante, craquement de vinyle), libres de droits. Un son « tendance » se choisit dans TikTok au moment de publier.
+
+**Deux phrases à relire avant de publier (déjà signalé en V5).** EN 1 et DE 2 disent « upload the PDF and get a personalized 7-day study plan in seconds » / « Lade dein PDF hoch, und TRED erstellt dir einen 7-Tage-Plan ». Le plan existe et se calcule en un instant, mais il se construit à partir des réponses de l'étudiant au tuteur ; l'import seul ne suffit pas. Et « exam tomorrow » avec un plan sur 7 jours se contredit un peu.
+
+**Ce qui est réel à l'image, ce qui est simulé.** Comme en V5 : l'import, la vérification de la citation, le lecteur PDF, le Lernprofil et le plan sont réels ; le texte des réponses du tuteur est simulé (pas de clé de modèle en local). Les plans `broll-stress` et `broll-relief` sont générés par IA : à signaler au moment de publier.
+
+**Refaire une vidéo.** Voix : `node scripts/voiceover.mjs n`. Musique : `uvx --with numpy python -I scripts/audio.py native`, puis conversion en MP3. Rendu : `scripts/tiktok-render.sh V6-EN1-POV-Exam-Tomorrow` (identifiants dans l'en-tête du script). Code : `packages/video/src/tiktok/v6.tsx`.
+
 ## Campagne V8 « six styles » — deux pilotes (2026-11-16)
 
 Fichiers dans `C:\Users\HP\Downloads\TRED-Campagne-V8\` : `V8-EN2-Documentary-Study-Plan.mp4` (documentaire, voix Sarah) et `V8-DE1-Comedy-Morgen-Klausur.mp4` (comédie, voix Charlie). 423 caractères facturés. Chaque vidéo a sa palette, sa typographie, ses sous-titres et son cadre pour l'app ; rien n'est repris du moteur des séries SK et V5.

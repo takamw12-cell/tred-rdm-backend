@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 import { isStaleBuildError, reloadForNewBuild } from "@/lib/stale-build";
+import { captureClientError } from "@/lib/observability";
 
 /**
  * Filet de sécurité contre la page blanche.
@@ -92,6 +93,8 @@ export class ErrorBoundary extends Component<Props, State> {
     if (isStaleBuildError(error) && reloadForNewBuild()) return;
     if (this.lastReported === error.message) return;
     this.lastReported = error.message;
+    // Sentry (si configuré) : la zone de l'écran en étiquette, pour trier.
+    captureClientError(error, { kind: "render", area: this.props.area ?? "app", variant: this.props.variant ?? "page" });
     report({
       kind: "render",
       area: this.props.area ?? "app",
