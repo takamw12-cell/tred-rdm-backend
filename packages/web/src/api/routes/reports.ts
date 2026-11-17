@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { and, desc, eq, isNull, like } from "drizzle-orm";
+import { and, desc, eq, isNull, like, lt, or } from "drizzle-orm";
 
 import { authed } from "../middleware/auth";
 import { db } from "../database";
@@ -116,14 +116,29 @@ export async function resolveReport(id: string): Promise<void> {
  */
 export const INTERNAL_GATE_NOTE = "[automatique] calcul sans solveur BLOQUÉ";
 
+/**
+ * Décision du fondateur (17 nov. 2026) : les anciens signalements
+ * « résultat chiffré sans solveur » sont des faux positifs (le garde lisait
+ * le code des schémas : « M 248,195 L 300 » pris pour 195 litres) — à
+ * marquer traités. Seulement ceux d'AVANT le correctif (b9aaf5c, en ligne à
+ * 18 h 21 UTC) : un signalement postérieur vient du garde corrigé et reste.
+ */
+export const LEGACY_SKIP_NOTE = "[automatique] résultat chiffré sans solveur";
+export const LEGACY_SKIP_BEFORE = new Date("2026-11-17T18:21:00Z");
+
 export async function resolveInternalGateReports(): Promise<number> {
   try {
     const rows = await db
       .update(contentReport)
       .set({ resolvedAt: new Date() })
-      .where(and(isNull(contentReport.resolvedAt), like(contentReport.note, `${INTERNAL_GATE_NOTE}%`)))
+      .where(
+        and(
+          isNull(contentReport.resolvedAt),
+          or(like(contentReport.note, `${INTERNAL_GATE_NOTE}%`), and(like(contentReport.note, `${LEGACY_SKIP_NOTE}%`), lt(contentReport.createdAt, LEGACY_SKIP_BEFORE))),
+        ),
+      )
       .returning({ id: contentReport.id });
-    if (rows.length) console.log(`[reports] ${rows.length} blocage(s) interne(s) du verrou solveur marqué(s) traité(s)`);
+    if (rows.length) console.log(`[reports] ${rows.length} signalement(s) automatique(s) du garde solveur marqué(s) traité(s)`);
     return rows.length;
   } catch (err) {
     console.error("[reports] nettoyage des blocages internes :", err instanceof Error ? err.message : String(err));
