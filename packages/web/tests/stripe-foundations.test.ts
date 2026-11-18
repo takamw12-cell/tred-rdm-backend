@@ -165,14 +165,16 @@ describe("promesses publicitaires (UWG) : rien d'absolu", () => {
 });
 
 describe("page de tarifs", () => {
-  test("Semester-Pass recommandé avec son badge calculé, Klausur-Pass à côté, mensuel en second choix", () => {
+  test("Semester-Pass recommandé avec son badge calculé, Klausur-Pass à côté, pas d'abonnement mensuel", () => {
     const page = read("src/web/pages/pricing.tsx");
     expect(page).toContain('data-testid="plan-semester-pass"');
     expect(page).toContain('data-testid="semester-pass-badge"');
     expect(page).toContain("{c.savePercent(saving)}");
     expect(page).toContain("passSavingPercent(klausurPass.amount, semesterPass.amount, semesterPass.months)");
     expect(page).toContain('data-testid="choose-klausur-pass"');
-    expect(page).toContain('data-testid="monthly-alternative"');
+    // Décision du fondateur (19 nov. 2026) : pas d'abonnement mensuel pour l'instant, seulement les deux Pass.
+    expect(page).not.toContain('data-testid="monthly-alternative"');
+    expect(page).not.toContain('data-testid="choose-monthly"');
     // Aucun montant écrit dans la page : ils viennent du serveur.
     expect(page).not.toMatch(/\d+[,.]\d{2}\s?€/);
     expect(pricingCopy("de").savePercent(33)).toBe("Spare 33 %");

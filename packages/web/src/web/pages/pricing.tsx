@@ -76,14 +76,6 @@ export default function PricingPage() {
   const prices = sub ? resolvePrices(sub.pricing, sub.offers) : null;
   const money = (cents: number) => formatMoney(cents, prices?.currency ?? "EUR", locale);
 
-  const checkoutMut = useMutation({
-    mutationFn: (priceId: string) => client.subscriptions.createCheckout({ priceId }),
-    onSuccess: (res) => {
-      window.location.href = res.url;
-    },
-    onError: () => setError(c.checkoutError),
-  });
-
   // Klausur-Pass / Semester-Pass : paiement unique, le serveur choisit le prix.
   const passMut = useMutation({
     mutationFn: (pass: "klausur" | "semester") => client.subscriptions.createPassCheckout({ pass }),
@@ -120,7 +112,7 @@ export default function PricingPage() {
     onError: () => setError(c.checkoutError),
   });
 
-  const busy = checkoutMut.isPending || passMut.isPending || portalMut.isPending || trialMut.isPending || packMut.isPending;
+  const busy = passMut.isPending || portalMut.isPending || trialMut.isPending || packMut.isPending;
 
   // § 356 Abs. 5 BGB : deux affirmations DISTINCTES, jamais précochées. Les
   // fusionner en une seule case annulerait l'effet — c'est précisément ce que
@@ -130,21 +122,6 @@ export default function PricingPage() {
   const [consentError, setConsentError] = useState(false);
   const consentOk = consentStart && consentLose;
   const consentRef = useRef<HTMLDivElement>(null);
-
-  /** Lance le paiement d'une formule. Le bouton reste actif exprès : un bouton mort n'explique rien. */
-  function subscribe(priceId: string | null) {
-    setError(null);
-    if (!consentOk) {
-      setConsentError(true);
-      consentRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      return;
-    }
-    if (!priceId) {
-      setError(c.checkoutError);
-      return;
-    }
-    checkoutMut.mutate(priceId);
-  }
 
   /** Achète un Pass. Mêmes deux consentements que pour un abonnement (§ 356 Abs. 5 BGB : contenu numérique fourni tout de suite). */
   function buyPass(pass: "klausur" | "semester") {
@@ -376,20 +353,6 @@ export default function PricingPage() {
           </div>
         </motion.div>
       </div>
-
-      {/* L'abonnement mensuel reste possible, en second choix. */}
-      {!subscribed && (
-        <div className="mx-auto mt-5 flex max-w-2xl flex-wrap items-center justify-between gap-3 rounded-2xl border px-5 py-4" data-testid="monthly-alternative">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold">{c.monthlyAlt}</p>
-            <p className="text-muted-foreground text-sm">{c.monthlyAltDesc(prices ? money(prices.monthly.amount) : "…")}</p>
-          </div>
-          <Button variant="outline" size="sm" disabled={busy || isLoading || beta} data-testid="choose-monthly" onClick={() => subscribe(prices?.monthly.priceId ?? null)}>
-            {checkoutMut.isPending && <Loader2 className="size-4 animate-spin" />}
-            {beta ? c.atLaunch : c.monthlyAltCta}
-          </Button>
-        </div>
-      )}
 
       {/* Les deux consentements légaux, une fois, sous les offres payantes. */}
       {!subscribed && !beta && (
