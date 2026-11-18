@@ -1498,3 +1498,33 @@ Fichiers dans `C:\Users\HP\Downloads\TRED-Campagne-V8\` : `V8-EN2-Documentary-St
 Les quatre autres vidéos de V8 attendent tes textes corrigés : EN 3 (« Fully encrypted, GDPR compliant, hosted in Europe »), DE 2 (le bouton « Prüfen » et la coche « Exakt berechnet » n'existent pas dans l'app ; « für jede Formel » est trop large), EN 1 (le badge « Solver Verified » demande un vrai calcul du solveur, donc une question réelle au tuteur). V7 n'est pas tournée.
 
 Code : `packages/video/src/tiktok/v8.tsx`, voix `STYLES` dans `src/voiceovers.mjs` (`node scripts/voiceover.mjs s`), prises `en-doc-*`, `de-import3`, `de-summary` dans `scripts/v5-captures.ts`.
+
+## « Dein Briefing » et dates d'examen (2026-11-18)
+
+Tout en haut du tableau de bord : une phrase du jour, un bouton pour s'y mettre, et les examens saisis avec leur compte à rebours.
+
+**À faire une fois** : `node C:\dev\tred-rdm\aerostudy-ai\migre-briefing.mjs` (crée `daily_briefing` et `exam_date`, idempotent). Tant que ce n'est pas fait, la carte s'affiche avec les phrases du code, sans le bouton « Klausur hinzufügen » ni « Actualiser », et le modèle n'est jamais appelé.
+
+**Les quatre cas** (`api/lib/briefing.ts`, dans cet ordre) :
+
+| Cas | Condition | Phrase |
+|---|---|---|
+| 1 | aucun document | « Willkommen bei TRED! Lade dein erstes Skript hoch… » |
+| 2 | aucun exercice depuis 3 jours (`INACTIVE_AFTER_DAYS`) | retour + quiz de 3 minutes sur une matière |
+| 3 | examen dans 21 jours ou moins (`EXAM_NEAR_DAYS`) | compte à rebours + thème du jour |
+| 4 | le reste | questions réussies hier + suite |
+
+C'est le code qui choisit le cas et les faits. Une donnée absente n'est jamais citée : sans matière connue, sans concept fragile ou avec zéro question hier, la phrase correspondante est remplacée ou retirée.
+
+**Coût** (`api/lib/generate-briefing.ts`) :
+
+- Le briefing est généré à la première ouverture du jour (heure de Berlin) et gardé dans `daily_briefing` ; les ouvertures suivantes relisent cette ligne.
+- Pas de tâche planifiée à 5 h : elle paierait chaque nuit pour les comptes qui n'ouvrent pas TRED.
+- Le Cas 1 n'appelle jamais le modèle.
+- Au plus 3 appels du modèle rapide par compte et par jour, 3 clics « Actualiser » par jour.
+- Le texte du modèle n'est affiché que s'il redit les faits sans chiffre ni matière en plus ; sinon les phrases du code.
+- `BRIEFING_MODEL=off` (Railway) coupe le modèle.
+
+**« Gestern hast du X Fragen gemeistert »** : X compte les réponses que le tuteur a jugées justes la veille (outil `lernstand_melden`), dans `usage_counter` (période = jour, métrique `mastered`). Le compteur démarre au déploiement.
+
+**Examens** : matière + date, 12 à venir au plus par compte ; les dates passées sont retirées au prochain ajout. Les deux tables sont exportées et effacées avec le compte (`api/lib/gdpr.ts`).

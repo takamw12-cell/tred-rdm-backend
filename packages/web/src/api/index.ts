@@ -70,6 +70,8 @@ import { registerVisionRoutes } from "./vision/routes";
 import { flashcards } from "./routes/flashcards";
 import { learning } from "./routes/learning";
 import { examPredictor } from "./routes/exam-predictor";
+import { briefing } from "./routes/briefing";
+import { bumpMastered, type BriefingDb } from "./lib/generate-briefing";
 import { sharedKnowledgeRoutes } from "./routes/shared-knowledge";
 import { readLearningStyle } from "./lib/learning-style-store";
 import { pickStyleReference, STYLE_SAMPLE_CHARS } from "./lib/style-reference";
@@ -155,6 +157,7 @@ export const router = {
   courses,
   flashcards,
   learning,
+  briefing,
   examPredictor,
   sharedKnowledge: sharedKnowledgeRoutes,
   retention,
@@ -951,7 +954,14 @@ app.post("/api/agent/messages", async (c) => {
     // Le compte est celui de la session : l'outil ne peut signaler que pour lui.
     mastery: {
       weakest,
-      signal: (input) => recordMastery(masteryDb, uid, input).catch(() => ({ saved: false as const, reason: "invalid" as const })),
+      // prettier-ignore
+      signal: (input) => recordMastery(masteryDb, uid, input)
+        .then((result) => {
+          // « Gestern hast du X Fragen gemeistert » (Dein Briefing) : une réponse jugée juste, +1 au compteur du jour.
+          if (result.saved && input.outcome === "richtig") void bumpMastered(masteryDb as BriefingDb, uid);
+          return result;
+        })
+        .catch(() => ({ saved: false as const, reason: "invalid" as const })),
     },
     /**
      * La recherche porte sur `rows` — TOUT le corpus visible — et non sur

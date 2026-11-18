@@ -6,6 +6,8 @@ import {
   chatConversation,
   chatMessage,
   conceptMastery,
+  dailyBriefing,
+  examDate,
   contentReport,
   creditTransaction,
   document,
@@ -72,6 +74,9 @@ export const PERSONAL_DATA_TABLES = [
   // Modèle de l'apprenant (2026-11-15) : score de maîtrise et types d'erreur
   // par concept — aussi personnel que les lacunes.
   "concept_mastery",
+  // « Dein Briefing » (2026-11-18) : le briefing du jour et les dates d'examen saisies.
+  "daily_briefing",
+  "exam_date",
   // Six tables secondaires oubliées, traitées par lib/gdpr-ancillary.ts
   // (décisions du fondateur du 2026-11-11). Deux sont ANONYMISÉES — le contenu
   // reste, le lien vers le compte disparaît — et quatre sont effacées.
@@ -119,11 +124,13 @@ export async function exportUserData(userId: string) {
   // Tables créées par un script migre-*.mjs : si l'une manque encore sur une
   // base, l'export ne doit pas échouer pour autant.
   const optional = <T>(query: Promise<T[]>): Promise<T[]> => query.catch(() => []);
-  const [karteikarten, erklaervideos, solverErgebnisse, lernstand] = await Promise.all([
+  const [karteikarten, erklaervideos, solverErgebnisse, lernstand, briefings, klausurtermine] = await Promise.all([
     optional(db.select().from(flashcard).where(eq(flashcard.userId, userId))),
     optional(db.select().from(generatedVideo).where(eq(generatedVideo.userId, userId))),
     optional(db.select().from(solverResult).where(eq(solverResult.userId, userId))),
     optional(db.select().from(conceptMastery).where(eq(conceptMastery.userId, userId))),
+    optional(db.select().from(dailyBriefing).where(eq(dailyBriefing.userId, userId))),
+    optional(db.select().from(examDate).where(eq(examDate.userId, userId))),
   ]);
 
   const nebentabellen = await exportAncillaryData(db, userId);
@@ -179,6 +186,8 @@ export async function exportUserData(userId: string) {
     wissensluecken: luecken,
     // Der Lernstand je Konzept (Einschätzung 0–1, gezählte Fehlerarten).
     lernstand,
+    briefings,
+    klausurtermine,
     karteikarten,
     erklaervideos,
     solverErgebnisse,
@@ -297,6 +306,12 @@ export async function deleteUserData(userId: string): Promise<DeletionReport> {
   );
   await step("concept_mastery", () =>
     db.delete(conceptMastery).where(eq(conceptMastery.userId, userId)),
+  );
+  await step("daily_briefing", () =>
+    db.delete(dailyBriefing).where(eq(dailyBriefing.userId, userId)),
+  );
+  await step("exam_date", () =>
+    db.delete(examDate).where(eq(examDate.userId, userId)),
   );
   // Feedback et explications partagées : anonymisés. Cours, avatar, votes,
   // notifications : effacés. Avant la suppression du compte lui-même.

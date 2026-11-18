@@ -201,6 +201,11 @@ export const USER_LIMITS = {
    * appelé, mais chaque plan relit le texte de quelques documents.
    */
   studyPlan: () => ({ scope: "user-study-plan", limit: envInt("STUDY_PLAN_RATE_PER_HOUR", 30), windowMs: HOUR_MS }),
+  /**
+   * « Dein Briefing » : actualiser, ajouter une date d'examen — 30 par heure.
+   * Le modèle, lui, est plafonné par jour dans lib/generate-briefing.ts.
+   */
+  briefing: () => ({ scope: "user-briefing", limit: envInt("BRIEFING_RATE_PER_HOUR", 30), windowMs: HOUR_MS }),
 } as const;
 
 /**

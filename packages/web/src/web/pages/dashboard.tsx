@@ -29,6 +29,7 @@ import { ReviewCard } from "@/components/review-card";
 import { DocFlashcardsButton, FlashcardsWidget } from "@/components/flashcards-widget";
 import { ProgressSection } from "@/components/progress-section";
 import { LernprofilSection } from "@/components/lernprofil-section";
+import { BriefingCard } from "@/components/briefing-card";
 import { ExplainerVideosWidget } from "@/components/explainer-video";
 import { NotificationInbox } from "@/components/notification-inbox";
 import { Button } from "@/components/ui/button";
@@ -275,6 +276,11 @@ export default function DashboardPage() {
             {t("dashboard.newSemester")}
           </Button>
         </div>
+      </Reveal>
+
+      {/* « Dein Briefing » : la phrase du jour et les examens à venir — avant tout le reste. */}
+      <Reveal className="mb-8">
+        <BriefingCard />
       </Reveal>
 
       {/* Semester selector */}

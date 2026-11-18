@@ -937,3 +937,52 @@ export const solverResult = sqliteTable(
 );
 
 export type SolverResult = typeof solverResult.$inferSelect;
+
+// ── « Dein Briefing » (2026-11-18) ────────────────────────────────────────
+//
+// Le briefing du jour, gardé : UNE ligne par compte, remplacée chaque matin
+// (heure de Berlin). C'est le cache qui évite d'appeler le modèle à chaque
+// ouverture du tableau de bord (lib/generate-briefing.ts).
+// Une table à part et non deux colonnes dans `user` : la table des comptes
+// appartient à Better Auth, dont le générateur de schéma réécrit les colonnes.
+// Tables créées sur Turso par migre-briefing.mjs (racine du dépôt).
+// Données personnelles : exportées et effacées avec le compte (lib/gdpr.ts).
+export const dailyBriefing = sqliteTable("daily_briefing", {
+  userId: text("user_id").primaryKey(),
+  /** Le jour à Berlin, « 2026-11-18 ». */
+  day: text("day").notNull(),
+  locale: text("locale").notNull().default("de"),
+  /** welcome | comeback | exam | standard. */
+  kind: text("kind").notNull(),
+  /** Signature de l'examen le plus proche au moment de la génération. */
+  examKey: text("exam_key").notNull().default(""),
+  /** JSON : les phrases choisies par le code (lib/briefing.ts). */
+  payload: text("payload").notNull().default("{}"),
+  /** Le texte du modèle, s'il a passé le garde-fou. Nul : les phrases du code. */
+  text: text("text"),
+  modelCalls: integer("model_calls").notNull().default(0),
+  refreshes: integer("refreshes").notNull().default(0),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+export type DailyBriefing = typeof dailyBriefing.$inferSelect;
+
+// Les dates d'examen saisies par l'étudiant (« Klausur hinzufügen ») : une
+// matière, un jour. Le compte à rebours du tableau de bord et le Cas 3 du
+// briefing en viennent.
+export const examDate = sqliteTable(
+  "exam_date",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    subject: text("subject").notNull(),
+    /** « 2026-12-01 » : un jour civil, sans heure. */
+    examDay: text("exam_day").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("exam_date_user_idx").on(t.userId, t.examDay)],
+);
+
+export type ExamDate = typeof examDate.$inferSelect;

@@ -18,6 +18,8 @@ describe("RGPD — tables personnelles", () => {
     ["generated_video", "generatedVideo"],
     ["solver_result", "solverResult"],
     ["concept_mastery", "conceptMastery"],
+    ["daily_briefing", "dailyBriefing"],
+    ["exam_date", "examDate"],
   ] as const) {
     test(`${table} est dans la liste de contrôle`, () => {
       expect(source).toContain(`"${table}",`);
