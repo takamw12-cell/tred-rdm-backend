@@ -1567,6 +1567,15 @@ STRIPE_PRICE_PRO_MONTHLY=price_…
 BILLING_ENABLED=true
 ```
 
+**Crédits de bienvenue des bêta-testeurs — juste avant `BILLING_ENABLED=true`** :
+
+```
+node C:\dev\tred-rdm\aerostudy-ai\migre-beta-credits.mjs           (compte les comptes concernés, n'écrit rien)
+node C:\dev\tred-rdm\aerostudy-ai\migre-beta-credits.mjs --apply   (donne 10 crédits à chacun)
+```
+
+Chaque compte qui n'a pas encore reçu ses 10 crédits de bienvenue les reçoit, une seule fois (même identifiant de journal que le don à l'inscription) ; le relancer ne donne rien de plus. Sans cela, les comptes de la bêta passeraient en Free avec 0 crédit.
+
 Supprimer `STRIPE_PRICE_PRO_SEMESTER` (ancien abonnement à 59,99 €). Les identifiants de prix du mode test ne valent pas en mode live : il faut ceux créés à l'étape 1 à 3. Poser `BILLING_ENABLED=true` **en dernier** : c'est lui qui met fin à la bêta gratuite pour tout le monde. Puis faire un vrai achat du Klausur-Pass avec ta carte et vérifier dans les journaux la ligne `[billing] user=… Klausur-Pass until=…`.
 
 **iOS** : l'app n'affiche aucun achat, aucun prix et aucun lien de paiement (`packages/mobile/lib/store-policy.ts`), et ne dit pas non plus d'aller payer sur le site : la règle 3.1.1 d'Apple interdit aussi cette invitation.
