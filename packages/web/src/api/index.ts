@@ -124,6 +124,8 @@ import { netlistGate } from "./lib/circuit/netlist";
 import { captureServerError } from "./lib/sentry";
 import { retryWriteRefusal, safeErrorMessage, withDbRetry } from "./lib/db-retry";
 import { readJsonObject } from "./lib/json-body";
+import { recordStudyDay } from "./lib/streak";
+import { streak } from "./routes/streak";
 import { sympyIsReady, sympyReady, verdictForTutor, verifyMath } from "./lib/sympy-verify";
 import { HTTPException } from "hono/http-exception";
 import { SOLVER_RETRY_NOTE, firstCallForce, retryForce, solverGateEnabled, solverGateStream } from "./lib/solver-gate";
@@ -162,6 +164,7 @@ export const router = {
   flashcards,
   learning,
   briefing,
+  streak,
   examPredictor,
   sharedKnowledge: sharedKnowledgeRoutes,
   retention,
@@ -783,6 +786,8 @@ app.post("/api/agent/messages", async (c) => {
   // Tarifseite. Siehe LIMITS in lib/plan.ts.
   const quota = await consume(session.user.id, "chat");
   if (!quota.ok) return c.json(quotaError(quota), 402);
+  // Série de jours d'étude : une question posée marque aujourd'hui (lib/streak.ts). Jamais attendu.
+  void recordStudyDay(db, session.user.id);
 
   // Zweite, unabhängige Schranke: der Euro-Deckel. Der Zähler oben begrenzt die
   // ANZAHL der Anfragen, dieser hier ihre GRÖSSE.

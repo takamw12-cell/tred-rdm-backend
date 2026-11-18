@@ -299,6 +299,15 @@ export const fr: Messages = {
     sympy: "Vérifié par SymPy",
     sympyHint: "Ce calcul a été refait sur le serveur avec le système de calcul formel SymPy.",
   },
+  streak: {
+    days: "{n} jours d'affilée",
+    none: "Pas encore de série",
+    atRisk: "Attention ! Ta série est en danger. Pose une question pour la sauver.",
+    label: "Série : jours d'affilée avec au moins une question",
+  },
+  offline: {
+    banner: "Tu es hors ligne. Le tuteur a besoin d'internet pour répondre.",
+  },
   tafel: {
     colors: "Couleurs",
     colorBoard: "Tableau",

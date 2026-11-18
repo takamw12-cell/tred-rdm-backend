@@ -20,6 +20,7 @@ import { AdminGate } from "./components/admin-gate";
 import { useQueryClient } from "@tanstack/react-query";
 import { identifyUser } from "./lib/analytics";
 import { AnalyticsConsent } from "./components/analytics-consent";
+import { OfflineBanner } from "./components/offline-banner";
 
 /**
  * Performance (audit du 5 nov. 2026) : seules les pages d'entrée — Dashboard,
@@ -233,6 +234,7 @@ function App() {
           <Gate />
         </Route>
       </Switch>
+      <OfflineBanner />
       <AnalyticsConsent />
     </Provider>
   );

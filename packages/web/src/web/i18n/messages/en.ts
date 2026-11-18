@@ -299,6 +299,15 @@ export const en: Messages = {
     sympy: "Verified with SymPy",
     sympyHint: "This calculation was checked on the server with the computer algebra system SymPy.",
   },
+  streak: {
+    days: "{n} days in a row",
+    none: "No streak yet",
+    atRisk: "Careful! Your streak is at risk. Ask one question to save it.",
+    label: "Study streak: days in a row with at least one question",
+  },
+  offline: {
+    banner: "You are offline. The tutor needs the internet to answer.",
+  },
   tafel: {
     colors: "Colours",
     colorBoard: "Board",

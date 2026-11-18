@@ -970,6 +970,21 @@ export type DailyBriefing = typeof dailyBriefing.$inferSelect;
 // Les dates d'examen saisies par l'étudiant (« Klausur hinzufügen ») : une
 // matière, un jour. Le compte à rebours du tableau de bord et le Cas 3 du
 // briefing en viennent.
+// La série de jours d'étude (lib/streak.ts) : une ligne par compte et par jour
+// civil de Berlin où une question a été posée. Créée par migre-streak.mjs.
+export const studyDay = sqliteTable(
+  "study_day",
+  {
+    userId: text("user_id").notNull(),
+    /** « 2026-11-18 » : un jour civil, sans heure. */
+    day: text("day").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.day] })],
+);
+
 export const examDate = sqliteTable(
   "exam_date",
   {

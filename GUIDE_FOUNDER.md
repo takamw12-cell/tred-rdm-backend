@@ -1570,3 +1570,9 @@ BILLING_ENABLED=true
 Supprimer `STRIPE_PRICE_PRO_SEMESTER` (ancien abonnement à 59,99 €). Les identifiants de prix du mode test ne valent pas en mode live : il faut ceux créés à l'étape 1 à 3. Poser `BILLING_ENABLED=true` **en dernier** : c'est lui qui met fin à la bêta gratuite pour tout le monde. Puis faire un vrai achat du Klausur-Pass avec ta carte et vérifier dans les journaux la ligne `[billing] user=… Klausur-Pass until=…`.
 
 **iOS** : l'app n'affiche aucun achat, aucun prix et aucun lien de paiement (`packages/mobile/lib/store-policy.ts`), et ne dit pas non plus d'aller payer sur le site : la règle 3.1.1 d'Apple interdit aussi cette invitation.
+
+## Série de jours d'étude et bandeau hors ligne (18 nov. 2026)
+
+- **Flamme** sur le tableau de bord : jours d'affilée où le compte a posé au moins une question (jour de Berlin). Si la série d'hier n'est pas encore prolongée aujourd'hui : « Achtung! Deine Serie ist in Gefahr. Stell eine Frage, um sie zu retten. » Code : `api/lib/streak.ts`, `web/components/streak-flame.tsx`.
+- **À lancer une fois** : `node C:\dev\tred-rdm\aerostudy-ai\migre-streak.mjs` (table `study_day`). Tant que ce n'est pas fait, la flamme affiche « Noch keine Serie » et rien n'est enregistré.
+- **Bandeau hors ligne** : « Du bist offline. Der Tutor braucht Internet, um zu antworten. » Il ne promet pas la lecture hors ligne : l'app n'a pas de cache hors ligne (pas de service worker).

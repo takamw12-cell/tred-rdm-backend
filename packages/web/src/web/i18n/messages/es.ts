@@ -311,6 +311,15 @@ export const es: Messages = {
     sympy: "Verificado con SymPy",
     sympyHint: "Este cálculo se comprobó en el servidor con el sistema de álgebra computacional SymPy.",
   },
+  streak: {
+    days: "{n} días seguidos",
+    none: "Aún sin racha",
+    atRisk: "¡Cuidado! Tu racha está en peligro. Haz una pregunta para salvarla.",
+    label: "Racha: días seguidos con al menos una pregunta",
+  },
+  offline: {
+    banner: "Estás sin conexión. El tutor necesita internet para responder.",
+  },
   tafel: {
     colors: "Colores",
     colorBoard: "Pizarra",

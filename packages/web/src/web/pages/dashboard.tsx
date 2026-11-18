@@ -30,6 +30,7 @@ import { DocFlashcardsButton, FlashcardsWidget } from "@/components/flashcards-w
 import { ProgressSection } from "@/components/progress-section";
 import { LernprofilSection } from "@/components/lernprofil-section";
 import { BriefingCard } from "@/components/briefing-card";
+import { StreakFlame } from "@/components/streak-flame";
 import { ExplainerVideosWidget } from "@/components/explainer-video";
 import { NotificationInbox } from "@/components/notification-inbox";
 import { Button } from "@/components/ui/button";
@@ -257,6 +258,8 @@ export default function DashboardPage() {
           <p className="on-photo mt-2 max-w-xl text-white/75">{t("dashboard.subtitle")}</p>
           {/* Sa Hochschule, avec le drapeau du Land (rien si hors liste). */}
           <UniversityBadge className="mt-3" />
+          {/* La série de jours d'étude (api/lib/streak.ts). */}
+          <StreakFlame className="mt-3" />
         </div>
         <div className="flex gap-2">
           <Button

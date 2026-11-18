@@ -298,6 +298,15 @@ export const de = {
     sympy: "Mit SymPy geprüft",
     sympyHint: "Diese Rechnung wurde auf dem Server mit dem Computeralgebra-System SymPy nachgerechnet.",
   },
+  streak: {
+    days: "{n} Tage in Folge",
+    none: "Noch keine Serie",
+    atRisk: "Achtung! Deine Serie ist in Gefahr. Stell eine Frage, um sie zu retten.",
+    label: "Lernserie: Tage in Folge mit mindestens einer Frage",
+  },
+  offline: {
+    banner: "Du bist offline. Der Tutor braucht Internet, um zu antworten.",
+  },
   tafel: {
     colors: "Farben",
     colorBoard: "Tafel",
