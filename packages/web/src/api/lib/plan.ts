@@ -53,9 +53,13 @@ export type Metric = "chat" | "exercise" | "video" | "formulas";
  */
 export const PRICING = {
   currency: "EUR",
-  monthly: { amount: 1499, months: 1 },
-  semester: { amount: 5999, months: 6, badge: "-30%" },
+  // Grille du 18 nov. 2026 : 9,99 € le mois (abonnement ou Klausur-Pass), 39,99 € les six mois.
+  monthly: { amount: 999, months: 1 },
+  semester: { amount: 3999, months: 6, badge: "-33%" },
   creditPack: { amount: 500, credits: 50 },
+  // Paiement unique, sans abonnement (lib/passes.ts — décision du 18 nov. 2026).
+  klausurPass: { amount: 999, days: 30 },
+  semesterPass: { amount: 3999, months: 6 },
   trialDays: TRIAL_DAYS,
 } as const;
 

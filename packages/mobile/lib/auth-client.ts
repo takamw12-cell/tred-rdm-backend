@@ -46,9 +46,12 @@ export const authClient = createAuthClient({
     expoClient({
       scheme: APP_SCHEME,
       storagePrefix: "tred",
+      // Le plugin attend les quatre accès (synchrones et asynchrones) : ceux d'expo-secure-store.
       storage: {
         getItem: (key) => SecureStore.getItem(key),
         setItem: (key, value) => SecureStore.setItem(key, value),
+        getItemAsync: (key) => SecureStore.getItemAsync(key),
+        setItemAsync: (key, value) => SecureStore.setItemAsync(key, value),
       },
     }),
   ],

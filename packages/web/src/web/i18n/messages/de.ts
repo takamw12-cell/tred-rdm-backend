@@ -144,7 +144,7 @@ export const de = {
     featuresTitle: "Was TRED anders macht",
     f1Title: "Der Digitale Hörsaal",
     f1Text: "Kein Chatfenster, sondern eine Tafel. TRED schreibt die Lösung Schritt für Schritt an, mit Formeln, Skizzen und Rückfragen an dich.",
-    f2Title: "Null Halluzination",
+    f2Title: "Beweis aus deinem Dokument",
     f2Text: "Zahlen rechnet nicht das Sprachmodell, sondern deterministische Solver: Technische Mechanik, Elektrotechnik, Thermodynamik und mehr. Jede Erklärung stützt sich auf dein Skript.",
     f3Title: "Als Video erklären",
     f3Text: "Ein Klick, und TRED macht aus genau deinem Problem ein Erklärvideo: mit Stimme und Tafel, nur aus deinem Skript und den Ergebnissen der Solver.",

@@ -24,6 +24,7 @@ import { useRestartGuide, useTourTarget } from "@/components/OnboardingGuide";
 import { useColors } from "@/hooks/use-colors";
 import { useTheme, THEME_MODES, type ThemeMode } from "@/lib/theme";
 import { authClient } from "@/lib/auth-client";
+import { purchasesHidden } from "@/lib/store-policy";
 import { LANGUAGES, setLanguage, type Language } from "@/i18n";
 import { usePlan, useBillingPortal } from "@/queries/plan";
 import { useCredits } from "@/queries/credits";
@@ -245,6 +246,12 @@ export default function Settings() {
               <Ionicons name="flash-outline" size={20} color={c.signature} />
             </View>
 
+            {purchasesHidden ? (
+              // iOS : ni achat, ni prix, ni lien (lib/store-policy.ts).
+              <Text testID="ios-no-purchase" style={{ color: c.mutedForeground, fontSize: 13, lineHeight: 19, marginTop: 10 }}>
+                {t("plan.notInApp")}
+              </Text>
+            ) : (
             <View style={styles.planActions}>
               <Button
                 label={isPaid ? t("plan.manage") : t("plan.subscribe")}
@@ -260,6 +267,7 @@ export default function Settings() {
                 onPress={() => router.push("/credits")}
               />
             </View>
+            )}
           </Card>
         </Section>
 

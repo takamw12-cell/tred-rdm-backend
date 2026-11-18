@@ -145,7 +145,7 @@ export const fr: Messages = {
     featuresTitle: "Ce que TRED fait autrement",
     f1Title: "L'amphi numérique",
     f1Text: "Pas une fenêtre de chat, un tableau. TRED écrit la solution étape par étape, avec les formules, les schémas et des questions pour toi.",
-    f2Title: "Zéro hallucination",
+    f2Title: "La preuve par ton document",
     f2Text: "Les chiffres ne viennent pas du modèle de langage mais de solveurs déterministes : Engineering Mechanics, électrotechnique, thermodynamique et plus. Chaque explication s'appuie sur ton cours.",
     f3Title: "Expliquer en vidéo",
     f3Text: "Un clic, et TRED transforme ton problème exact en vidéo explicative : avec une voix et le tableau, uniquement à partir de ton cours et des résultats des solveurs.",

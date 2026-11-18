@@ -33,7 +33,8 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
   const { authClient } = await import("@/lib/auth-client");
 
   const headers = new Headers(init.headers);
-  const cookie = authClient.getCookie();
+  // Depuis @better-auth/expo 1.7, le cookie se lit de façon asynchrone.
+  const cookie = await authClient.getCookie();
   if (cookie) headers.set("Cookie", cookie);
 
   return fetch(`${baseUrl}${path}`, { ...init, headers });

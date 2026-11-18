@@ -12,7 +12,7 @@ import { useUserStore, type PlanId } from "@/stores/user";
 import { useLocaleStore } from "@/stores/locale";
 import { useToastStore } from "@/stores/toast";
 import { client } from "@/lib/api";
-import { formatMoney, pricingCopy, resolvePrices } from "@/lib/pricing-copy";
+import { formatMoney, passSavingPercent, pricingCopy, resolvePrices } from "@/lib/pricing-copy";
 import { creditsMeKey, creditsMeOptions } from "@/queries/credits";
 import { subscriptionMeOptions, subscriptionMeKey } from "@/queries/subscriptions";
 import { cn } from "@/lib/utils";
@@ -87,6 +87,15 @@ export default function PricingPage() {
     onError: () => setError(c.checkoutError),
   });
 
+  // Klausur-Pass / Semester-Pass : paiement unique, le serveur choisit le prix.
+  const passMut = useMutation({
+    mutationFn: (pass: "klausur" | "semester") => client.subscriptions.createPassCheckout({ pass }),
+    onSuccess: (res) => {
+      window.location.href = res.url;
+    },
+    onError: () => setError(c.checkoutError),
+  });
+
   const portalMut = useMutation({
     mutationFn: () => client.subscriptions.portal({}),
     onSuccess: (res) => {
@@ -114,7 +123,7 @@ export default function PricingPage() {
     onError: () => setError(c.checkoutError),
   });
 
-  const busy = checkoutMut.isPending || portalMut.isPending || trialMut.isPending || packMut.isPending;
+  const busy = checkoutMut.isPending || passMut.isPending || portalMut.isPending || trialMut.isPending || packMut.isPending;
 
   // § 356 Abs. 5 BGB : deux affirmations DISTINCTES, jamais précochées. Les
   // fusionner en une seule case annulerait l'effet — c'est précisément ce que
@@ -139,6 +148,23 @@ export default function PricingPage() {
     }
     checkoutMut.mutate(priceId);
   }
+
+  /** Achète un Pass. Mêmes deux consentements que pour un abonnement (§ 356 Abs. 5 BGB : contenu numérique fourni tout de suite). */
+  function buyPass(pass: "klausur" | "semester") {
+    setError(null);
+    if (!consentOk) {
+      setConsentError(true);
+      consentRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    passMut.mutate(pass);
+  }
+  const klausurPass = sub?.passes.find((x) => x.kind === "klausur");
+  const semesterPass = sub?.passes.find((x) => x.kind === "semester");
+  // Économie du Semester-Pass face à autant de Klausur-Pass : calculée sur les prix affichés, arrondie vers le bas.
+  const saving = klausurPass && semesterPass ? passSavingPercent(klausurPass.amount, semesterPass.amount, semesterPass.months) : 0;
+  // Un accès acheté par Pass n'a rien à « gérer » : il s'arrête tout seul, et on peut en reprendre un.
+  const subscribed = isPaid && !sub?.passActive;
 
   const manage = () => {
     setError(null);
@@ -235,16 +261,17 @@ export default function PricingPage() {
           </div>
         </PlanCard>
 
-        {/* Étudiant mensuel */}
+        {/* Klausur-Pass : paiement unique, 30 jours */}
         <PlanCard index={1} className="order-2" current={false}>
-          <h3 className="font-display text-lg font-extrabold">{c.monthly}</h3>
-          <p className="text-muted-foreground mt-1 text-sm">{c.monthlyDesc}</p>
-          <Price big={prices ? money(prices.monthly.amount) : "…"} unit={c.perMonth} />
+          <h3 className="font-display text-lg font-extrabold">{c.klausurPass}</h3>
+          <p className="text-muted-foreground mt-1 text-sm">{c.klausurPassDesc}</p>
+          <Price big={klausurPass ? money(klausurPass.amount) : "…"} unit={c.oneTime} />
+          <p className="text-muted-foreground mt-1 text-sm" data-testid="klausur-pass-duration">{c.passDaysAccess(klausurPass?.days ?? 30)}</p>
           <Features
             items={student ? [c.chats(student.chat), c.videos(student.video), c.exercises(student.exercise), c.documents(student.documents), c.noAds] : []}
           />
           <div className="mt-auto pt-6">
-            {isPaid ? (
+            {subscribed ? (
               <Button variant="outline" className="w-full" disabled={busy || !sub?.manageable} onClick={manage}>
                 {c.manage}
               </Button>
@@ -253,27 +280,27 @@ export default function PricingPage() {
                 variant="outline"
                 className="border-foreground/25 w-full font-semibold"
                 disabled={busy || isLoading || beta}
-                data-testid="choose-monthly"
-                onClick={() => subscribe(prices?.monthly.priceId ?? null)}
+                data-testid="choose-klausur-pass"
+                onClick={() => buyPass("klausur")}
               >
-                {checkoutMut.isPending && <Loader2 className="size-4 animate-spin" />}
-                {beta ? c.atLaunch : c.choose}
+                {passMut.isPending && passMut.variables === "klausur" && <Loader2 className="size-4 animate-spin" />}
+                {beta ? c.atLaunch : c.buyPass}
               </Button>
             )}
             <p className="text-muted-foreground mt-3 flex items-center justify-center gap-1.5 text-xs">
               <ShieldCheck className="size-3.5" aria-hidden />
-              {c.cancelAnytime}
+              {c.noSubscription}
             </p>
           </div>
         </PlanCard>
 
-        {/* Étudiant semestriel — l'offre mise en avant */}
+        {/* Semester-Pass — l'offre recommandée : six mois, un seul paiement, badge d'économie calculé */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.16, ease: [0.16, 1, 0.3, 1] }}
           className="order-1 lg:order-3 lg:-my-3"
-          data-testid="plan-semester"
+          data-testid="plan-semester-pass"
         >
           <div className="relative flex h-full flex-col overflow-hidden rounded-2xl bg-[#0F172A] p-6 text-white shadow-2xl ring-2 ring-[#EAB308] lg:py-9">
             <div aria-hidden className="pointer-events-none absolute -right-20 -top-28 size-72 rounded-full bg-[#EAB308]/25 blur-3xl" />
@@ -281,31 +308,31 @@ export default function PricingPage() {
               <div className="flex items-start justify-between gap-3">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-[#EAB308]/40 bg-[#EAB308]/10 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-[#FACC15]">
                   <Sparkles className="size-3" aria-hidden />
-                  {c.bestValue}
+                  {c.recommended}
                 </span>
-                {prices && (
+                {saving > 0 && (
                   <span
                     className="rounded-full bg-[#EAB308] px-3 py-1 text-sm font-extrabold text-[#1A1A1A] shadow-[0_6px_20px_-6px_rgba(234,179,8,0.8)]"
-                    data-testid="semester-badge"
+                    data-testid="semester-pass-badge"
                   >
-                    {prices.semester.badge}
+                    {c.savePercent(saving)}
                   </span>
                 )}
               </div>
-              <h3 className="font-display mt-4 text-lg font-extrabold">{c.semester}</h3>
-              <p className="mt-1 text-sm text-white/65">{c.semesterDesc}</p>
+              <h3 className="font-display mt-4 text-xl font-extrabold">{c.semesterPass}</h3>
+              <p className="mt-1 text-sm text-white/65">{c.semesterPassDesc}</p>
 
               <div className="mt-5">
                 <div className="flex items-baseline gap-2">
                   <span className="font-display text-5xl font-extrabold tracking-tight tabular-nums">
-                    {prices ? money(prices.semester.perMonth) : "…"}
+                    {semesterPass ? money(semesterPass.amount) : "…"}
                   </span>
-                  <span className="text-sm text-white/60">{c.perMonth}</span>
+                  <span className="text-sm text-white/60">{c.oneTime}</span>
                 </div>
-                {prices && (
-                  <p className="mt-1.5 text-sm text-white/60 tabular-nums">
-                    {c.every6Months(money(prices.semester.amount))}
-                    <span className="ml-2 text-white/55 line-through">{money(prices.monthly.amount * prices.semester.months)}</span>
+                {semesterPass && klausurPass && (
+                  <p className="mt-1.5 text-sm text-white/60 tabular-nums" data-testid="semester-pass-compare">
+                    {c.passMonths(semesterPass.months)}
+                    {saving > 0 && <span className="ml-2 text-white/55 line-through">{money(klausurPass.amount * semesterPass.months)}</span>}
                   </p>
                 )}
               </div>
@@ -324,7 +351,7 @@ export default function PricingPage() {
               </ul>
 
               <div className="mt-auto pt-7">
-                {isPaid ? (
+                {subscribed ? (
                   <Button className={cn("h-12 w-full", YELLOW_BUTTON)} disabled={busy || !sub?.manageable} onClick={manage}>
                     {portalMut.isPending && <Loader2 className="size-4 animate-spin" />}
                     {c.manage}
@@ -333,17 +360,17 @@ export default function PricingPage() {
                   <Button
                     className={cn("h-12 w-full gap-2 text-base", beta ? "bg-white/15 font-semibold text-white disabled:opacity-100" : YELLOW_BUTTON)}
                     disabled={busy || isLoading || beta}
-                    data-testid="choose-semester"
-                    onClick={() => subscribe(prices?.semester.priceId ?? null)}
+                    data-testid="choose-semester-pass"
+                    onClick={() => buyPass("semester")}
                   >
-                    {checkoutMut.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
-                    {beta ? c.atLaunch : c.choose}
+                    {passMut.isPending && passMut.variables === "semester" ? <Loader2 className="size-4 animate-spin" /> : null}
+                    {beta ? c.atLaunch : c.buyPass}
                     {!beta && <ArrowRight className="size-4" aria-hidden />}
                   </Button>
                 )}
                 <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-white/55">
                   <ShieldCheck className="size-3.5" aria-hidden />
-                  {c.cancelAnytime}
+                  {c.noSubscription}
                 </p>
               </div>
             </div>
@@ -351,8 +378,22 @@ export default function PricingPage() {
         </motion.div>
       </div>
 
+      {/* L'abonnement mensuel reste possible, en second choix. */}
+      {!subscribed && (
+        <div className="mx-auto mt-5 flex max-w-2xl flex-wrap items-center justify-between gap-3 rounded-2xl border px-5 py-4" data-testid="monthly-alternative">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">{c.monthlyAlt}</p>
+            <p className="text-muted-foreground text-sm">{c.monthlyAltDesc(prices ? money(prices.monthly.amount) : "…")}</p>
+          </div>
+          <Button variant="outline" size="sm" disabled={busy || isLoading || beta} data-testid="choose-monthly" onClick={() => subscribe(prices?.monthly.priceId ?? null)}>
+            {checkoutMut.isPending && <Loader2 className="size-4 animate-spin" />}
+            {beta ? c.atLaunch : c.monthlyAltCta}
+          </Button>
+        </div>
+      )}
+
       {/* Les deux consentements légaux, une fois, sous les offres payantes. */}
-      {!isPaid && !beta && (
+      {!subscribed && !beta && (
         <div ref={consentRef} className="mx-auto mt-6 max-w-2xl">
           <WithdrawalConsent
             start={consentStart}

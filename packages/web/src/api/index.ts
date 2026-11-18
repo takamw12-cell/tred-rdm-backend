@@ -127,7 +127,8 @@ import { readJsonObject } from "./lib/json-body";
 import { sympyIsReady, sympyReady, verdictForTutor, verifyMath } from "./lib/sympy-verify";
 import { HTTPException } from "hono/http-exception";
 import { SOLVER_RETRY_NOTE, firstCallForce, retryForce, solverGateEnabled, solverGateStream } from "./lib/solver-gate";
-import { applySubscription, endSubscription } from "./lib/billing";
+import { applySubscription, endSubscription, grantPass, markPaymentFailed } from "./lib/billing";
+import { isPassKind } from "./lib/passes";
 import { grantCredits } from "./lib/credits";
 import {
   getCachedTranslation,
@@ -396,8 +397,29 @@ app.post("/api/subscriptions/webhook", async (c) => {
 
   try {
     switch (event.type) {
+      // Moyens de paiement différés (SEPA…) : la session « se termine » avant
+      // l'encaissement, et Stripe confirme ensuite par async_payment_succeeded.
+      case "checkout.session.async_payment_succeeded":
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
+
+        // Paiement unique pas encore encaissé : rien n'est livré maintenant,
+        // l'événement async_payment_succeeded repassera ici.
+        if (session.mode === "payment" && session.payment_status !== "paid") {
+          console.log(`[stripe] session ${session.id} terminée, paiement « ${session.payment_status} » : en attente de l'encaissement`);
+          break;
+        }
+
+        // ── Paiement unique : Klausur-Pass / Semester-Pass (lib/passes.ts) ──
+        if (session.mode === "payment" && isPassKind(session.metadata?.pass)) {
+          const passUser = session.metadata?.userId ?? session.client_reference_id ?? null;
+          if (!passUser) {
+            console.error("[billing] Pass payé sans compte identifiable", session.id);
+            break;
+          }
+          await grantPass({ userId: passUser, kind: session.metadata!.pass as "klausur" | "semester", sessionId: session.id, customerId: typeof session.customer === "string" ? session.customer : (session.customer?.id ?? null) });
+          break;
+        }
 
         // ── Einmalzahlung: Credit-Paket ─────────────────────────────────
         // Die Gutschrift ist idempotent über die Session-ID als Primär-
@@ -471,6 +493,11 @@ app.post("/api/subscriptions/webhook", async (c) => {
 
       case "customer.subscription.deleted":
         await endSubscription(event.data.object as Stripe.Subscription);
+        break;
+
+      // Prélèvement refusé : statut « past_due » et e-mail à l'étudiant (lib/billing.ts).
+      case "invoice.payment_failed":
+        await markPaymentFailed(event.data.object as Stripe.Invoice);
         break;
 
       default:

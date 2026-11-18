@@ -5,6 +5,11 @@ import { db } from "../database";
 import { userPlan } from "../database/schema";
 import type { PlanId } from "./plan";
 import { extractId, getStripe, resolveCurrentPeriodEnd, stripeTimestampToDate } from "./stripe";
+import { creditTransaction, userAccess } from "../database/schema";
+import { user } from "../database/auth-schema";
+import { withDbRetry } from "./db-retry";
+import { mailLang, paymentFailedMail, sendMail } from "./mail";
+import { PASSES, PASS_STATUS, passValidUntil, type PassKind } from "./passes";
 
 /**
  * Bindeglied zwischen Stripe und `user_plan`.
@@ -154,6 +159,14 @@ export async function applySubscription(subscription: Stripe.Subscription): Prom
     return;
   }
 
+  // Un abonnement qui ne donne plus accès ne doit pas effacer un Pass payé et
+  // encore valable : on ne fait alors que noter l'état de l'abonnement.
+  if (!grantsAccess && passStillValid(existing)) {
+    await db.update(userPlan).set({ customerId, updatedAt: new Date() }).where(eq(userPlan.userId, userId));
+    console.log(`[billing] user=${userId} abonnement ${subscription.status}, Pass conservé`);
+    return;
+  }
+
   const plan: PlanId = grantsAccess && mappedPlan ? mappedPlan : "free";
 
   if (grantsAccess && !mappedPlan) {
@@ -229,4 +242,96 @@ export async function endSubscription(subscription: Stripe.Subscription): Promis
     });
 
   console.log(`[billing] user=${userId} subscription ended, access until ${periodEnd?.toISOString() ?? "now"}`);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Pass : paiement unique, accès pour une durée                               */
+/* -------------------------------------------------------------------------- */
+
+function passStillValid(row: { plan?: string | null; validUntil?: Date | null; subscriptionStatus?: string | null } | null): boolean {
+  return !!row && row.subscriptionStatus === PASS_STATUS && row.plan === "premium" && !!row.validUntil && row.validUntil.getTime() > Date.now();
+}
+
+/**
+ * Ouvre l'accès acheté par un Pass. IDEMPOTENT par l'identifiant de la session
+ * Stripe : le journal (credit_transaction) sert de verrou, comme pour les
+ * crédits. Stripe livre parfois deux fois le même webhook — le second passage
+ * ne prolonge rien.
+ *
+ * Si l'écriture de l'accès échoue malgré trois essais, le verrou est retiré :
+ * l'événement peut alors être renvoyé depuis le tableau de bord Stripe et
+ * aboutir. Un paiement encaissé sans accès ouvert serait la pire panne.
+ */
+export async function grantPass(params: { userId: string; kind: PassKind; sessionId: string; customerId?: string | null }): Promise<{ granted: boolean; validUntil: Date | null }> {
+  const { userId, kind, sessionId } = params;
+  const existing = await getPlanRow(userId);
+  if (existing?.plan === "founder") {
+    console.log(`[billing] founder ${userId}: Pass ${kind} payé, accès inchangé`);
+    return { granted: false, validUntil: null };
+  }
+
+  const locked = await db
+    .insert(creditTransaction)
+    .values({ id: sessionId, userId, amount: 0, type: "purchase", description: PASSES[kind].label, source: "pass" })
+    .onConflictDoNothing()
+    .returning({ id: creditTransaction.id });
+  if (locked.length === 0) {
+    console.log(`[billing] Pass ${sessionId} déjà appliqué — ignoré`);
+    return { granted: false, validUntil: existing?.validUntil ?? null };
+  }
+
+  const validUntil = passValidUntil(kind, { plan: existing?.plan, validUntil: existing?.validUntil });
+  const customerId = params.customerId ?? existing?.customerId ?? null;
+  try {
+    await withDbRetry(() =>
+      db
+        .insert(userPlan)
+        .values({ userId, plan: "premium", validUntil, customerId, subscriptionId: null, subscriptionStatus: PASS_STATUS })
+        .onConflictDoUpdate({
+          target: userPlan.userId,
+          // Un abonnement actif garde son identifiant : le Pass ne fait que repousser l'échéance.
+          set: { plan: "premium", validUntil, ...(customerId ? { customerId } : {}), ...(existing?.subscriptionId ? {} : { subscriptionStatus: PASS_STATUS }), updatedAt: new Date() },
+        }),
+    );
+  } catch (error) {
+    await db.delete(creditTransaction).where(eq(creditTransaction.id, sessionId)).catch(() => {});
+    throw error;
+  }
+  console.log(`[billing] user=${userId} ${PASSES[kind].label} until=${validUntil.toISOString()}`);
+  return { granted: true, validUntil };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Prélèvement échoué                                                         */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * `invoice.payment_failed` : on note « past_due » et on prévient l'étudiant,
+ * une fois (au premier échec — Stripe réessaie ensuite plusieurs jours).
+ * L'ACCÈS n'est pas touché ici : c'est `customer.subscription.updated` qui le
+ * retire, quand Stripe déclare l'abonnement impayé.
+ */
+export async function markPaymentFailed(invoice: { customer?: string | { id: string } | null; attempt_count?: number | null }): Promise<{ userId: string | null; mailed: boolean }> {
+  const customerId = extractId(invoice.customer as string | { id: string } | null);
+  if (!customerId) return { userId: null, mailed: false };
+
+  const rows = await db.select().from(userPlan).where(eq(userPlan.customerId, customerId)).limit(1);
+  const row = rows[0];
+  if (!row) {
+    console.error("[billing] payment_failed: no account for customer", customerId);
+    return { userId: null, mailed: false };
+  }
+  // Un compte passé au Pass entre-temps n'a pas d'abonnement à relancer.
+  if (row.subscriptionId) {
+    await db.update(userPlan).set({ subscriptionStatus: "past_due", updatedAt: new Date() }).where(eq(userPlan.userId, row.userId));
+  }
+  console.warn(`[billing] user=${row.userId} payment failed (attempt ${invoice.attempt_count ?? "?"})`);
+
+  if ((invoice.attempt_count ?? 1) > 1) return { userId: row.userId, mailed: false };
+  const [account] = await db.select({ email: user.email, name: user.name }).from(user).where(eq(user.id, row.userId)).limit(1);
+  if (!account?.email) return { userId: row.userId, mailed: false };
+  const [access] = await db.select({ locale: userAccess.locale }).from(userAccess).where(eq(userAccess.userId, row.userId)).limit(1).catch(() => []);
+  const mail = paymentFailedMail(`${process.env.WEBSITE_URL ?? ""}/pricing`, account.name, mailLang(access?.locale));
+  const sent = await sendMail({ to: account.email, ...mail });
+  return { userId: row.userId, mailed: sent.ok };
 }

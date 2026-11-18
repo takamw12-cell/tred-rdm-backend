@@ -7,6 +7,7 @@ import { getPurchasedCredits, listTransactions } from "../lib/credits";
 import { getOrCreateCustomer } from "../lib/billing";
 import { getStripe } from "../lib/stripe";
 import { betaFree, getPlan, getUsage, LIMITS } from "../lib/plan";
+import { safeReturnUrl } from "../lib/return-url";
 
 /**
  * Credits (oRPC, erreichbar unter /api/rpc/credits.*).
@@ -144,8 +145,8 @@ export const credits = {
       z.object({
         priceId: z.string().max(128).min(1),
         mode: z.enum(["checkout", "payment_link"]).optional(),
-        successUrl: z.string().url().optional(),
-        cancelUrl: z.string().url().optional(),
+        successUrl: z.string().max(2000).optional(),
+        cancelUrl: z.string().max(2000).optional(),
       }),
     )
     .handler(async ({ input, context }) => {
@@ -205,8 +206,9 @@ export const credits = {
           billing_address_collection: "required",
           customer_update: { address: "auto", name: "auto" },
           tax_id_collection: { enabled: true },
-          success_url: input.successUrl ?? `${appUrl}/credits?purchase=success`,
-          cancel_url: input.cancelUrl ?? `${appUrl}/credits?purchase=cancel`,
+          // Adresse de retour : seulement chez nous, sinon celle par défaut (lib/return-url.ts).
+          success_url: safeReturnUrl(input.successUrl, `${appUrl}/credits?purchase=success`),
+          cancel_url: safeReturnUrl(input.cancelUrl, `${appUrl}/credits?purchase=cancel`),
         });
 
         if (!session.url) {

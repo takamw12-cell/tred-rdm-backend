@@ -88,11 +88,12 @@ export default function ChatScreen() {
         // pas lire un corps en flux (`response.body` est undefined), donc la
         // réponse n'arriverait qu'une fois complète — ou pas du tout.
         fetch: expoFetch as unknown as typeof globalThis.fetch,
-        headers: () => {
+        headers: async () => {
           // Toujours un Record<string, string>, jamais un objet à propriété
           // optionnelle : le transport n'accepte pas `{ Cookie?: undefined }`.
           const headers: Record<string, string> = {};
-          const cookie = authClient.getCookie();
+          // Depuis @better-auth/expo 1.7, le cookie se lit de façon asynchrone.
+          const cookie = await authClient.getCookie();
           if (cookie) headers.Cookie = cookie;
           return headers;
         },

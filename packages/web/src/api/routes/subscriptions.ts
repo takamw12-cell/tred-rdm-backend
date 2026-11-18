@@ -14,6 +14,8 @@ import {
 import { getStripe } from "../lib/stripe";
 import { betaFree, CREDIT_COST, getOutputTokens, getPlan, getUsage, LIMITS, OUTPUT_TOKEN_CAP, PRICING, UNLIMITED_PLANS } from "../lib/plan";
 import { readTrial, startTrial, type TrialDb } from "../lib/trial";
+import { PASSES, PASS_KINDS, PASS_STATUS, passPriceId, type PassKind } from "../lib/passes";
+import { safeReturnUrl } from "../lib/return-url";
 import { db } from "../database";
 
 /**
@@ -119,13 +121,54 @@ async function loadOffers(): Promise<PlanOffer[]> {
   return offers;
 }
 
+export interface PassOffer {
+  kind: PassKind;
+  amount: number;
+  currency: string;
+  days: number;
+  months: number;
+  available: boolean;
+}
+
+let passCache: { at: number; passes: PassOffer[] } | null = null;
+
+/** Les deux Pass, avec le montant lu chez Stripe quand le prix est configuré. Ne lève jamais. */
+async function loadPasses(): Promise<PassOffer[]> {
+  if (passCache && Date.now() - passCache.at < CACHE_TTL_MS) return passCache.passes;
+  const passes: PassOffer[] = [];
+  for (const kind of PASS_KINDS) {
+    const grid = PASSES[kind];
+    const priceId = passPriceId(kind);
+    const offer: PassOffer = { kind, amount: grid.amount, currency: PRICING.currency, days: grid.days, months: grid.months, available: false };
+    if (priceId && process.env.STRIPE_SECRET_KEY) {
+      try {
+        const price = await getStripe().prices.retrieve(priceId);
+        // Un Pass est un paiement unique : un prix récurrent posé ici par erreur n'est pas vendu.
+        if (price.recurring) {
+          console.error(`[subscriptions] ${grid.env} désigne un prix RÉCURRENT : le ${grid.label} doit être un paiement unique`);
+        } else {
+          offer.amount = price.unit_amount ?? grid.amount;
+          offer.currency = (price.currency ?? "eur").toUpperCase();
+          offer.available = true;
+          if (offer.amount !== grid.amount) console.error(`[subscriptions] le prix Stripe du ${grid.label} (${offer.amount} ct) ne correspond pas à la grille (${grid.amount} ct)`);
+        }
+      } catch (error) {
+        console.error(`[subscriptions] ${grid.env} illisible`, error instanceof Error ? error.message.slice(0, 200) : error);
+      }
+    }
+    passes.push(offer);
+  }
+  passCache = { at: Date.now(), passes };
+  return passes;
+}
+
 export const subscriptions = {
   /**
    * Alles, was die Tarifseite braucht: aktueller Tarif, Limits, Verbrauch und
    * die bei Stripe hinterlegten Formeln. Eine Runde statt drei.
    */
   me: authed.handler(async ({ context }) => {
-    const [plan, usage, row, trial, tokensUsed, offers] = await Promise.all([
+    const [plan, usage, row, trial, tokensUsed, offers, passes] = await Promise.all([
       getPlan(context.user.id),
       getUsage(context.user.id),
       getPlanRow(context.user.id),
@@ -135,6 +178,7 @@ export const subscriptions = {
         console.error("[subscriptions] loadOffers failed", error);
         return [] as PlanOffer[];
       }),
+      loadPasses(),
     ]);
 
     const limits = LIMITS[plan];
@@ -169,6 +213,13 @@ export const subscriptions = {
       unlimited: UNLIMITED_PLANS.has(plan),
       /** La grille de référence, pour afficher les prix même sans Stripe. */
       pricing: PRICING,
+      /**
+       * Les Pass (paiement unique). `available` : le prix Stripe est configuré.
+       * Le montant affiché est celui de Stripe quand il est lisible, sinon la grille.
+       */
+      passes,
+      /** L'accès actuel vient d'un Pass : pas d'abonnement à gérer, il s'arrête tout seul. */
+      passActive: row?.subscriptionStatus === PASS_STATUS && plan === "premium",
       limitsByPlan: { free: LIMITS.free, student: LIMITS.premium },
       creditCost: CREDIT_COST,
     };
@@ -199,8 +250,8 @@ export const subscriptions = {
     .input(
       z.object({
         priceId: z.string().max(128).min(1),
-        successUrl: z.string().url().optional(),
-        cancelUrl: z.string().url().optional(),
+        successUrl: z.string().max(2000).optional(),
+        cancelUrl: z.string().max(2000).optional(),
       }),
     )
     .handler(async ({ input, context }) => {
@@ -263,8 +314,9 @@ export const subscriptions = {
           customer_update: { address: "auto", name: "auto" },
           tax_id_collection: { enabled: true },
           allow_promotion_codes: true,
-          success_url: input.successUrl ?? `${appUrl}/pricing?checkout=success`,
-          cancel_url: input.cancelUrl ?? `${appUrl}/pricing?checkout=cancel`,
+          // Adresse de retour : seulement chez nous, sinon celle par défaut (lib/return-url.ts).
+          success_url: safeReturnUrl(input.successUrl, `${appUrl}/pricing?checkout=success`),
+          cancel_url: safeReturnUrl(input.cancelUrl, `${appUrl}/pricing?checkout=cancel`),
         });
 
         if (!session.url) {
@@ -283,9 +335,62 @@ export const subscriptions = {
       }
     }),
 
+  /**
+   * Klausur-Pass / Semester-Pass : un paiement UNIQUE (lib/passes.ts). Le
+   * client ne choisit que le type de Pass ; le prix est celui que le serveur
+   * connaît, et l'accès n'est ouvert que par le webhook, une fois encaissé.
+   */
+  createPassCheckout: authed
+    .input(
+      z.object({
+        pass: z.enum(["klausur", "semester"]),
+        successUrl: z.string().max(2000).optional(),
+        cancelUrl: z.string().max(2000).optional(),
+      }),
+    )
+    .handler(async ({ input, context }) => {
+      if (betaFree()) throw new ORPCError("FORBIDDEN", { message: "beta_free" });
+      const priceId = passPriceId(input.pass);
+      if (!process.env.STRIPE_SECRET_KEY || !priceId) {
+        throw new ORPCError("SERVICE_UNAVAILABLE", { message: "Zahlungen sind noch nicht konfiguriert." });
+      }
+      const existing = await getPlanRow(context.user.id);
+      // Un abonnement en cours se prolonge tout seul : lui vendre un Pass par-dessus ferait payer deux fois.
+      if (existing?.subscriptionId && existing.subscriptionStatus !== PASS_STATUS && ["active", "trialing", "past_due"].includes(existing.subscriptionStatus ?? "")) {
+        throw new ORPCError("BAD_REQUEST", { message: "already_subscribed" });
+      }
+
+      const appUrl = process.env.WEBSITE_URL ?? "";
+      try {
+        const customerId = await getOrCreateCustomer(context.user);
+        const session = await getStripe().checkout.sessions.create({
+          // Paiement unique, AUCUN abonnement : rien ne se renouvelle.
+          mode: "payment",
+          customer: customerId,
+          line_items: [{ price: priceId, quantity: 1 }],
+          client_reference_id: context.user.id,
+          // Le webhook lit ces deux champs pour savoir quoi ouvrir, et à qui.
+          metadata: { userId: context.user.id, pass: input.pass },
+          automatic_tax: { enabled: true },
+          billing_address_collection: "required",
+          customer_update: { address: "auto", name: "auto" },
+          tax_id_collection: { enabled: true },
+          allow_promotion_codes: true,
+          success_url: safeReturnUrl(input.successUrl, `${appUrl}/pricing?checkout=success`),
+          cancel_url: safeReturnUrl(input.cancelUrl, `${appUrl}/pricing?checkout=cancel`),
+        });
+        if (!session.url) throw new ORPCError("INTERNAL_SERVER_ERROR", { message: "Stripe hat keine Checkout-URL geliefert." });
+        return { url: session.url, sessionId: session.id };
+      } catch (error) {
+        if (error instanceof ORPCError) throw error;
+        console.error("[subscriptions] createPassCheckout failed", error);
+        throw new ORPCError("BAD_GATEWAY", { message: "Der Bezahlvorgang konnte nicht gestartet werden." });
+      }
+    }),
+
   /** Stripe-Kundenportal: Karte ändern, Rechnungen, Kündigung. */
   portal: authed
-    .input(z.object({ returnUrl: z.string().url().optional() }).optional())
+    .input(z.object({ returnUrl: z.string().max(2000).optional() }).optional())
     .handler(async ({ input, context }) => {
       const row = await getPlanRow(context.user.id);
       if (!row?.customerId) {
@@ -295,7 +400,7 @@ export const subscriptions = {
       try {
         const portal = await getStripe().billingPortal.sessions.create({
           customer: row.customerId,
-          return_url: input?.returnUrl ?? `${process.env.WEBSITE_URL ?? ""}/pricing`,
+          return_url: safeReturnUrl(input?.returnUrl, `${process.env.WEBSITE_URL ?? ""}/pricing`),
         });
         return { url: portal.url };
       } catch (error) {

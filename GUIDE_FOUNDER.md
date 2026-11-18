@@ -1544,3 +1544,29 @@ C'est le code qui choisit le cas et les faits. Une donnée absente n'est jamais 
 - **Vérification SymPy (depuis le 18 nov. 2026, option 1 validée)** : j'ai ajouté Python, `sympy` 1.14.0 et `antlr4-python3-runtime` 4.11.1 à l'image Docker (gratuits, licences BSD ; aucun compte, aucune clé, aucun service en plus). Le tuteur soumet une égalité en LaTeX, `api/sympy/verify_math.py` la démontre ou la contredit, `api/lib/sympy-verify.ts` lance ce programme dans un sous-processus isolé (≈ 1 s par vérification, tué à 3 s, deux à la fois au plus). Pour vérifier après un déploiement : journaux Railway du service web, ligne `[sympy] vérification symbolique active`. Si elle dit `indisponible`, l'outil est absent et l'app se comporte comme avant. **Ce que la pastille affirme** : que SymPy a démontré UNE égalité soumise par le tuteur pour cette réponse — pas que tout le texte est juste. À garder en tête pour toute publicité (règle UWG).
 - **Rendre une vidéo sous WSL : toujours en deux temps** (`npm run render:founder` dans `packages/video`). `remotion render src/index.ts …` assemble le projet ET lance le navigateur en même temps ; sur le disque Windows l'assemblage occupe Node plus de 25 s, et Remotion conclut à tort « Timed out … while trying to connect to the browser ». Ce n'est pas une bibliothèque Linux manquante (`ldd` n'en signale aucune, et le navigateur démarre seul en 1 s) : il suffit d'assembler d'abord (`remotion bundle`), puis de rendre depuis ce paquet.
 - **Gabarit vidéo « FounderAd3D »** : `packages/video/src/tiktok/founder-ad-3d.tsx`, composition `FounderAd3D` (15 s, 1080 × 1920). Props : `faceCamSrc` (ton clip), `captions` (tes phrases), `proofBadge` (laisser à `false` tant que SymPy n'est pas en ligne).
+
+## Paiements : passer en réel (18 nov. 2026)
+
+Grille : **Klausur-Pass 9,99 €** (paiement unique, 30 jours), **Semester-Pass 39,99 €** (paiement unique, 6 mois, « Spare 33 % »), abonnement mensuel 9,99 € en second choix. Code : `api/lib/passes.ts`, `api/lib/billing.ts` (`grantPass`, `markPaymentFailed`), `api/lib/return-url.ts`.
+
+À faire dans Stripe, **en mode Live** (interrupteur « Test mode » éteint) :
+1. Produit « TRED Klausur-Pass » → prix **One-off** 9,99 EUR → copier son `price_…`.
+2. Produit « TRED Semester-Pass » → prix **One-off** 39,99 EUR → copier son `price_…`.
+3. Produit « TRED Monatsabo » → prix **Recurring, monthly** 9,99 EUR → copier son `price_…`.
+4. Développeurs → Webhooks → endpoint `https://www.tred-tutor.de/api/subscriptions/webhook`, événements : `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed` → copier le « Signing secret » (`whsec_…`).
+5. Développeurs → Clés API → copier la clé secrète **live** (`sk_live_…`).
+
+À coller dans Railway → service TRED → Variables (le service worker n'en a pas besoin) :
+
+```
+STRIPE_SECRET_KEY=sk_live_…
+STRIPE_WEBHOOK_SECRET=whsec_…
+STRIPE_PRICE_PASS_KLAUSUR=price_…
+STRIPE_PRICE_PASS_SEMESTER=price_…
+STRIPE_PRICE_PRO_MONTHLY=price_…
+BILLING_ENABLED=true
+```
+
+Supprimer `STRIPE_PRICE_PRO_SEMESTER` (ancien abonnement à 59,99 €). Les identifiants de prix du mode test ne valent pas en mode live : il faut ceux créés à l'étape 1 à 3. Poser `BILLING_ENABLED=true` **en dernier** : c'est lui qui met fin à la bêta gratuite pour tout le monde. Puis faire un vrai achat du Klausur-Pass avec ta carte et vérifier dans les journaux la ligne `[billing] user=… Klausur-Pass until=…`.
+
+**iOS** : l'app n'affiche aucun achat, aucun prix et aucun lien de paiement (`packages/mobile/lib/store-policy.ts`), et ne dit pas non plus d'aller payer sur le site : la règle 3.1.1 d'Apple interdit aussi cette invitation.

@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { purchasesHidden } from "@/lib/store-policy";
 import { Consent } from "@/components/Consent";
 import { useColors } from "@/hooks/use-colors";
 import { useCredits } from "@/queries/credits";
@@ -169,6 +170,13 @@ export default function Credits() {
         {/* ── Les paquets ──────────────────────────────────────────────── */}
         {credits.isLoading ? (
           <ActivityIndicator color={c.accent} style={styles.loader} />
+        ) : purchasesHidden ? (
+          // iOS : le solde reste visible, mais ni paquet, ni prix, ni lien (lib/store-policy.ts).
+          <Card>
+            <Text testID="ios-no-purchase" style={[styles.note, { color: c.mutedForeground }]}>
+              {t("plan.notInApp")}
+            </Text>
+          </Card>
         ) : packs.length === 0 ? (
           <Card>
             <Text style={[styles.note, { color: c.mutedForeground }]}>

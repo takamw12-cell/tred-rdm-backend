@@ -34,7 +34,7 @@ import { fileURLToPath } from "node:url";
  * proposé au tuteur et l'app se comporte exactement comme avant.
  */
 
-export const SYMPY_SCRIPT = fileURLToPath(new URL("../sympy/verify_math.py", import.meta.url));
+export const SYMPY_SCRIPT = fileURLToPath(new URL("../sympy/verify_math.py", import.meta.url).href);
 export const MAX_LATEX = 600;
 const MAX_STDOUT = 16 * 1024;
 const MAX_RESULT = 400;
@@ -131,7 +131,7 @@ export const runPython: PythonRunner = (latex, timeoutMs) =>
       child = spawn(python, ["-I", "-B", SYMPY_SCRIPT], {
         cwd: workDir,
         // Aucun secret du serveur : seulement de quoi trouver les bibliothèques système.
-        env: { PATH: "/usr/bin:/bin", LANG: "C.UTF-8", ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}) },
+        env: { PATH: "/usr/bin:/bin", LANG: "C.UTF-8", ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}) } as unknown as NodeJS.ProcessEnv,
         stdio: ["pipe", "pipe", "ignore"],
         windowsHide: true,
       });

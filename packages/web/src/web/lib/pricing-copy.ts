@@ -21,6 +21,23 @@ export interface PricingCopy {
   semester: string;
   semesterDesc: string;
   bestValue: string;
+  /** Pass : paiement unique (api/lib/passes.ts). */
+  klausurPass: string;
+  klausurPassDesc: string;
+  passDaysAccess: (n: number) => string;
+  recommended: string;
+  savePercent: (percent: number) => string;
+  semesterPass: string;
+  semesterPassDesc: string;
+  passPopular: string;
+  oneTime: string;
+  passDays: (n: number) => string;
+  passMonths: (n: number) => string;
+  noSubscription: string;
+  buyPass: string;
+  monthlyAlt: string;
+  monthlyAltDesc: (price: string) => string;
+  monthlyAltCta: string;
   chats: (n: number) => string;
   videos: (n: number) => string;
   exercises: (n: number) => string;
@@ -72,7 +89,7 @@ export interface PricingCopy {
 
 const de: PricingCopy = {
   title: "Wähle deinen Tarif",
-  subtitle: "Für Studierende gemacht. Jederzeit kündbar.",
+  subtitle: "Für Studierende gemacht. Ein Mal zahlen, kein Abo nötig.",
   perMonth: "/ Monat",
   every6Months: (p) => `${p} alle 6 Monate`,
   insteadOf: (p) => `statt ${p}`,
@@ -83,6 +100,22 @@ const de: PricingCopy = {
   semester: "Student · Semester",
   semesterDesc: "Ein ganzes Semester Prüfungsvorbereitung.",
   bestValue: "Beliebteste Wahl",
+  klausurPass: "Klausur-Pass",
+  klausurPassDesc: "Alles freigeschaltet – genau für die Prüfungsphase.",
+  passDaysAccess: (n) => `${n} Tage Zugang`,
+  recommended: "Empfohlen",
+  savePercent: (p) => `Spare ${p} %`,
+  semesterPass: "Semester-Pass",
+  semesterPassDesc: "Ein ganzes Semester Prüfungsvorbereitung.",
+  passPopular: "Für die Klausurphase",
+  oneTime: "einmalig",
+  passDays: (n) => `${n} Tage`,
+  passMonths: (n) => `${n} Monate Zugang`,
+  noSubscription: "Kein Abo. Endet automatisch.",
+  buyPass: "Pass holen",
+  monthlyAlt: "Lieber monatlich?",
+  monthlyAltDesc: (p) => `Abo für ${p} pro Monat, jederzeit kündbar.`,
+  monthlyAltCta: "Monatsabo wählen",
   chats: (n) => `${n} Chats pro Monat`,
   videos: (n) => `${n} Erklärvideos pro Monat`,
   exercises: (n) => `${n} Übungen pro Monat`,
@@ -138,7 +171,7 @@ const de: PricingCopy = {
 
 const en: PricingCopy = {
   title: "Choose your plan",
-  subtitle: "Built for students. Cancel anytime.",
+  subtitle: "Built for students. Pay once, no subscription needed.",
   perMonth: "/ month",
   every6Months: (p) => `${p} every 6 months`,
   insteadOf: (p) => `instead of ${p}`,
@@ -149,6 +182,22 @@ const en: PricingCopy = {
   semester: "Student · semester",
   semesterDesc: "A whole semester of exam preparation.",
   bestValue: "Most popular",
+  klausurPass: "Exam Pass",
+  klausurPassDesc: "Everything unlocked, right for exam season.",
+  passDaysAccess: (n) => `${n} days of access`,
+  recommended: "Recommended",
+  savePercent: (p) => `Save ${p}%`,
+  semesterPass: "Semester Pass",
+  semesterPassDesc: "A whole semester of exam preparation.",
+  passPopular: "For exam season",
+  oneTime: "one-time",
+  passDays: (n) => `${n} days`,
+  passMonths: (n) => `${n} months of access`,
+  noSubscription: "No subscription. Ends automatically.",
+  buyPass: "Get the pass",
+  monthlyAlt: "Prefer monthly?",
+  monthlyAltDesc: (p) => `Subscription at ${p} per month, cancel anytime.`,
+  monthlyAltCta: "Choose monthly",
   chats: (n) => `${n} chats per month`,
   videos: (n) => `${n} explainer videos per month`,
   exercises: (n) => `${n} exercises per month`,
@@ -204,7 +253,7 @@ const en: PricingCopy = {
 
 const fr: PricingCopy = {
   title: "Choisis ton offre",
-  subtitle: "Pensé pour les étudiants. Résiliable à tout moment.",
+  subtitle: "Pensé pour les étudiants. Un seul paiement, sans abonnement.",
   perMonth: "/ mois",
   every6Months: (p) => `${p} tous les 6 mois`,
   insteadOf: (p) => `au lieu de ${p}`,
@@ -215,6 +264,22 @@ const fr: PricingCopy = {
   semester: "Étudiant · semestriel",
   semesterDesc: "Tout un semestre de préparation aux examens.",
   bestValue: "Le plus choisi",
+  klausurPass: "Pass Examens",
+  klausurPassDesc: "Tout débloqué, juste pour la période d'examens.",
+  passDaysAccess: (n) => `${n} jours d'accès`,
+  recommended: "Recommandé",
+  savePercent: (p) => `Économise ${p} %`,
+  semesterPass: "Pass Semestre",
+  semesterPassDesc: "Un semestre entier de préparation aux examens.",
+  passPopular: "Pour la période d'examens",
+  oneTime: "paiement unique",
+  passDays: (n) => `${n} jours`,
+  passMonths: (n) => `${n} mois d'accès`,
+  noSubscription: "Sans abonnement. S'arrête tout seul.",
+  buyPass: "Prendre le pass",
+  monthlyAlt: "Plutôt au mois ?",
+  monthlyAltDesc: (p) => `Abonnement à ${p} par mois, résiliable à tout moment.`,
+  monthlyAltCta: "Choisir le mensuel",
   chats: (n) => `${n} chats par mois`,
   videos: (n) => `${n} vidéos explicatives par mois`,
   exercises: (n) => `${n} exercices par mois`,
@@ -306,6 +371,17 @@ export interface ResolvedPrices {
  * qui seront encaissés), sinon la grille de référence du serveur. Pure (testée).
  * Le « par mois » du semestriel est tronqué au centime, jamais arrondi au-dessus.
  */
+/**
+ * Ce que le Semester-Pass fait économiser face à autant de Klausur-Pass, en
+ * pourcentage arrondi VERS LE BAS (même règle que le serveur, api/lib/passes.ts) :
+ * le badge ne promet jamais plus que les prix affichés.
+ */
+export function passSavingPercent(klausurAmount: number, semesterAmount: number, months: number): number {
+  const full = klausurAmount * months;
+  if (full <= 0 || semesterAmount >= full) return 0;
+  return Math.floor(((full - semesterAmount) / full) * 100);
+}
+
 export function resolvePrices(pricing: PricingLike, offers: OfferLike[]): ResolvedPrices {
   const m = offers.find((o) => o.interval === "monthly");
   const s = offers.find((o) => o.interval === "semester");

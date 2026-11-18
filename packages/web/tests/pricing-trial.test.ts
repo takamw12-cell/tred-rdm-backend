@@ -34,16 +34,17 @@ describe("la grille tarifaire décidée", () => {
     }
   });
 
-  test("14,99 € par mois ; 59,99 € pour 6 mois, soit 9,99 € par mois, badge -30%", () => {
-    expect(PRICING.monthly).toEqual({ amount: 1499, months: 1 });
-    expect(PRICING.semester).toEqual({ amount: 5999, months: 6, badge: "-30%" });
+  test("grille du 18 nov. 2026 : 9,99 € le mois, 39,99 € les six mois, badge -33%", () => {
+    expect(PRICING.monthly).toEqual({ amount: 999, months: 1 });
+    expect(PRICING.semester).toEqual({ amount: 3999, months: 6, badge: "-33%" });
+    expect(PRICING.klausurPass).toEqual({ amount: 999, days: 30 });
+    expect(PRICING.semesterPass).toEqual({ amount: 3999, months: 6 });
     const p = resolvePrices(PRICING, []);
-    expect(p.semester.perMonth).toBe(999);
-    expect(formatMoney(p.semester.perMonth, "EUR", "de").replace(/\s/g, " ")).toBe("9,99 €");
-    expect(formatMoney(p.monthly.amount, "EUR", "de").replace(/\s/g, " ")).toBe("14,99 €");
-    // Le badge ne promet pas plus que la vraie économie (33 %).
+    expect(formatMoney(p.monthly.amount, "EUR", "de").replace(/\s/g, " ")).toBe("9,99 €");
+    expect(formatMoney(PRICING.semesterPass.amount, "EUR", "de").replace(/\s/g, " ")).toBe("39,99 €");
+    // Le badge ne promet pas plus que la vraie économie (33,28 %).
     const economie = 1 - PRICING.semester.amount / (PRICING.monthly.amount * 6);
-    expect(economie).toBeGreaterThanOrEqual(0.3);
+    expect(economie).toBeGreaterThanOrEqual(0.33);
   });
 
   test("crédits : 5 € = 50 crédits = 50 chats ou 5 vidéos", () => {
@@ -254,7 +255,7 @@ describe("mode bêta : 100 % gratuit, aucun paiement", () => {
 
   test("aucun paiement ni essai ne peut démarrer, même par appel direct", () => {
     const subs = lire("api/routes/subscriptions.ts");
-    expect(subs.match(/if \(betaFree\(\)\) throw new ORPCError\("FORBIDDEN", \{ message: "beta_free" \}\)/g)?.length).toBe(2);
+    expect(subs.match(/if \(betaFree\(\)\) throw new ORPCError\("FORBIDDEN", \{ message: "beta_free" \}\)/g)?.length).toBe(3);
     expect(lire("api/routes/credits.ts")).toContain('if (betaFree()) throw new ORPCError("FORBIDDEN", { message: "beta_free" })');
     // L'essai de 14 jours n'est pas entamé pendant la bêta.
     expect(lire("api/auth.ts")).toContain("if (betaFree()) return;");

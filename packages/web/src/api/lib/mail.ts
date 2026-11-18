@@ -266,6 +266,50 @@ const VERIFY: Record<MailLang, Copy> = {
   },
 };
 
+const PAYMENT_FAILED: Record<MailLang, Copy> = {
+  de: {
+    subject: "TRED — deine Zahlung hat nicht geklappt",
+    hello: (n) => (n ? `Hallo ${n},` : "Hallo,"),
+    lines: [
+      "die letzte Abbuchung für dein TRED-Abo konnte nicht durchgeführt werden (z. B. Karte abgelaufen oder nicht gedeckt).",
+      "Dein Zugang bleibt vorerst bestehen. Prüfe bitte deine Zahlungsmethode, damit er nicht endet.",
+    ],
+    button: "Zahlungsmethode prüfen",
+    validity: "Wir versuchen die Abbuchung in den nächsten Tagen erneut.",
+    ignore: "Wenn du dein Abo ohnehin beenden möchtest, musst du nichts tun.",
+    fallback: "Falls der Knopf nicht funktioniert, kopiere diese Adresse in deinen Browser:",
+  },
+  fr: {
+    subject: "TRED — ton paiement n'est pas passé",
+    hello: (n) => (n ? `Bonjour ${n},` : "Bonjour,"),
+    lines: [
+      "le dernier prélèvement de ton abonnement TRED n'a pas pu être effectué (carte expirée ou provision insuffisante, par exemple).",
+      "Ton accès reste ouvert pour l'instant. Vérifie ton moyen de paiement pour qu'il ne s'arrête pas.",
+    ],
+    button: "Vérifier mon moyen de paiement",
+    validity: "Nous réessaierons le prélèvement dans les prochains jours.",
+    ignore: "Si tu voulais de toute façon arrêter ton abonnement, tu n'as rien à faire.",
+    fallback: "Si le bouton ne fonctionne pas, copie cette adresse dans ton navigateur :",
+  },
+  en: {
+    subject: "TRED — your payment didn't go through",
+    hello: (n) => (n ? `Hi ${n},` : "Hi,"),
+    lines: [
+      "the latest charge for your TRED subscription could not be completed (for example an expired card or insufficient funds).",
+      "Your access stays open for now. Please check your payment method so it doesn't end.",
+    ],
+    button: "Check payment method",
+    validity: "We will retry the charge over the next few days.",
+    ignore: "If you wanted to end your subscription anyway, there is nothing to do.",
+    fallback: "If the button doesn't work, copy this address into your browser:",
+  },
+};
+
+/** Un prélèvement de l'abonnement a échoué (webhook Stripe `invoice.payment_failed`). */
+export function paymentFailedMail(url: string, name?: string | null, lang: MailLang = "de") {
+  return render(url, name, lang, PAYMENT_FAILED[lang]);
+}
+
 /** E-mail « mot de passe oublié ». Langue : celle de l'interface (défaut allemand). */
 export function resetPasswordMail(url: string, name?: string | null, lang: MailLang = "de") {
   return render(url, name, lang, RESET[lang]);

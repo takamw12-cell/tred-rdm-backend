@@ -157,7 +157,7 @@ export const es: Messages = {
     featuresTitle: "Lo que TRED hace distinto",
     f1Title: "El aula digital",
     f1Text: "No es una ventana de chat, es una pizarra. TRED escribe la solución paso a paso, con fórmulas, esquemas y preguntas para ti.",
-    f2Title: "Cero alucinaciones",
+    f2Title: "La prueba en tu propio documento",
     f2Text: "Los números no los calcula el modelo de lenguaje sino solvers deterministas: Engineering Mechanics, electrotecnia, termodinámica y más. Cada explicación se apoya en tus apuntes.",
     f3Title: "Explicar en vídeo",
     f3Text: "Un clic, y TRED convierte tu problema exacto en un vídeo explicativo: con voz y pizarra, solo a partir de tus apuntes y de los resultados de los solvers.",

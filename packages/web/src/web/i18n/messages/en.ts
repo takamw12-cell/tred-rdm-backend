@@ -145,7 +145,7 @@ export const en: Messages = {
     featuresTitle: "What makes TRED different",
     f1Title: "The Digital Lecture Hall",
     f1Text: "Not a chat window, a whiteboard. TRED writes out the solution step by step, with formulas, sketches and questions back to you.",
-    f2Title: "Zero hallucination",
+    f2Title: "Proof from your own document",
     f2Text: "Numbers are not computed by the language model but by deterministic solvers: Engineering Mechanics, electrical engineering, thermodynamics and more. Every explanation is grounded in your notes.",
     f3Title: "Explain as video",
     f3Text: "One click, and TRED turns your exact problem into an explainer video: with voice and whiteboard, built only from your notes and the solvers' results.",

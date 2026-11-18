@@ -19,7 +19,7 @@ import { useT } from "@/i18n";
  *  - Aucune comparaison avec un autre assistant, et la mécanique s'appelle
  *    « Technische Mechanik » (DE) / « Engineering Mechanics » (EN, FR).
  *  - Quatre arguments : le Hörsaal (tableau), les solveurs déterministes
- *    (zéro hallucination), les vidéos explicatives, toutes les matières.
+ *    (des réponses vérifiables sur le document de l'étudiant), les vidéos explicatives, toutes les matières.
  *
  * Pas de témoignage ni de chiffre d'usage : rien d'inventé (directive Omnibus,
  * § 5b UWG). L'aperçu du tableau est fait des vrais composants du Hörsaal.

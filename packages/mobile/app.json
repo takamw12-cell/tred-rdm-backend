@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "TRED",
+    "name": "TRED Tutor",
     "slug": "tred",
     "description": "TRED ist dein KI-Tutor für das Ingenieurstudium. Lade deine Vorlesungsskripte, Übungen und Altklausuren hoch und stelle Fragen dazu — die Antworten stützen sich auf deine eigenen Unterlagen und nennen die Seite, aus der sie stammen. TRED merkt sich, was du falsch verstanden hast, und kommt im richtigen Abstand darauf zurück. Oberfläche auf Deutsch, Englisch und Französisch — geprüft wird auf Deutsch.",
     "privacy": "public",

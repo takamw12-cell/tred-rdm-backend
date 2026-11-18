@@ -20,12 +20,14 @@ import { Consent } from "@/components/Consent";
 import { Button } from "@/components/ui/Button";
 import { TredLogoIcon } from "@/components/TredLogoIcon";
 import { useColors } from "@/hooks/use-colors";
-import { usePlan, useCreateCheckout, useBillingPortal } from "@/queries/plan";
+import { usePlan, useCreatePassCheckout, useBillingPortal } from "@/queries/plan";
+import { purchasesHidden } from "@/lib/store-policy";
 import { orpc } from "@/lib/api";
 import { APP_SCHEME } from "@/lib/auth-client";
 import { Radius, Space } from "@/constants/theme";
 
-type Interval = "monthly" | "semester";
+/** Les deux Pass (paiement unique) : mêmes prix que le site, lus sur le serveur. */
+type Interval = "klausur" | "semester";
 
 export default function Paywall() {
   const { t, i18n } = useTranslation();
@@ -33,7 +35,7 @@ export default function Paywall() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const plan = usePlan();
-  const checkout = useCreateCheckout();
+  const checkout = useCreatePassCheckout();
   const portal = useBillingPortal();
 
   // Le semestriel est sélectionné par défaut : c'est l'offre qui rapporte le
@@ -48,9 +50,9 @@ export default function Paywall() {
   const [consentLose, setConsentLose] = useState(false);
   const consentOk = consentStart && consentLose;
 
-  const offers = plan.data?.offers ?? [];
-  const monthly = offers.find((o) => o.interval === "monthly");
-  const semester = offers.find((o) => o.interval === "semester");
+  const passes = plan.data?.passes ?? [];
+  const monthly = passes.find((o) => o.kind === "klausur");
+  const semester = passes.find((o) => o.kind === "semester");
   const selected = interval === "semester" ? (semester ?? monthly) : monthly;
 
   const money = useMemo(() => {
@@ -61,16 +63,15 @@ export default function Paywall() {
       }).format(cents / 100);
   }, [i18n.language]);
 
-  /** Économie réelle du semestriel face à six mois de mensuel. */
+  /** Économie du Semester-Pass face à autant de Klausur-Pass, en % arrondi vers le bas. */
   const saving = useMemo(() => {
     if (!monthly || !semester) return null;
-    const diff = monthly.amount * semester.months - semester.amount;
-    return diff > 0 ? money(diff, semester.currency) : null;
-  }, [monthly, semester, money]);
+    const full = monthly.amount * semester.months;
+    if (full <= 0 || semester.amount >= full) return null;
+    return Math.floor(((full - semester.amount) / full) * 100);
+  }, [monthly, semester]);
 
   const isPaid = (plan.data?.plan ?? "free") !== "free";
-  const trialDays = plan.data?.trialDays ?? 0;
-  const showTrial = trialDays > 0 && !plan.data?.trialUsed;
 
   async function subscribe() {
     if (!selected) return;
@@ -90,7 +91,7 @@ export default function Paywall() {
     // https sur ton domaine qui redirige vers `tred://paywall` — c'est du
     // confort, pas un prérequis.
     const res = await checkout
-      .mutateAsync({ priceId: selected.priceId })
+      .mutateAsync({ pass: selected.kind })
       .catch(() => null);
 
     if (!res?.url) {
@@ -142,7 +143,14 @@ export default function Paywall() {
 
         {plan.isLoading ? (
           <ActivityIndicator color={c.accent} />
-        ) : !plan.data?.configured || offers.length === 0 ? (
+        ) : purchasesHidden && !isPaid ? (
+          // iOS : aucun achat, aucun prix, aucun lien (lib/store-policy.ts).
+          <Card>
+            <Text testID="ios-no-purchase" style={{ color: c.mutedForeground, lineHeight: 21 }}>
+              {t("plan.notInApp")}
+            </Text>
+          </Card>
+        ) : !isPaid && !selected?.available ? (
           <Card>
             <Text style={{ color: c.mutedForeground }}>
               {t("plan.notConfigured")}
@@ -157,7 +165,7 @@ export default function Paywall() {
                 { backgroundColor: c.secondary, borderColor: c.border },
               ]}
             >
-              {(["monthly", "semester"] as const).map((key) => {
+              {(["klausur", "semester"] as const).map((key) => {
                 const active = interval === key;
                 const disabled = key === "semester" ? !semester : !monthly;
                 return (
@@ -186,7 +194,7 @@ export default function Paywall() {
                         fontSize: 14,
                       }}
                     >
-                      {key === "monthly" ? t("plan.monthly") : t("plan.semester")}
+                      {key === "klausur" ? t("plan.klausurPass") : t("plan.semesterPass")}
                     </Text>
                   </Pressable>
                 );
@@ -195,7 +203,7 @@ export default function Paywall() {
               {saving ? (
                 <View style={[styles.savePill, { backgroundColor: c.success }]}>
                   <Text style={styles.savePillText}>
-                    {t("plan.save", { amount: saving })}
+                    {t("plan.savePercent", { percent: saving })}
                   </Text>
                 </View>
               ) : null}
@@ -206,18 +214,17 @@ export default function Paywall() {
               <View style={styles.priceBlock}>
                 <View style={styles.priceRow}>
                   <Text style={[styles.price, { color: c.foreground }]}>
-                    {money(selected.amountPerMonth, selected.currency)}
+                    {money(selected.amount, selected.currency)}
                   </Text>
                   <Text style={[styles.perMonth, { color: c.mutedForeground }]}>
-                    {t("plan.perMonth")}
+                    {t("plan.oneTime")}
                   </Text>
                 </View>
-                {selected.months > 1 ? (
-                  <Text style={[styles.total, { color: c.mutedForeground }]}>
-                    {money(selected.amount, selected.currency)} /{" "}
-                    {selected.months} {t("plan.semester")}
-                  </Text>
-                ) : null}
+                <Text style={[styles.total, { color: c.mutedForeground }]}>
+                  {selected.months > 0
+                    ? t("plan.passMonths", { count: selected.months })
+                    : t("plan.passDays", { count: selected.days })}
+                </Text>
               </View>
             ) : null}
 
@@ -245,6 +252,7 @@ export default function Paywall() {
             ) : null}
 
             {isPaid ? (
+              purchasesHidden || plan.data?.passActive || !plan.data?.manageable ? null : (
               <Button
                 label={t("plan.manage")}
                 variant="secondary"
@@ -253,6 +261,7 @@ export default function Paywall() {
                 loading={portal.isPending}
                 onPress={() => void manage()}
               />
+              )
             ) : (
               <Button
                 label={t("plan.subscribe")}
@@ -265,9 +274,7 @@ export default function Paywall() {
             )}
 
             <Text style={[styles.reassure, { color: c.mutedForeground }]}>
-              {showTrial
-                ? `${t("plan.trial", { days: trialDays })} · ${t("plan.cancelAnytime")}`
-                : t("plan.cancelAnytime")}
+              {t("plan.noSubscription")}
             </Text>
           </Card>
         )}

@@ -27,6 +27,11 @@ export function useCreateCheckout() {
   return useMutation(orpc.subscriptions.createCheckout.mutationOptions());
 }
 
+/** Klausur-Pass / Semester-Pass : paiement unique ; le serveur choisit le prix. */
+export function useCreatePassCheckout() {
+  return useMutation(orpc.subscriptions.createPassCheckout.mutationOptions());
+}
+
 /** Le portail Stripe — changer de carte, résilier, télécharger les factures. */
 export function useBillingPortal() {
   return useMutation(orpc.subscriptions.portal.mutationOptions());
