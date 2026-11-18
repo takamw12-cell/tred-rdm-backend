@@ -1,4 +1,5 @@
 import { and, eq, sql } from "drizzle-orm";
+import { withDbRetry } from "./db-retry";
 import { db } from "../database";
 import { document, usageCounter, userAccess, userPlan } from "../database/schema";
 import {
@@ -290,26 +291,31 @@ export async function consume(
   const quotaLeft = used < limit;
 
   const takeFromQuota = async (): Promise<QuotaResult> => {
-    if (rows.length === 0) {
-      await db
-        .insert(usageCounter)
-        .values({ userId, period, metric, count: 1 })
-        .onConflictDoUpdate({
-          target: [usageCounter.userId, usageCounter.period, usageCounter.metric],
-          set: { count: sql`${usageCounter.count} + 1` },
-        });
-    } else {
-      await db
-        .update(usageCounter)
-        .set({ count: sql`${usageCounter.count} + 1` })
-        .where(
-          and(
-            eq(usageCounter.userId, userId),
-            eq(usageCounter.period, period),
-            eq(usageCounter.metric, metric),
-          ),
-        );
-    }
+    // Trois essais si la base refuse l'écriture (lib/db-retry.ts) : un verrou
+    // d'un quart de seconde ne doit pas répondre 500 à une question. Pire cas
+    // d'un essai rejoué après un délai dépassé : une unité comptée en trop.
+    await withDbRetry(async () => {
+      if (rows.length === 0) {
+        await db
+          .insert(usageCounter)
+          .values({ userId, period, metric, count: 1 })
+          .onConflictDoUpdate({
+            target: [usageCounter.userId, usageCounter.period, usageCounter.metric],
+            set: { count: sql`${usageCounter.count} + 1` },
+          });
+      } else {
+        await db
+          .update(usageCounter)
+          .set({ count: sql`${usageCounter.count} + 1` })
+          .where(
+            and(
+              eq(usageCounter.userId, userId),
+              eq(usageCounter.period, period),
+              eq(usageCounter.metric, metric),
+            ),
+          );
+      }
+    });
     // Journal ohne Guthabenwirkung: der Studierende sieht seine Historie
     // lückenlos, egal aus welchem Topf bezahlt wurde.
     void logTransaction({

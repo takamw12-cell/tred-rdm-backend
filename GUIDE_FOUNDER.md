@@ -1528,3 +1528,10 @@ C'est le code qui choisit le cas et les faits. Une donnée absente n'est jamais 
 **« Gestern hast du X Fragen gemeistert »** : X compte les réponses que le tuteur a jugées justes la veille (outil `lernstand_melden`), dans `usage_counter` (période = jour, métrique `mastered`). Le compteur démarre au déploiement.
 
 **Examens** : matière + date, 12 à venir au plus par compte ; les dates passées sont retirées au prochain ajout. Les deux tables sont exportées et effacées avec le compte (`api/lib/gdpr.ts`).
+
+## Test de charge : les utilisateurs synthétiques (18 nov. 2026)
+
+- **Ce que c'est** : des robots Playwright jouent trois profils d'étudiants (Curieux, Stressé, Hacker) sur un serveur **local**. Mode d'emploi et garde-fous : `scripts/README.md`. Premier résultat et décisions : `RAPPORT-STRESS-TEST.md`.
+- **Jamais contre la production.** Les scripts refusent toute adresse de serveur non locale et la base de production.
+- **Pour mesurer 500 et 1 000 utilisateurs** : crée une branche Turso de staging, copie `.env.stress.example` en `.env.stress.local`, remplis `TURSO_STAGING_URL` et `TURSO_STAGING_TOKEN`, puis `bun scripts/stress-test-turso.mjs`. Aucun compte à créer, aucun coût : Anthropic, le stockage et Sentry sont remplacés par de faux services locaux. Supprime la branche après le test.
+- **Ce que le test a fait corriger** : un échec d'enregistrement n'écrit plus le texte d'un document dans les journaux (`api/lib/queue/import-failure.ts`) ; une écriture refusée par la base est rejouée trois fois (`api/lib/db-retry.ts`) ; un corps JSON cassé répond 400 (`api/lib/json-body.ts`).

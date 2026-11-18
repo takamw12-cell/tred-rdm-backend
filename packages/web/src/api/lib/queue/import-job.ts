@@ -6,6 +6,7 @@ import { document } from "../../database/schema";
 import { extractDocument, UnsupportedFormatError } from "../extract";
 import { canAddDocument } from "../plan";
 import { s3, S3_BUCKET } from "../s3";
+import { saveImportedDocument } from "./import-failure";
 import { extractionRefusal, type ImportJobData, type ImportJobResult } from "./index";
 
 export { IMPORT_ERRORS, extractionRefusal, importErrorCode, type ImportError } from "./index";
@@ -44,7 +45,8 @@ export async function processImport(job: Job<ImportJobData, ImportJobResult>): P
     // quoi faire. Les autres travaux du lot ne le savent même pas.
     const refusal = extractionRefusal(err);
     if (refusal) throw new UnrecoverableError(refusal);
-    console.error(`[import] ${job.id} : extraction`, err instanceof Error ? err.message.slice(0, 300) : err);
+    // Le nom de l'erreur, pas son message : celui d'un lecteur de PDF peut citer le document.
+    console.error(`[import] ${job.id} : extraction en échec (${err instanceof Error ? err.name : "erreur"})`);
     captureServerError(err, { feature: "pdf_parsing", userId: d.userId, action: "import job", tags: { stage: "extraction" } });
     throw new Error("extraction_failed");
   }
@@ -58,22 +60,29 @@ export async function processImport(job: Job<ImportJobData, ImportJobResult>): P
   const quota = await canAddDocument(d.userId);
   if (!quota.ok) throw new UnrecoverableError("document_limit");
 
-  await db
-    .insert(document)
-    .values({
-      id: d.documentId,
-      userId: d.userId,
-      semesterId: d.semesterId,
-      subjectId: d.subjectId,
-      title: d.title,
-      kind: d.kind,
-      textContent: text,
-      fileKey: d.fileKey,
-      pageCount: extracted.pageCount,
-      charCount: text.length,
-    })
-    // Une reprise après une coupure juste derrière l'INSERT ne doit pas échouer.
-    .onConflictDoNothing();
+  // Trois essais si la base refuse l'écriture, puis une erreur qui ne porte
+  // qu'un code : le message de la base contient le texte du document, il ne
+  // doit atteindre ni le journal, ni Redis, ni Sentry (queue/import-failure.ts).
+  await saveImportedDocument(
+    () =>
+      db
+        .insert(document)
+        .values({
+          id: d.documentId,
+          userId: d.userId,
+          semesterId: d.semesterId,
+          subjectId: d.subjectId,
+          title: d.title,
+          kind: d.kind,
+          textContent: text,
+          fileKey: d.fileKey,
+          pageCount: extracted.pageCount,
+          charCount: text.length,
+        })
+        // Une reprise après une coupure juste derrière l'INSERT ne doit pas échouer.
+        .onConflictDoNothing(),
+    { pageCount: extracted.pageCount, byteSize: bytes.byteLength },
+  );
   await job.updateProgress(100);
 
   return { documentId: d.documentId, pageCount: extracted.pageCount, ocr: extracted.ocr };

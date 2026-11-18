@@ -107,7 +107,9 @@ describe("le serveur range l'origine une seule fois", () => {
 
   test("l'inscription n'attend pas l'attribution et n'échoue pas à cause d'elle", () => {
     const signup = api.slice(api.indexOf('app.on(["GET", "POST"], "/api/auth/*"'), api.indexOf('app.post("/api/attribution"'));
-    expect(signup).toContain("const res = await auth.handler(c.req.raw);");
+    // Depuis le 18 nov. 2026, l'inscription rejoue un refus d'écriture de la base (lib/db-retry.ts) ; le reste passe tel quel.
+    expect(signup).toContain("? await retryWriteRefusal(() => auth.handler(c.req.raw.clone() as Request), {");
+    expect(signup).toContain(": await auth.handler(c.req.raw);");
     expect(signup).toContain("void res");
     expect(signup).toContain(".catch((error) =>");
     // La réponse d'origine est rendue telle quelle, quoi qu'il arrive à l'attribution.

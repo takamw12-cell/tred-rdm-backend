@@ -122,6 +122,8 @@ import { detectSolverSkip, mustCallToolFirst, samplingTemperature, solverDutyNot
 import { mathDelimiterTransform } from "./lib/math-delimiters";
 import { netlistGate } from "./lib/circuit/netlist";
 import { captureServerError } from "./lib/sentry";
+import { retryWriteRefusal, safeErrorMessage, withDbRetry } from "./lib/db-retry";
+import { readJsonObject } from "./lib/json-body";
 import { HTTPException } from "hono/http-exception";
 import { SOLVER_RETRY_NOTE, firstCallForce, retryForce, solverGateEnabled, solverGateStream } from "./lib/solver-gate";
 import { applySubscription, endSubscription } from "./lib/billing";
@@ -176,7 +178,8 @@ const app = createApp(router);
 app.onError(async (err, c) => {
   if (err instanceof HTTPException) return err.getResponse();
   const action = `${c.req.method} ${c.req.routePath ?? c.req.path}`;
-  console.error(`[500] ${action} :`, err instanceof Error ? err.message.slice(0, 300) : String(err).slice(0, 300));
+  // Jamais le message brut : celui d'une requête refusée porte ses paramètres (lib/db-retry.ts).
+  console.error(`[500] ${action} :`, safeErrorMessage(err));
   let userId: string | null = null;
   try {
     userId = (await requestSession(c.req.raw))?.user.id ?? null;
@@ -319,10 +322,19 @@ app.use("/api/*", async (c, next) => {
 // E-Mail-Bestätigung (auth.ts), das Rate-Limit auf /api/auth und die
 // Guthaben-/Kontingentgrenzen pro Konto.
 app.on(["GET", "POST"], "/api/auth/*", async (c) => {
-  const res = await auth.handler(c.req.raw);
+  const signUp = c.req.method === "POST" && new URL(c.req.url).pathname === "/api/auth/sign-up/email";
+  // Inscription : si la base refuse l'écriture (verrou, délai dépassé), Better
+  // Auth répond 422 « FAILED_TO_CREATE_USER ». On réessaie deux fois avant de
+  // rendre ce refus à l'étudiant (lib/db-retry.ts). Tout autre refus — adresse
+  // déjà prise, mot de passe trop court — revient au premier essai.
+  const res = signUp
+    ? await retryWriteRefusal(() => auth.handler(c.req.raw.clone() as Request), {
+        onRetry: ({ attempt }) => console.warn(`[auth] inscription : écriture refusée par la base, nouvel essai ${attempt + 1}/3`),
+      })
+    : await auth.handler(c.req.raw);
   // Une inscription par e-mail réussie : on range l'origine du compte (lien
   // de campagne), sans jamais retarder ni faire échouer la réponse.
-  if (c.req.method === "POST" && new URL(c.req.url).pathname === "/api/auth/sign-up/email" && res.ok) {
+  if (signUp && res.ok) {
     const utm = utmFromHeader(c.req.header(UTM_HEADER));
     if (utm) {
       void res
@@ -677,7 +689,11 @@ app.post("/api/agent/messages", async (c) => {
 
   // Le corps d'abord : le contrôle des pièces jointes (plus bas) doit passer
   // AVANT le décompte du quota — un refus ne coûte pas une question.
-  const body = await c.req.json();
+  // Un corps illisible est une faute du client : 400, pas 500 (lib/json-body.ts).
+  const parsed = await readJsonObject(c.req.raw);
+  if (!parsed.ok) return c.json({ error: parsed.error }, 400);
+  if (!Array.isArray(parsed.body.messages)) return c.json({ error: "invalid_body" }, 400);
+  const body = parsed.body;
   const {
     messages,
     documentId,
@@ -2233,18 +2249,25 @@ app.post("/api/documents/upload", async (c) => {
     console.error("[upload] file storage failed", err);
   }
 
-  await db.insert(document).values({
-    id,
-    userId: session.user.id,
-    semesterId,
-    subjectId,
-    title,
-    kind: kind as "vorlesung" | "uebung" | "klausur" | "other",
-    textContent: text,
-    fileKey,
-    pageCount: extracted.pageCount,
-    charCount: text.length,
-  });
+  // Trois essais si la base refuse l'écriture (lib/db-retry.ts) ; l'identifiant
+  // est fixé plus haut, donc un essai rejoué n'écrit jamais deux documents.
+  await withDbRetry(() =>
+    db
+      .insert(document)
+      .values({
+        id,
+        userId: session.user.id,
+        semesterId,
+        subjectId,
+        title,
+        kind: kind as "vorlesung" | "uebung" | "klausur" | "other",
+        textContent: text,
+        fileKey,
+        pageCount: extracted.pageCount,
+        charCount: text.length,
+      })
+      .onConflictDoNothing(),
+  );
 
   return c.json({ id, pageCount: extracted.pageCount, ocr: extracted.ocr });
 });

@@ -69,6 +69,14 @@ android
 
 # scripts (local-only provisioning)
 scripts/
+# Test de charge (robots Playwright, faux services, lanceur Turso de staging) : versionné,
+# le reste de /scripts reste local. Voir scripts/README.md — JAMAIS contre la production.
+!/scripts/
+/scripts/*
+!/scripts/README.md
+!/scripts/simulate-users.mjs
+!/scripts/stress-mocks.mjs
+!/scripts/stress-test-turso.mjs
 !packages/mobile/scripts/
 packages/mobile/scripts/*
 !packages/mobile/scripts/generate-ios-certs.py

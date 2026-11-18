@@ -13,6 +13,8 @@ import {
   type ImportJobResult,
   type VideoJobData,
 } from "./api/lib/queue";
+import { safeErrorMessage } from "./api/lib/db-retry";
+import { logImportFailure } from "./api/lib/queue/import-failure";
 import { discardImportFile, processImport } from "./api/lib/queue/import-job";
 import { failVideo, PipelineError, runPipeline, videoErrorCode } from "./api/video/pipeline";
 
@@ -56,7 +58,8 @@ const finalFailure = (job: Job | undefined) => Boolean(job && job.attemptsMade >
 importWorker.on("completed", (job) => console.log(`[worker] import ${job.id} : terminé (${job.returnvalue.pageCount} pages)`));
 importWorker.on("failed", (job, err) => {
   const final = finalFailure(job) || err.name === "UnrecoverableError";
-  console.warn(`[worker] import ${job?.id} : ${err.message}${final ? " (définitif)" : " (sera repris)"}`);
+  // Identifiants, code, pages, octets — jamais `err.message` : celui de la base contient le texte du document.
+  logImportFailure(job, err, final);
   if (job && final) void discardImportFile(job.data.fileKey);
 });
 
@@ -82,14 +85,14 @@ const videoWorker = new Worker<VideoJobData, void>(
 videoWorker.on("completed", (job) => console.log(`[worker] vidéo ${job.id} : prête`));
 videoWorker.on("failed", (job, err) => {
   const final = finalFailure(job) || err.name === "UnrecoverableError";
-  console.warn(`[worker] vidéo ${job?.id} : ${err.message}${final ? " (définitif)" : ` (essai ${job?.attemptsMade}/${job?.opts.attempts}, sera repris)`}`);
+  console.warn(`[worker] vidéo ${job?.id} : ${safeErrorMessage(err, 200)}${final ? " (définitif)" : ` (essai ${job?.attemptsMade}/${job?.opts.attempts}, sera repris)`}`);
   // C'est ici, et seulement après la dernière reprise, que la vidéo devient
   // `failed` pour l'étudiant, avec un code que le navigateur sait traduire.
   if (job && final) void failVideo(job.data.id, videoErrorCode(err.message)).catch(() => {});
 });
 
 const workers: Worker[] = [importWorker, videoWorker];
-for (const w of workers) w.on("error", (err) => console.error(`[worker] ${w.name}`, err.message));
+for (const w of workers) w.on("error", (err) => console.error(`[worker] ${w.name}`, safeErrorMessage(err, 200)));
 
 /**
  * Le battement : « un worker est là ». Le service web ne dépose des travaux

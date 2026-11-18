@@ -15,6 +15,8 @@
  *   feature = http               une route a répondu 500
  */
 
+import { scrubbedError } from "./db-retry";
+
 export type ServerFeature = "pdf_parsing" | "video_generation" | "http";
 
 export interface ServerErrorContext {
@@ -78,7 +80,8 @@ export function captureServerError(err: unknown, ctx: ServerErrorContext): void 
     Sentry.withScope((scope) => {
       scope.setTags(tags);
       if (user) scope.setUser(user);
-      Sentry.captureException(err instanceof Error ? err : new Error(String(err).slice(0, 300)));
+      // Une requête refusée porte ses paramètres dans son message : ils ne partent pas (lib/db-retry.ts).
+      Sentry.captureException(scrubbedError(err));
     });
   });
 }
