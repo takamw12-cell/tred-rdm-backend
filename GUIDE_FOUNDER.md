@@ -1576,3 +1576,13 @@ Supprimer `STRIPE_PRICE_PRO_SEMESTER` (ancien abonnement à 59,99 €). Les iden
 - **Flamme** sur le tableau de bord : jours d'affilée où le compte a posé au moins une question (jour de Berlin). Si la série d'hier n'est pas encore prolongée aujourd'hui : « Achtung! Deine Serie ist in Gefahr. Stell eine Frage, um sie zu retten. » Code : `api/lib/streak.ts`, `web/components/streak-flame.tsx`.
 - **À lancer une fois** : `node C:\dev\tred-rdm\aerostudy-ai\migre-streak.mjs` (table `study_day`). Tant que ce n'est pas fait, la flamme affiche « Noch keine Serie » et rien n'est enregistré.
 - **Bandeau hors ligne** : « Du bist offline. Der Tutor braucht Internet, um zu antworten. » Il ne promet pas la lecture hors ligne : l'app n'a pas de cache hors ligne (pas de service worker).
+
+## Modèle « stock de crédits », récompenses, Panik-Modus, parrainage (18 nov. 2026)
+
+- **Crédits** : 10 à l'inscription (une fois), 50 avec le Klausur-Pass, 300 avec le Semester-Pass, 50 à chaque mois payé de l'abonnement, recharges de 20 (4,99 €) et 50 (9,99 €). Une question = 1 crédit, une vidéo explicative = 5, un exercice ou une Formelsammlung = 2. Les crédits n'expirent jamais. Plus de quota mensuel pour Free et les Pass ; l'essai illimité de 14 jours n'est plus proposé. Code : `api/lib/plan.ts` (`CREDIT_GRANTS`, `CREDIT_COST`).
+- **Pendant la bêta** (`BILLING_ENABLED` absent) rien ne change pour les étudiants : le plan « beta » garde ses compteurs. Les crédits de bienvenue s'accumulent déjà sur les nouveaux comptes.
+- **Récompenses d'étude** : +0,5 crédit quand une tâche du plan d'étude est cochée « Erledigt », seulement si le concept a été travaillé avec le tuteur dans les 24 h, une fois par concept et par semaine, 3 crédits par jour au plus (`api/lib/study-rewards.ts`).
+- **Panik-Modus** (bouton rouge du tableau de bord) : trois notions et trois formules tirées d'un document, par le modèle rapide ; chaque ligne n'est affichée que si sa phrase est retrouvée mot pour mot dans le document, avec sa page. Trois feuilles par jour (`PANIC_PER_DAY`). Coût mesuré : un appel Haiku d'environ 10 s.
+- **Parrainage** : page `/invite`, code `TRED-XXXXXX`, lien `/?ref=…`. +15 crédits au parrain et au filleul, si le filleul a confirmé son adresse e-mail et s'est inscrit depuis moins de 7 jours ; 20 filleuls au plus par parrain.
+- **À lancer une fois** : `node C:\dev\tred-rdm\aerostudy-ai\migre-referral.mjs`. Avant, la page `/invite` dit que les invitations arrivent bientôt.
+- **Webhook Stripe** : ajouter l'événement `invoice.paid` (crédits de l'abonnement mensuel) à ceux de la section « Paiements : passer en réel ».

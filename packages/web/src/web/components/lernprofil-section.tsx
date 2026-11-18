@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { creditsMeKey, creditsMeOptions } from "@/queries/credits";
+import { useToastStore } from "@/stores/toast";
+import { formatCredits } from "@/lib/credit-format";
 import { CalendarDays, FileText, Loader2, MessagesSquare, RotateCcw, Target } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
@@ -252,11 +255,33 @@ function StudyPlanBlock({ uid, canPlan }: { uid: string; canPlan: boolean }) {
     }
   }
 
-  function toggle(id: string) {
+  // Récompenses d'étude (api/lib/study-rewards.ts) : +0,5 crédit par chapitre, 3 par jour au plus.
+  const qc = useQueryClient();
+  const showToast = useToastStore((x) => x.show);
+  const credits = useQuery({ ...creditsMeOptions(), staleTime: 30_000 });
+  const reward = useMutation({
+    ...orpc.learning.completeTask.mutationOptions(),
+    onSuccess: (res, vars) => {
+      if (res.granted) {
+        // Mise à jour immédiate du solde affiché, avant la relecture du serveur.
+        qc.setQueryData(creditsMeKey(), (old: typeof credits.data) => (old ? { ...old, purchasedCredits: res.balance, rewards: { ...old.rewards, earnedToday: res.earnedToday, leftToday: res.leftToday } } : old));
+        showToast(t("rewards.granted", { n: formatCredits(res.amount, locale), concept: vars.concept }));
+      } else if (res.reason === "daily_cap") showToast(t("rewards.cap"));
+      else if (res.reason === "not_justified") showToast(t("rewards.notJustified"), "error");
+      void qc.invalidateQueries({ queryKey: creditsMeKey() });
+    },
+  });
+  const leftToday = credits.data?.rewards.leftToday;
+
+  function toggle(task: PlanTask) {
     if (!state) return;
-    const next: PlanState = { ...state, done: toggleDone(state.done, id) };
+    const checking = !state.done.includes(task.id);
+    const next: PlanState = { ...state, done: toggleDone(state.done, task.id) };
     setState(next);
     savePlan(uid, next, deviceStorage);
+    // Cocher (pas décocher) une tâche liée à un concept : demande la récompense d'étude.
+    // Le serveur décide (travaillé avec le tuteur ? déjà récompensé ? plafond du jour ?).
+    if (checking && task.concept) reward.mutate({ concept: task.concept });
   }
 
   function discard() {
@@ -356,6 +381,11 @@ function StudyPlanBlock({ uid, canPlan }: { uid: string; canPlan: boolean }) {
               </Button>
             </div>
           )}
+          {typeof leftToday === "number" && (
+            <p className="text-muted-foreground mb-3 text-xs" data-testid="rewards-left">
+              {leftToday > 0 ? t("rewards.left", { n: formatCredits(leftToday, locale) }) : t("rewards.cap")}
+            </p>
+          )}
           <ol className="space-y-3">
             {state.plan.days.map((d) => (
               <li key={d.day} className="grid gap-2 sm:grid-cols-[6.5rem_1fr] sm:gap-4" data-testid="plan-day">
@@ -380,7 +410,7 @@ function StudyPlanBlock({ uid, canPlan }: { uid: string; canPlan: boolean }) {
                           className={cn("border-border grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-2 rounded-xl border px-3 py-2.5 sm:grid-cols-[auto_minmax(0,1fr)_auto]", checked && "opacity-60")}
                           data-testid="plan-task"
                         >
-                          <Checkbox className="mt-0.5" checked={checked} onCheckedChange={() => toggle(task.id)} aria-label={t("lernprofil.done", { task: title(task) })} />
+                          <Checkbox className="mt-0.5" checked={checked} onCheckedChange={() => toggle(task)} aria-label={t("lernprofil.done", { task: title(task) })} />
                           <div className="min-w-0 space-y-1">
                             <p className={cn("text-sm font-medium", checked && "line-through decoration-1")}>{title(task)}</p>
                             {task.kind === "selftest" && <p className="text-muted-foreground text-xs">{task.concepts.join(" · ")}</p>}

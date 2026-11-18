@@ -107,6 +107,7 @@ export function SmartPaywallModal({
   const prices = sub ? resolvePrices(sub.pricing, sub.offers) : null;
   const money = (cents: number) => formatMoney(cents, prices?.currency ?? "EUR", locale);
   const student = sub?.limitsByPlan.student;
+  const semesterPassAmount = sub?.passes.find((x) => x.kind === "semester")?.amount ?? sub?.pricing.semesterPass.amount ?? 0;
 
   // Le paquet de crédits : celui de Stripe s'il est configuré, sinon la grille.
   const pack = credits?.packs?.[0] ?? null;
@@ -183,20 +184,19 @@ export function SmartPaywallModal({
                     {isFree && prices && student && (
                       <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
                         <div className="flex items-center justify-between gap-3">
-                          <span className="text-sm font-semibold">{c.semester}</span>
+                          <span className="text-sm font-semibold">{c.semesterPass}</span>
                           <span className="rounded-full bg-[#EAB308] px-2 py-0.5 text-[11px] font-extrabold text-[#1A1A1A]">
                             {prices.semester.badge}
                           </span>
                         </div>
                         <div className="mt-2 flex items-baseline gap-1.5">
                           <span className="font-display text-3xl font-extrabold tracking-tight tabular-nums">
-                            {money(prices.semester.perMonth)}
+                            {money(semesterPassAmount)}
                           </span>
-                          <span className="text-sm text-white/60">{c.perMonth}</span>
-                          <span className="ml-1 text-xs text-white/40 line-through tabular-nums">{money(prices.monthly.amount)}</span>
+                          <span className="text-sm text-white/60">{c.oneTime}</span>
                         </div>
                         <ul className="mt-3 space-y-1.5 text-[13px] text-white/80">
-                          {[c.chats(student.chat), c.videos(student.video), c.exercises(student.exercise)].map((line) => (
+                          {[c.creditsIncluded(sub?.creditGrants.semesterPass ?? 300), c.creditCost(sub?.creditCost.chat ?? 1, videoCost), c.creditsKeep].map((line) => (
                             <li key={line} className="flex items-center gap-2">
                               <Check className="size-3.5 shrink-0 text-[#EAB308]" aria-hidden />
                               {line}
@@ -234,7 +234,7 @@ export function SmartPaywallModal({
                               }}
                               className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-white/15 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
                             >
-                              {c.wallStudent(money(prices.semester.perMonth))}
+                              {c.wallStudent(money(semesterPassAmount))}
                               <ArrowRight className="size-4" aria-hidden />
                             </Link>
                           )}

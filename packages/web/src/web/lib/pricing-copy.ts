@@ -43,6 +43,14 @@ export interface PricingCopy {
   exercises: (n: number) => string;
   documents: (n: number) => string;
   noAds: string;
+  /** Modèle « stock de crédits » (18 nov. 2026). */
+  creditsIncluded: (n: number) => string;
+  welcomeCredits: (n: number) => string;
+  creditCost: (chat: number, video: number) => string;
+  creditsKeep: string;
+  balanceTitle: string;
+  balance: (n: string) => string;
+  balanceNote: string;
   cancelAnytime: string;
   currentPlan: string;
   choose: string;
@@ -121,6 +129,13 @@ const de: PricingCopy = {
   exercises: (n) => `${n} Übungen pro Monat`,
   documents: (n) => `${n} Dokumente`,
   noAds: "Keine Werbung",
+  creditsIncluded: (n) => `${n} Credits`,
+  welcomeCredits: (n) => `${n} Credits zum Start`,
+  creditCost: (c, v) => `${c} Credit = 1 Frage · ${v} Credits = 1 Erklärvideo`,
+  creditsKeep: "Credits verfallen nie",
+  balanceTitle: "Dein Guthaben",
+  balance: (n) => `${n} Credits`,
+  balanceNote: "Jede Frage an den Tutor kostet einen Credit. Credits verfallen nie.",
   cancelAnytime: "Jederzeit kündbar",
   currentPlan: "Aktueller Tarif",
   choose: "Auswählen",
@@ -146,15 +161,12 @@ const de: PricingCopy = {
   paid: "Zahlung erhalten. Dein Zugang wird gerade freigeschaltet …",
   metric: { chat: "Chats", exercise: "Übungen", video: "Videos", formulas: "Formelsammlungen", documents: "Dokumente" },
   wallTitle: (m) =>
-    m === "video" ? "Deine Videos für diesen Monat sind aufgebraucht"
-    : m === "exercise" ? "Deine Übungen für diesen Monat sind aufgebraucht"
-    : m === "formulas" ? "Deine Formelsammlungen für diesen Monat sind aufgebraucht"
-    : m === "documents" ? "Dein Dokumentenspeicher ist voll"
-    : "Deine Chats für diesen Monat sind aufgebraucht",
+    m === "documents" ? "Dein Dokumentenspeicher ist voll"
+    : "Deine Credits sind aufgebraucht",
   wallUsed: (u, l, m) => `${u} / ${l} ${de.metric[m]}`,
   wallBody: "Du bist mitten im Lernen. So geht es sofort weiter:",
-  wallPaidBody: "Dein Monatskontingent ist aufgebraucht. Mit Credits geht es sofort weiter:",
-  wallStudent: (p) => `Student freischalten · ab ${p} / Monat`,
+  wallPaidBody: "Deine Credits sind aufgebraucht. Lade auf, um sofort weiterzulernen:",
+  wallStudent: (p) => `Semester-Pass · ${p} einmalig`,
   wallStudentSub: (c, v, e) => `${c} Chats, ${v} Videos, ${e} Übungen pro Monat`,
   wallTrial: (d) => `${d} Tage unbegrenzt testen`,
   wallTrialSub: "Gratis, ohne Karte.",
@@ -203,6 +215,13 @@ const en: PricingCopy = {
   exercises: (n) => `${n} exercises per month`,
   documents: (n) => `${n} documents`,
   noAds: "No ads",
+  creditsIncluded: (n) => `${n} credits`,
+  welcomeCredits: (n) => `${n} credits to start`,
+  creditCost: (c, v) => `${c} credit = 1 question · ${v} credits = 1 explainer video`,
+  creditsKeep: "Credits never expire",
+  balanceTitle: "Your balance",
+  balance: (n) => `${n} credits`,
+  balanceNote: "Each question to the tutor costs one credit. Credits never expire.",
   cancelAnytime: "Cancel anytime",
   currentPlan: "Current plan",
   choose: "Choose",
@@ -228,15 +247,12 @@ const en: PricingCopy = {
   paid: "Payment received. Your access is being activated …",
   metric: { chat: "chats", exercise: "exercises", video: "videos", formulas: "formula sheets", documents: "documents" },
   wallTitle: (m) =>
-    m === "video" ? "You've used your videos for this month"
-    : m === "exercise" ? "You've used your exercises for this month"
-    : m === "formulas" ? "You've used your formula sheets for this month"
-    : m === "documents" ? "Your document storage is full"
-    : "You've used your chats for this month",
+    m === "documents" ? "Your document storage is full"
+    : "You're out of credits",
   wallUsed: (u, l, m) => `${u} / ${l} ${en.metric[m]}`,
   wallBody: "You're in the middle of studying. Here's how to keep going right now:",
-  wallPaidBody: "Your monthly allowance is used up. Credits keep you going right now:",
-  wallStudent: (p) => `Unlock Student · from ${p} / month`,
+  wallPaidBody: "You're out of credits. Top up to keep learning right away:",
+  wallStudent: (p) => `Semester Pass · ${p} one-time`,
   wallStudentSub: (c, v, e) => `${c} chats, ${v} videos, ${e} exercises per month`,
   wallTrial: (d) => `Try ${d} days unlimited`,
   wallTrialSub: "Free, no card.",
@@ -285,6 +301,13 @@ const fr: PricingCopy = {
   exercises: (n) => `${n} exercices par mois`,
   documents: (n) => `${n} documents`,
   noAds: "Sans publicité",
+  creditsIncluded: (n) => `${n} crédits`,
+  welcomeCredits: (n) => `${n} crédits pour commencer`,
+  creditCost: (c, v) => `${c} crédit = 1 question · ${v} crédits = 1 vidéo explicative`,
+  creditsKeep: "Les crédits n'expirent jamais",
+  balanceTitle: "Ton solde",
+  balance: (n) => `${n} crédits`,
+  balanceNote: "Chaque question au tuteur coûte un crédit. Les crédits n'expirent jamais.",
   cancelAnytime: "Résiliable à tout moment",
   currentPlan: "Offre actuelle",
   choose: "Choisir",
@@ -310,15 +333,12 @@ const fr: PricingCopy = {
   paid: "Paiement reçu. Ton accès est en cours d'activation …",
   metric: { chat: "chats", exercise: "exercices", video: "vidéos", formulas: "formulaires", documents: "documents" },
   wallTitle: (m) =>
-    m === "video" ? "Tu as utilisé tes vidéos du mois"
-    : m === "exercise" ? "Tu as utilisé tes exercices du mois"
-    : m === "formulas" ? "Tu as utilisé tes formulaires du mois"
-    : m === "documents" ? "Ton espace de documents est plein"
-    : "Tu as utilisé tes chats du mois",
+    m === "documents" ? "Ton espace de documents est plein"
+    : "Tu n'as plus de crédits",
   wallUsed: (u, l, m) => `${u} / ${l} ${fr.metric[m]}`,
   wallBody: "Tu es en plein apprentissage. Voici comment continuer tout de suite :",
-  wallPaidBody: "Ton forfait du mois est épuisé. Avec des crédits, tu continues tout de suite :",
-  wallStudent: (p) => `Passer à Étudiant · dès ${p} / mois`,
+  wallPaidBody: "Tu n'as plus de crédits. Recharge pour continuer tout de suite :",
+  wallStudent: (p) => `Pass Semestre · ${p} paiement unique`,
   wallStudentSub: (c, v, e) => `${c} chats, ${v} vidéos, ${e} exercices par mois`,
   wallTrial: (d) => `Essayer ${d} jours en illimité`,
   wallTrialSub: "Gratuit, sans carte.",

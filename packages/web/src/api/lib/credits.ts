@@ -33,6 +33,14 @@ export const SPEND_ORDER: "quota" | "credits" = "quota";
 
 export type CreditTransactionType = "purchase" | "consume" | "grant" | "refund";
 
+/** Le plus petit montant : un demi-crédit (récompenses d'étude). */
+export const HALF = 0.5;
+
+/** Un montant de crédits, arrondi au demi-crédit : jamais de 0,1 + 0,2 dans le solde. */
+export function toCredits(amount: number): number {
+  return Number.isFinite(amount) ? Math.round(amount * 2) / 2 : 0;
+}
+
 /** Aktuelles Guthaben an gekauften Credits. */
 export async function getPurchasedCredits(userId: string): Promise<number> {
   try {
@@ -61,7 +69,7 @@ export async function spendPurchasedCredits(
   amount: number,
   description: string,
 ): Promise<{ ok: boolean; remaining: number }> {
-  const n = Math.max(1, Math.round(amount));
+  const n = Math.max(HALF, toCredits(amount));
 
   try {
     const result = await db
@@ -113,7 +121,7 @@ export async function grantCredits(params: {
   description: string;
   type?: CreditTransactionType;
 }): Promise<{ granted: boolean; balance: number }> {
-  const n = Math.max(1, Math.round(params.amount));
+  const n = Math.max(HALF, toCredits(params.amount));
 
   try {
     const inserted = await db

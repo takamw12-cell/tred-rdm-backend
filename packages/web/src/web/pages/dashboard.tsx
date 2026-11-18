@@ -31,6 +31,8 @@ import { ProgressSection } from "@/components/progress-section";
 import { LernprofilSection } from "@/components/lernprofil-section";
 import { BriefingCard } from "@/components/briefing-card";
 import { StreakFlame } from "@/components/streak-flame";
+import { CreditsChip } from "@/components/credits-chip";
+import { PanicCard } from "@/components/panic-card";
 import { ExplainerVideosWidget } from "@/components/explainer-video";
 import { NotificationInbox } from "@/components/notification-inbox";
 import { Button } from "@/components/ui/button";
@@ -258,8 +260,11 @@ export default function DashboardPage() {
           <p className="on-photo mt-2 max-w-xl text-white/75">{t("dashboard.subtitle")}</p>
           {/* Sa Hochschule, avec le drapeau du Land (rien si hors liste). */}
           <UniversityBadge className="mt-3" />
-          {/* La série de jours d'étude (api/lib/streak.ts). */}
-          <StreakFlame className="mt-3" />
+          {/* La série de jours d'étude (api/lib/streak.ts) et le solde de crédits. */}
+          <div className="mt-3 flex flex-wrap items-start gap-2">
+            <StreakFlame />
+            <CreditsChip />
+          </div>
         </div>
         <div className="flex gap-2">
           <Button
@@ -284,6 +289,11 @@ export default function DashboardPage() {
       {/* « Dein Briefing » : la phrase du jour et les examens à venir — avant tout le reste. */}
       <Reveal className="mb-8">
         <BriefingCard />
+      </Reveal>
+
+      {/* « Panik-Modus » : la feuille de secours de la veille d'examen (api/lib/panic.ts). */}
+      <Reveal className="mb-8">
+        <PanicCard />
       </Reveal>
 
       {/* Semester selector */}

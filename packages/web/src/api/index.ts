@@ -126,10 +126,12 @@ import { retryWriteRefusal, safeErrorMessage, withDbRetry } from "./lib/db-retry
 import { readJsonObject } from "./lib/json-body";
 import { recordStudyDay } from "./lib/streak";
 import { streak } from "./routes/streak";
+import { referralRoutes } from "./routes/referral";
+import { PANIC_EXCERPT_CHARS, groundCheatSheet, panicModelSchema, panicPrompt, panicRequestSchema, panicSystemPrompt } from "./lib/panic";
 import { sympyIsReady, sympyReady, verdictForTutor, verifyMath } from "./lib/sympy-verify";
 import { HTTPException } from "hono/http-exception";
 import { SOLVER_RETRY_NOTE, firstCallForce, retryForce, solverGateEnabled, solverGateStream } from "./lib/solver-gate";
-import { applySubscription, endSubscription, grantPass, markPaymentFailed } from "./lib/billing";
+import { applySubscription, endSubscription, grantPass, grantRenewalCredits, markPaymentFailed } from "./lib/billing";
 import { isPassKind } from "./lib/passes";
 import { grantCredits } from "./lib/credits";
 import {
@@ -138,7 +140,7 @@ import {
 } from "./lib/translation-cache";
 import { getStripe } from "./lib/stripe";
 import type Stripe from "stripe";
-import { PRIMARY_MODEL } from "./lib/ai-models";
+import { FAST_MODEL, PRIMARY_MODEL } from "./lib/ai-models";
 import { realName } from "./lib/display-name";
 
 // API features are oRPC procedures, one file per feature in ./routes/,
@@ -165,6 +167,7 @@ export const router = {
   learning,
   briefing,
   streak,
+  referral: referralRoutes,
   examPredictor,
   sharedKnowledge: sharedKnowledgeRoutes,
   retention,
@@ -496,6 +499,11 @@ app.post("/api/subscriptions/webhook", async (c) => {
 
       case "customer.subscription.deleted":
         await endSubscription(event.data.object as Stripe.Subscription);
+        break;
+
+      // Abonnement mensuel payé : son stock de crédits (lib/billing.ts).
+      case "invoice.paid":
+        await grantRenewalCredits(event.data.object as Stripe.Invoice);
         break;
 
       // Prélèvement refusé : statut « past_due » et e-mail à l'étudiant (lib/billing.ts).
@@ -2060,6 +2068,55 @@ app.post("/api/agent/doc-challenge", async (c) => {
     return c.json({ documentId: doc.id, title: doc.title, questions });
   } catch (err) {
     console.error("[doc-challenge] generation failed", (err as Error).message);
+    return c.json({ error: "failed" }, 502);
+  }
+});
+
+// ── « Panik-Modus » : la feuille de secours de la veille d'examen ──────────
+// Trois notions et trois formules tirées d'UN document du compte, par le
+// modèle rapide ; chacune prouvée par une phrase retrouvée mot pour mot dans
+// le document (lib/panic.ts). Trois feuilles par jour et par compte.
+app.post("/api/agent/panic", async (c) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);
+  if (!process.env.ANTHROPIC_API_KEY) return c.json({ error: "not_configured" }, 503);
+
+  const body = await readJsonObject(c.req.raw);
+  const parsed = panicRequestSchema.safeParse(body.ok ? body.body : null);
+  if (!parsed.success) return c.json({ error: "invalid body" }, 400);
+
+  const uid = session.user.id;
+  const [doc] = await db
+    .select({ id: document.id, title: document.title, kind: document.kind, textContent: document.textContent })
+    .from(document)
+    .where(and(eq(document.id, parsed.data.documentId), eq(document.userId, uid)))
+    .limit(1);
+  if (!doc) return c.json({ error: "not_found" }, 404);
+  if (doc.textContent.trim().length < 400) return c.json({ error: "too_short" }, 422);
+
+  // Compté seulement pour une demande recevable : un document introuvable ne coûte pas une feuille.
+  const limited = await userRateLimit(c, uid, USER_LIMITS.panic());
+  if (limited) return limited;
+  const cap = await withinTokenCap(uid);
+  if (!cap.ok) return c.json(tokenCapError(cap.used, cap.cap), 402);
+  const { label: langLabel } = langOf(parsed.data.locale);
+
+  try {
+    const { object, usage } = await generateObject({
+      model: gateway(FAST_MODEL),
+      schema: panicModelSchema,
+      system: panicSystemPrompt(langLabel),
+      prompt: panicPrompt(doc, excerptFor(doc.textContent, PANIC_EXCERPT_CHARS)),
+      abortSignal: AbortSignal.timeout(45_000),
+    });
+    void addOutputTokens(uid, usage?.outputTokens ?? 0);
+    // La preuve est cherchée dans le document ENTIER, pas dans le seul extrait envoyé.
+    const sheet = groundCheatSheet(object, doc.textContent);
+    console.log(`[panik] proposé=${object.konzepte.length}+${object.formeln.length} prouvé=${sheet.concepts.length}+${sheet.formulas.length}`);
+    if (sheet.concepts.length + sheet.formulas.length === 0) return c.json({ error: "nothing_grounded" }, 422);
+    return c.json({ documentId: doc.id, title: doc.title, ...sheet });
+  } catch (err) {
+    console.error("[panik] génération en échec", err instanceof Error ? err.name : "erreur");
     return c.json({ error: "failed" }, 502);
   }
 });

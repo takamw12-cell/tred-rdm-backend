@@ -6,7 +6,9 @@ import { authed } from "../middleware/auth";
 import { getPurchasedCredits, listTransactions } from "../lib/credits";
 import { getOrCreateCustomer } from "../lib/billing";
 import { getStripe } from "../lib/stripe";
-import { betaFree, getPlan, getUsage, LIMITS } from "../lib/plan";
+import { betaFree, CREDIT_COST, getPlan, getUsage, LIMITS } from "../lib/plan";
+import { DAILY_REWARD_CAP, rewardsEarnedToday } from "../lib/study-rewards";
+import { db } from "../database";
 import { safeReturnUrl } from "../lib/return-url";
 
 /**
@@ -99,11 +101,12 @@ async function loadPacks(): Promise<CreditPack[]> {
 export const credits = {
   /** Beide Guthaben plus die kaufbaren Pakete — eine Runde für das Widget. */
   me: authed.handler(async ({ context }) => {
-    const [plan, usage, purchased, packs] = await Promise.all([
+    const [plan, usage, purchased, packs, earnedToday] = await Promise.all([
       getPlan(context.user.id),
       getUsage(context.user.id),
       getPurchasedCredits(context.user.id),
       loadPacks().catch(() => [] as CreditPack[]),
+      rewardsEarnedToday(db, context.user.id).catch(() => 0),
     ]);
 
     const limits = LIMITS[plan];
@@ -120,6 +123,9 @@ export const credits = {
       total: monthlyRemaining + purchased,
       /** Ab hier färbt sich das Abzeichen — siehe Widget. */
       lowThreshold: 5,
+      /** Ce qu'une action coûte, et ce qu'on peut encore gagner aujourd'hui en étudiant. */
+      costs: CREDIT_COST,
+      rewards: { cap: DAILY_REWARD_CAP, earnedToday, leftToday: Math.max(0, DAILY_REWARD_CAP - earnedToday) },
       packs,
     };
   }),

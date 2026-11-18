@@ -56,7 +56,12 @@ export const PRICING = {
   // Grille du 18 nov. 2026 : 9,99 € le mois (abonnement ou Klausur-Pass), 39,99 € les six mois.
   monthly: { amount: 999, months: 1 },
   semester: { amount: 3999, months: 6, badge: "-33%" },
-  creditPack: { amount: 500, credits: 50 },
+  // Recharges (paiement unique) : la plus petite sert d'exemple dans l'interface.
+  creditPack: { amount: 499, credits: 20 },
+  creditPacks: [
+    { amount: 499, credits: 20 },
+    { amount: 999, credits: 50 },
+  ],
   // Paiement unique, sans abonnement (lib/passes.ts — décision du 18 nov. 2026).
   klausurPass: { amount: 999, days: 30 },
   semesterPass: { amount: 3999, months: 6 },
@@ -65,15 +70,30 @@ export const PRICING = {
 
 /**
  * Ce que coûte une action payée en crédits achetés.
- * 50 crédits = 50 chats ou 5 vidéos : une vidéo vaut donc 10 crédits.
+ * Une question vaut 1 crédit, une vidéo 5 (18 nov. 2026 ; 10 auparavant).
  * Un exercice ou une Formelsammlung (réponse longue) en vaut 2.
  */
 export const CREDIT_COST: Record<Metric, number> = {
   chat: 1,
   exercise: 2,
   formulas: 2,
-  video: 10,
+  video: 5,
 };
+
+/**
+ * Ce que le compte reçoit en crédits (modèle « stock », 18 nov. 2026).
+ * Les crédits ne s'effacent jamais : un Pass ajoute son stock, il ne le remplace pas.
+ */
+export const CREDIT_GRANTS = {
+  /** Une seule fois, à l'inscription. */
+  welcome: 10,
+  klausurPass: 50,
+  semesterPass: 300,
+  /** Abonnement mensuel : à chaque prélèvement réussi. */
+  monthlyRenewal: 50,
+  /** Parrainage : pour le parrain ET pour le filleul. */
+  referral: 15,
+} as const;
 
 /**
  * Monatliche Kontingente je Tarif, plus die Gesamtzahl speicherbarer Dokumente.
@@ -145,7 +165,11 @@ export const TOKEN_METRIC = "tokens_out";
 export const BETA_DOCUMENTS = 10_000;
 
 export const LIMITS: Record<PlanId, Record<Metric | "documents", number>> = {
-  free: { chat: 50, exercise: 10, video: 5, formulas: 3, documents: 10 },
+  // Modèle « stock de crédits » (décision du fondateur, 18 nov. 2026) : plus
+  // AUCUN quota mensuel pour Free et les Pass. Chaque action est payée en
+  // crédits (CREDIT_COST) pris dans le stock du compte ; `consume()` tombe
+  // donc directement sur les crédits. Seul le nombre de documents reste ici.
+  free: { chat: 0, exercise: 0, video: 0, formulas: 0, documents: 10 },
   // Essai : affiché « illimité ». Les valeurs ci-dessous sont un garde-fou
   // anti-abus (trois fois l'abonnement), pas une limite qu'un étudiant
   // atteint en 14 jours. Voir aussi TOKEN_CAPS.trial.
@@ -154,8 +178,8 @@ export const LIMITS: Record<PlanId, Record<Metric | "documents", number>> = {
   // garde-fou anti-abus que l'essai.
   beta: { chat: 3000, exercise: 600, video: 150, formulas: 180, documents: BETA_DOCUMENTS },
   // Une seule offre payante (mensuelle ou semestrielle), mêmes droits.
-  standard: { chat: 1000, exercise: 200, video: 50, formulas: 60, documents: 200 },
-  premium: { chat: 1000, exercise: 200, video: 50, formulas: 60, documents: 200 },
+  standard: { chat: 0, exercise: 0, video: 0, formulas: 0, documents: 200 },
+  premium: { chat: 0, exercise: 0, video: 0, formulas: 0, documents: 200 },
   founder: { chat: 1000, exercise: 200, video: 50, formulas: 60, documents: BETA_DOCUMENTS },
 };
 

@@ -17,8 +17,8 @@ import { expo } from "@better-auth/expo";
 import { db } from "./database";
 import { getAccess } from "./lib/access";
 import { isValidSignupName } from "./lib/display-name";
-import { startTrial, type TrialDb } from "./lib/trial";
-import { betaFree } from "./lib/plan";
+import { grantCredits } from "./lib/credits";
+import { CREDIT_GRANTS } from "./lib/plan";
 import { AUTH_IP_ADDRESS, SESSION_WITHOUT_IP } from "./lib/client-ip";
 
 // Social logins are optional: each is enabled only when its env vars are set.
@@ -159,16 +159,15 @@ export const auth = betterAuth({
     }),
   },
   databaseHooks: {
-    // Tout nouveau compte commence par 14 jours illimités (lib/trial.ts).
-    // Une panne ici ne doit jamais empêcher une inscription : sans essai, le
-    // compte est simplement Free, et peut lancer l'essai depuis /pricing.
+    // Tout nouveau compte reçoit 10 crédits, une seule fois (modèle « stock de
+    // crédits », 18 nov. 2026). L'essai de 14 jours illimités n'est plus lancé :
+    // il contredirait ce modèle (lib/trial.ts reste en place, inutilisé).
+    // Une panne ici ne doit jamais empêcher une inscription.
     user: {
       create: {
         after: async (user) => {
-          // Bêta gratuite : tout est déjà ouvert, l'essai est gardé pour le lancement.
-          if (betaFree()) return;
-          await startTrial(db as unknown as TrialDb, user.id).catch((error) => {
-            console.error("[auth] trial start failed", error);
+          await grantCredits({ userId: user.id, amount: CREDIT_GRANTS.welcome, transactionId: `welcome:${user.id}`, description: "Willkommen bei TRED", type: "grant" }).catch((error) => {
+            console.error("[auth] welcome credits failed", error instanceof Error ? error.name : "erreur");
           });
         },
       },

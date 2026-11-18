@@ -12,8 +12,8 @@ import {
   trialDays,
 } from "../lib/billing";
 import { getStripe } from "../lib/stripe";
-import { betaFree, CREDIT_COST, getOutputTokens, getPlan, getUsage, LIMITS, OUTPUT_TOKEN_CAP, PRICING, UNLIMITED_PLANS } from "../lib/plan";
-import { readTrial, startTrial, type TrialDb } from "../lib/trial";
+import { betaFree, CREDIT_COST, CREDIT_GRANTS, getOutputTokens, getPlan, getUsage, LIMITS, OUTPUT_TOKEN_CAP, PRICING, UNLIMITED_PLANS } from "../lib/plan";
+import { readTrial, type TrialDb } from "../lib/trial";
 import { PASSES, PASS_KINDS, PASS_STATUS, passPriceId, type PassKind } from "../lib/passes";
 import { safeReturnUrl } from "../lib/return-url";
 import { db } from "../database";
@@ -205,7 +205,8 @@ export const subscriptions = {
         active: plan === "trial",
         daysLeft: plan === "trial" ? (trial?.daysLeft ?? 0) : 0,
         endsAt: trial?.endsAt ?? null,
-        available: !!trial?.available && plan === "free",
+        // Modèle « stock de crédits » : l'essai illimité n'est plus proposé (10 crédits à l'inscription à la place).
+        available: false,
       },
       /** Mode bêta gratuit : aucun paiement, aucun essai, bandeau sur /pricing. */
       beta: betaFree(),
@@ -213,6 +214,8 @@ export const subscriptions = {
       unlimited: UNLIMITED_PLANS.has(plan),
       /** La grille de référence, pour afficher les prix même sans Stripe. */
       pricing: PRICING,
+      /** Ce que chaque offre donne en crédits (modèle « stock », 18 nov. 2026). */
+      creditGrants: CREDIT_GRANTS,
       /**
        * Les Pass (paiement unique). `available` : le prix Stripe est configuré.
        * Le montant affiché est celui de Stripe quand il est lisible, sinon la grille.
@@ -230,19 +233,11 @@ export const subscriptions = {
    * Un abonné n'en a pas besoin ; un compte qui l'a déjà eu reçoit
    * `started: false` et l'état réel.
    */
-  startTrial: authed.handler(async ({ context }) => {
+  startTrial: authed.handler(async (): Promise<{ started: boolean; active: boolean; daysLeft: number; endsAt: number | null }> => {
     // Bêta gratuite : l'essai est gardé intact pour le lancement officiel.
     if (betaFree()) throw new ORPCError("FORBIDDEN", { message: "beta_free" });
-    const plan = await getPlan(context.user.id);
-    if (plan !== "free") {
-      const etat = await readTrial(db as unknown as TrialDb, context.user.id);
-      return { started: false, active: plan === "trial", daysLeft: etat.daysLeft, endsAt: etat.endsAt };
-    }
-    const r = await startTrial(db as unknown as TrialDb, context.user.id);
-    if (!r.migrated) {
-      throw new ORPCError("SERVICE_UNAVAILABLE", { message: "trial_not_migrated" });
-    }
-    return { started: r.started, active: r.active, daysLeft: r.daysLeft, endsAt: r.endsAt };
+    // Modèle « stock de crédits » (18 nov. 2026) : plus d'essai illimité, même par appel direct.
+    throw new ORPCError("FORBIDDEN", { message: "trial_retired" });
   }),
 
   /** Startet den Bezahlvorgang und liefert die URL, die der Client öffnet. */

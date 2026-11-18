@@ -506,7 +506,9 @@ export type PushToken = typeof pushToken.$inferSelect;
 // unterscheiden, was am Monatsende verfällt und was bleibt.
 export const purchasedCredits = sqliteTable("purchased_credits", {
   userId: text("user_id").primaryKey(),
-  creditsRemaining: integer("credits_remaining").notNull().default(0),
+  // Demi-crédits (récompenses d'étude, 18 nov. 2026) : lu et écrit comme un nombre réel.
+  // La colonne existante est déclarée INTEGER ; SQLite y range 0,5 sans migration.
+  creditsRemaining: real("credits_remaining").notNull().default(0),
   lastPurchasedAt: integer("last_purchased_at", { mode: "timestamp" }),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
@@ -532,7 +534,7 @@ export const creditTransaction = sqliteTable(
     id: text("id").primaryKey(),
     userId: text("user_id").notNull(),
     /** Positiv = Gutschrift, negativ = Verbrauch. */
-    amount: integer("amount").notNull(),
+    amount: real("amount").notNull(),
     /** purchase | consume | grant | refund */
     type: text("type").notNull(),
     description: text("description").notNull().default(""),
@@ -970,6 +972,29 @@ export type DailyBriefing = typeof dailyBriefing.$inferSelect;
 // Les dates d'examen saisies par l'étudiant (« Klausur hinzufügen ») : une
 // matière, un jour. Le compte à rebours du tableau de bord et le Cas 3 du
 // briefing en viennent.
+// Parrainage (lib/referral.ts) : un code par compte, un parrain par filleul.
+// Créées par migre-referral.mjs — à part de `user`, qui appartient à Better Auth.
+export const referralCode = sqliteTable("referral_code", {
+  userId: text("user_id").primaryKey(),
+  code: text("code").notNull().unique(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const referral = sqliteTable(
+  "referral",
+  {
+    /** Le filleul : clé primaire, donc un seul parrain par compte. */
+    refereeId: text("referee_id").primaryKey(),
+    referrerId: text("referrer_id").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("referral_referrer_idx").on(t.referrerId)],
+);
+
 // La série de jours d'étude (lib/streak.ts) : une ligne par compte et par jour
 // civil de Berlin où une question a été posée. Créée par migre-streak.mjs.
 export const studyDay = sqliteTable(

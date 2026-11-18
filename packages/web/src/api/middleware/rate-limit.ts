@@ -205,6 +205,8 @@ export const USER_LIMITS = {
    * « Dein Briefing » : actualiser, ajouter une date d'examen — 30 par heure.
    * Le modèle, lui, est plafonné par jour dans lib/generate-briefing.ts.
    */
+  /** « Panik-Modus » : trois feuilles de secours par jour (un appel au modèle rapide chacune). */
+  panic: () => ({ scope: "user-panic", limit: envInt("PANIC_PER_DAY", 3), windowMs: DAY_MS }),
   briefing: () => ({ scope: "user-briefing", limit: envInt("BRIEFING_RATE_PER_HOUR", 30), windowMs: HOUR_MS }),
 } as const;
 

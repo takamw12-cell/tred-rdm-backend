@@ -1,5 +1,5 @@
 import { readAttribution, type AttributionDb } from "./attribution";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, or } from "drizzle-orm";
 
 import { db } from "../database";
 import {
@@ -8,6 +8,8 @@ import {
   conceptMastery,
   dailyBriefing,
   studyDay,
+  referral,
+  referralCode,
   examDate,
   contentReport,
   creditTransaction,
@@ -80,6 +82,9 @@ export const PERSONAL_DATA_TABLES = [
   "exam_date",
   // La série de jours d'étude (2026-11-18) : les jours où le compte a posé une question.
   "study_day",
+  // Parrainage (2026-11-18) : le code du compte, et qui a parrainé qui.
+  "referral_code",
+  "referral",
   // Six tables secondaires oubliées, traitées par lib/gdpr-ancillary.ts
   // (décisions du fondateur du 2026-11-11). Deux sont ANONYMISÉES — le contenu
   // reste, le lien vers le compte disparaît — et quatre sont effacées.
@@ -127,7 +132,7 @@ export async function exportUserData(userId: string) {
   // Tables créées par un script migre-*.mjs : si l'une manque encore sur une
   // base, l'export ne doit pas échouer pour autant.
   const optional = <T>(query: Promise<T[]>): Promise<T[]> => query.catch(() => []);
-  const [karteikarten, erklaervideos, solverErgebnisse, lernstand, briefings, klausurtermine, lerntage] = await Promise.all([
+  const [karteikarten, erklaervideos, solverErgebnisse, lernstand, briefings, klausurtermine, lerntage, einladungscode, einladungen] = await Promise.all([
     optional(db.select().from(flashcard).where(eq(flashcard.userId, userId))),
     optional(db.select().from(generatedVideo).where(eq(generatedVideo.userId, userId))),
     optional(db.select().from(solverResult).where(eq(solverResult.userId, userId))),
@@ -135,6 +140,9 @@ export async function exportUserData(userId: string) {
     optional(db.select().from(dailyBriefing).where(eq(dailyBriefing.userId, userId))),
     optional(db.select().from(examDate).where(eq(examDate.userId, userId))),
     optional(db.select().from(studyDay).where(eq(studyDay.userId, userId))),
+    optional(db.select().from(referralCode).where(eq(referralCode.userId, userId))),
+    // Les deux sens : qui m'a invité, et les comptes que j'ai invités (leur identifiant seulement).
+    optional(db.select().from(referral).where(or(eq(referral.refereeId, userId), eq(referral.referrerId, userId)))),
   ]);
 
   const nebentabellen = await exportAncillaryData(db, userId);
@@ -193,6 +201,8 @@ export async function exportUserData(userId: string) {
     briefings,
     klausurtermine,
     lerntage,
+    einladungscode,
+    einladungen,
     karteikarten,
     erklaervideos,
     solverErgebnisse,
@@ -319,6 +329,9 @@ export async function deleteUserData(userId: string): Promise<DeletionReport> {
     db.delete(examDate).where(eq(examDate.userId, userId)),
   );
   await step("study_day", () => db.delete(studyDay).where(eq(studyDay.userId, userId)));
+  await step("referral_code", () => db.delete(referralCode).where(eq(referralCode.userId, userId)));
+  // Les deux sens : le lien vers ce compte disparaît, qu'il ait été parrain ou filleul.
+  await step("referral", () => db.delete(referral).where(or(eq(referral.refereeId, userId), eq(referral.referrerId, userId))));
   // Feedback et explications partagées : anonymisés. Cours, avatar, votes,
   // notifications : effacés. Avant la suppression du compte lui-même.
   for (const [label, run] of ancillaryErasureSteps(db, userId)) await step(label, run);

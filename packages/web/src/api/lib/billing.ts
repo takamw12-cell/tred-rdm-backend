@@ -3,7 +3,8 @@ import { eq } from "drizzle-orm";
 
 import { db } from "../database";
 import { userPlan } from "../database/schema";
-import type { PlanId } from "./plan";
+import { CREDIT_GRANTS, type PlanId } from "./plan";
+import { grantCredits } from "./credits";
 import { extractId, getStripe, resolveCurrentPeriodEnd, stripeTimestampToDate } from "./stripe";
 import { creditTransaction, userAccess } from "../database/schema";
 import { user } from "../database/auth-schema";
@@ -297,7 +298,10 @@ export async function grantPass(params: { userId: string; kind: PassKind; sessio
     await db.delete(creditTransaction).where(eq(creditTransaction.id, sessionId)).catch(() => {});
     throw error;
   }
-  console.log(`[billing] user=${userId} ${PASSES[kind].label} until=${validUntil.toISOString()}`);
+  // Le stock de crédits du Pass (modèle du 18 nov. 2026). Sa propre ligne de journal : écrite une seule fois.
+  const credits = kind === "semester" ? CREDIT_GRANTS.semesterPass : CREDIT_GRANTS.klausurPass;
+  await grantCredits({ userId, amount: credits, transactionId: `${sessionId}:credits`, description: `${PASSES[kind].label}: ${credits} Credits`, type: "purchase" });
+  console.log(`[billing] user=${userId} ${PASSES[kind].label} +${credits} credits until=${validUntil.toISOString()}`);
   return { granted: true, validUntil };
 }
 
@@ -334,4 +338,32 @@ export async function markPaymentFailed(invoice: { customer?: string | { id: str
   const mail = paymentFailedMail(`${process.env.WEBSITE_URL ?? ""}/pricing`, account.name, mailLang(access?.locale));
   const sent = await sendMail({ to: account.email, ...mail });
   return { userId: row.userId, mailed: sent.ok };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Abonnement mensuel : des crédits à chaque prélèvement réussi                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * `invoice.paid` : l'abonnement mensuel ajoute son stock de crédits à chaque
+ * facture payée (la première comme les suivantes). Idempotent par le numéro
+ * de facture. Une facture sans abonnement (Pass, recharge) n'est pas concernée :
+ * ces achats sont livrés par `checkout.session.completed`.
+ */
+export async function grantRenewalCredits(invoice: { id?: string | null; customer?: string | { id: string } | null; billing_reason?: string | null; amount_paid?: number | null }): Promise<{ userId: string | null; granted: boolean }> {
+  const customerId = extractId(invoice.customer as string | { id: string } | null);
+  if (!invoice.id || !customerId) return { userId: null, granted: false };
+  if (!(invoice.billing_reason ?? "").startsWith("subscription")) return { userId: null, granted: false };
+  // Une facture à 0 € (essai, avoir) ne donne rien.
+  if (!invoice.amount_paid || invoice.amount_paid <= 0) return { userId: null, granted: false };
+
+  const rows = await db.select({ userId: userPlan.userId, plan: userPlan.plan }).from(userPlan).where(eq(userPlan.customerId, customerId)).limit(1);
+  const row = rows[0];
+  if (!row) {
+    console.error("[billing] invoice.paid: no account for customer", customerId);
+    return { userId: null, granted: false };
+  }
+  const res = await grantCredits({ userId: row.userId, amount: CREDIT_GRANTS.monthlyRenewal, transactionId: `invoice:${invoice.id}`, description: `Monatsabo: ${CREDIT_GRANTS.monthlyRenewal} Credits`, type: "purchase" });
+  if (res.granted) console.log(`[billing] user=${row.userId} abonnement payé +${CREDIT_GRANTS.monthlyRenewal} credits`);
+  return { userId: row.userId, granted: res.granted };
 }

@@ -20,18 +20,14 @@ const DAY = 24 * 60 * 60 * 1000;
 const lire = (f: string) => readFileSync(join(import.meta.dir, "..", "src", f), "utf8");
 
 describe("la grille tarifaire décidée", () => {
-  test("Free : 50 chats, 5 vidéos, 10 exercices par mois", () => {
-    expect(LIMITS.free.chat).toBe(50);
-    expect(LIMITS.free.video).toBe(5);
-    expect(LIMITS.free.exercise).toBe(10);
-  });
-
-  test("Étudiant : 1000 chats, 50 vidéos, 200 exercices par mois", () => {
-    for (const plan of ["premium", "standard", "founder"] as const) {
-      expect(LIMITS[plan].chat).toBe(1000);
-      expect(LIMITS[plan].video).toBe(50);
-      expect(LIMITS[plan].exercise).toBe(200);
+  // Modèle « stock de crédits » (décision du fondateur, 18 nov. 2026) : plus de quota mensuel
+  // pour Free et les Pass — détail dans tests/credit-stock.test.ts. Le fondateur garde le sien.
+  test("Free et Étudiant : aucun quota mensuel, tout passe par les crédits", () => {
+    for (const plan of ["free", "premium", "standard"] as const) {
+      expect(LIMITS[plan].chat).toBe(0);
+      expect(LIMITS[plan].video).toBe(0);
     }
+    expect(LIMITS.founder.chat).toBe(1000);
   });
 
   test("grille du 18 nov. 2026 : 9,99 € le mois, 39,99 € les six mois, badge -33%", () => {
@@ -47,10 +43,10 @@ describe("la grille tarifaire décidée", () => {
     expect(economie).toBeGreaterThanOrEqual(0.33);
   });
 
-  test("crédits : 5 € = 50 crédits = 50 chats ou 5 vidéos", () => {
-    expect(PRICING.creditPack).toEqual({ amount: 500, credits: 50 });
-    expect(PRICING.creditPack.credits / CREDIT_COST.chat).toBe(50);
-    expect(PRICING.creditPack.credits / CREDIT_COST.video).toBe(5);
+  test("crédits : 4,99 € = 20 crédits = 20 questions ou 4 vidéos", () => {
+    expect(PRICING.creditPack).toEqual({ amount: 499, credits: 20 });
+    expect(PRICING.creditPack.credits / CREDIT_COST.chat).toBe(20);
+    expect(PRICING.creditPack.credits / CREDIT_COST.video).toBe(4);
   });
 
   test("les prix Stripe configurés priment sur la grille à l'affichage", () => {
@@ -168,19 +164,20 @@ describe("l'essai : 14 jours, une seule fois", () => {
     expect(await startTrial(db, "u-1", now)).toMatchObject({ migrated: false, started: false });
   });
 
-  test("un nouveau compte commence son essai à l'inscription", () => {
+  test("un nouveau compte reçoit ses crédits de bienvenue (l'essai illimité n'est plus lancé)", () => {
     const auth = lire("api/auth.ts");
-    expect(auth).toContain("startTrial(db as unknown as TrialDb, user.id)");
+    expect(auth).toContain("amount: CREDIT_GRANTS.welcome");
+    expect(auth).not.toContain("startTrial(");
     // La colonne n'est PAS dans le schéma Drizzle (déploiement avant migration).
     expect(lire("api/database/schema.ts")).not.toContain("trial_ends_at");
   });
 });
 
 describe("le 402 dit quel compteur est atteint", () => {
-  test("vidéo : compteur, coût en crédits, pas de pub d'un crédit pour une action à 10", () => {
-    const body = quotaError({ ok: false, plan: "free", used: 5, limit: 5, source: "quota", creditsRemaining: 3, metric: "video" });
+  test("vidéo : compteur, coût en crédits, pas de pub d'un crédit pour une action à 5", () => {
+    const body = quotaError({ ok: false, plan: "free", used: 0, limit: 0, source: "quota", creditsRemaining: 3, metric: "video" });
     expect(body.metric).toBe("video");
-    expect(body.creditCost).toBe(10);
+    expect(body.creditCost).toBe(5);
     expect(body.rewardedAd).toBeNull();
     expect(body.error).toBe("QUOTA_EXCEEDED");
   });
@@ -216,8 +213,9 @@ describe("les textes", () => {
     expect(pricingCopy("ja").trialBanner(2)).toBe("You have 2 trial days left");
   });
 
-  test("la fenêtre nomme le compteur atteint", () => {
-    expect(pricingCopy("fr").wallTitle("video")).toContain("vidéos");
+  test("la fenêtre dit que les crédits sont épuisés", () => {
+    expect(pricingCopy("fr").wallTitle("video")).toBe("Tu n'as plus de crédits");
+    expect(pricingCopy("de").wallTitle("chat")).toBe("Deine Credits sind aufgebraucht");
     expect(pricingCopy("de").wallUsed(5, 5, "video")).toBe("5 / 5 Videos");
   });
 });
@@ -257,8 +255,8 @@ describe("mode bêta : 100 % gratuit, aucun paiement", () => {
     const subs = lire("api/routes/subscriptions.ts");
     expect(subs.match(/if \(betaFree\(\)\) throw new ORPCError\("FORBIDDEN", \{ message: "beta_free" \}\)/g)?.length).toBe(3);
     expect(lire("api/routes/credits.ts")).toContain('if (betaFree()) throw new ORPCError("FORBIDDEN", { message: "beta_free" })');
-    // L'essai de 14 jours n'est pas entamé pendant la bêta.
-    expect(lire("api/auth.ts")).toContain("if (betaFree()) return;");
+    // L'essai de 14 jours n'est plus démarrable du tout (modèle « stock de crédits »).
+    expect(subs).toContain('throw new ORPCError("FORBIDDEN", { message: "trial_retired" })');
   });
 
   test("le bandeau de /pricing porte le texte décidé, et le bandeau d'essai se tait", () => {

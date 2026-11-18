@@ -7,12 +7,12 @@ import { PageContainer, PageHeader, Reveal } from "@/components/page";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { WithdrawalConsent } from "@/components/consent";
-import { Progress } from "@/components/ui/progress";
 import { useUserStore, type PlanId } from "@/stores/user";
 import { useLocaleStore } from "@/stores/locale";
 import { useToastStore } from "@/stores/toast";
 import { client } from "@/lib/api";
 import { formatMoney, passSavingPercent, pricingCopy, resolvePrices } from "@/lib/pricing-copy";
+import { formatCredits } from "@/lib/credit-format";
 import { creditsMeKey, creditsMeOptions } from "@/queries/credits";
 import { subscriptionMeOptions, subscriptionMeKey } from "@/queries/subscriptions";
 import { cn } from "@/lib/utils";
@@ -30,9 +30,6 @@ import { cn } from "@/lib/utils";
  * Charte : crème / encre, et pour l'offre mise en avant le panneau navy
  * #0F172A avec le jaune #EAB308.
  */
-
-/** Verbrauchszähler, die der Server führt (siehe api/lib/plan.ts). */
-const METRICS = ["chat", "exercise", "video", "formulas"] as const;
 
 const YELLOW_BUTTON =
   "bg-[#EAB308] text-[#1A1A1A] font-bold shadow-[0_8px_30px_-8px_rgba(234,179,8,0.6)] hover:bg-[#EAB308] hover:brightness-105";
@@ -172,6 +169,8 @@ export default function PricingPage() {
   };
 
   const free = sub?.limitsByPlan.free;
+  const grants = sub?.creditGrants;
+  const cost = sub?.creditCost;
   const student = sub?.limitsByPlan.student;
   const pack = credits?.packs?.[0] ?? null;
   const packAmount = pack?.amount ?? sub?.pricing.creditPack.amount ?? 0;
@@ -252,7 +251,7 @@ export default function PricingPage() {
           <p className="text-muted-foreground mt-1 text-sm">{c.freeDesc}</p>
           <Price big={money(0)} />
           <Features
-            items={free ? [c.chats(free.chat), c.videos(free.video), c.exercises(free.exercise), c.documents(free.documents)] : []}
+            items={free && grants && cost ? [c.welcomeCredits(grants.welcome), c.creditCost(cost.chat, cost.video), c.documents(free.documents)] : []}
           />
           <div className="mt-auto pt-6">
             <Button variant="outline" className="w-full" disabled>
@@ -268,7 +267,7 @@ export default function PricingPage() {
           <Price big={klausurPass ? money(klausurPass.amount) : "…"} unit={c.oneTime} />
           <p className="text-muted-foreground mt-1 text-sm" data-testid="klausur-pass-duration">{c.passDaysAccess(klausurPass?.days ?? 30)}</p>
           <Features
-            items={student ? [c.chats(student.chat), c.videos(student.video), c.exercises(student.exercise), c.documents(student.documents), c.noAds] : []}
+            items={student && grants && cost ? [c.creditsIncluded(grants.klausurPass), c.creditCost(cost.chat, cost.video), c.creditsKeep, c.documents(student.documents), c.noAds] : []}
           />
           <div className="mt-auto pt-6">
             {subscribed ? (
@@ -338,7 +337,7 @@ export default function PricingPage() {
               </div>
 
               <ul className="mt-6 space-y-2.5">
-                {(student ? [c.chats(student.chat), c.videos(student.video), c.exercises(student.exercise), c.documents(student.documents), c.noAds] : []).map(
+                {(student && grants && cost ? [c.creditsIncluded(grants.semesterPass), c.creditCost(cost.chat, cost.video), c.creditsKeep, c.documents(student.documents), c.noAds] : []).map(
                   (f) => (
                     <li key={f} className="flex items-center gap-2.5 text-sm">
                       <span className="grid size-5 shrink-0 place-items-center rounded-full bg-[#EAB308] text-[#1A1A1A]">
@@ -456,36 +455,15 @@ export default function PricingPage() {
         </Reveal>
       )}
 
-      {/* Verbrauch — macht das Limit sichtbar, bevor der Nutzer dagegenläuft. */}
-      {sub && (
+      {/* Le solde : modèle « stock de crédits » — plus de compteur mensuel. */}
+      {credits && (
         <Reveal className="mt-8">
-          <Card className="p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-display text-sm font-bold">{c.usage}</h2>
-              {sub.validUntil && (
-                <span className="text-muted-foreground text-xs">
-                  {c.activeUntil(new Date(sub.validUntil).toLocaleDateString(locale))}
-                </span>
-              )}
+          <Card className="flex flex-wrap items-center justify-between gap-3 p-5" data-testid="credit-balance">
+            <div>
+              <h2 className="font-display text-sm font-bold">{c.balanceTitle}</h2>
+              <p className="text-muted-foreground mt-0.5 text-xs">{c.balanceNote}</p>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {METRICS.map((m) => {
-                const used = sub.usage[m] ?? 0;
-                const limit = sub.limits[m] ?? 0;
-                const pct = sub.unlimited ? 0 : limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
-                return (
-                  <div key={m}>
-                    <div className="mb-1.5 flex items-baseline justify-between text-xs">
-                      <span className="text-muted-foreground capitalize">{c.metric[m]}</span>
-                      <span className={cn("font-medium tabular-nums", !sub.unlimited && used >= limit && "text-destructive")}>
-                        {sub.unlimited ? `${used} · ${c.unlimited}` : `${used} / ${limit}`}
-                      </span>
-                    </div>
-                    <Progress value={pct} />
-                  </div>
-                );
-              })}
-            </div>
+            <span className="font-display text-2xl font-extrabold tabular-nums">{c.balance(formatCredits(credits.purchasedCredits, locale))}</span>
           </Card>
         </Reveal>
       )}

@@ -21,6 +21,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { identifyUser } from "./lib/analytics";
 import { AnalyticsConsent } from "./components/analytics-consent";
 import { OfflineBanner } from "./components/offline-banner";
+import { captureReferralFromUrl, redeemPendingReferral } from "./lib/referral-link";
+import { toast } from "./stores/toast";
+import { useT } from "@/i18n";
+
+// Un lien de parrainage (/?ref=…) est noté dès l'arrivée, avant toute connexion.
+captureReferralFromUrl();
 
 /**
  * Performance (audit du 5 nov. 2026) : seules les pages d'entrée — Dashboard,
@@ -64,6 +70,7 @@ const ExamPage = lazyPage(() => import("./pages/exam"));
 const SettingsPage = lazyPage(() => import("./pages/settings"));
 const PricingPage = lazyPage(() => import("./pages/pricing"));
 const CreditsPage = lazyPage(() => import("./pages/credits"));
+const InvitePage = lazyPage(() => import("./pages/invite"));
 const AdminPage = lazyPage(() => import("./pages/admin"));
 const AdminAnalyticsPage = lazyPage(() => import("./pages/admin-analytics"));
 const AdminFeedbackPage = lazyPage(() => import("./pages/admin-feedback"));
@@ -98,6 +105,11 @@ function LoadingScreen() {
 
 function AuthedApp() {
   const [location] = useLocation();
+  const { t } = useT();
+  // Un code de parrainage reçu par lien (/?ref=…) est appliqué une fois connecté (lib/referral-link.ts).
+  useEffect(() => {
+    void redeemPendingReferral((n) => toast(t("invite.redeemed", { n })));
+  }, [t]);
   return (
     <Switch>
       <Route path="/" component={RootRedirect} />
@@ -128,6 +140,7 @@ function AuthedApp() {
             {/* Séparée de /pricing : le mur du quota tombe sur quelqu'un qui
                 révise, et qui veut dix questions ce soir — pas un abonnement. */}
             <Route path="/credits" component={CreditsPage} />
+            <Route path="/invite" component={InvitePage} />
             <Route path="/professors" component={ProfessorsPage} />
             {/* Serverseitig durch die Admin-Rolle geschützt, nicht durch Verstecken. */}
             {/* Rien de l'administration n'est monté avant le « oui » du serveur (AdminGate). */}

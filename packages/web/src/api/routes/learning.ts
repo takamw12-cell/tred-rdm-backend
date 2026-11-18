@@ -1,4 +1,6 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { z } from "zod";
+import { awardCreditsForStudy } from "../lib/study-rewards";
 import { ORPCError } from "@orpc/server";
 import { authed } from "../middleware/auth";
 import { USER_LIMITS, userRateBump } from "../middleware/rate-limit";
@@ -46,6 +48,13 @@ async function documentIdsFor(uid: string, term: string): Promise<string[]> {
 }
 
 export const learning = {
+  /**
+   * « Erledigt » coché dans le plan d'étude : +0,5 crédit si le concept a bien
+   * été travaillé avec le tuteur (lib/study-rewards.ts). Un refus n'est pas une
+   * erreur : l'interface affiche la raison (déjà récompensé, plafond du jour…).
+   */
+  completeTask: authed.input(z.object({ concept: z.string().min(1).max(160) })).handler(({ context, input }) => awardCreditsForStudy(db, context.user.id, "chapter_completed", input.concept)),
+
   profile: authed.handler(async ({ context }) => {
     const uid = context.user.id;
     try {
