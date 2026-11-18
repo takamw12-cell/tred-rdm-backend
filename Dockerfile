@@ -89,7 +89,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       mupdf-tools \
       ghostscript \
       ca-certificates \
+      python3 \
+      python3-venv \
  && rm -rf /var/lib/apt/lists/*
+
+# SymPy, pour la vérification symbolique (pastille « Mit SymPy geprüft ») :
+# un environnement Python à part, dans /opt/sympy, aux versions exactes de
+# requirements.txt. Le serveur le lance dans un sous-processus isolé
+# (packages/web/src/api/lib/sympy-verify.ts) ; pas de service en plus.
+COPY packages/web/src/api/sympy/requirements.txt /tmp/sympy-requirements.txt
+RUN python3 -m venv /opt/sympy \
+ && /opt/sympy/bin/pip install --no-cache-dir --disable-pip-version-check -r /tmp/sympy-requirements.txt \
+ && rm /tmp/sympy-requirements.txt
 
 # Vérification à la construction, pas à la première question d'un étudiant.
 # Une image sans circuitikz doit échouer ICI, où on la regarde, et non six
@@ -113,6 +124,13 @@ RUN bun install --frozen-lockfile
 COPY . .
 # Le front construit (et pré-rendu) à l'étape 1.
 COPY --from=web-build /app/packages/web/dist packages/web/dist
+
+# Même principe que pour LaTeX : une image où SymPy ne vérifie pas une égalité
+# connue doit échouer ICI, pas sur la question d'un étudiant. Le programme
+# quitte le compte racine pour « nobody » avant de calculer : ce contrôle
+# prouve aussi qu'il lit ses bibliothèques sous ce compte.
+RUN /opt/sympy/bin/python -I -B packages/web/src/api/sympy/verify_math.py --self-test | grep -q '"is_valid": true' \
+ && echo "verification SymPy operationnelle"
 
 ENV NODE_ENV=production
 EXPOSE 3000

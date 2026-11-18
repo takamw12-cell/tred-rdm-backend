@@ -42,6 +42,13 @@ jobs:
       - name: Typecheck (application + serveur)
         run: bun run --cwd packages/web typecheck
 
+      # La vérification symbolique tourne pour de vrai dans les tests (comme dans l'image Docker).
+      - name: SymPy
+        run: |
+          python3 -m venv "$HOME/sympy-venv"
+          "$HOME/sympy-venv/bin/pip" install --disable-pip-version-check -r packages/web/src/api/sympy/requirements.txt
+          echo "SYMPY_PYTHON=$HOME/sympy-venv/bin/python" >> "$GITHUB_ENV"
+
       - name: Tests
         run: bun test --cwd packages/web
 

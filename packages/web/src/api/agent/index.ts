@@ -274,6 +274,12 @@ export function buildTutorAgent(opts: {
    */
   media?: (input: { prompt: string; type: "image" | "video"; dauer?: number }) => Promise<unknown>;
   /**
+   * Vérification symbolique par SymPy (lib/sympy-verify.ts). Absent — pas de
+   * Python sur ce serveur — : l'outil `symbolische_pruefung` n'existe pas, et
+   * la pastille « Mit SymPy geprüft » ne peut pas s'allumer.
+   */
+  sympy?: (gleichung: string) => Promise<unknown>;
+  /**
    * Reçoit chaque résultat de solveur réussi (entrée + sortie), pour
    * l'enregistrer : « Als Video erklären » s'appuie ensuite sur ces chiffres
    * calculés. Absent = rien n'est enregistré.
@@ -2216,6 +2222,28 @@ export function buildTutorAgent(opts: {
                   .describe("Nur für Videos: Dauer in Sekunden, höchstens 5"),
               }),
               execute: async (input) => opts.media!(input),
+            }),
+          }
+        : {}),
+
+      ...(opts.sympy
+        ? {
+            // Le nom de l'outil est lu par l'interface (web/lib/proof.ts) : ne pas le changer seul.
+            symbolische_pruefung: tool({
+              description:
+                "Prüft EINE Gleichung mit dem Computeralgebra-System SymPy auf dem Server. " +
+                "Rufe es auf, sobald du ein symbolisches Endergebnis hast (Ableitung, Integral, " +
+                "Grenzwert, Umformung), mit der Endgleichung „Aufgabe = Ergebnis“ in LaTeX, " +
+                'z. B. "\\int_0^1 x^2 dx = \\frac{1}{3}" oder "\\frac{d}{dx} x^2 = 2x". ' +
+                "Antwort: verified (true nur, wenn SymPy die Gleichheit bewiesen hat), ergebnis " +
+                "(was SymPy für die linke Seite erhält), hinweis. Bei verified=false: rechne neu " +
+                "und nenne nur ein Ergebnis, das SymPy bestätigt. Schreibe NIE selbst, dass etwas " +
+                "mit SymPy geprüft wurde — das zeigt die Oberfläche an. Nicht für Zahlenrechnungen " +
+                "mit Einheiten (dafür rechnen und die Fachlöser).",
+              inputSchema: z.object({
+                gleichung: z.string().min(3).max(600).describe('Eine Gleichung in LaTeX, ohne $: "linke Seite = rechte Seite"'),
+              }),
+              execute: async ({ gleichung }) => opts.sympy!(gleichung),
             }),
           }
         : {}),

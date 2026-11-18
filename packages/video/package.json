@@ -23,6 +23,7 @@
     "audio:tiktok": "uvx --with numpy python -I scripts/audio.py tiktok",
     "broll:tiktok": "node scripts/tiktok-broll.mjs",
     "render:tiktok": "bash scripts/tiktok-render.sh",
+    "render:founder": "remotion bundle src/index.ts --out-dir=out/.bundle-founder && remotion render out/.bundle-founder FounderAd3D out/founder-ad-3d/FounderAd3D.mp4 --concurrency=2 --scale=2 --codec=h264 --crf=18",
     "render:cine": "bash scripts/cinematic-render.sh",
     "render:v4": "for c in V4-EN-1-The-Research V4-EN-2-The-Workflow V4-EN-3-The-Expansion V4-DE-1-Die-Altklausur-Suche V4-DE-2-Deep-Work V4-DE-3-Die-Fachschaft; do remotion render src/index.ts $c out/campaign-v4/$c.mp4 --concurrency=1 --scale=2 --codec=h264 --crf=18; done",
     "render:demo": "for c in D1-EN-The-Workflow D1-DE-Der-Workflow D2-EN-The-Schemas D2-DE-Die-Schemata D3-EN-The-Video-Feature D3-DE-Das-Video-Feature D4-EN-Interactive-Learning D4-DE-Interaktives-Lernen D5-EN-The-Dashboard D5-DE-Das-Dashboard; do remotion render src/index.ts $c out/campaign-v3/$c.mp4 --concurrency=1 --scale=2 --codec=h264 --crf=18; done",

@@ -124,6 +124,7 @@ import { netlistGate } from "./lib/circuit/netlist";
 import { captureServerError } from "./lib/sentry";
 import { retryWriteRefusal, safeErrorMessage, withDbRetry } from "./lib/db-retry";
 import { readJsonObject } from "./lib/json-body";
+import { sympyIsReady, sympyReady, verdictForTutor, verifyMath } from "./lib/sympy-verify";
 import { HTTPException } from "hono/http-exception";
 import { SOLVER_RETRY_NOTE, firstCallForce, retryForce, solverGateEnabled, solverGateStream } from "./lib/solver-gate";
 import { applySubscription, endSubscription } from "./lib/billing";
@@ -210,6 +211,8 @@ startMorningDigest();
 // Les blocages internes du verrou solveur écrits par erreur dans « Gemeldete
 // Antworten » le 17 nov. 2026 : marqués traités (routes/reports.ts).
 void resolveInternalGateReports();
+// SymPy : une égalité de contrôle au démarrage. Sans Python (poste de développement), l'outil reste absent.
+void sympyReady();
 
 // ── Limitation de débit ───────────────────────────────────────────────────
 // Montée AVANT tout le reste : une requête refusée ne doit toucher ni la
@@ -952,6 +955,8 @@ app.post("/api/agent/messages", async (c) => {
     media: replicateConfigured()
       ? (input) => generateMedia({ userId: uid, ...input })
       : undefined,
+    // Vérification symbolique : seulement si SymPy a répondu au contrôle de démarrage (lib/sympy-verify.ts).
+    sympy: sympyIsReady() ? async (gleichung) => verdictForTutor(await verifyMath(gleichung)) : undefined,
     // Chaque calcul réussi est conservé : « Als Video erklären » s'appuie dessus.
     onSolver: (run) => recordSolverRun(uid, typeof conversationId === "string" ? conversationId.slice(0, 100) : null, run),
     // Schaltplan als Bild/PDF : rechnen nur mit einer bestätigten Netzliste

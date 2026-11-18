@@ -1,0 +1,5 @@
+# Vérification symbolique (api/sympy/verify_math.py). Versions exactes : la même liste sert à
+# l'image Docker et à la CI. antlr4 4.11.1 est la version qu'attend l'analyseur LaTeX de SymPy 1.14.
+sympy==1.14.0
+mpmath==1.3.0
+antlr4-python3-runtime==4.11.1

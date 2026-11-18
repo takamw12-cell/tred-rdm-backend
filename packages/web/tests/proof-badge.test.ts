@@ -49,10 +49,10 @@ describe("branchements", () => {
     expect(board).toContain("{page?.proof ? <ProofBadge engine={page.proof} /> : null}");
   });
 
-  test("aucun outil du serveur ne se déclare encore vérificateur SymPy : la pastille reste éteinte", () => {
-    // Le jour où l'outil existe, ce test change AVEC lui — pas avant.
-    expect(read("src/api/agent/index.ts")).not.toContain(PROOF_TOOL);
-    expect(read("src/api/index.ts")).not.toContain(PROOF_TOOL);
+  test("l'outil du serveur qui allume la pastille est celui de SymPy (lib/sympy-verify.ts)", () => {
+    // Depuis le 18 nov. 2026 l'outil existe : même nom des deux côtés, et il n'est proposé que si SymPy répond.
+    expect(read("src/api/agent/index.ts")).toContain(`${PROOF_TOOL}: tool({`);
+    expect(read("src/api/index.ts")).toContain("sympy: sympyIsReady() ?");
   });
 
   test("la pastille : bouclier, vert, texte traduit", () => {

@@ -34,8 +34,10 @@ const progress = (frame: number, start: number, end: number, easing: (n: number)
  *
  * Ce que montrent les cartes existe dans l'app : le plan de « Mein Lernprofil »,
  * la Tafel et ses étapes, la citation avec sa page. La pastille « Mit SymPy
- * geprüft » ne s'affiche que si `proofBadge` est vrai : la vérification SymPy
- * n'est pas en ligne, une publicité ne doit pas la montrer avant.
+ * geprüft » suit `proofBadge` (vrai dans la composition depuis que le serveur
+ * vérifie réellement, 18 nov. 2026 — api/lib/sympy-verify.ts). À ne publier
+ * qu'une fois la ligne « [sympy] vérification symbolique active » vue en
+ * production : une publicité ne montre que ce qui est en ligne.
  */
 
 export const FOUNDER_AD_FRAMES = s(15);

@@ -100,7 +100,7 @@ export function Root() {
       </Folder>
       {/* Gabarit « FounderAd3D » (2026-11-18) : cartes de l'app en verre, en perspective, au-dessus de la face caméra du fondateur. */}
       <Folder name="Gabarit-FounderAd3D">
-        <Composition id="FounderAd3D" component={FounderAd3D} durationInFrames={FOUNDER_AD_FRAMES} defaultProps={{ faceCamSrc: null, proofBadge: false }} {...PHONE} />
+        <Composition id="FounderAd3D" component={FounderAd3D} durationInFrames={FOUNDER_AD_FRAMES} defaultProps={{ faceCamSrc: null, proofBadge: true }} {...PHONE} />
       </Folder>
       <Folder name="TikTok-V5-Pepite">
         {PEPITE.map(([id, component, frames]) => (
