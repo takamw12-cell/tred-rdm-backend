@@ -996,6 +996,8 @@ export const de = {
     topUp: "Guthaben aufladen",
   },
   credits: {
+    founderChip: "∞ Credits (Founder)",
+    founderTitle: "Gründerkonto: es wird nichts abgezogen. Gekaufte Credits im Konto: {n}",
     chip: "{n} Credits",
     balance: "Dein Guthaben",
     loading: "Guthaben wird geladen …",

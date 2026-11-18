@@ -138,7 +138,9 @@ export default function PricingPage() {
   // Économie du Semester-Pass face à autant de Klausur-Pass : calculée sur les prix affichés, arrondie vers le bas.
   const saving = klausurPass && semesterPass ? passSavingPercent(klausurPass.amount, semesterPass.amount, semesterPass.months) : 0;
   // Un accès acheté par Pass n'a rien à « gérer » : il s'arrête tout seul, et on peut en reprendre un.
-  const subscribed = isPaid && !sub?.passActive;
+  // « Abo verwalten » seulement pour un vrai abonnement Stripe (portail client) ;
+  // un Pass, le fondateur ou un compte sans client Stripe voient les boutons d'achat.
+  const subscribed = !!sub?.subscriptionActive && !!sub?.manageable;
 
   const manage = () => {
     setError(null);

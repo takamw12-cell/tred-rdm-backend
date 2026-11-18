@@ -996,6 +996,8 @@ export const en: Messages = {
     topUp: "Top up",
   },
   credits: {
+    founderChip: "∞ credits (Founder)",
+    founderTitle: "Founder account: nothing is deducted. Purchased credits on the account: {n}",
     chip: "{n} credits",
     balance: "Your balance",
     loading: "Loading balance …",

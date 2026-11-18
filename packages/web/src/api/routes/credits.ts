@@ -123,6 +123,8 @@ export const credits = {
       total: monthlyRemaining + purchased,
       /** Ab hier färbt sich das Abzeichen — siehe Widget. */
       lowThreshold: 5,
+      /** Compte fondateur : rien n'est déduit, l'interface affiche « ∞ ». */
+      unlimited: plan === "founder",
       /** Ce qu'une action coûte, et ce qu'on peut encore gagner aujourd'hui en étudiant. */
       costs: CREDIT_COST,
       rewards: { cap: DAILY_REWARD_CAP, earnedToday, leftToday: Math.max(0, DAILY_REWARD_CAP - earnedToday) },

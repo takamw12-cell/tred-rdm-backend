@@ -202,3 +202,29 @@ describe("Panik-Modus : rien d'inventé", () => {
     expect(read("src/api/middleware/rate-limit.ts")).toContain('panic: () => ({ scope: "user-panic", limit: envInt("PANIC_PER_DAY", 3), windowMs: DAY_MS })');
   });
 });
+
+describe("compte fondateur (19 nov. 2026)", () => {
+  test("rien n'est déduit : consume() rend « ok » avant toute lecture de compteur ou de crédit", () => {
+    const plan = read("src/api/lib/plan.ts");
+    const fn = plan.slice(plan.indexOf("export async function consume("));
+    expect(fn.indexOf('if (plan === "founder") return { ok: true')).toBeGreaterThan(-1);
+    expect(fn.indexOf('if (plan === "founder") return { ok: true')).toBeLessThan(fn.indexOf("takeFromCredits"));
+    expect(fn.indexOf('if (plan === "founder") return { ok: true')).toBeLessThan(fn.indexOf(".from(usageCounter)"));
+  });
+
+  test("un Pass payé par le fondateur crédite quand même son stock (test du webhook), sans toucher à son accès", () => {
+    const billing = read("src/api/lib/billing.ts");
+    const fn = billing.slice(billing.indexOf("export async function grantPass("), billing.indexOf("/* Prélèvement échoué"));
+    const founder = fn.slice(fn.indexOf('if (existing?.plan === "founder") {'), fn.indexOf("const locked"));
+    expect(founder).toContain("await grantCredits({ userId, amount: credits, transactionId: `${sessionId}:credits`");
+    expect(founder).not.toContain("insert(userPlan)");
+  });
+
+  test("interface : « ∞ Credits (Founder) », et « Abo verwalten » seulement avec un vrai abonnement", () => {
+    expect(read("src/api/routes/credits.ts")).toContain('unlimited: plan === "founder",');
+    expect(read("src/web/components/credits-chip.tsx")).toContain('t("credits.founderChip")');
+    expect(read("src/web/i18n/messages/de.ts")).toContain('founderChip: "∞ Credits (Founder)"');
+    expect(read("src/api/routes/subscriptions.ts")).toContain("subscriptionActive: !!row?.customerId && !!row?.subscriptionId && row.subscriptionStatus !== PASS_STATUS");
+    expect(read("src/web/pages/pricing.tsx")).toContain("const subscribed = !!sub?.subscriptionActive && !!sub?.manageable;");
+  });
+});

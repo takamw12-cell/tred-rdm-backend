@@ -266,9 +266,13 @@ function passStillValid(row: { plan?: string | null; validUntil?: Date | null; s
 export async function grantPass(params: { userId: string; kind: PassKind; sessionId: string; customerId?: string | null }): Promise<{ granted: boolean; validUntil: Date | null }> {
   const { userId, kind, sessionId } = params;
   const existing = await getPlanRow(userId);
+  const credits = kind === "semester" ? CREDIT_GRANTS.semesterPass : CREDIT_GRANTS.klausurPass;
   if (existing?.plan === "founder") {
-    console.log(`[billing] founder ${userId}: Pass ${kind} payé, accès inchangé`);
-    return { granted: false, validUntil: null };
+    // Le fondateur garde son accès illimité ; les crédits du Pass sont quand même
+    // écrits, pour qu'un achat de test prouve que le webhook livre (journal = verrou).
+    const res = await grantCredits({ userId, amount: credits, transactionId: `${sessionId}:credits`, description: `${PASSES[kind].label}: ${credits} Credits`, type: "purchase" });
+    console.log(`[billing] founder ${userId}: ${PASSES[kind].label} payé, accès inchangé, +${res.granted ? credits : 0} credits`);
+    return { granted: res.granted, validUntil: null };
   }
 
   const locked = await db
@@ -299,7 +303,6 @@ export async function grantPass(params: { userId: string; kind: PassKind; sessio
     throw error;
   }
   // Le stock de crédits du Pass (modèle du 18 nov. 2026). Sa propre ligne de journal : écrite une seule fois.
-  const credits = kind === "semester" ? CREDIT_GRANTS.semesterPass : CREDIT_GRANTS.klausurPass;
   await grantCredits({ userId, amount: credits, transactionId: `${sessionId}:credits`, description: `${PASSES[kind].label}: ${credits} Credits`, type: "purchase" });
   console.log(`[billing] user=${userId} ${PASSES[kind].label} +${credits} credits until=${validUntil.toISOString()}`);
   return { granted: true, validUntil };

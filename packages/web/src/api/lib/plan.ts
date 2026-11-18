@@ -301,6 +301,10 @@ export async function consume(
   metric: Metric,
 ): Promise<QuotaResult> {
   const plan = await getPlan(userId);
+  // Compte fondateur (user_plan.plan = "founder", posé par compte-fondateur.mjs) :
+  // accès illimité, aucun crédit déduit, aucun compteur. Le plafond de jetons
+  // (TOKEN_CAPS.founder = null) ne le bloque pas non plus.
+  if (plan === "founder") return { ok: true, plan, used: 0, limit: Number.MAX_SAFE_INTEGER, source: "quota", metric };
   const limit = LIMITS[plan][metric];
   const period = currentPeriod();
 

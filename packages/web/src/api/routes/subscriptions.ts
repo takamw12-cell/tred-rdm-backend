@@ -221,6 +221,11 @@ export const subscriptions = {
        * Le montant affiché est celui de Stripe quand il est lisible, sinon la grille.
        */
       passes,
+      /**
+       * Un VRAI abonnement Stripe en cours : seul cas où « Abo verwalten » (portail
+       * client) a un sens. Un Pass, le fondateur ou un compte sans client Stripe : non.
+       */
+      subscriptionActive: !!row?.customerId && !!row?.subscriptionId && row.subscriptionStatus !== PASS_STATUS && ["active", "trialing", "past_due"].includes(row.subscriptionStatus ?? ""),
       /** L'accès actuel vient d'un Pass : pas d'abonnement à gérer, il s'arrête tout seul. */
       passActive: row?.subscriptionStatus === PASS_STATUS && plan === "premium",
       limitsByPlan: { free: LIMITS.free, student: LIMITS.premium },

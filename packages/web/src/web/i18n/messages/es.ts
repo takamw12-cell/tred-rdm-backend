@@ -1008,6 +1008,8 @@ export const es: Messages = {
     topUp: "Recargar",
   },
   credits: {
+    founderChip: "∞ créditos (Founder)",
+    founderTitle: "Cuenta de fundador: no se descuenta nada. Créditos comprados en la cuenta: {n}",
     chip: "{n} créditos",
     balance: "Tu saldo",
     loading: "Cargando saldo …",
