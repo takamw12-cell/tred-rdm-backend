@@ -286,6 +286,19 @@ export const en: Messages = {
       "Delete {n} document(s)? This action is irreversible. The linked explanations will be lost.",
     confirmDelete: "Confirm deletion",
   },
+  math: {
+    open: "Enter a formula",
+    insert: "Insert",
+    close: "Close the formula field",
+    fieldLabel: "Formula",
+    palette: "Math symbols",
+    loading: "Loading the formula field …",
+    failed: "The formula field could not be loaded. You can type the formula as text.",
+  },
+  proof: {
+    sympy: "Verified with SymPy",
+    sympyHint: "This calculation was checked on the server with the computer algebra system SymPy.",
+  },
   tafel: {
     colors: "Colours",
     colorBoard: "Board",

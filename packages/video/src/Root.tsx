@@ -18,6 +18,7 @@ import { SURVIVE } from "./tiktok/videos";
 import { PEPITE } from "./tiktok/v5";
 import { STYLES } from "./tiktok/v8";
 import { NATIVE } from "./tiktok/v6";
+import { FOUNDER_AD_FRAMES, FounderAd3D } from "./tiktok/founder-ad-3d";
 import "./style.css";
 
 /**
@@ -96,6 +97,10 @@ export function Root() {
         {NATIVE.map(([id, component, frames]) => (
           <Composition key={id} id={id} component={component} durationInFrames={frames} {...PHONE} />
         ))}
+      </Folder>
+      {/* Gabarit « FounderAd3D » (2026-11-18) : cartes de l'app en verre, en perspective, au-dessus de la face caméra du fondateur. */}
+      <Folder name="Gabarit-FounderAd3D">
+        <Composition id="FounderAd3D" component={FounderAd3D} durationInFrames={FOUNDER_AD_FRAMES} defaultProps={{ faceCamSrc: null, proofBadge: false }} {...PHONE} />
       </Folder>
       <Folder name="TikTok-V5-Pepite">
         {PEPITE.map(([id, component, frames]) => (

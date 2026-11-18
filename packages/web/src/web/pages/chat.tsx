@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { useUserStore } from "@/stores/user";
 import { useChat } from "@ai-sdk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -69,6 +69,11 @@ import { useFeatures } from "@/queries/features";
 import { Link, useLocation, useSearch } from "wouter";
 import { conversationsOfScope, docFromSearch, mayApplyResume, searchWithDoc } from "@/lib/chat-sessions";
 import { Repeat2, Volume2, VolumeX } from "lucide-react";
+import { proofOf } from "@/lib/proof";
+import { insertFormula } from "@/lib/math-input";
+
+// Le champ de formule et MathLive ne sont chargés qu'au premier clic sur « fx ».
+const MathInput = lazy(() => import("@/components/math-input").then((m) => ({ default: m.MathInput })));
 import { useProfessorChoreography } from "@/components/hologram-professor";
 import { spokenAnswer } from "@/lib/professor-choreography";
 import { VideoExplainer, type VideoScript } from "@/components/video-explainer";
@@ -250,6 +255,9 @@ export default function ChatPage() {
 
   // ── Mode Calcul (MATLAB / Python) ─────────────────────────────────────
   const [calcMode, setCalcMode] = useState(false);
+  // Champ de formule (bouton « fx ») : MathLive, chargé à la première ouverture.
+  const [mathOpen, setMathOpen] = useState(false);
+  const composerInputRef = useRef<HTMLTextAreaElement | null>(null);
   const codeLang = usePreferencesStore((s) => s.codeLang);
 
   // ── Mode socratique : des questions et des indices, pas la solution ───
@@ -719,6 +727,8 @@ export default function ChatPage() {
           "Skizze",
         ),
         solverUsed: m.parts.some((p) => SOLVER_TOOLS.has(p.type)),
+        // Pastille « Mit SymPy geprüft » : seulement si un outil du serveur l'a établi (lib/proof.ts).
+        proof: proofOf(m.parts),
       });
       question = null;
     }
@@ -1804,7 +1814,23 @@ export default function ChatPage() {
         >
           <MessageCircleQuestion className="size-4" />
         </button>
+        <button
+          type="button"
+          onClick={() => setMathOpen((v) => !v)}
+          className={cn(
+            // Sous 350 px la saisie n'a plus la place d'un quatrième bouton (débordement mesuré à 320 px) : la formule se tape alors en texte.
+            "grid size-8 shrink-0 place-items-center rounded-lg font-serif text-[15px] leading-none italic transition-colors max-[349px]:hidden",
+            mathOpen ? "bg-[#0F172A]/15 text-[#0F172A]" : "text-[#0F172A]/60 hover:bg-[#0F172A]/10 hover:text-[#0F172A]",
+          )}
+          title={t("math.open")}
+          aria-label={t("math.open")}
+          aria-pressed={mathOpen}
+          data-testid="math-toggle"
+        >
+          fx
+        </button>
         <textarea
+          ref={composerInputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
@@ -1838,6 +1864,24 @@ export default function ChatPage() {
   // juste au-dessus du rebord, dans le flux.
   const composerExtras = (
     <>
+      {mathOpen && (
+        <Suspense fallback={null}>
+          <MathInput
+            onClose={() => setMathOpen(false)}
+            onInsert={(latex) => {
+              // La formule rejoint la question à l'endroit du curseur, sous la forme $…$.
+              const field = composerInputRef.current;
+              const next = insertFormula(input, latex, field?.selectionStart ?? input.length);
+              setInput(next.text);
+              setMathOpen(false);
+              requestAnimationFrame(() => {
+                field?.focus();
+                field?.setSelectionRange(next.cursor, next.cursor);
+              });
+            }}
+          />
+        </Suspense>
+      )}
       {/* Le solde, juste au-dessus du champ de saisie. C'est le seul
           endroit où l'information arrive avant la décision d'écrire —
           partout ailleurs elle arrive après le refus. */}

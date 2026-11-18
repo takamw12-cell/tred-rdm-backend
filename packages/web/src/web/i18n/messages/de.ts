@@ -285,6 +285,19 @@ export const de = {
       "{n} Dokument(e) löschen? Diese Aktion ist unwiderruflich. Die verknüpften Erklärungen gehen verloren.",
     confirmDelete: "Löschen bestätigen",
   },
+  math: {
+    open: "Formel eingeben",
+    insert: "Einfügen",
+    close: "Formelfeld schließen",
+    fieldLabel: "Formel",
+    palette: "Mathematische Symbole",
+    loading: "Formelfeld wird geladen …",
+    failed: "Das Formelfeld konnte nicht geladen werden. Du kannst die Formel als Text eingeben.",
+  },
+  proof: {
+    sympy: "Mit SymPy geprüft",
+    sympyHint: "Diese Rechnung wurde auf dem Server mit dem Computeralgebra-System SymPy nachgerechnet.",
+  },
   tafel: {
     colors: "Farben",
     colorBoard: "Tafel",

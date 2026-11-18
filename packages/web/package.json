@@ -78,6 +78,7 @@
     "lucide-react": "^0.577.0",
     "mammoth": "^1.13.0",
     "mathjs": "^15.2.0",
+    "mathlive": "0.111.4",
     "mermaid": "^11.16.0",
     "pdfjs-dist": "^6.4.299",
     "phaser": "4.2.1",

@@ -298,6 +298,19 @@ export const es: Messages = {
       "¿Eliminar {n} documento(s)? Esta acción es irreversible. Se perderán las explicaciones asociadas.",
     confirmDelete: "Confirmar la eliminación",
   },
+  math: {
+    open: "Escribir una fórmula",
+    insert: "Insertar",
+    close: "Cerrar el campo de fórmula",
+    fieldLabel: "Fórmula",
+    palette: "Símbolos matemáticos",
+    loading: "Cargando el campo de fórmula …",
+    failed: "No se pudo cargar el campo de fórmula. Puedes escribir la fórmula como texto.",
+  },
+  proof: {
+    sympy: "Verificado con SymPy",
+    sympyHint: "Este cálculo se comprobó en el servidor con el sistema de álgebra computacional SymPy.",
+  },
   tafel: {
     colors: "Colores",
     colorBoard: "Pizarra",

@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ProofBadge } from "@/components/proof-badge";
+import type { ProofEngine } from "@/lib/proof";
 import { motion, useReducedMotion } from "framer-motion";
 import { Brain, ChevronLeft, ChevronRight, Eye, Loader2, RotateCcw, SearchCheck, Target, Wrench, type LucideIcon } from "lucide-react";
 import { reasoningKind, type ReasoningKind } from "../../api/lib/reasoning-engine";
@@ -41,6 +43,8 @@ export interface TafelPage {
   blocks: TafelBlock[];
   /** Un outil de calcul (rechnen, balkenstatik…) a servi pour cette réponse. */
   solverUsed: boolean;
+  /** Le moteur qui a VÉRIFIÉ le calcul côté serveur (lib/proof.ts) — absent : aucune pastille. */
+  proof?: ProofEngine | null;
 }
 
 export function TafelBoard({
@@ -206,8 +210,15 @@ export function TafelBoard({
             const inProgress = !b.complete || live;
             const react = reasoningKind(b.label);
             const title = b.derivation && derivation ? `${derivSteps.indexOf(b) + 1}. ${b.label}` : b.label;
+            // Le tampon du solveur, et à côté la pastille de preuve quand le serveur a vérifié le calcul.
+            const stamped = final && !inProgress;
             const stamp =
-              final && page?.solverUsed && !inProgress ? <SolverStamp label={t("tafel.solver")} sublabel="" /> : undefined;
+              stamped && (page?.solverUsed || page?.proof) ? (
+                <span className="inline-flex shrink-0 items-center gap-2">
+                  {page?.proof ? <ProofBadge engine={page.proof} /> : null}
+                  {page?.solverUsed ? <SolverStamp label={t("tafel.solver")} sublabel="" /> : null}
+                </span>
+              ) : undefined;
             if (react) {
               return (
                 <ReasoningPostIt

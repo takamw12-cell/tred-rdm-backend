@@ -286,6 +286,19 @@ export const fr: Messages = {
       "Supprimer {n} document(s) ? Cette action est irréversible. Les explications liées seront perdues.",
     confirmDelete: "Confirmer la suppression",
   },
+  math: {
+    open: "Saisir une formule",
+    insert: "Insérer",
+    close: "Fermer le champ de formule",
+    fieldLabel: "Formule",
+    palette: "Symboles mathématiques",
+    loading: "Chargement du champ de formule …",
+    failed: "Le champ de formule n'a pas pu être chargé. Tu peux écrire la formule en texte.",
+  },
+  proof: {
+    sympy: "Vérifié par SymPy",
+    sympyHint: "Ce calcul a été refait sur le serveur avec le système de calcul formel SymPy.",
+  },
   tafel: {
     colors: "Couleurs",
     colorBoard: "Tableau",
