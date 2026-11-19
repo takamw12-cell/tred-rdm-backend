@@ -63,3 +63,65 @@ export function answerChallenge(state: ChallengeState, right: boolean): Challeng
 export function progressOf(state: ChallengeState, total: number): number {
   return total > 0 ? Math.min(1, state.index / total) : 0;
 }
+
+/* ── Arcade : la partie tenue par le serveur (api/arcade) ──────────────────── */
+
+export interface ArcadeStart {
+  sessionId: string;
+  documentId: string;
+  title: string;
+  total: number;
+  secondsPerQuestion: number;
+}
+export interface ArcadeQuestion {
+  index: number;
+  total: number;
+  situation: string;
+  question: string;
+  options: string[];
+  remainingMs: number;
+}
+export interface ArcadeAnswer {
+  right: boolean;
+  timedOut: boolean;
+  points: number;
+  correct: number;
+  explanation: string;
+  quote: string;
+  page: number;
+  state: { index: number; correct: number; streak: number; score: number; total: number; finished: boolean };
+  reward: { granted: boolean; amount: number; reason?: "daily_cap" } | null;
+  rank: number | null;
+}
+export interface BoardRow {
+  rank: number;
+  name: string;
+  score: number;
+  me: boolean;
+}
+
+async function postJson<T>(url: string, body: unknown): Promise<T> {
+  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) {
+    const data = (await res.clone().json().catch(() => ({}))) as { error?: unknown };
+    await paywallFromResponse(res, "chat").catch(() => false);
+    throw new Error(challengeErrorOf(res.status, data.error));
+  }
+  return (await res.json()) as T;
+}
+
+export const startArcade = (body: { documentId: string; mode: ChallengeMode; locale: string; showOnBoard: boolean }) => postJson<ArcadeStart>("/api/arcade/start", body);
+export const arcadeQuestion = (sessionId: string) => postJson<ArcadeQuestion>("/api/arcade/question", { sessionId });
+/** `choice` = -1 : le temps est écoulé. */
+export const arcadeAnswer = (sessionId: string, choice: number) => postJson<ArcadeAnswer>("/api/arcade/answer", { sessionId, choice });
+
+export async function arcadeLeaderboard(): Promise<{ rows: BoardRow[]; mine: BoardRow | null }> {
+  const res = await fetch("/api/arcade/leaderboard");
+  if (!res.ok) return { rows: [], mine: null };
+  return (await res.json()) as { rows: BoardRow[]; mine: BoardRow | null };
+}
+
+/** Chrono : couleur et pulsation selon le temps restant (rouge sous 3 s). */
+export function timerTone(remainingMs: number): "calm" | "hurry" | "critical" {
+  return remainingMs <= 3_000 ? "critical" : remainingMs <= 7_000 ? "hurry" : "calm";
+}

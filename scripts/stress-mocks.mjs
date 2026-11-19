@@ -84,7 +84,38 @@ function forcedTool(body) {
   const tools = Array.isArray(body.tools) ? body.tools : [];
   const tool =
     (choice.type === "tool" && tools.find((t) => t.name === choice.name)) || tools.find((t) => t.name === "kein_loeser_vorhanden") || tools[0];
-  return tool ? { name: tool.name, input: fill(tool.input_schema) } : null;
+  if (!tool) return null;
+  // Générateur de cas (Fall-Check / Arcade) : des cas dont la preuve est une
+  // phrase RÉELLE du document reçu, pour que la vérification mot pour mot du
+  // serveur passe comme en production.
+  if (tool.input_schema?.properties?.faelle) return { name: tool.name, input: { faelle: casesFrom(promptText(body)) } };
+  return { name: tool.name, input: fill(tool.input_schema) };
+}
+
+/** Sortie structurée native (output_config.format) : un JSON conforme au schéma demandé. */
+function structuredText(body) {
+  const schema = body.output_config?.format?.schema;
+  if (!schema) return null;
+  if (schema.properties?.faelle) return JSON.stringify({ faelle: casesFrom(promptText(body)) });
+  return JSON.stringify(fill(schema));
+}
+
+function promptText(body) {
+  return (body.messages ?? []).map((m) => (typeof m.content === "string" ? m.content : (m.content ?? []).map((p) => p?.text ?? "").join(" "))).join("\n");
+}
+
+/** Jusqu'à 5 cas, chacun bâti sur une phrase du document (8 mots au moins). */
+function casesFrom(text) {
+  const doc = text.replace(/\[\[SEITE \d+\]\]/g, " ").replace(/<[^>]+>/g, " ");
+  const sentences = [...new Set(doc.split(/(?<=[.!?])\s+/).map((x) => x.replace(/\s+/g, " ").trim()).filter((x) => x.split(" ").length >= 8 && x.length < 300))].slice(0, 5);
+  return sentences.map((beleg, i) => ({
+    situation: `Testfall ${i + 1}: ${beleg.slice(0, 120)}`,
+    frage: "Welche Aussage stimmt laut Skript?",
+    optionen: ["Laut Skript richtig", "Eine Verwechslung", "Ein typischer Fehler", "Gilt nur im Sonderfall"],
+    richtig: 0,
+    erklaerung: "So steht es im Skript.",
+    beleg,
+  }));
 }
 
 const aiServer = http.createServer(async (req, res) => {
@@ -112,7 +143,7 @@ const aiServer = http.createServer(async (req, res) => {
       type: "message",
       role: "assistant",
       model: body.model,
-      content: tool ? [{ type: "tool_use", id: `toolu_${ai.requests}`, name: tool.name, input: tool.input }] : [{ type: "text", text: ANSWER }],
+      content: tool ? [{ type: "tool_use", id: `toolu_${ai.requests}`, name: tool.name, input: tool.input }] : [{ type: "text", text: structuredText(body) ?? ANSWER }],
       stop_reason: tool ? "tool_use" : "end_turn",
       stop_sequence: null,
       usage,

@@ -136,6 +136,8 @@ function AuthedApp() {
             <Route path="/explorer" component={ExplorerPage} />
             <Route path="/minigame" component={MiniGamePage} />
             <Route path="/fall-check" component={FallCheckPage} />
+            {/* Arcade : le Fall-Check chronométré, avec Bestenliste (pages/fall-check.tsx). */}
+            <Route path="/arcade" component={FallCheckPage} />
             <Route path="/formulas" component={FormulasPage} />
             <Route path="/settings" component={SettingsPage} />
             <Route path="/pricing" component={PricingPage} />

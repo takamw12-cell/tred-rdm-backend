@@ -101,7 +101,8 @@ import { chercherDansDocuments } from "./lib/document-search";
 import { searchYoutube, youtubeConfigured } from "./lib/youtube";
 import { writeVideoQuery } from "./lib/video-query";
 import { finalizeQuiz, quizContext, quizModelSchema, quizRequestSchema, quizSystemPrompt } from "./lib/quiz";
-import { challengeModelSchema, challengePrompt, challengeRequestSchema, challengeSystemPrompt, excerptFor, groundChallenge } from "./lib/doc-challenge";
+import { challengeModelSchema, challengePrompt, challengeRequestSchema, challengeSystemPrompt, excerptFor, groundChallenge, type ChallengeMode, type ChallengeQuestion } from "./lib/doc-challenge";
+import { registerArcadeRoutes } from "./arcade/routes";
 import {
   getAccess,
   setActive,
@@ -276,7 +277,10 @@ app.use("/api/agent/*", rateLimitMiddleware({ limit: 5, scope: "agent" }));
 // routes coûteuses classent (« report ») ou refusent (« enforce ») les requêtes
 // de l'app sans jeton valide. Le site web n'est jamais concerné.
 app.use("/api/app-integrity/*", rateLimitMiddleware({ limit: 20, scope: "app-integrity", by: "ip" }));
-for (const p of ["/api/agent/*", "/api/documents/upload", "/api/documents/upload-batch", "/api/tts", "/api/auth/sign-up/*", "/api/rpc/*"]) app.use(p, appIntegrityGate());
+// Arcade : une partie = 1 génération (bornée comme le Fall-Check) + ~12 petits appels (question, réponse).
+app.use("/api/arcade/start", rateLimitMiddleware({ limit: 5, scope: "arcade-start" }));
+app.use("/api/arcade/*", rateLimitMiddleware({ limit: 90, scope: "arcade" }));
+for (const p of ["/api/agent/*", "/api/arcade/start", "/api/documents/upload", "/api/documents/upload-batch", "/api/tts", "/api/auth/sign-up/*", "/api/rpc/*"]) app.use(p, appIntegrityGate());
 // Règles des magasins (App Store 3.1.1, Google Play « Paiements ») : l'app
 // mobile ne vend rien par Stripe. Les écrans sont masqués (mobile/lib/store-policy.ts) ;
 // le serveur refuse en plus tout paiement demandé par l'app, au cas où.
@@ -2049,30 +2053,30 @@ app.post("/api/agent/quiz", async (c) => {
 // autre ne revient pas du tout. Mêmes garde-fous que le quiz ; 20 parties par
 // heure au plus. Une question ne sort que si sa preuve est dans le document.
 const challengeCalls = new Map<string, number[]>();
-app.post("/api/agent/doc-challenge", async (c) => {
-  const session = await auth.api.getSession({ headers: c.req.raw.headers });
-  if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);
-  if (!process.env.ANTHROPIC_API_KEY) return c.json({ error: "not_configured" }, 503);
+/**
+ * Génère une partie de Fall-Check à partir d'un document du compte (lib/doc-challenge.ts).
+ * Partagé par /api/agent/doc-challenge et l'Arcade (/api/arcade/start).
+ */
+async function buildChallenge(uid: string, raw: unknown): Promise<{ status: 200; data: { documentId: string; title: string; questions: ChallengeQuestion[]; mode: ChallengeMode } } | { status: 400 | 402 | 404 | 422 | 429 | 502 | 503; data: Record<string, unknown> }> {
+  if (!process.env.ANTHROPIC_API_KEY) return { status: 503, data: { error: "not_configured" } };
+  const parsed = challengeRequestSchema.safeParse(raw);
+  if (!parsed.success) return { status: 400, data: { error: "invalid body" } };
 
-  const parsed = challengeRequestSchema.safeParse(await c.req.json().catch(() => null));
-  if (!parsed.success) return c.json({ error: "invalid body" }, 400);
-
-  const uid = session.user.id;
   const [doc] = await db
     .select({ id: document.id, title: document.title, kind: document.kind, textContent: document.textContent })
     .from(document)
     .where(and(eq(document.id, parsed.data.documentId), eq(document.userId, uid)))
     .limit(1);
-  if (!doc) return c.json({ error: "not_found" }, 404);
-  if (doc.textContent.trim().length < 400) return c.json({ error: "too_short" }, 422);
+  if (!doc) return { status: 404, data: { error: "not_found" } };
+  if (doc.textContent.trim().length < 400) return { status: 422, data: { error: "too_short" } };
 
   const now = Date.now();
   const recent = (challengeCalls.get(uid) ?? []).filter((t) => now - t < 60 * 60 * 1000);
-  if (recent.length >= 20) return c.json({ error: "rate_limited" }, 429);
+  if (recent.length >= 20) return { status: 429, data: { error: "rate_limited" } };
   challengeCalls.set(uid, [...recent, now]);
 
   const cap = await withinTokenCap(uid);
-  if (!cap.ok) return c.json(tokenCapError(cap.used, cap.cap), 402);
+  if (!cap.ok) return { status: 402, data: tokenCapError(cap.used, cap.cap) as Record<string, unknown> };
   const { label: langLabel } = langOf(parsed.data.locale);
 
   try {
@@ -2087,13 +2091,24 @@ app.post("/api/agent/doc-challenge", async (c) => {
     // La preuve est cherchée dans le document ENTIER, pas dans le seul extrait envoyé.
     const questions = groundChallenge(object, doc.textContent);
     console.log(`[doc-challenge] mode=${parsed.data.mode} proposed=${object.faelle.length} grounded=${questions.length}`);
-    if (questions.length === 0) return c.json({ error: "no_grounded_question" }, 422);
-    return c.json({ documentId: doc.id, title: doc.title, questions });
+    if (questions.length === 0) return { status: 422, data: { error: "no_grounded_question" } };
+    return { status: 200, data: { documentId: doc.id, title: doc.title, questions, mode: parsed.data.mode } };
   } catch (err) {
     console.error("[doc-challenge] generation failed", (err as Error).message);
-    return c.json({ error: "failed" }, 502);
+    return { status: 502, data: { error: "failed" } };
   }
+}
+
+app.post("/api/agent/doc-challenge", async (c) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);
+  const res = await buildChallenge(session.user.id, await c.req.json().catch(() => null));
+  if (res.status !== 200) return c.json(res.data, res.status);
+  const { documentId, title, questions } = res.data;
+  return c.json({ documentId, title, questions });
 });
+
+registerArcadeRoutes(app, { buildChallenge });
 
 // ── « Panik-Modus » : la feuille de secours de la veille d'examen ──────────
 // Trois notions et trois formules tirées d'UN document du compte, par le

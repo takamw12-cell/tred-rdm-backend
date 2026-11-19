@@ -73,13 +73,18 @@ describe("branchement", () => {
   });
 
   test("serveur : session, document du compte seulement, preuve vérifiée dans le document entier", () => {
+    // La génération est partagée avec l'Arcade (buildChallenge) ; la route vérifie la session.
     const start = API.indexOf('app.post("/api/agent/doc-challenge"');
-    const route = API.slice(start, API.indexOf("\n});", start));
-    expect(route).toContain('if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);');
+    const handler = API.slice(start, API.indexOf("\n});", start));
+    expect(handler).toContain('if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);');
+    expect(handler).toContain("buildChallenge(session.user.id,");
+    const b = API.indexOf("async function buildChallenge(");
+    const route = API.slice(b, start);
     expect(route).toContain("and(eq(document.id, parsed.data.documentId), eq(document.userId, uid))");
     expect(route).toContain("groundChallenge(object, doc.textContent)");
-    expect(route).toContain('return c.json({ error: "no_grounded_question" }, 422);');
+    expect(route).toContain('return { status: 422, data: { error: "no_grounded_question" } };');
     expect(route).toContain("withinTokenCap(uid)");
+    expect(read("../src/api/arcade/routes.ts")).toContain('if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);');
     // Le journal ne contient ni le texte du document ni les questions.
     expect(route).not.toMatch(/console\.log\([^)]*(textContent|title|frage)/);
   });
