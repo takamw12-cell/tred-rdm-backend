@@ -32,6 +32,7 @@
  * effacée avec le compte (lib/gdpr.ts).
  */
 import { sql, type SQL } from "drizzle-orm";
+import { isMissingTable } from "./db-missing-table";
 
 export const OUTCOMES = ["richtig", "teilweise", "falsch"] as const;
 export type Outcome = (typeof OUTCOMES)[number];
@@ -148,7 +149,8 @@ export interface ConceptState {
 
 export type MasteryResult = { saved: true; score: number } | { saved: false; reason: "invalid" | "full" | "not_migrated" };
 
-export const missingTable = (e: unknown) => /no such table/i.test(String((e as Error)?.message ?? e) + String((e as { cause?: unknown })?.cause ?? ""));
+/** Table absente (migration pas lancée), même emballée deux niveaux plus bas par drizzle (lib/db-missing-table.ts). */
+export const missingTable = isMissingTable;
 
 let warned = false;
 function warnOnce() {

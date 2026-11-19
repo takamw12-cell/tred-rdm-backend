@@ -3,6 +3,7 @@ import { db } from "../database";
 import { professorCustom } from "../database/schema";
 import { checkProfessorName } from "./professor-name";
 import { isProfessorId, type ProfessorId } from "./professors";
+import { dbErrorReason, isMissingTable } from "./db-missing-table";
 
 /**
  * « Dein Professor » : le prénom et la voix que l'étudiant a choisis
@@ -50,7 +51,12 @@ export async function saveProfessorCustom(userId: string, input: { name: string 
       .values({ userId, name, voice, updatedAt: new Date() })
       .onConflictDoUpdate({ target: professorCustom.userId, set: { name, voice, updatedAt: new Date() } });
   } catch (error) {
-    if (/no such table/i.test(String((error as Error)?.message ?? error))) return { ok: false, reason: "not_migrated" };
+    if (isMissingTable(error)) {
+      console.error("[professeur] table professor_custom absente : lancer migre-prof-perso.mjs");
+      return { ok: false, reason: "not_migrated" };
+    }
+    // Le motif seulement (jamais le nom saisi) : l'erreur se lit dans les journaux Railway.
+    console.error("[professeur] enregistrement impossible :", dbErrorReason(error));
     throw error;
   }
   return { ok: true, custom: { name, voice } };

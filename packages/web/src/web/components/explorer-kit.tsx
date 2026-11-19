@@ -14,6 +14,13 @@ export const HIGHLIGHT = "#EAB308";
 /** Le repère choisi (surbrillance) et le geste « choisir cette pièce ». */
 export const ActiveContext = createContext<string | null>(null);
 export const SelectContext = createContext<(id: string) => void>(() => {});
+/**
+ * Rendu « sûr » (téléphones, 19 nov. 2026) : matières standard sans GLSL
+ * greffé, métal atténué. Sur une puce mobile, la matière physique et ses
+ * shaders peuvent ne pas compiler, et un métal sans reflets (image HDR non
+ * convertie) devient noir sur fond noir : le modèle « disparaît ».
+ */
+export const SafeRenderContext = createContext(false);
 /** Mode coupe : les plans qui tranchent les pièces (aucun = modèle entier). */
 export const SectionContext = createContext<THREE.Plane[] | null>(null);
 
@@ -25,6 +32,22 @@ export const SectionContext = createContext<THREE.Plane[] | null>(null);
 export function Skin({ part, color, metalness = 0.6, roughness = 0.36, glow, opacity, clearcoat = 0, sheen = 0, tissue = false }: { part: string; color: string; metalness?: number; roughness?: number; glow?: { color: string; intensity: number }; opacity?: number; clearcoat?: number; sheen?: number; tissue?: boolean }) {
   const on = useContext(ActiveContext) === part;
   const planes = useContext(SectionContext);
+  const safe = useContext(SafeRenderContext);
+  if (safe) {
+    return (
+      <meshStandardMaterial
+        color={color}
+        metalness={Math.min(metalness, 0.3)}
+        roughness={Math.max(roughness, 0.45)}
+        emissive={on ? HIGHLIGHT : (glow?.color ?? "#000000")}
+        emissiveIntensity={on ? 0.45 : (glow?.intensity ?? 0)}
+        side={THREE.DoubleSide}
+        clippingPlanes={planes}
+        transparent={opacity !== undefined}
+        opacity={opacity ?? 1}
+      />
+    );
+  }
   return (
     <meshPhysicalMaterial
       color={color}

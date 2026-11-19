@@ -4,6 +4,7 @@ import { db } from "../database";
 import { marketingConsent, marketingEmailLog, userAccess } from "../database/schema";
 import { user } from "../database/auth-schema";
 import { linkOnWebsite, mailLang, sendMail, type MailLang } from "./mail";
+import { isMissingTable } from "./db-missing-table";
 
 /**
  * E-mails « Tipps & Neuigkeiten » (19 nov. 2026) — seulement avec un
@@ -64,7 +65,7 @@ export const unsubscribeUrl = (userId: string) => linkOnWebsite(`${site()}/api/e
 
 /* ── Consentement ───────────────────────────────────────────────────────── */
 
-const missingTable = (e: unknown) => /no such table/i.test(String((e as Error)?.message ?? e));
+const missingTable = isMissingTable;
 
 export async function consentOf(userId: string): Promise<ConsentStatus | "not_migrated"> {
   try {

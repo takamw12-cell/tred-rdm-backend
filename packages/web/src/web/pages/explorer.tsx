@@ -265,6 +265,7 @@ function ExplorerViewer() {
                   noWebGL={t("explorer.noWebgl")}
                   onResetReady={onResetReady}
                   tier={tier}
+                loadingLabel={t("explorer.loading")}
                   contextLost={<SceneUnavailable posterId={posterId} message={t("explorer.crashed")} action={t("explorer.reload")} onAction={() => window.location.reload()} />}
                 />
               </Suspense>

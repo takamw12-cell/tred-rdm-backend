@@ -2,7 +2,7 @@ import { Component, Suspense, useContext, useEffect, useMemo, useRef, type React
 import * as THREE from "three";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
-import { ActiveContext, HIGHLIGHT, Part, SelectContext, Skin } from "@/components/explorer-kit";
+import { ActiveContext, HIGHLIGHT, Part, SafeRenderContext, SelectContext, Skin } from "@/components/explorer-kit";
 import { EXPLORER_MODELS, TURBOFAN_FILE } from "@/lib/explorer-models";
 import { ATOM_SHELLS, descend, HEART_GLB, HEART_PART_OF, NORM_LEVELS, SURFACE, surfaceGradient, surfaceHeight, surfacePoint } from "@/lib/explorer-more";
 import { ORBITALS, sampleOrbital } from "@/lib/orbitals";
@@ -245,11 +245,20 @@ function HeartAnatomy({ playing }: { playing: boolean }) {
 function TurbofanFile({ playing }: { playing: boolean }) {
   const { scene } = useGLTF(TURBOFAN_FILE.url, false);
   const select = useContext(SelectContext);
+  const safe = useContext(SafeRenderContext);
   const root = useMemo(() => {
     const copy = scene.clone(true);
     copy.traverse((o) => {
       const mesh = o as THREE.Mesh;
       if (!mesh.isMesh) return;
+      if (safe) {
+        // Téléphone : la matière du fichier, standard, métal atténué — visible même sans reflets.
+        const plain = (mesh.material as THREE.MeshStandardMaterial).clone();
+        plain.metalness = Math.min(plain.metalness ?? 0, 0.3);
+        plain.roughness = Math.max(plain.roughness ?? 1, 0.45);
+        mesh.material = plain;
+        return;
+      }
       const physical = new THREE.MeshPhysicalMaterial();
       THREE.MeshStandardMaterial.prototype.copy.call(physical, mesh.material as THREE.MeshStandardMaterial);
       physical.anisotropy = 0.35;
@@ -259,7 +268,7 @@ function TurbofanFile({ playing }: { playing: boolean }) {
       mesh.material = physical;
     });
     return copy;
-  }, [scene]);
+  }, [scene, safe]);
   // Le rotor (soufflante, compresseurs, turbines sur leur arbre) : la pièce qui tourne.
   const rotor = useRef<THREE.Object3D | null>(null);
   useEffect(() => {

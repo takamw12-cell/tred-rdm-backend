@@ -63,5 +63,7 @@ export function renderSettings(tier: DeviceTier) {
     contactShadowResolution: tier === "high" ? 512 : tier === "mobile" ? 256 : 0,
     environment: tier !== "low",
     powerPreference: (tier === "high" ? "high-performance" : "default") as WebGLPowerPreference,
+    /** Matières standard sans GLSL greffé, métal atténué, lumière ciel/sol (explorer-kit.tsx). */
+    safe: tier !== "high",
   };
 }

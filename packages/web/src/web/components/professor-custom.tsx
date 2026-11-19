@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Loader2, Play, Square } from "lucide-react";
+import { Check, ChevronDown, Loader2, Play, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ProfessorPortrait } from "@/components/professor-portrait";
@@ -97,15 +97,15 @@ function ProfessorCustomForm({ savedName, savedVoice }: { savedName: string | nu
   const dirty = (name.trim() || null) !== savedName || (voice || null) !== savedVoice;
 
   return (
-    <div className="grid gap-6 md:grid-cols-[11rem_1fr]" data-testid="professor-custom">
+    <div className="grid gap-6 rounded-2xl bg-[#0B0F19] p-5 text-white shadow-[0_24px_60px_-30px_rgba(124,58,237,0.55)] ring-1 ring-white/10 md:grid-cols-[11rem_1fr] sm:p-6" data-testid="professor-custom">
       {/* L'aperçu : le personnage choisi, avec le prénom tel qu'il apparaîtra dans le Hörsaal. */}
       <div className="flex flex-col items-center gap-3 text-center md:items-start md:text-left">
-        <div className="size-28 overflow-hidden rounded-2xl">
+        <div className="size-28 overflow-hidden rounded-2xl ring-2 ring-[#EAB308]/70">
           <ProfessorPortrait professor={PROFESSORS[professor.id]} eager />
         </div>
         <div>
           <p className="font-display text-lg font-bold leading-tight" data-testid="professor-custom-preview">{shownName}</p>
-          <p className="text-muted-foreground text-xs">{professorText(PROFESSORS[professor.id].title, locale)}</p>
+          <p className="text-xs text-white/60">{professorText(PROFESSORS[professor.id].title, locale)}</p>
         </div>
       </div>
 
@@ -123,10 +123,10 @@ function ProfessorCustomForm({ savedName, savedVoice }: { savedName: string | nu
             placeholder={PROFESSORS[professor.id].name}
             aria-invalid={nameError ? true : undefined}
             aria-describedby="prof-name-help"
-            className="max-w-sm"
+            className="max-w-sm border-white/15 bg-white/[0.06] text-white placeholder:text-white/40 focus-visible:ring-[#EAB308]"
             data-testid="professor-name-input"
           />
-          <p id="prof-name-help" className={nameError ? "text-destructive text-xs font-medium" : "text-muted-foreground text-xs"} data-testid="professor-name-help">
+          <p id="prof-name-help" className={nameError ? "text-xs font-medium text-[#FCA5A5]" : "text-xs text-white/60"} data-testid="professor-name-help">
             {nameError ?? t("profCustom.nameHelp", { max: PROFESSOR_NAME_MAX })}
           </p>
         </div>
@@ -134,6 +134,8 @@ function ProfessorCustomForm({ savedName, savedVoice }: { savedName: string | nu
         <div className="space-y-1.5">
           <label htmlFor="prof-voice" className="text-sm font-semibold">{t("profCustom.voiceLabel")}</label>
           <div className="flex flex-wrap items-center gap-2">
+            {/* appearance-none : Safari ignore le fond d'un menu natif (blanc sur blanc sinon). */}
+            <div className="relative w-full max-w-sm">
             <select
               id="prof-voice"
               value={voice}
@@ -142,7 +144,7 @@ function ProfessorCustomForm({ savedName, savedVoice }: { savedName: string | nu
                 setPlaying(false);
                 setVoice(e.target.value as ProfessorId | "");
               }}
-              className="border-input bg-background h-10 w-full max-w-sm rounded-xl border px-3 text-sm"
+              className="h-10 w-full appearance-none rounded-xl border border-white/15 bg-[#151B2B] pr-9 pl-3 text-sm text-white [&>option]:bg-white [&>option]:text-[#0F172A]"
               data-testid="professor-voice-select"
             >
               <option value="">{t("profCustom.voiceDefault", { name: PROFESSORS[professor.id].name })}</option>
@@ -150,21 +152,23 @@ function ProfessorCustomForm({ savedName, savedVoice }: { savedName: string | nu
                 <option key={id} value={id}>{voiceLabel(id)}</option>
               ))}
             </select>
-            <Button type="button" variant="outline" className="h-10 rounded-xl" onClick={() => void testVoice()} disabled={testing || Boolean(nameError)} data-testid="professor-voice-test">
+            <ChevronDown aria-hidden className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-white/70" />
+            </div>
+            <Button type="button" variant="outline" className="h-10 rounded-xl border-white/20 bg-white/[0.06] text-white hover:bg-white/[0.12] hover:text-white" onClick={() => void testVoice()} disabled={testing || Boolean(nameError)} data-testid="professor-voice-test">
               {testing ? <Loader2 className="size-4 animate-spin" /> : playing ? <Square className="size-4" /> : <Play className="size-4" />}
               {playing ? t("profCustom.stop") : t("profCustom.test")}
             </Button>
           </div>
-          <p className="text-muted-foreground text-xs">{t("profCustom.voiceHelp")}</p>
+          <p className="text-xs text-white/60">{t("profCustom.voiceHelp")}</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <Button type="button" onClick={() => save.mutate()} disabled={!dirty || Boolean(nameError) || save.isPending} data-testid="professor-custom-save">
+          <Button type="button" className="bg-[#EAB308] font-semibold text-[#0F172A] hover:bg-[#FACC15]" onClick={() => save.mutate()} disabled={!dirty || Boolean(nameError) || save.isPending} data-testid="professor-custom-save">
             {save.isPending ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
             {t("profCustom.save")}
           </Button>
           {notice && (
-            <output className={notice.tone === "ok" ? "text-sm font-medium text-emerald-700 dark:text-emerald-400" : "text-destructive text-sm font-medium"} data-testid="professor-custom-notice">
+            <output className={notice.tone === "ok" ? "text-sm font-medium text-[#86EFAC]" : "text-sm font-medium text-[#FCA5A5]"} data-testid="professor-custom-notice">
               {notice.text}
             </output>
           )}

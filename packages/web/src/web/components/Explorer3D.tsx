@@ -1,7 +1,7 @@
 import { Component, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { ContactShadows, Environment, GizmoHelper, GizmoViewcube, OrbitControls } from "@react-three/drei";
+import { ContactShadows, Environment, GizmoHelper, GizmoViewcube, OrbitControls, useProgress } from "@react-three/drei";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { cameraStart, GEAR, gearCentres, gearPitchPoint, type ExplorerModel, type ExplorerModelId, type Vec3 } from "@/lib/explorer-models";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,7 @@ import { ActiveContext, HIGHLIGHT, Part, SectionContext, SelectContext, Skin } f
 import { StudioEffects } from "@/components/explorer-effects";
 import { Atom, Cell, GltfModel, Heart, Network, Norms, Surface, TurbofanModel } from "@/components/explorer-scenes";
 import { renderSettings, type DeviceTier } from "@/lib/device-tier";
+import { SafeRenderContext } from "@/components/explorer-kit";
 
 /**
  * La scène de l'Explorateur 3D — chargée À LA DEMANDE (React.lazy dans
@@ -655,10 +656,12 @@ const STUDIO_HDR = "/hdr/studio-small-03-1k.hdr";
  * matières (rendu physique), deux projecteurs dessinent les volumes, et une
  * ombre de contact pose le modèle sur le sol.
  */
-function StudioLights({ floor, environment, shadowResolution }: { floor: number; environment: boolean; shadowResolution: number }) {
+function StudioLights({ floor, environment, shadowResolution, safe }: { floor: number; environment: boolean; shadowResolution: number; safe: boolean }) {
   return (
     <>
-      <ambientLight intensity={environment ? 0.15 : 0.55} />
+      <ambientLight intensity={safe ? 0.6 : environment ? 0.15 : 0.55} />
+      {/* Rendu sûr (téléphone) : une lumière ciel/sol qui éclaire tout, sans dépendre de l'image HDR. */}
+      {safe && <hemisphereLight args={["#E2E8F0", "#1E293B", 1.1]} />}
       <directionalLight position={[-3, 5, 6]} intensity={1.1} />
       <directionalLight position={[5, 2, -4]} intensity={0.5} color="#9CC8FF" />
       {/* Le temps que l'image arrive, les projecteurs suffisent : la scène n'attend pas. */}
@@ -670,6 +673,20 @@ function StudioLights({ floor, environment, shadowResolution }: { floor: number;
       {/* Appareil modeste : pas d'ombre au sol (une passe de rendu de moins). */}
       {shadowResolution > 0 && <ContactShadows position={[0, floor, 0]} scale={14} far={6} blur={2.6} opacity={0.55} resolution={shadowResolution} color="#000000" />}
     </>
+  );
+}
+
+/** Sablier pendant les téléchargements de la scène (useProgress suit les chargeurs de three.js). */
+function LoadingOverlay({ label }: { label: string }) {
+  const { active, progress } = useProgress();
+  if (!active) return null;
+  return (
+    <output className="pointer-events-none absolute inset-0 z-10 grid place-items-center" data-testid="explorer-model-loading">
+      <span className="flex items-center gap-2 rounded-full bg-[#0F172A]/80 px-4 py-2 text-sm text-white ring-1 ring-white/15 backdrop-blur">
+        <span className="size-4 animate-spin rounded-full border-2 border-[#EAB308] border-t-transparent" />
+        {label} {Math.round(progress)} %
+      </span>
+    </output>
   );
 }
 
@@ -717,6 +734,7 @@ export default function Explorer3D({
   tier = "high",
   contextLost,
   marks,
+  loadingLabel = "",
 }: {
   model: ExplorerModel;
   /** Un fichier .glb à charger À LA PLACE de la scène construite (public/models/). */
@@ -741,6 +759,8 @@ export default function Explorer3D({
   contextLost?: ReactNode;
   /** 3D Detective : repères à faire briller (vert juste, rouge faux). */
   marks?: Record<string, "right" | "wrong">;
+  /** « Modell wird geladen … » (le pourcentage s'ajoute). */
+  loadingLabel?: string;
 }) {
   const settings = renderSettings(tier);
   // Le téléphone peut retirer le contexte WebGL (mémoire graphique pleine) : écran noir sinon.
@@ -789,10 +809,11 @@ export default function Explorer3D({
         style={{ touchAction: "none" }}
         data-testid="explorer-canvas"
       >
+        <SafeRenderContext.Provider value={settings.safe}>
         <ActiveContext.Provider value={active}>
           <SelectContext.Provider value={select}>
            <SectionContext.Provider value={planes}>
-            <StudioLights floor={model.bounds.min[1] - 0.05} environment={settings.environment} shadowResolution={settings.contactShadowResolution} />
+            <StudioLights floor={model.bounds.min[1] - 0.05} environment={settings.environment} shadowResolution={settings.contactShadowResolution} safe={settings.safe} />
             {modelUrl ? (
               <Suspense fallback={null}>
                 <GltfModel url={modelUrl} />
@@ -814,7 +835,10 @@ export default function Explorer3D({
            </SectionContext.Provider>
           </SelectContext.Provider>
         </ActiveContext.Provider>
+        </SafeRenderContext.Provider>
       </Canvas>
+      {/* Le modèle se télécharge (jusqu'à 1 Mo, plus l'éclairage) : un sablier avec le pourcentage. */}
+      <LoadingOverlay label={loadingLabel} />
       <Markers model={model} active={active} onSelect={onSelect} labels={labels} buttons={buttons} compact={compact} marks={marks} />
     </WebGLBoundary>
   );

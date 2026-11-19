@@ -1,6 +1,7 @@
 import type { Hono } from "hono";
 import { checkAdmin, adminDenialStatus } from "../lib/admin-guard";
 import { CAMPAIGNS, confirmConsent, readToken, revokeConsent, sendCampaign, type Campaign } from "../lib/marketing";
+import { isMissingTable } from "../lib/db-missing-table";
 
 /**
  * E-mails « Tipps & Neuigkeiten » (lib/marketing.ts) :
@@ -56,7 +57,7 @@ export function registerEmailRoutes(app: Hono) {
     try {
       return c.json({ campaign, dryRun, ...(await sendCampaign(campaign, dryRun)) });
     } catch (error) {
-      if (/no such table/i.test(String((error as Error)?.message))) return c.json({ error: "not_migrated" }, 503);
+      if (isMissingTable(error)) return c.json({ error: "not_migrated" }, 503);
       throw error;
     }
   });
