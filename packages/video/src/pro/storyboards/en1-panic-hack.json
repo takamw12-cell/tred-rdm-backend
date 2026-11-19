@@ -46,7 +46,8 @@
    "headline": "Real formulas, step by step",
    "voice": "Real formulas, written out step by step.",
    "media": "app-v5-en-steps",
-   "eyebrow": "LaTeX"
+   "eyebrow": "LaTeX",
+   "from": 7.2
   },
   {
    "part": "body",

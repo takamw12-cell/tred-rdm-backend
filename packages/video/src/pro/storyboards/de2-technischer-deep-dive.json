@@ -29,7 +29,8 @@
    "headline": "Schritt für Schritt an der Tafel",
    "voice": "An der Tafel wird jede Rechnung Schritt für Schritt aufgebaut.",
    "media": "app-v5-de-tafel",
-   "eyebrow": "Tafel"
+   "eyebrow": "Tafel",
+   "from": 8
   },
   {
    "part": "body",

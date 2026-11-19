@@ -28,7 +28,8 @@
    "headline": "Ask out loud",
    "voice": "Ask out loud, and hear it explained step by step.",
    "media": "app-v6-en-voice",
-   "eyebrow": "Voice"
+   "eyebrow": "Voice",
+   "from": 5.5
   },
   {
    "part": "body",
