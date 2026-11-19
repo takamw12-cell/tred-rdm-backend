@@ -101,7 +101,9 @@ export function buildCsp(input: CspInput = {}): string {
     "img-src": ["'self'", "data:", "blob:", "https:"],
     "media-src": ["'self'", "data:", "blob:", "https:"],
     "font-src": ["'self'", "data:", "https://fonts.gstatic.com", "https://cdn.tldraw.com"],
-    "connect-src": ["'self'", "https://cdn.jsdelivr.net", "https://tessdata.projectnaptha.com", "https://cdn.tldraw.com", "https://*.sentry.io", "https://*.livekit.cloud", "wss://*.livekit.cloud", "https://*.heygen.com", "wss://*.heygen.com", ...posthog, ...storage, ...ADS],
+    // blob: — le chargeur glTF de l'Explorateur lit les textures embarquées
+    // d'un .glb par une URL blob: (rapports CSP du 16 au 18 nov. 2026).
+    "connect-src": ["'self'", "blob:", "https://cdn.jsdelivr.net", "https://tessdata.projectnaptha.com", "https://cdn.tldraw.com", "https://*.sentry.io", "https://*.livekit.cloud", "wss://*.livekit.cloud", "https://*.heygen.com", "wss://*.heygen.com", ...posthog, ...storage, ...ADS],
     "frame-src": ["'self'", "blob:", "https://www.youtube.com", "https://www.youtube-nocookie.com", ...storage, ...ADS],
     "worker-src": ["'self'", "blob:"],
     "object-src": ["'none'"],

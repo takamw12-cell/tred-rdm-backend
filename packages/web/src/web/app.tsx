@@ -14,7 +14,7 @@ import { LogoMark } from "./components/logo";
 import OnboardingPage from "./pages/onboarding";
 import LoginPage from "./pages/login";
 import DashboardPage from "./pages/dashboard";
-import { lazy, Suspense, useEffect, useLayoutEffect, useState, type ComponentType } from "react";
+import { Suspense, useEffect, useLayoutEffect, useState, type ComponentType } from "react";
 import { hydrateProfile } from "./lib/profile-sync";
 import { AdminGate } from "./components/admin-gate";
 import { useQueryClient } from "@tanstack/react-query";
@@ -24,6 +24,7 @@ import { OfflineBanner } from "./components/offline-banner";
 import { captureReferralFromUrl, redeemPendingReferral } from "./lib/referral-link";
 import { toast } from "./stores/toast";
 import { useT } from "@/i18n";
+import { safeLazy } from "@/lib/lazy-import";
 
 // Un lien de parrainage (/?ref=…) est noté dès l'arrivée, avant toute connexion.
 captureReferralFromUrl();
@@ -35,7 +36,8 @@ captureReferralFromUrl();
  * (2 200 lignes), l'admin et l'examen pesaient sur l'ouverture du Dashboard.
  */
 function lazyPage<P extends object>(load: () => Promise<{ default: ComponentType<P> }>) {
-  const Page = lazy(load);
+  // safeLazy : un morceau de code manquant ne fait plus planter la page (lib/lazy-import.ts).
+  const Page = safeLazy(load);
   return function LazyPage(props: P) {
     return (
       <Suspense fallback={<PageFallback />}>

@@ -1,16 +1,17 @@
-import { lazy, Suspense, useMemo, useRef, useState } from "react";
+import { Suspense, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Box, Loader2, Maximize2, RotateCcw } from "lucide-react";
 import { Modal } from "@/components/modal";
 import { describePart, looksIncomplete, parseModel3D } from "@/lib/model3d";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
+import { safeLazy } from "@/lib/lazy-import";
 
 /**
  * Bloc ```3d-json dans une réponse du tuteur (chat, Hörsaal, exercices) :
  * valide le JSON (lib/model3d.ts), puis affiche la maquette manipulable.
  * Three.js n'est téléchargé qu'à l'affichage de la première maquette.
  */
-const Model3DViewer = lazy(() => import("./Model3DViewer"));
+const Model3DViewer = safeLazy(() => import("./Model3DViewer"));
 
 const FRAME =
   "my-4 overflow-hidden rounded-2xl border border-[#EAB308]/45 bg-[#FDFBF7]/80 shadow-[0_8px_30px_-12px_rgb(15_23_42/0.25)] backdrop-blur-md dark:border-[#EAB308]/35 dark:bg-[#0F172A]/70";

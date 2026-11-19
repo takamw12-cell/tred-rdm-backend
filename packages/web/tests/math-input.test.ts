@@ -63,7 +63,7 @@ describe("branchements", () => {
     const pkg = JSON.parse(read("package.json")) as { dependencies: Record<string, string> };
     expect(pkg.dependencies.mathlive).toMatch(/^\d+\.\d+\.\d+$/);
     const chat = read("src/web/pages/chat.tsx");
-    expect(chat).toContain('lazy(() => import("@/components/math-input")');
+    expect(chat).toContain('safeLazy(() => import("@/components/math-input")');
     expect(chat).not.toMatch(/^import .*from "mathlive"/m);
     const field = read("src/web/components/math-input.tsx");
     expect(field).toContain('import("mathlive")');

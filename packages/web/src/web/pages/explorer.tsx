@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Component, type ReactNode, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Gamepad2, Lightbulb, Loader2, Maximize2, MessageCircleQuestion, Minimize2, Pause, Play, RotateCcw, Scissors } from "lucide-react";
@@ -9,6 +9,9 @@ import { useT } from "@/i18n";
 import { askPrompt, customModel, DISCIPLINES, EXPLORER_MODELS, glbUrl, hotspotOf, isModelId, modelsOf, pick, type Discipline, type ExplorerModelId } from "@/lib/explorer-models";
 import { useProfessor } from "@/lib/professors";
 import { cn } from "@/lib/utils";
+import { safeLazy } from "@/lib/lazy-import";
+import { deviceTier } from "@/lib/device-tier";
+import { report as reportClientError } from "@/components/error-boundary";
 
 /**
  * L'Explorateur 3D (2026-11-15) : un modèle que l'on tourne et que l'on
@@ -19,7 +22,7 @@ import { cn } from "@/lib/utils";
  * Three.js n'est chargé qu'ICI, à l'ouverture de la page (React.lazy) : le
  * reste de l'app ne le télécharge jamais pour rien.
  */
-const Explorer3D = lazy(() => import("@/components/Explorer3D"));
+const Explorer3D = safeLazy(() => import("@/components/Explorer3D"));
 
 /** Clé lue par le Hörsaal à son ouverture : la question l'attend dans le champ de saisie. */
 export const ASK_DRAFT_KEY = "tred.askDraft";
@@ -54,6 +57,12 @@ export default function ExplorerPage() {
 
   const labels = useMemo(() => Object.fromEntries(model.hotspots.map((h) => [h.id, pick(h.title, locale)])), [model, locale]);
   const steps = useMemo(() => hotspot?.steps?.map((s) => ({ tex: s.tex, note: pick(s.note, locale) })) ?? null, [hotspot, locale]);
+
+  // Ce que l'appareil peut afficher (lib/device-tier.ts) ; « low » : 3D seulement sur demande.
+  const tier = useMemo(() => deviceTier(), []);
+  const [force3d, setForce3d] = useState(false);
+  const show3d = tier === "high" || tier === "mobile" || (tier === "low" && force3d);
+  const posterId = modelUrl ? null : modelId;
 
   const resetView = useRef<() => void>(() => {});
   const onResetReady = useCallback((fn: () => void) => {
@@ -149,29 +158,47 @@ export default function ExplorerPage() {
             {/* Quadrillage d'atelier, très discret. */}
             <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.07] [background-image:linear-gradient(#fff_1px,transparent_1px),linear-gradient(90deg,#fff_1px,transparent_1px)] [background-size:44px_44px]" />
 
-            <Suspense
-              fallback={
-                <output className="absolute inset-0 grid place-items-center text-sm text-white/80" data-testid="explorer-loading">
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="size-5 animate-spin text-[#EAB308]" />
-                    {t("explorer.loading")}
-                  </span>
-                </output>
-              }
-            >
-              <Explorer3D
-                model={model}
-                modelUrl={modelUrl}
-                section={canSection ? section : null}
-                active={active}
-                onSelect={setActive}
-                playing={playing}
-                labels={labels}
-                label={t("explorer.sceneLabel", { name: pick(model.name, locale) })}
-                noWebGL={t("explorer.noWebgl")}
-                onResetReady={onResetReady}
+            {/* Appareil modeste ou sans WebGL 2 : image fixe d'abord (lib/device-tier.ts). */}
+            {!show3d ? (
+              <SceneUnavailable
+                posterId={posterId}
+                message={tier === "none" ? t("explorer.noWebgl") : t("explorer.lightDevice")}
+                action={tier === "none" ? null : t("explorer.open3d")}
+                onAction={() => setForce3d(true)}
               />
-            </Suspense>
+            ) : (
+            // Un plantage de la scène reste DANS la scène : la page, les explications et le reste de l'app continuent.
+            <ExplorerCrashBoundary
+              resetKey={`${modelId}:${modelUrl ?? ""}`}
+              fallback={<SceneUnavailable posterId={posterId} message={t("explorer.crashed")} action={t("explorer.reload")} onAction={() => window.location.reload()} />}
+            >
+              <Suspense
+                fallback={
+                  <output className="absolute inset-0 grid place-items-center text-sm text-white/80" data-testid="explorer-loading">
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="size-5 animate-spin text-[#EAB308]" />
+                      {t("explorer.loading")}
+                    </span>
+                  </output>
+                }
+              >
+                <Explorer3D
+                  model={model}
+                  modelUrl={modelUrl}
+                  section={canSection ? section : null}
+                  active={active}
+                  onSelect={setActive}
+                  playing={playing}
+                  labels={labels}
+                  label={t("explorer.sceneLabel", { name: pick(model.name, locale) })}
+                  noWebGL={t("explorer.noWebgl")}
+                  onResetReady={onResetReady}
+                  tier={tier}
+                  contextLost={<SceneUnavailable posterId={posterId} message={t("explorer.crashed")} action={t("explorer.reload")} onAction={() => window.location.reload()} />}
+                />
+              </Suspense>
+            </ExplorerCrashBoundary>
+            )}
 
             {/* Choix du modèle. */}
             <fieldset aria-label={t("explorer.model")} // Téléphone : en bas, sur une ligne (en haut, les deux noms passaient sur deux lignes et couvraient le modèle).
@@ -193,8 +220,8 @@ export default function ExplorerPage() {
               ))}
             </fieldset>
 
-            {/* Commandes de la scène. */}
-            <div className="absolute top-3 right-3 flex gap-1.5">
+            {/* Commandes de la scène (absentes tant que la 3D n'est pas ouverte). */}
+            <div className={cn("absolute top-3 right-3 flex gap-1.5", !show3d && "hidden")}>
               <button type="button" className={tool} onClick={() => setPlaying((p) => !p)} aria-label={playing ? t("explorer.pause") : t("explorer.play")} title={playing ? t("explorer.pause") : t("explorer.play")} data-testid="explorer-play">
                 {playing ? <Pause className="size-4" /> : <Play className="size-4" />}
               </button>
@@ -322,4 +349,47 @@ export default function ExplorerPage() {
       </Reveal>
     </PageContainer>
   );
+}
+
+/**
+ * À la place de la scène : l'image fixe du modèle (public/explorer/<id>.jpg,
+ * capturée depuis la scène elle-même), un message et, au besoin, un bouton.
+ * Les repères et les explications restent à côté : rien n'est perdu.
+ */
+function SceneUnavailable({ posterId, message, action, onAction }: { posterId: string | null; message: string; action: string | null; onAction: () => void }) {
+  const [imageOk, setImageOk] = useState(true);
+  return (
+    <div className="absolute inset-0" data-testid="explorer-fallback">
+      {posterId && imageOk && (
+        <img src={`/explorer/${posterId}.jpg`} alt="" className="absolute inset-0 size-full object-contain" onError={() => setImageOk(false)} />
+      )}
+      {/* En haut à gauche, compact : le modèle reste visible ; en bas, le choix des modèles. */}
+      <div className="absolute top-3 right-3 left-3 flex max-w-md items-center gap-3 rounded-2xl bg-[#0F172A]/85 px-3 py-2 text-xs text-white ring-1 ring-white/15 backdrop-blur sm:right-auto">
+        <p className="min-w-0 flex-1 leading-snug">{message}</p>
+        {action && (
+          <button type="button" onClick={onAction} className="shrink-0 rounded-full bg-[#EAB308] px-3 py-1.5 text-xs font-semibold text-[#1A1A1A] hover:brightness-105" data-testid="explorer-fallback-action">
+            {action}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Garde-fou de la scène 3D : une erreur WebGL n'affiche plus l'écran d'erreur de toute l'app. */
+class ExplorerCrashBoundary extends Component<{ resetKey: string; fallback: ReactNode; children: ReactNode }, { failed: boolean; key: string }> {
+  state = { failed: false, key: this.props.resetKey };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  static getDerivedStateFromProps(props: { resetKey: string }, state: { failed: boolean; key: string }) {
+    // Un autre modèle choisi : on réessaie.
+    return props.resetKey !== state.key ? { failed: false, key: props.resetKey } : null;
+  }
+  componentDidCatch(error: Error) {
+    reportClientError({ kind: "render", area: "explorer-3d", message: String(error?.message ?? error).slice(0, 500), stack: error?.stack?.slice(0, 2000) });
+  }
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
 }

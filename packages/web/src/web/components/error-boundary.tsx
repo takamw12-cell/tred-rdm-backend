@@ -41,8 +41,8 @@ interface State {
   resetKey?: unknown;
 }
 
-/** Envoie le rapport au serveur. Ne lève jamais : au pire, on perd un rapport. */
-function report(payload: Record<string, unknown>): void {
+/** Envoie une erreur du navigateur au serveur (journal [client-error]). Ne lève jamais : au pire, on perd un rapport. */
+export function report(payload: Record<string, unknown>): void {
   try {
     const body = JSON.stringify({
       ...payload,

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useState, useSyncExternalStore } from "react";
+import { Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import { Link } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BookmarkCheck, BookmarkPlus, Check, Clapperboard, Loader2, Play, Upload } from "lucide-react";
@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Modal } from "@/components/modal";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
+import { safeLazy } from "@/lib/lazy-import";
 import {
   fetchExplainerVideo,
   formatDuration,
@@ -24,7 +25,7 @@ import {
  * Le lecteur (Remotion) est chargé à la demande : il ne pèse rien tant que
  * personne n'ouvre une vidéo.
  */
-const ExplainerPlayer = lazy(() => import("@/video/explainer-player"));
+const ExplainerPlayer = safeLazy(() => import("@/video/explainer-player"));
 
 const SAVED_KEY = ["explainer-videos"] as const;
 

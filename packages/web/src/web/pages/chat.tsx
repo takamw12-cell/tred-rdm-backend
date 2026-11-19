@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useUserStore } from "@/stores/user";
 import { useChat } from "@ai-sdk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -73,7 +73,7 @@ import { proofOf } from "@/lib/proof";
 import { insertFormula } from "@/lib/math-input";
 
 // Le champ de formule et MathLive ne sont chargés qu'au premier clic sur « fx ».
-const MathInput = lazy(() => import("@/components/math-input").then((m) => ({ default: m.MathInput })));
+const MathInput = safeLazy(() => import("@/components/math-input"), (m) => m.MathInput);
 import { useProfessorChoreography } from "@/components/hologram-professor";
 import { spokenAnswer } from "@/lib/professor-choreography";
 import { VideoExplainer, type VideoScript } from "@/components/video-explainer";
@@ -123,6 +123,7 @@ import { funnel, noteQuestionAsked } from "@/lib/funnel";
 import { useT } from "@/i18n";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { cn } from "@/lib/utils";
+import { safeLazy } from "@/lib/lazy-import";
 
 /** Outils de calcul : leur présence met le tampon « Berechnet mit dem Löser » sur la Tafel. */
 const SOLVER_TOOLS = new Set([

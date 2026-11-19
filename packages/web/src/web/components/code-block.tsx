@@ -1,4 +1,4 @@
-import { createContext, lazy, Suspense, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, Suspense, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Check, Copy, Download, ListOrdered, Play, Table2 } from "lucide-react";
 import hljs from "highlight.js/lib/core";
 import python from "highlight.js/lib/languages/python";
@@ -7,6 +7,7 @@ import javascript from "highlight.js/lib/languages/javascript";
 import cpp from "highlight.js/lib/languages/cpp";
 import "highlight.js/styles/atom-one-dark.css";
 import { useT } from "@/i18n";
+import { safeLazy } from "@/lib/lazy-import";
 
 hljs.registerLanguage("python", python);
 hljs.registerLanguage("py", python);
@@ -27,7 +28,7 @@ export const CodeSendContext = createContext<((text: string) => void) | null>(nu
 
 // Python runs in the student's browser (Pyodide in a sandbox) — loaded only
 // when someone clicks "Ausführen" / "Variablentabelle".
-const PythonRunner = lazy(() => import("@/components/python-runner").then((m) => ({ default: m.PythonRunner })));
+const PythonRunner = safeLazy(() => import("@/components/python-runner"), (m) => m.PythonRunner);
 
 function triggerDownload(content: string, filename: string) {
   const blob = new Blob([content], { type: "text/plain;charset=utf-8" });

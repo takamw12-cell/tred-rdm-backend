@@ -31,7 +31,7 @@ describe("où il s'ouvre", () => {
 
 describe("ce qu'il charge", () => {
   test("Three.js n'entre dans aucun fichier chargé au démarrage : la scène est en React.lazy", () => {
-    expect(PAGE).toContain('const Explorer3D = lazy(() => import("@/components/Explorer3D"));');
+    expect(PAGE).toContain('const Explorer3D = safeLazy(() => import("@/components/Explorer3D"));');
     expect(PAGE).not.toMatch(/from "three"|from "@react-three/);
     expect(APP).not.toMatch(/from "three"|from "@react-three/);
     expect(PAGE).toContain("<Suspense");

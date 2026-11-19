@@ -1314,6 +1314,10 @@ export const en: Messages = {
   },
   // L'Explorateur 3D (pages/explorer.tsx). Les textes des modèles sont dans lib/explorer-models.ts.
   explorer: {
+    crashed: "The 3D model couldn't be loaded. Please reload the page.",
+    reload: "Reload",
+    lightDevice: "Your device has limited graphics power, so here's an image of the model. The explanations are right next to it.",
+    open3d: "Open in 3D",
     discipline: "Field of study",
     title: "3D Explorer",
     subtitle: "Turn the model, tap a point – and see how it works.",

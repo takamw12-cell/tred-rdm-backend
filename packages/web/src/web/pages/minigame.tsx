@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Box, FileSearch, Flame, Loader2, RotateCcw, Trophy } from "lucide-react";
@@ -10,13 +10,14 @@ import { EXPLORER_MODELS, hotspotOf, pick } from "@/lib/explorer-models";
 import { answer, buildRounds, medalFor, multiplier, ROUND_COUNT, START, ZONES, type GameState } from "@/lib/minigame";
 import { useProfessor } from "@/lib/professors";
 import { cn } from "@/lib/utils";
+import { safeLazy } from "@/lib/lazy-import";
 
 /**
  * Mini-jeu « Triebwerk-Check » (2026-11-15) : huit questions, on touche la
  * bonne pièce sur la coupe du turboréacteur. Les questions sont celles de
  * l'Explorateur 3D — on y apprend, on vérifie ici.
  */
-const MiniGame = lazy(() => import("@/components/MiniGame"));
+const MiniGame = safeLazy(() => import("@/components/MiniGame"));
 const MODEL = EXPLORER_MODELS.turbofan;
 const SPRING = { type: "spring", stiffness: 380, damping: 22 } as const;
 

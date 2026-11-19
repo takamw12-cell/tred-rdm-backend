@@ -1314,6 +1314,10 @@ export const de = {
   },
   // L'Explorateur 3D (pages/explorer.tsx). Les textes des modèles sont dans lib/explorer-models.ts.
   explorer: {
+    crashed: "3D-Modell konnte nicht geladen werden. Bitte lade die Seite neu.",
+    reload: "Neu laden",
+    lightDevice: "Dein Gerät hat wenig Grafikleistung: Hier siehst du ein Bild des Modells. Die Erklärungen findest du daneben.",
+    open3d: "In 3D öffnen",
     discipline: "Fachrichtung",
     title: "3D-Explorer",
     subtitle: "Drehe das Modell, tippe auf einen Punkt – und sieh, wie es funktioniert.",

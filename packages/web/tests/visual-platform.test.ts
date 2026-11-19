@@ -19,7 +19,7 @@ describe("mini-jeu", () => {
     expect(APP).toContain('lazyPage(() => import("./pages/minigame"))');
     expect(GAME).toContain('import("phaser")');
     expect(GAME).toMatch(/^import type PhaserNS from "phaser";$/m);
-    expect(GAME_PAGE).toContain('lazy(() => import("@/components/MiniGame"))');
+    expect(GAME_PAGE).toContain('safeLazy(() => import("@/components/MiniGame"))');
     expect(GAME_PAGE + APP + DASH).not.toMatch(/^import (?!type).* from "phaser"/m);
   });
 

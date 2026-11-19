@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { ActiveContext, HIGHLIGHT, Part, SectionContext, SelectContext, Skin } from "@/components/explorer-kit";
 import { StudioEffects } from "@/components/explorer-effects";
 import { Atom, Cell, GltfModel, Heart, Norms, Surface, TurbofanModel } from "@/components/explorer-scenes";
+import { renderSettings, type DeviceTier } from "@/lib/device-tier";
 
 /**
  * La scène de l'Explorateur 3D — chargée À LA DEMANDE (React.lazy dans
@@ -649,17 +650,20 @@ const STUDIO_HDR = "/hdr/studio-small-03-1k.hdr";
  * matières (rendu physique), deux projecteurs dessinent les volumes, et une
  * ombre de contact pose le modèle sur le sol.
  */
-function StudioLights({ floor }: { floor: number }) {
+function StudioLights({ floor, environment, shadowResolution }: { floor: number; environment: boolean; shadowResolution: number }) {
   return (
     <>
-      <ambientLight intensity={0.15} />
+      <ambientLight intensity={environment ? 0.15 : 0.55} />
       <directionalLight position={[-3, 5, 6]} intensity={1.1} />
       <directionalLight position={[5, 2, -4]} intensity={0.5} color="#9CC8FF" />
       {/* Le temps que l'image arrive, les projecteurs suffisent : la scène n'attend pas. */}
-      <Suspense fallback={null}>
-        <Environment files={STUDIO_HDR} environmentIntensity={0.55} />
-      </Suspense>
-      <ContactShadows position={[0, floor, 0]} scale={14} far={6} blur={2.6} opacity={0.55} resolution={512} color="#000000" />
+      {environment && (
+        <Suspense fallback={null}>
+          <Environment files={STUDIO_HDR} environmentIntensity={0.55} />
+        </Suspense>
+      )}
+      {/* Appareil modeste : pas d'ombre au sol (une passe de rendu de moins). */}
+      {shadowResolution > 0 && <ContactShadows position={[0, floor, 0]} scale={14} far={6} blur={2.6} opacity={0.55} resolution={shadowResolution} color="#000000" />}
     </>
   );
 }
@@ -704,6 +708,8 @@ export default function Explorer3D({
   label,
   noWebGL,
   onResetReady,
+  tier = "high",
+  contextLost,
 }: {
   model: ExplorerModel;
   /** Un fichier .glb à charger À LA PLACE de la scène construite (public/models/). */
@@ -722,7 +728,14 @@ export default function Explorer3D({
   /** Message si le navigateur n'a pas WebGL. */
   noWebGL: string;
   onResetReady: (reset: () => void) => void;
+  /** Niveau de l'appareil (lib/device-tier.ts) : allège le rendu sur téléphone. */
+  tier?: DeviceTier;
+  /** Affiché si le navigateur retire le contexte WebGL (mémoire graphique pleine). */
+  contextLost?: ReactNode;
 }) {
+  const settings = renderSettings(tier);
+  // Le téléphone peut retirer le contexte WebGL (mémoire graphique pleine) : écran noir sinon.
+  const [lost, setLost] = useState(false);
   const focus = model.hotspots.find((h) => h.id === active)?.position ?? null;
   const Scene = SCENES[model.id === "custom" ? "turbofan" : model.id];
   const select = useCallback((id: string) => onSelect(id), [onSelect]);
@@ -742,18 +755,24 @@ export default function Explorer3D({
     [],
   );
 
+  if (lost) return <>{contextLost ?? fallback}</>;
+
   return (
     <WebGLBoundary fallback={fallback}>
       {/* Le canvas ne se lit pas : sa description, pour les lecteurs d'écran. */}
       <p className="sr-only">{label}</p>
       <Canvas
         frameloop={playing ? "always" : "demand"}
-        dpr={[1, 2]}
+        dpr={settings.dpr}
         // Sans courbe de tons ici : elle est appliquée à la fin, par la passe ACES (explorer-effects.tsx).
         flat
-        gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
+        gl={{ antialias: false, alpha: true, powerPreference: settings.powerPreference }}
         onCreated={({ gl }) => {
           gl.localClippingEnabled = true;
+          gl.domElement.addEventListener("webglcontextlost", (e) => {
+            e.preventDefault();
+            setLost(true);
+          });
         }}
         camera={{ position: model.camera, fov: FOV, near: 0.1, far: 120 }}
         fallback={fallback}
@@ -764,7 +783,7 @@ export default function Explorer3D({
         <ActiveContext.Provider value={active}>
           <SelectContext.Provider value={select}>
            <SectionContext.Provider value={planes}>
-            <StudioLights floor={model.bounds.min[1] - 0.05} />
+            <StudioLights floor={model.bounds.min[1] - 0.05} environment={settings.environment} shadowResolution={settings.contactShadowResolution} />
             {modelUrl ? (
               <Suspense fallback={null}>
                 <GltfModel url={modelUrl} />
@@ -775,7 +794,8 @@ export default function Explorer3D({
             <MarkerTracker model={model} buttons={buttons} onCompact={setCompact} />
             <Rig model={model} focus={focus} onResetReady={onReady} />
             <OrbitControls makeDefault enableDamping dampingFactor={0.1} enablePan={false} minDistance={3.2} maxDistance={26} rotateSpeed={0.8} />
-            <StudioEffects light={compact} />
+            {/* Post-traitement (occlusion, bloom) : ordinateur seulement — c'est le plus gourmand en mémoire graphique. */}
+            {settings.effects && <StudioEffects light={compact} />}
             {/* Le cube de vues, comme dans un logiciel de CAO : un clic sur une face oriente la caméra. */}
             {!compact && (
               <GizmoHelper alignment="bottom-right" margin={[58, 62]} renderPriority={2}>
