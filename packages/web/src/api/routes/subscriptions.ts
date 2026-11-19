@@ -352,10 +352,8 @@ export const subscriptions = {
       }),
     )
     .handler(async ({ input, context }) => {
-      if (betaFree()) {
-        console.warn("[subscriptions] createPassCheckout refusé : BILLING_ENABLED n'est pas « true » (bêta gratuite)");
-        throw new ORPCError("FORBIDDEN", { message: "beta_free" });
-      }
+      if (betaFree()) console.warn("[subscriptions] createPassCheckout refusé : BILLING_ENABLED n'est pas « true » (bêta gratuite)");
+      if (betaFree()) throw new ORPCError("FORBIDDEN", { message: "beta_free" });
       const priceId = passPriceId(input.pass);
       if (!process.env.STRIPE_SECRET_KEY || !priceId) {
         console.error(`[subscriptions] createPassCheckout : ${!process.env.STRIPE_SECRET_KEY ? "STRIPE_SECRET_KEY" : `STRIPE_PRICE_PASS_${input.pass.toUpperCase()}`} manquant`);
