@@ -419,6 +419,15 @@ export const fr: Messages = {
     reward: "Tout trouvé ! +{n} crédit",
     rewardCap: "Tout trouvé ! Tu as déjà eu 2 récompenses en crédits aujourd'hui – la suite demain.",
   },
+  marketing: {
+    title: "E-mails",
+    optIn: "Je veux recevoir des astuces et nouveautés de TRED",
+    signupHint: "Facultatif. Tu reçois d'abord un e-mail de confirmation, et tu peux te désinscrire à tout moment.",
+    hint: "De temps en temps des astuces et nouveautés. Facultatif, désinscription à tout moment.",
+    pending: "Confirme le lien reçu par e-mail – rien ne part avant.",
+    confirmed: "Actif. Désinscription ici ou en un clic dans chaque e-mail.",
+    unavailable: "Ce réglage arrive très bientôt.",
+  },
   tafel: {
     colors: "Couleurs",
     colorBoard: "Tableau",

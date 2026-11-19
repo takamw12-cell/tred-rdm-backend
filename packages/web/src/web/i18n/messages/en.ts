@@ -419,6 +419,15 @@ export const en: Messages = {
     reward: "All found! +{n} credit",
     rewardCap: "All found! You've already had 2 credit rewards today – more tomorrow.",
   },
+  marketing: {
+    title: "Emails",
+    optIn: "I'd like to receive tips & news from TRED",
+    signupHint: "Optional. You'll first get an email to confirm, and you can unsubscribe anytime.",
+    hint: "Occasional study tips and new features. Optional, unsubscribe anytime.",
+    pending: "Please confirm the link in your inbox – we won't send anything before that.",
+    confirmed: "Active. Unsubscribe here or with one click in any email.",
+    unavailable: "This setting will be available shortly.",
+  },
   tafel: {
     colors: "Colours",
     colorBoard: "Board",

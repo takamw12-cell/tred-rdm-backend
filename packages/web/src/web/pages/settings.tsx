@@ -18,10 +18,12 @@ import {
   Volume2,
   Landmark,
   UserPen,
+  Mail,
 } from "lucide-react";
 import { LearningStylePicker } from "@/components/learning-style-picker";
 import { ProfessorPicker } from "@/components/professor-picker";
 import { ProfessorCustom } from "@/components/professor-custom";
+import { MarketingToggle } from "@/components/marketing-toggle";
 import { VoicePicker, voicePickerTitle } from "@/components/voice-picker";
 import { professorUi } from "@/lib/professors";
 import { StudiengangPicker } from "@/components/studiengang-picker";
@@ -330,6 +332,11 @@ export default function SettingsPage() {
       {/* « Dein Professor » : prénom et voix (components/professor-custom.tsx). */}
       <Section icon={<UserPen className="size-4" />} title={t("profCustom.title")} description={t("profCustom.subtitle")}>
         <ProfessorCustom />
+      </Section>
+
+      {/* « Tipps & Neuigkeiten » : double opt-in, désinscription immédiate (components/marketing-toggle.tsx). */}
+      <Section icon={<Mail className="size-4" />} title={t("marketing.title")}>
+        <MarketingToggle />
       </Section>
 
       <Section icon={<Volume2 className="size-4" />} title={voicePickerTitle(locale)}>

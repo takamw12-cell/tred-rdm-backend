@@ -1056,3 +1056,27 @@ export const ttsCache = sqliteTable("tts_cache", {
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
   lastUsedAt: integer("last_used_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
 }, (t) => [index("tts_cache_last_used_idx").on(t.lastUsedAt)]);
+
+/**
+ * Consentement aux e-mails « Tipps & Neuigkeiten » (2026-11-19, lib/marketing.ts).
+ * Double opt-in : « pending » à la demande, « confirmed » au clic sur le lien
+ * reçu, « revoked » à la désinscription. Les dates prouvent le consentement.
+ * Créée par migre-marketing.mjs.
+ */
+export const marketingConsent = sqliteTable("marketing_consent", {
+  userId: text("user_id").primaryKey(),
+  status: text("status").notNull(),
+  /** signup | settings */
+  source: text("source").notNull(),
+  requestedAt: integer("requested_at", { mode: "timestamp_ms" }).notNull(),
+  confirmedAt: integer("confirmed_at", { mode: "timestamp_ms" }),
+  revokedAt: integer("revoked_at", { mode: "timestamp_ms" }),
+});
+
+/** Un e-mail de campagne par compte et par campagne, jamais deux. */
+export const marketingEmailLog = sqliteTable("marketing_email_log", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  campaign: text("campaign").notNull(),
+  sentAt: integer("sent_at", { mode: "timestamp_ms" }).notNull(),
+}, (t) => [index("marketing_email_log_user_idx").on(t.userId)]);

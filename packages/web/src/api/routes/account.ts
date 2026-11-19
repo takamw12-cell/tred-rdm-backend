@@ -13,6 +13,7 @@ import { readLearningStyle } from "../lib/learning-style-store";
 import { PROFESSOR_IDS } from "../lib/professors";
 import { readProfessor } from "../lib/professor-store";
 import { readProfessorCustom, saveProfessorCustom } from "../lib/professor-custom";
+import { consentOf, requestConsent, revokeConsent } from "../lib/marketing";
 import { profileUpdateSchema } from "../lib/stored-profile";
 import { readStoredProfile, saveStoredProfile, type ProfileDb } from "../lib/stored-profile-db";
 
@@ -87,6 +88,18 @@ export const account = {
     }),
 
   /** Gewählter Professor (lib/professors.ts). `genius`, solange nichts gewählt wurde. */
+  /** « Tipps & Neuigkeiten » : état du consentement (lib/marketing.ts). */
+  getMarketing: authed.handler(async ({ context }) => ({ status: await consentOf(context.user.id) })),
+
+  /** Demander (double opt-in : un e-mail de confirmation part) ou retirer le consentement. */
+  setMarketing: authed.input(z.object({ optIn: z.boolean(), locale: z.string().max(8).optional() })).handler(async ({ context, input }) => {
+    if (!input.optIn) {
+      await revokeConsent(context.user.id).catch(() => {});
+      return { status: await consentOf(context.user.id) };
+    }
+    return { status: await requestConsent({ id: context.user.id, email: context.user.email, name: context.user.name }, "settings", input.locale) };
+  }),
+
   getProfessor: authed.handler(async ({ context }) => {
     const [professorId, custom] = await Promise.all([readProfessor(context.user.id), readProfessorCustom(context.user.id)]);
     return { professorId, customName: custom.name, customVoice: custom.voice };

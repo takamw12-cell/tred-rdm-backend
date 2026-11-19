@@ -1619,3 +1619,12 @@ Le serveur vérifie que les requêtes de l'app viennent d'une app non modifiée 
 **Limite** : le site web utilise la même API ; un script peut se faire passer pour le navigateur. L'intégrité protège l'app (copies modifiées, émulateurs, appareils rootés), pas l'API dans son ensemble.
 
 **Aussi dans ce lot** : les achats Stripe sont masqués sur Android comme sur iOS, et le serveur refuse tout paiement demandé par l'app. Fiche Google « Sécurité des données » : `docs/STORE-DATA-SAFETY.md`. Note avatar personnalisé : `docs/NOTE-AVATAR-PERSONNALISE.md`.
+
+## E-mails « Tipps & Neuigkeiten » (19 nov. 2026)
+
+- **À lancer une fois** : `node C:\dev\tred-rdm\aerostudy-ai\migre-marketing.mjs` (tables `marketing_consent` et `marketing_email_log`).
+- **Consentement** : case décochée par défaut à l'inscription, et un interrupteur dans Einstellungen → E-Mails. Cocher envoie un e-mail de confirmation ; seul le clic sur ce lien active les envois (double opt-in, preuve datée en base). Chaque e-mail de campagne a un lien « Abmelden (ein Klick) » et l'en-tête List-Unsubscribe.
+- **Envoyer la campagne « Did you know? »** (connecté avec un compte administrateur, dans la console du navigateur sur tred-tutor.de) :
+  - compter d'abord : `await (await fetch("/api/emails/discovery", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ campaign: "arcade-did-you-know" }) })).json()`
+  - envoyer : même commande avec `dryRun: false` dans le corps. 200 adresses au plus par appel ; un compte ne reçoit jamais deux fois la même campagne.
+- Le domaine de `MAIL_FROM` doit être vérifié chez Resend (sinon seuls les envois à ton propre compte Resend passent).

@@ -18,7 +18,7 @@ import { useT } from "@/i18n";
 import { isValidSignupName } from "../../api/lib/display-name";
 
 export default function LoginPage() {
-  const { t } = useT();
+  const { t, locale } = useT();
   // « S'inscrire » sur la page d'accueil : /login?mode=signup ouvre l'inscription.
   const search = useSearch();
   const [mode, setMode] = useState<"signin" | "signup">(() =>
@@ -27,6 +27,8 @@ export default function LoginPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // « Tipps & Neuigkeiten » : décochée par défaut ; cochée = double opt-in (un e-mail de confirmation part).
+  const [marketing, setMarketing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
@@ -100,7 +102,7 @@ export default function LoginPage() {
             // session et mène ici.
             callbackURL: "/dashboard",
             // D'où vient cette inscription (lien de campagne) : rangé sur le compte.
-            fetchOptions: { headers: utmHeaders() },
+            fetchOptions: { headers: { ...utmHeaders(), ...(marketing ? { "x-tred-marketing": "1", "x-tred-locale": locale } : {}) } },
           })
         : await authClient.signIn.email({ email, password, callbackURL: "/dashboard" });
       if (res.error) {
@@ -253,6 +255,20 @@ export default function LoginPage() {
               autoComplete={isSignup ? "new-password" : "current-password"}
             />
           </div>
+
+          {isSignup && (
+            <div className="flex items-start gap-2.5" data-testid="signup-marketing">
+              <input id="signup-marketing" type="checkbox" checked={marketing} onChange={(e) => setMarketing(e.target.checked)} aria-describedby="signup-marketing-hint" className="accent-primary mt-0.5 size-4 cursor-pointer" />
+              <div className="text-sm">
+                <label htmlFor="signup-marketing" className="cursor-pointer font-medium">
+                  {t("marketing.optIn")}
+                </label>
+                <p id="signup-marketing-hint" className="text-muted-foreground text-xs">
+                  {t("marketing.signupHint")}
+                </p>
+              </div>
+            </div>
+          )}
 
           {!isSignup && (
             <div className="flex justify-end">

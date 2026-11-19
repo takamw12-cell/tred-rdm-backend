@@ -66,6 +66,8 @@ export async function sendMail(opts: {
   subject: string;
   html: string;
   text: string;
+  /** En-têtes en plus (ex. List-Unsubscribe pour les e-mails de campagne). */
+  headers?: Record<string, string>;
 }): Promise<MailResult> {
   const key = process.env.RESEND_API_KEY;
 
@@ -91,6 +93,7 @@ export async function sendMail(opts: {
         subject: opts.subject,
         html: opts.html,
         text: opts.text,
+        ...(opts.headers ? { headers: opts.headers } : {}),
       }),
     });
 

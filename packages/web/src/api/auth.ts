@@ -18,6 +18,7 @@ import { db } from "./database";
 import { getAccess } from "./lib/access";
 import { isValidSignupName } from "./lib/display-name";
 import { grantCredits } from "./lib/credits";
+import { MARKETING_HEADER, requestConsent } from "./lib/marketing";
 import { CREDIT_GRANTS } from "./lib/plan";
 import { AUTH_IP_ADDRESS, SESSION_WITHOUT_IP } from "./lib/client-ip";
 
@@ -165,10 +166,16 @@ export const auth = betterAuth({
     // Une panne ici ne doit jamais empêcher une inscription.
     user: {
       create: {
-        after: async (user) => {
+        after: async (user, context) => {
           await grantCredits({ userId: user.id, amount: CREDIT_GRANTS.welcome, transactionId: `welcome:${user.id}`, description: "Willkommen bei TRED", type: "grant" }).catch((error) => {
             console.error("[auth] welcome credits failed", error instanceof Error ? error.name : "erreur");
           });
+          // Case « Tipps & Neuigkeiten » cochée (décochée par défaut) : double opt-in (lib/marketing.ts).
+          if (context?.headers?.get(MARKETING_HEADER) === "1") {
+            await requestConsent({ id: user.id, email: user.email, name: user.name }, "signup", context.headers.get("x-tred-locale")).catch((error) => {
+              console.error("[auth] marketing consent failed", error instanceof Error ? error.name : "erreur");
+            });
+          }
         },
       },
     },

@@ -418,6 +418,15 @@ export const de = {
     reward: "Alles gefunden! +{n} Credit",
     rewardCap: "Alles gefunden! Heute gab es schon 2 Credit-Belohnungen – morgen wieder.",
   },
+  marketing: {
+    title: "E-Mails",
+    optIn: "Ich möchte Tipps & Neuigkeiten von TRED erhalten",
+    signupHint: "Freiwillig. Du bekommst zuerst eine E-Mail zur Bestätigung und kannst dich jederzeit abmelden.",
+    hint: "Gelegentlich Lerntipps und neue Funktionen. Freiwillig, jederzeit abbestellbar.",
+    pending: "Bitte bestätige den Link in deinem Postfach – vorher schicken wir nichts.",
+    confirmed: "Aktiv. Abmelden geht hier oder mit einem Klick in jeder E-Mail.",
+    unavailable: "Diese Einstellung ist gleich verfügbar.",
+  },
   tafel: {
     colors: "Farben",
     colorBoard: "Tafel",
