@@ -1,0 +1,74 @@
+TRED — e-mail aux bêta-testeurs (DE puis EN)
+
+À envoyer depuis ta boîte personnelle : d'abord à toi-même pour relire, puis
+à tes bêta-testeurs EN COPIE CACHÉE (Cci / Bcc), jamais en « À » : sinon les
+36 adresses sont visibles par tout le monde (RGPD).
+
+Avant l'envoi :
+  · les « 10 crédits offerts » ne sont vrais que si la commande
+      node migre-beta-credits.mjs --apply
+    a été lancée. Lance d'abord `node migre-beta-credits.mjs` (sans --apply,
+    elle compte seulement) pour savoir combien de comptes il reste à créditer ;
+  · remplace [Ton prénom] par ton prénom.
+
+──────────────── DE ────────────────
+
+Betreff : TRED ist offiziell online – 10 Credits warten auf dich
+
+Hallo,
+
+TRED ist ab heute offiziell online: https://www.tred-tutor.de
+
+Du warst von Anfang an dabei, deshalb liegen auf deinem Konto 10 Credits als
+Geschenk bereit. Damit kannst du direkt loslegen.
+
+Neu seit der Beta:
+• Dein Professor – gib deinem KI-Professor einen Namen und such dir seine
+  Stimme aus. Er erklärt dir alles Schritt für Schritt, mit der Seite aus
+  deinem eigenen Skript.
+• Arcade – ein 15-Sekunden-Quiz aus deinen eigenen Unterlagen. Eine perfekte
+  Runde bringt dir 2 Credits.
+• Panik-Modus – die 3 wichtigsten Formeln aus deinem Skript, für den Abend
+  vor der Klausur.
+
+Und wenn du Freunde einlädst (tred-tutor.de/invite), bekommt ihr beide
+15 Credits.
+
+Danke, dass du an TRED geglaubt hast, als es noch eine Beta war. Dein Feedback
+hat die App geformt – schreib mir gern weiter, was dir fehlt.
+
+Viele Grüße
+[Ton prénom]
+Gründer von TRED
+
+Du möchtest keine Nachrichten mehr von mir? Antworte einfach mit „Stopp“.
+
+──────────────── EN ────────────────
+
+Subject: TRED is officially live – 10 credits are waiting for you
+
+Hi,
+
+TRED is officially live as of today: https://www.tred-tutor.de
+
+You were with us from the start, so there are 10 free credits waiting in
+your account. You can jump right in.
+
+New since the beta:
+• Your Professor – give your AI professor a name and pick its voice. It
+  explains everything step by step, with the page from your own notes.
+• Arcade – a 15-second quiz built from your own notes. A perfect round
+  earns you 2 credits.
+• Panic mode – the 3 key formulas from your script, for the night before
+  the exam.
+
+And if you invite friends (tred-tutor.de/invite), you both get 15 credits.
+
+Thank you for believing in TRED back when it was just a beta. Your feedback
+shaped the app – keep telling me what's missing.
+
+Best,
+[Ton prénom]
+Founder of TRED
+
+Don't want any more messages from me? Just reply "stop".

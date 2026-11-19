@@ -122,6 +122,70 @@ npm run render:marketing-all -- en2-3d-arcade  (une seule)
 
 ---
 
+## 3. Ce soir (19 nov. 2026) — checklist finale
+
+État vérifié à 13 h 20 UTC :
+- **Production à jour** : le dernier commit (`85f2049`) est déployé (Railway SUCCESS).
+  Le site, `/pricing` et `/api/config` répondent en 200, en moins de 0,8 s.
+  Aucune erreur dans les journaux depuis 11 h 03 UTC.
+- **Webhook Stripe** : l'endpoint du mode test (`we_1U6Cuh…`) est désactivé.
+  L'endpoint live `we_1UdHfR…` est actif, avec 7 événements.
+- **Paiement réel : PAS ENCORE PROUVÉ.** Dans Stripe live, il n'y a aucun
+  paiement (0 charge) et une seule session de paiement : le Semester-Pass, ouverte
+  à 12 h 06 UTC et restée « non payée ». La création de la page Stripe fonctionne,
+  mais pas encore « argent encaissé → webhook → crédits ». Voir la première case
+  ci-dessous.
+
+À cocher dans l'ordre :
+
+- [ ] **Achat réel de contrôle** : Pack 20 Credits (4,99 €) ou Klausur-Pass (9,99 €),
+      payé jusqu'au bout. Ensuite, vérifier :
+      - Stripe → Paiements : le paiement « Réussi » ;
+      - Stripe → Webhooks → `we_1UdHfR…` : `checkout.session.completed` livré en 200 ;
+      - TRED : la pastille de crédits a augmenté.
+
+      Si l'un des trois manque, me l'écrire avant d'envoyer l'e-mail.
+- [ ] **Crédits des bêta-testeurs** :
+      `node migre-beta-credits.mjs` (compte), puis `node migre-beta-credits.mjs --apply`.
+- [ ] **Poster EN 1** : `packages\video\out\marketing\en1-panic-hack-musique-v1.mp4`.
+      Légende n° 1 de `marketing\TIKTOK_CAPTIONS.txt`.
+- [ ] **LinkedIn** : `marketing\LINKEDIN_POST.txt`, avec la vidéo EN 1 tant que
+      EN 2 / DE 2 ne sont pas rendues.
+- [ ] **E-mail aux 36 bêta-testeurs** : `marketing\EMAIL_BETA.txt` (DE + EN). Ne
+      l'envoyer qu'après les deux premières cases.
+      1. L'envoyer d'abord **à toi-même** depuis ta boîte (Gmail), pour relire.
+      2. Puis l'envoyer aux bêta-testeurs en **Cci** (jamais en « À »).
+
+      TRED n'a pas d'envoi groupé libre depuis l'admin : `/api/emails/discovery`
+      envoie seulement les campagnes « Tipps & Neuigkeiten » prévues, et seulement
+      aux comptes qui ont confirmé leur abonnement (double opt-in).
+- [ ] **Le soir** : Railway → Logs, filtres `[subscriptions]` et `[stripe] webhook`.
+      Stripe → Paiements.
+
+### Les fichiers (chemins exacts)
+
+| Quoi | Fichier |
+|---|---|
+| Post LinkedIn (EN + DE) | `C:\dev\tred-rdm\aerostudy-ai\marketing\LINKEDIN_POST.txt` |
+| Légendes TikTok (6 vidéos) | `C:\dev\tred-rdm\aerostudy-ai\marketing\TIKTOK_CAPTIONS.txt` |
+| E-mail bêta-testeurs (DE + EN) | `C:\dev\tred-rdm\aerostudy-ai\marketing\EMAIL_BETA.txt` |
+| Vidéo EN 1 (à poster ce soir) | `C:\dev\tred-rdm\aerostudy-ai\packages\video\out\marketing\en1-panic-hack-musique-v1.mp4` |
+| Vidéo EN 1, musique « focus » | `C:\dev\tred-rdm\aerostudy-ai\packages\video\out\marketing\en1-panic-hack.mp4` |
+
+### Les 5 autres vidéos, une fois les crédits ElevenLabs achetés
+
+Il faut environ 1 300 caractères. Dans le terminal de Claude Code :
+
+```
+! cd /mnt/c/dev/tred-rdm/aerostudy-ai/packages/video && npm run voiceover:marketing && npm run render:marketing-all -- de1-klausur-rettung en2-3d-arcade de2-technischer-deep-dive en3-personal-professor de3-lernprofil
+```
+
+- `voiceover:marketing` ne génère que les voix manquantes. La voix de EN 1 existe
+  déjà et n'est pas refacturée.
+- Le rendu prend environ 20 min par vidéo, soit 1 h 30 à 2 h pour les cinq.
+- Les fichiers arrivent dans `packages\video\out\marketing\<id>.mp4`.
+- Chaque vidéo prend automatiquement sa musique : focus, chillhop ou cosy.
+
 ## 3. Le jour J — liste
 
 - [ ] Migrations de la section 1 vérifiées (surtout `migre-beta-credits --apply`
