@@ -5,6 +5,7 @@ import { db } from "../database";
 import { user } from "../database/auth-schema";
 import { MAX_REFERRALS, redeemReferral, referralCodeOf, referralStats } from "../lib/referral";
 import { CREDIT_GRANTS } from "../lib/plan";
+import { publicSiteUrl } from "../lib/return-url";
 
 /**
  * Parrainage (lib/referral.ts).
@@ -20,7 +21,7 @@ const findUser = async (id: string) => {
 export const referralRoutes = {
   me: authed.handler(async ({ context }) => {
     const [code, stats] = await Promise.all([referralCodeOf(db, context.user.id), referralStats(db, context.user.id)]);
-    const site = (process.env.WEBSITE_URL ?? "").replace(/\/$/, "");
+    const site = publicSiteUrl();
     return {
       /** null : les tables du parrainage ne sont pas encore créées (migre-referral.mjs). */
       code,

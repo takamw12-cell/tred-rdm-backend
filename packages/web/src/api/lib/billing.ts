@@ -11,6 +11,7 @@ import { user } from "../database/auth-schema";
 import { withDbRetry } from "./db-retry";
 import { mailLang, paymentFailedMail, sendMail } from "./mail";
 import { PASSES, PASS_STATUS, passValidUntil, type PassKind } from "./passes";
+import { publicSiteUrl } from "./return-url";
 
 /**
  * Bindeglied zwischen Stripe und `user_plan`.
@@ -383,7 +384,7 @@ export async function markPaymentFailed(invoice: { customer?: string | { id: str
   const [account] = await db.select({ email: user.email, name: user.name }).from(user).where(eq(user.id, row.userId)).limit(1);
   if (!account?.email) return { userId: row.userId, mailed: false };
   const [access] = await db.select({ locale: userAccess.locale }).from(userAccess).where(eq(userAccess.userId, row.userId)).limit(1).catch(() => []);
-  const mail = paymentFailedMail(`${process.env.WEBSITE_URL ?? ""}/pricing`, account.name, mailLang(access?.locale));
+  const mail = paymentFailedMail(`${publicSiteUrl()}/pricing`, account.name, mailLang(access?.locale));
   const sent = await sendMail({ to: account.email, ...mail });
   return { userId: row.userId, mailed: sent.ok };
 }

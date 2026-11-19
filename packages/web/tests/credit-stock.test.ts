@@ -259,3 +259,31 @@ describe("achat d'un Pass bloqué par un abonnement fantôme (19 nov. 2026)", ()
     expect(billing).toContain("await forgetStripeIds(row.userId);");
   });
 });
+
+describe("paiement refusé par Stripe : « Not a valid URL » (19 nov. 2026)", () => {
+  test("l'adresse publique est normalisée, avec repli sur le domaine", async () => {
+    const { publicSiteUrl, PUBLIC_SITE } = await import("../src/api/lib/return-url");
+    expect(publicSiteUrl("https://www.tred-tutor.de/")).toBe("https://www.tred-tutor.de");
+    expect(publicSiteUrl("www.tred-tutor.de")).toBe("https://www.tred-tutor.de");
+    expect(publicSiteUrl(' "https://www.tred-tutor.de" ')).toBe("https://www.tred-tutor.de");
+    expect(publicSiteUrl("https://www.tred-tutor.de/dashboard")).toBe("https://www.tred-tutor.de");
+    expect(publicSiteUrl("")).toBe(PUBLIC_SITE);
+    expect(publicSiteUrl(undefined)).toBe(PUBLIC_SITE);
+    expect(publicSiteUrl("ftp://x")).toBe(PUBLIC_SITE);
+    expect(publicSiteUrl("http://localhost:4587")).toBe("http://localhost:4587");
+  });
+
+  test("toutes les adresses de retour Stripe passent par publicSiteUrl", () => {
+    const sub = read("src/api/routes/subscriptions.ts");
+    expect(sub).not.toContain('process.env.WEBSITE_URL ?? ""');
+    expect(read("src/api/routes/credits.ts")).not.toContain('process.env.WEBSITE_URL ?? ""');
+    expect(sub).toContain("data: { stripe: stripeErrorCode(error) }");
+    expect(read("src/web/pages/pricing.tsx")).toContain("(Stripe: ${e.data.stripe})");
+  });
+
+  test("le code Stripe remonté ne contient que le code et le paramètre", async () => {
+    const { stripeErrorCode } = await import("../src/api/lib/stripe-error");
+    expect(stripeErrorCode({ code: "url_invalid", param: "success_url", message: "Not a valid URL", raw: { secret: "x" } })).toBe("url_invalid · success_url");
+    expect(stripeErrorCode(new Error("boom"))).toBeNull();
+  });
+});

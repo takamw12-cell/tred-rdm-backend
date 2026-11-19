@@ -18,7 +18,8 @@ import { getStripe } from "../lib/stripe";
 import { betaFree, CREDIT_COST, CREDIT_GRANTS, getOutputTokens, getPlan, getUsage, LIMITS, OUTPUT_TOKEN_CAP, PRICING, UNLIMITED_PLANS } from "../lib/plan";
 import { readTrial, type TrialDb } from "../lib/trial";
 import { PASSES, PASS_KINDS, PASS_STATUS, passPriceId, type PassKind } from "../lib/passes";
-import { safeReturnUrl } from "../lib/return-url";
+import { publicSiteUrl, safeReturnUrl } from "../lib/return-url";
+import { stripeErrorCode } from "../lib/stripe-error";
 import { db } from "../database";
 
 /**
@@ -280,7 +281,7 @@ export const subscriptions = {
         throw new ORPCError("BAD_REQUEST", { message: "Unbekannte Preis-ID." });
       }
 
-      const appUrl = process.env.WEBSITE_URL ?? "";
+      const appUrl = publicSiteUrl();
 
       try {
         const existing = await getPlanRow(context.user.id);
@@ -366,7 +367,7 @@ export const subscriptions = {
         throw new ORPCError("BAD_REQUEST", { message: "already_subscribed" });
       }
 
-      const appUrl = process.env.WEBSITE_URL ?? "";
+      const appUrl = publicSiteUrl();
       try {
         const customerId = await getOrCreateCustomer(context.user);
         const session = await getStripe().checkout.sessions.create({
@@ -390,7 +391,7 @@ export const subscriptions = {
       } catch (error) {
         if (error instanceof ORPCError) throw error;
         console.error("[subscriptions] createPassCheckout failed", error);
-        throw new ORPCError("BAD_GATEWAY", { message: "Der Bezahlvorgang konnte nicht gestartet werden." });
+        throw new ORPCError("BAD_GATEWAY", { message: "Der Bezahlvorgang konnte nicht gestartet werden.", data: { stripe: stripeErrorCode(error) } });
       }
     }),
 
@@ -406,7 +407,7 @@ export const subscriptions = {
       try {
         const portal = await getStripe().billingPortal.sessions.create({
           customer: row.customerId,
-          return_url: safeReturnUrl(input?.returnUrl, `${process.env.WEBSITE_URL ?? ""}/pricing`),
+          return_url: safeReturnUrl(input?.returnUrl, `${publicSiteUrl()}/pricing`),
         });
         return { url: portal.url };
       } catch (error) {

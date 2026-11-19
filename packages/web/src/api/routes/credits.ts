@@ -9,7 +9,7 @@ import { getStripe } from "../lib/stripe";
 import { betaFree, CREDIT_COST, getPlan, getUsage, LIMITS } from "../lib/plan";
 import { DAILY_REWARD_CAP, rewardsEarnedToday } from "../lib/study-rewards";
 import { db } from "../database";
-import { safeReturnUrl } from "../lib/return-url";
+import { publicSiteUrl, safeReturnUrl } from "../lib/return-url";
 
 /**
  * Credits (oRPC, erreichbar unter /api/rpc/credits.*).
@@ -169,7 +169,7 @@ export const credits = {
         throw new ORPCError("BAD_REQUEST", { message: "Unbekanntes Credit-Paket." });
       }
 
-      const appUrl = process.env.WEBSITE_URL ?? "";
+      const appUrl = publicSiteUrl();
 
       if ((input.mode ?? "checkout") === "payment_link") {
         const link = process.env.STRIPE_PAYMENT_LINK_CREDITS;

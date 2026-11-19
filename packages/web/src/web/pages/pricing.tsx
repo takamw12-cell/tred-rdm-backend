@@ -84,8 +84,11 @@ export default function PricingPage() {
     },
     // Le motif du serveur, quand il en donne un : « Bitte später erneut versuchen » n'aide pas si rien ne changera.
     onError: (err) => {
-      const m = (err as { message?: string } | null)?.message;
-      setError(m === "already_subscribed" ? c.alreadySubscribed : m === "beta_free" ? c.betaBanner : c.checkoutError);
+      const e = err as { message?: string; data?: { stripe?: string | null } } | null;
+      const m = e?.message;
+      // Le code renvoyé par Stripe (sans secret), pour qu'une panne se diagnostique depuis la page.
+      const code = e?.data?.stripe ? ` (Stripe: ${e.data.stripe})` : m && m !== "already_subscribed" && m !== "beta_free" ? ` (${m})` : "";
+      setError(m === "already_subscribed" ? c.alreadySubscribed : m === "beta_free" ? c.betaBanner : `${c.checkoutError}${code}`);
     },
   });
 
