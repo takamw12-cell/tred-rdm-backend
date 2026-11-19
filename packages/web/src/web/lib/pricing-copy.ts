@@ -72,6 +72,7 @@ export interface PricingCopy {
   activeUntil: (date: string) => string;
   payments: string;
   checkoutError: string;
+  alreadySubscribed: string;
   portalError: string;
   paid: string;
   metric: Record<PaywallMetric, string>;
@@ -157,6 +158,7 @@ const de: PricingCopy = {
   activeUntil: (d) => `Aktiv bis ${d}`,
   payments: "Akzeptierte Zahlungsmethoden",
   checkoutError: "Der Bezahlvorgang konnte nicht gestartet werden. Bitte später erneut versuchen.",
+  alreadySubscribed: "Du hast bereits ein laufendes Abo – ein Pass dazu wäre doppelt bezahlt.",
   portalError: "Das Kundenportal ist gerade nicht erreichbar.",
   paid: "Zahlung erhalten. Dein Zugang wird gerade freigeschaltet …",
   metric: { chat: "Chats", exercise: "Übungen", video: "Videos", formulas: "Formelsammlungen", documents: "Dokumente" },
@@ -243,6 +245,7 @@ const en: PricingCopy = {
   activeUntil: (d) => `Active until ${d}`,
   payments: "Accepted payment methods",
   checkoutError: "Checkout could not be started. Please try again later.",
+  alreadySubscribed: "You already have a running subscription – a pass on top would mean paying twice.",
   portalError: "The customer portal is not reachable right now.",
   paid: "Payment received. Your access is being activated …",
   metric: { chat: "chats", exercise: "exercises", video: "videos", formulas: "formula sheets", documents: "documents" },
@@ -329,6 +332,7 @@ const fr: PricingCopy = {
   activeUntil: (d) => `Actif jusqu'au ${d}`,
   payments: "Moyens de paiement acceptés",
   checkoutError: "Le paiement n'a pas pu démarrer. Réessaie plus tard.",
+  alreadySubscribed: "Tu as déjà un abonnement en cours – un pass en plus serait payé deux fois.",
   portalError: "Le portail client est momentanément indisponible.",
   paid: "Paiement reçu. Ton accès est en cours d'activation …",
   metric: { chat: "chats", exercise: "exercices", video: "vidéos", formulas: "formulaires", documents: "documents" },

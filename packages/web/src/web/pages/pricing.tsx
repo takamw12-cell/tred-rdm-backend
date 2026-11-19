@@ -82,7 +82,11 @@ export default function PricingPage() {
     onSuccess: (res) => {
       window.location.href = res.url;
     },
-    onError: () => setError(c.checkoutError),
+    // Le motif du serveur, quand il en donne un : « Bitte später erneut versuchen » n'aide pas si rien ne changera.
+    onError: (err) => {
+      const m = (err as { message?: string } | null)?.message;
+      setError(m === "already_subscribed" ? c.alreadySubscribed : m === "beta_free" ? c.betaBanner : c.checkoutError);
+    },
   });
 
   const portalMut = useMutation({

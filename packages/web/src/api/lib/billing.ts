@@ -115,6 +115,26 @@ export function isMissingResource(error: unknown): boolean {
   return (error as { code?: unknown } | null)?.code === "resource_missing";
 }
 
+/**
+ * L'abonnement noté sur le compte existe-t-il VRAIMENT, et est-il en cours,
+ * pour la clé Stripe actuelle ? Un abonnement de l'essai en mode test
+ * (incident du 19 nov. 2026) restait « active » en base et bloquait l'achat
+ * d'un Pass en live (400 already_subscribed, avant tout appel à Stripe).
+ * Introuvable ou terminé chez Stripe : on oublie les identifiants et on répond non.
+ */
+export async function subscriptionReallyActive(row: { userId: string; subscriptionId: string | null; subscriptionStatus: string | null } | null | undefined): Promise<boolean> {
+  if (!row?.subscriptionId || !["active", "trialing", "past_due"].includes(row.subscriptionStatus ?? "")) return false;
+  try {
+    const sub = await getStripe().subscriptions.retrieve(row.subscriptionId);
+    if (["active", "trialing", "past_due"].includes(sub.status)) return true;
+  } catch (error) {
+    if (!isMissingResource(error)) throw error;
+  }
+  console.warn(`[billing] user=${row.userId} : abonnement ${row.subscriptionId.slice(0, 8)}… introuvable ou terminé chez Stripe, identifiants oubliés`);
+  await forgetStripeIds(row.userId);
+  return false;
+}
+
 /** Oublie le client et l'abonnement Stripe d'un compte (créés dans l'autre mode). L'accès n'est pas touché. */
 export async function forgetStripeIds(userId: string): Promise<void> {
   await db.update(userPlan).set({ customerId: null, subscriptionId: null, subscriptionStatus: null, updatedAt: new Date() }).where(eq(userPlan.userId, userId));

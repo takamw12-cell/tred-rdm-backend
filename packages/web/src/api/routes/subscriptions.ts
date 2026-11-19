@@ -4,6 +4,7 @@ import type Stripe from "stripe";
 
 import { authed } from "../middleware/auth";
 import {
+  subscriptionReallyActive,
   forgetStripeIds,
   isMissingResource,
   getOrCreateCustomer,
@@ -351,14 +352,19 @@ export const subscriptions = {
       }),
     )
     .handler(async ({ input, context }) => {
-      if (betaFree()) throw new ORPCError("FORBIDDEN", { message: "beta_free" });
+      if (betaFree()) {
+        console.warn("[subscriptions] createPassCheckout refusé : BILLING_ENABLED n'est pas « true » (bêta gratuite)");
+        throw new ORPCError("FORBIDDEN", { message: "beta_free" });
+      }
       const priceId = passPriceId(input.pass);
       if (!process.env.STRIPE_SECRET_KEY || !priceId) {
+        console.error(`[subscriptions] createPassCheckout : ${!process.env.STRIPE_SECRET_KEY ? "STRIPE_SECRET_KEY" : `STRIPE_PRICE_PASS_${input.pass.toUpperCase()}`} manquant`);
         throw new ORPCError("SERVICE_UNAVAILABLE", { message: "Zahlungen sind noch nicht konfiguriert." });
       }
       const existing = await getPlanRow(context.user.id);
       // Un abonnement en cours se prolonge tout seul : lui vendre un Pass par-dessus ferait payer deux fois.
-      if (existing?.subscriptionId && existing.subscriptionStatus !== PASS_STATUS && ["active", "trialing", "past_due"].includes(existing.subscriptionStatus ?? "")) {
+      if (existing?.subscriptionId && existing.subscriptionStatus !== PASS_STATUS && (await subscriptionReallyActive(existing))) {
+        console.warn(`[subscriptions] createPassCheckout refusé : abonnement en cours (user=${context.user.id})`);
         throw new ORPCError("BAD_REQUEST", { message: "already_subscribed" });
       }
 

@@ -244,3 +244,18 @@ describe("restes du mode test (19 nov. 2026)", () => {
     expect(sub).toContain('throw new ORPCError("NOT_FOUND", { message: "stale_customer" })');
   });
 });
+
+describe("achat d'un Pass bloqué par un abonnement fantôme (19 nov. 2026)", () => {
+  test("avant de refuser « already_subscribed », le serveur vérifie l'abonnement chez Stripe", () => {
+    const sub = read("src/api/routes/subscriptions.ts");
+    const route = sub.slice(sub.indexOf("createPassCheckout: authed"), sub.indexOf("portal: authed"));
+    expect(route).toContain("(await subscriptionReallyActive(existing))");
+    expect(route.indexOf("subscriptionReallyActive")).toBeLessThan(route.indexOf('message: "already_subscribed"'));
+    // Chaque refus laisse une trace : un 4xx muet a coûté une matinée.
+    expect(route).toContain("createPassCheckout refusé : BILLING_ENABLED");
+    expect(route).toContain("createPassCheckout refusé : abonnement en cours");
+    const billing = read("src/api/lib/billing.ts");
+    expect(billing).toContain("const sub = await getStripe().subscriptions.retrieve(row.subscriptionId);");
+    expect(billing).toContain("await forgetStripeIds(row.userId);");
+  });
+});
