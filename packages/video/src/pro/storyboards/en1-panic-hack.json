@@ -1,0 +1,67 @@
+{
+ "id": "en1-panic-hack",
+ "lang": "en",
+ "voiceId": "EXAVITQu4vr4xnSDxMaL",
+ "title": "The Panic Hack",
+ "palette": "night",
+ "scenes": [
+  {
+   "part": "hook",
+   "seconds": 2.8,
+   "kind": "broll",
+   "headline": "Exam tomorrow?",
+   "voice": "Exam tomorrow? Zero clue?",
+   "media": "broll-stress",
+   "focus": {
+    "x": 50,
+    "y": 0,
+    "zoom": 1.35
+   }
+  },
+  {
+   "part": "body",
+   "seconds": 5.6,
+   "kind": "glass",
+   "headline": "The 3 formulas you need",
+   "voice": "Panic mode pulls the three key formulas from your own PDF.",
+   "media": "panik-modus",
+   "eyebrow": "Panic mode"
+  },
+  {
+   "part": "body",
+   "seconds": 6.4,
+   "kind": "split",
+   "headline": "Proof from your own PDF",
+   "voice": "Every answer shows the exact page in your notes. Tap it, and the real page opens.",
+   "media": "app-v5-en-proof",
+   "media2": "app-v5-en-proof-pdf",
+   "label2": "Thermodynamics_Chapter_3 · p. 12",
+   "eyebrow": "Source check",
+   "from": 7
+  },
+  {
+   "part": "body",
+   "seconds": 5.2,
+   "kind": "glass",
+   "headline": "Real formulas, step by step",
+   "voice": "Real formulas, written out step by step.",
+   "media": "app-v5-en-steps",
+   "eyebrow": "LaTeX"
+  },
+  {
+   "part": "body",
+   "seconds": 3.4,
+   "kind": "statement",
+   "headline": "Your PDF. Not the internet.",
+   "voice": "Your PDF. Not the internet."
+  },
+  {
+   "part": "cta",
+   "seconds": 3.8,
+   "kind": "outro",
+   "headline": "tred-tutor.de",
+   "voice": "Try TRED tonight.",
+   "sub": "Free to start · 10 credits"
+  }
+ ]
+}

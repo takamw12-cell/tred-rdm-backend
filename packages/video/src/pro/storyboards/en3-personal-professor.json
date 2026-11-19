@@ -1,0 +1,61 @@
+{
+ "id": "en3-personal-professor",
+ "lang": "en",
+ "voiceId": "XB0fDUnXU5powFXDhCwa",
+ "title": "Your Personal AI Professor",
+ "palette": "violet",
+ "scenes": [
+  {
+   "part": "hook",
+   "seconds": 2.8,
+   "kind": "statement",
+   "headline": "What if your tutor knew your script?",
+   "voice": "What if your tutor knew your script?"
+  },
+  {
+   "part": "body",
+   "seconds": 5.4,
+   "kind": "glass",
+   "headline": "Name it. Pick a voice.",
+   "voice": "Name your AI professor, and pick the voice you like.",
+   "media": "dein-professor",
+   "eyebrow": "Your professor"
+  },
+  {
+   "part": "body",
+   "seconds": 6.0,
+   "kind": "glass",
+   "headline": "Ask out loud",
+   "voice": "Ask out loud, and hear it explained step by step.",
+   "media": "app-v6-en-voice",
+   "eyebrow": "Voice"
+  },
+  {
+   "part": "body",
+   "seconds": 6.4,
+   "kind": "split",
+   "headline": "Proof from your own PDF",
+   "voice": "Every answer points to the page in your own file. Tap it and check.",
+   "media": "app-v5-en-proof",
+   "media2": "app-v5-en-proof-pdf",
+   "label2": "Thermodynamics_Chapter_3 · p. 12",
+   "eyebrow": "Source check",
+   "from": 7
+  },
+  {
+   "part": "body",
+   "seconds": 3.4,
+   "kind": "statement",
+   "headline": "Built by a student. For students.",
+   "voice": "Built by a student, for students."
+  },
+  {
+   "part": "cta",
+   "seconds": 3.8,
+   "kind": "outro",
+   "headline": "tred-tutor.de",
+   "voice": "Start free today.",
+   "sub": "10 free credits to start"
+  }
+ ]
+}

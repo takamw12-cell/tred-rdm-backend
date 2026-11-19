@@ -1,0 +1,61 @@
+{
+ "id": "en2-3d-arcade",
+ "lang": "en",
+ "voiceId": "onwK4e9ZLuTAKqWW03F9",
+ "title": "The 3D & Arcade Experience",
+ "palette": "aurora",
+ "scenes": [
+  {
+   "part": "hook",
+   "seconds": 2.8,
+   "kind": "broll",
+   "headline": "Reading is boring.",
+   "voice": "Reading is boring. Watch this.",
+   "media": "broll-turbine"
+  },
+  {
+   "part": "body",
+   "seconds": 6.2,
+   "kind": "glass",
+   "headline": "Turn the real turbofan",
+   "voice": "In the 3D Explorer, you turn a real turbofan and tap every part.",
+   "media": "app-sk5-turbofan",
+   "eyebrow": "3D Explorer"
+  },
+  {
+   "part": "body",
+   "seconds": 5.2,
+   "kind": "glass",
+   "headline": "Find the part. Learn why.",
+   "voice": "The 3D Detective asks you to find the right part, and tells you why.",
+   "media": "detective-rouge",
+   "eyebrow": "3D Detective"
+  },
+  {
+   "part": "body",
+   "seconds": 5.4,
+   "kind": "glass",
+   "headline": "15 seconds per question",
+   "voice": "Then the Arcade: fifteen seconds per question, built from your own notes.",
+   "media": "arcade-chrono",
+   "eyebrow": "Arcade"
+  },
+  {
+   "part": "body",
+   "seconds": 4.4,
+   "kind": "glass",
+   "headline": "Perfect round: +2 credits",
+   "voice": "A perfect round earns you two credits.",
+   "media": "arcade-perfekt",
+   "eyebrow": "Perfect round"
+  },
+  {
+   "part": "cta",
+   "seconds": 3.8,
+   "kind": "outro",
+   "headline": "tred-tutor.de",
+   "voice": "Play your way through the exam.",
+   "sub": "Free to start · 10 credits"
+  }
+ ]
+}

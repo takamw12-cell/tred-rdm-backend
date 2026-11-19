@@ -1,0 +1,29 @@
+TRED — légendes TikTok des 6 vidéos « Pro Marketing »
+Fichiers : packages/video/out/marketing/<id>.mp4 (1080 × 1920, ~30 s)
+Rendu : cd packages/video && npm run render:marketing-all
+Message central : « la preuve par ton propre PDF ».
+Règles : pas de chiffres inventés, pas de « 100 % », pas de « zéro erreur / zéro hallucination » (promesse absolue, UWG).
+
+1) en1-panic-hack.mp4 — EN · The Panic Hack
+Exam tomorrow and zero clue? 😮‍💨 Panic mode pulls the 3 formulas you need from YOUR PDF — and every answer shows its page. Proof from your own notes, not the internet. Free to start 👉 tred-tutor.de
+#exam #studytok #studyhacks #university #engineering #finals
+
+2) en2-3d-arcade.mp4 — EN · 3D & Arcade
+Reading is boring. Turn the turbofan, find the part, then beat the 15-second Arcade quiz built from your own notes 🎮 tred-tutor.de
+#studytok #gamification #engineering #3d #learnontiktok
+
+3) en3-personal-professor.mp4 — EN · Your Personal AI Professor
+Name your AI professor, pick its voice, ask out loud — answers point to the page in your own files 🎙️ tred-tutor.de
+#studytok #aitools #studentlife #university #studywithme
+
+4) de1-klausur-rettung.mp4 — DE · Klausur-Rettung
+Klausur morgen? 😮‍💨 Erst mal durchatmen. Der Panik-Modus holt die 3 wichtigsten Formeln aus DEINEM Skript – mit Seitenzahl. Kostenlos starten 👉 tred-tutor.de
+#klausurphase #studium #lernen #uni #studytok
+
+5) de2-technischer-deep-dive.mp4 — DE · Technischer Deep-Dive
+Wie funktioniert ein Triebwerk wirklich? 3D-Explorer, Rechnung an der Tafel, Formel als Erklärvideo ✈️ tred-tutor.de
+#maschinenbau #ingenieur #studium #luftfahrt #studytok
+
+6) de3-lernprofil.mp4 — DE · Dein Lernprofil
+Wo hakt es bei dir? Dein Lernprofil zeigt Stärken und Lücken – jedes erledigte Kapitel im Plan bringt einen halben Credit 📈 tred-tutor.de
+#studium #lernplan #klausurphase #uni #motivation

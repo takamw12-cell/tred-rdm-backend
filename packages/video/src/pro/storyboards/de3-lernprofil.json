@@ -1,0 +1,61 @@
+{
+ "id": "de3-lernprofil",
+ "lang": "de",
+ "voiceId": "pFZP5JQG7iQjIQuC4Bku",
+ "title": "Dein Lernprofil",
+ "palette": "violet",
+ "scenes": [
+  {
+   "part": "hook",
+   "seconds": 2.8,
+   "kind": "statement",
+   "headline": "Wo hakt es bei dir?",
+   "voice": "Wo hakt es eigentlich bei dir?"
+  },
+  {
+   "part": "body",
+   "seconds": 6.2,
+   "kind": "glass",
+   "headline": "Stärken und Lücken auf einen Blick",
+   "voice": "Dein Lernprofil zeigt dir, was sitzt und wo du noch üben solltest.",
+   "media": "app-v5-de-plan",
+   "eyebrow": "Lernprofil"
+  },
+  {
+   "part": "body",
+   "seconds": 5.6,
+   "kind": "glass",
+   "headline": "Kapitel erledigt? +0,5 Credits",
+   "voice": "Jedes erledigte Kapitel im Plan bringt dir einen halben Credit.",
+   "media": "lernprofil-belohnung",
+   "eyebrow": "7-Tage-Plan"
+  },
+  {
+   "part": "body",
+   "seconds": 6.4,
+   "kind": "split",
+   "headline": "Jede Antwort mit Beleg",
+   "voice": "Und jede Antwort zeigt die Seite in deinem Skript, aus der sie stammt.",
+   "media": "app-v5-de-answer",
+   "media2": "app-v5-de-answer-pdf",
+   "label2": "Thermo_Kapitel_3 · S. 12",
+   "eyebrow": "Mit Beleg",
+   "from": 6
+  },
+  {
+   "part": "body",
+   "seconds": 3.4,
+   "kind": "statement",
+   "headline": "Lernen, das zu dir passt.",
+   "voice": "Lernen, das zu dir passt."
+  },
+  {
+   "part": "cta",
+   "seconds": 3.8,
+   "kind": "outro",
+   "headline": "tred-tutor.de",
+   "voice": "Starte heute.",
+   "sub": "Kostenlos starten · 10 Credits"
+  }
+ ]
+}

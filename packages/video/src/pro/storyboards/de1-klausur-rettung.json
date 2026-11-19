@@ -1,0 +1,67 @@
+{
+ "id": "de1-klausur-rettung",
+ "lang": "de",
+ "voiceId": "XrExE9yKIg1WjnnlVkGX",
+ "title": "Klausur-Rettung",
+ "palette": "night",
+ "scenes": [
+  {
+   "part": "hook",
+   "seconds": 2.8,
+   "kind": "broll",
+   "headline": "Klausur morgen?",
+   "voice": "Klausur morgen? Null Plan?",
+   "media": "broll-stress",
+   "focus": {
+    "x": 50,
+    "y": 0,
+    "zoom": 1.35
+   }
+  },
+  {
+   "part": "body",
+   "seconds": 5.8,
+   "kind": "glass",
+   "headline": "Die 3 wichtigsten Formeln",
+   "voice": "Der Panik-Modus holt die drei wichtigsten Formeln aus deinem eigenen Skript.",
+   "media": "panik-modus",
+   "eyebrow": "Panik-Modus"
+  },
+  {
+   "part": "body",
+   "seconds": 6.4,
+   "kind": "split",
+   "headline": "Der Beweis: dein eigenes PDF",
+   "voice": "Jede Antwort zeigt die Seite in deinem Skript. Antippen, und die echte Seite öffnet sich.",
+   "media": "app-v5-de-answer",
+   "media2": "app-v5-de-answer-pdf",
+   "label2": "Thermo_Kapitel_3 · S. 12",
+   "eyebrow": "Mit Beleg",
+   "from": 6
+  },
+  {
+   "part": "body",
+   "seconds": 5.0,
+   "kind": "glass",
+   "headline": "Dann ein schnelles Quiz",
+   "voice": "Danach ein Quiz, fünfzehn Sekunden pro Frage.",
+   "media": "arcade-chrono",
+   "eyebrow": "Arcade"
+  },
+  {
+   "part": "body",
+   "seconds": 3.4,
+   "kind": "statement",
+   "headline": "Dein Skript. Nicht das Internet.",
+   "voice": "Dein Skript. Nicht das Internet."
+  },
+  {
+   "part": "cta",
+   "seconds": 3.8,
+   "kind": "outro",
+   "headline": "tred-tutor.de",
+   "voice": "Viel Erfolg morgen.",
+   "sub": "Kostenlos starten · 10 Credits"
+  }
+ ]
+}

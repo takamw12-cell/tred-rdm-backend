@@ -1,0 +1,61 @@
+{
+ "id": "de2-technischer-deep-dive",
+ "lang": "de",
+ "voiceId": "pqHfZKP75CvOlQylNhV4",
+ "title": "Technischer Deep-Dive",
+ "palette": "aurora",
+ "scenes": [
+  {
+   "part": "hook",
+   "seconds": 2.8,
+   "kind": "broll",
+   "headline": "Wie funktioniert ein Triebwerk?",
+   "voice": "Wie funktioniert ein Triebwerk wirklich?",
+   "media": "broll-turbine"
+  },
+  {
+   "part": "body",
+   "seconds": 6.0,
+   "kind": "glass",
+   "headline": "Dreh es. Tipp jedes Bauteil an.",
+   "voice": "Im 3D-Explorer drehst du das echte Modell und tippst jedes Bauteil an.",
+   "media": "app-sk5-turbofan",
+   "eyebrow": "3D-Explorer"
+  },
+  {
+   "part": "body",
+   "seconds": 6.0,
+   "kind": "glass",
+   "headline": "Schritt für Schritt an der Tafel",
+   "voice": "An der Tafel wird jede Rechnung Schritt für Schritt aufgebaut.",
+   "media": "app-v5-de-tafel",
+   "eyebrow": "Tafel"
+  },
+  {
+   "part": "body",
+   "seconds": 5.4,
+   "kind": "glass",
+   "headline": "Echte Formeln, echtes LaTeX",
+   "voice": "Und im Erklärvideo schreibt sich die Formel Zeichen für Zeichen.",
+   "media": "video-formule",
+   "eyebrow": "Erklärvideo"
+  },
+  {
+   "part": "body",
+   "seconds": 4.6,
+   "kind": "glass",
+   "headline": "Finde das Bauteil",
+   "voice": "Im 3D Detective prüfst du, ob du jedes Bauteil kennst.",
+   "media": "detective-rouge",
+   "eyebrow": "3D Detective"
+  },
+  {
+   "part": "cta",
+   "seconds": 3.8,
+   "kind": "outro",
+   "headline": "tred-tutor.de",
+   "voice": "Probier es aus.",
+   "sub": "Kostenlos starten · 10 Credits"
+  }
+ ]
+}

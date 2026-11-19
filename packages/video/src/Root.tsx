@@ -19,6 +19,7 @@ import { PEPITE } from "./tiktok/v5";
 import { STYLES } from "./tiktok/v8";
 import { NATIVE } from "./tiktok/v6";
 import { FOUNDER_AD_FRAMES, FounderAd3D } from "./tiktok/founder-ad-3d";
+import { ProCompositions } from "./pro";
 import "./style.css";
 
 /**
@@ -107,6 +108,7 @@ export function Root() {
           <Composition key={id} id={id} component={component} durationInFrames={frames} {...PHONE} />
         ))}
       </Folder>
+      <ProCompositions />
     </>
   );
 }
