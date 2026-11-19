@@ -224,7 +224,23 @@ describe("compte fondateur (19 nov. 2026)", () => {
     expect(read("src/api/routes/credits.ts")).toContain('unlimited: plan === "founder",');
     expect(read("src/web/components/credits-chip.tsx")).toContain('t("credits.founderChip")');
     expect(read("src/web/i18n/messages/de.ts")).toContain('founderChip: "∞ Credits (Founder)"');
-    expect(read("src/api/routes/subscriptions.ts")).toContain("subscriptionActive: !!row?.customerId && !!row?.subscriptionId && row.subscriptionStatus !== PASS_STATUS");
+    expect(read("src/api/routes/subscriptions.ts")).toContain("!!row?.customerId && !!row?.subscriptionId && row.subscriptionStatus !== PASS_STATUS");
     expect(read("src/web/pages/pricing.tsx")).toContain("const subscribed = !!sub?.subscriptionActive && !!sub?.manageable;");
+  });
+});
+
+describe("restes du mode test (19 nov. 2026)", () => {
+  test("un client Stripe d'un autre mode est vérifié et remplacé avant un paiement", () => {
+    const billing = read("src/api/lib/billing.ts");
+    const fn = billing.slice(billing.indexOf("export async function getOrCreateCustomer("), billing.indexOf("export function isMissingResource("));
+    expect(fn).toContain(".customers.retrieve(row.customerId)");
+    expect(fn).toContain("await forgetStripeIds(user.id)");
+    expect(billing).toContain('return (error as { code?: unknown } | null)?.code === "resource_missing";');
+  });
+
+  test("« Abo verwalten » : seulement un compte Étudiant avec un abonnement en cours ; un portail introuvable oublie le client", () => {
+    const sub = read("src/api/routes/subscriptions.ts");
+    expect(sub).toContain('subscriptionActive: (plan === "premium" || plan === "standard") && !!row?.customerId');
+    expect(sub).toContain('throw new ORPCError("NOT_FOUND", { message: "stale_customer" })');
   });
 });

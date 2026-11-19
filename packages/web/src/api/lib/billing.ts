@@ -75,7 +75,22 @@ export async function getOrCreateCustomer(user: {
   name?: string | null;
 }): Promise<string> {
   const row = await getPlanRow(user.id);
-  if (row?.customerId) return row.customerId;
+  if (row?.customerId) {
+    // Un client créé avec la clé de TEST n'existe pas pour la clé live (et
+    // inversement) : le garder ferait échouer chaque paiement. On vérifie qu'il
+    // existe dans le mode de la clé actuelle ; sinon on en crée un neuf et on
+    // oublie l'ancien abonnement, qui appartenait à l'autre mode.
+    const usable = await getStripe()
+      .customers.retrieve(row.customerId)
+      .then((c) => !("deleted" in c && c.deleted))
+      .catch((error) => {
+        if (isMissingResource(error)) return false;
+        throw error;
+      });
+    if (usable) return row.customerId;
+    console.warn(`[billing] user=${user.id} : client Stripe ${row.customerId.slice(0, 8)}… introuvable avec la clé actuelle (autre mode ?), remplacé`);
+    await forgetStripeIds(user.id);
+  }
 
   const customer = await getStripe().customers.create({
     email: user.email ?? undefined,
@@ -95,6 +110,16 @@ export async function getOrCreateCustomer(user: {
 }
 
 /** userId aus Metadaten, sonst über die gespeicherte customerId, sonst über Stripe. */
+/** Stripe répond « No such customer / subscription » : l'objet n'existe pas pour cette clé. */
+export function isMissingResource(error: unknown): boolean {
+  return (error as { code?: unknown } | null)?.code === "resource_missing";
+}
+
+/** Oublie le client et l'abonnement Stripe d'un compte (créés dans l'autre mode). L'accès n'est pas touché. */
+export async function forgetStripeIds(userId: string): Promise<void> {
+  await db.update(userPlan).set({ customerId: null, subscriptionId: null, subscriptionStatus: null, updatedAt: new Date() }).where(eq(userPlan.userId, userId));
+}
+
 async function resolveUserId(
   subscription: Stripe.Subscription,
   customerId: string,

@@ -90,7 +90,11 @@ export default function PricingPage() {
     onSuccess: (res) => {
       window.location.href = res.url;
     },
-    onError: () => setError(c.portalError),
+    onError: (err) => {
+      // Client Stripe d'un autre mode, oublié par le serveur : pas d'erreur à montrer, l'état se relit.
+      if ((err as { message?: string } | null)?.message === "stale_customer") void qc.invalidateQueries({ queryKey: subscriptionMeKey() });
+      else setError(c.portalError);
+    },
   });
 
   const trialMut = useMutation({

@@ -4,6 +4,8 @@ import type Stripe from "stripe";
 
 import { authed } from "../middleware/auth";
 import {
+  forgetStripeIds,
+  isMissingResource,
   getOrCreateCustomer,
   getPlanRow,
   knownPriceIds,
@@ -225,7 +227,7 @@ export const subscriptions = {
        * Un VRAI abonnement Stripe en cours : seul cas où « Abo verwalten » (portail
        * client) a un sens. Un Pass, le fondateur ou un compte sans client Stripe : non.
        */
-      subscriptionActive: !!row?.customerId && !!row?.subscriptionId && row.subscriptionStatus !== PASS_STATUS && ["active", "trialing", "past_due"].includes(row.subscriptionStatus ?? ""),
+      subscriptionActive: (plan === "premium" || plan === "standard") && !!row?.customerId && !!row?.subscriptionId && row.subscriptionStatus !== PASS_STATUS && ["active", "trialing", "past_due"].includes(row.subscriptionStatus ?? ""),
       /** L'accès actuel vient d'un Pass : pas d'abonnement à gérer, il s'arrête tout seul. */
       passActive: row?.subscriptionStatus === PASS_STATUS && plan === "premium",
       limitsByPlan: { free: LIMITS.free, student: LIMITS.premium },
@@ -404,7 +406,13 @@ export const subscriptions = {
         });
         return { url: portal.url };
       } catch (error) {
-        console.error("[subscriptions] portal failed", error);
+        // Client créé dans l'autre mode (test ↔ live) : on l'oublie, le bouton disparaît au rechargement.
+        if (isMissingResource(error)) {
+          await forgetStripeIds(context.user.id).catch(() => {});
+          console.warn(`[subscriptions] portal : client Stripe introuvable avec la clé actuelle, identifiants oubliés (user=${context.user.id})`);
+          throw new ORPCError("NOT_FOUND", { message: "stale_customer" });
+        }
+        console.error("[subscriptions] portal failed", error instanceof Error ? error.message.slice(0, 200) : error);
         throw new ORPCError("BAD_GATEWAY", { message: "Kundenportal nicht erreichbar." });
       }
     }),
