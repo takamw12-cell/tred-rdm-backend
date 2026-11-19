@@ -9,7 +9,7 @@
  * Module pur, testé dans tests/video-visuals.test.ts.
  */
 
-export const VISUALS = ["text", "highlight", "flowchart", "formula", "beam", "loads", "solver_plot", "chart", "real_image", "question", "recap"] as const;
+export const VISUALS = ["text", "highlight", "flowchart", "formula", "code", "beam", "loads", "solver_plot", "chart", "real_image", "question", "recap"] as const;
 /**
  * La bibliothèque de visuels, pour toutes les filières :
  *
@@ -17,6 +17,7 @@ export const VISUALS = ["text", "highlight", "flowchart", "formula", "beam", "lo
  *   highlight    la phrase du cours, avec ses mots-clés surlignés en jaune   (droit, philosophie)
  *   flowchart    un enchaînement d'étapes qui se construit                    (droit, médecine, logique)
  *   formula      la formule en grand, qui s'écrit ligne par ligne             (maths, physique, économie)
+ *   code         le code du cours, coloré, tapé à la machine (thème sombre) (informatique)
  *   beam         la poutre se dessine (appuis, portée)                        (mécanique)
  *   loads        les charges arrivent flèche après flèche, la poutre fléchit  (mécanique)
  *   solver_plot  le vrai schéma du solveur : système, Q(x), M(x)              (mécanique)
@@ -39,6 +40,7 @@ export const CUE_VISUAL = {
   highlight_text: "highlight",
   draw_flowchart: "flowchart",
   write_equation: "formula",
+  write_code: "code",
   show_beam: "beam",
   apply_loads: "loads",
   plot_curves: "solver_plot",
@@ -160,6 +162,8 @@ export interface VisualInput {
   image?: unknown;
   chart?: unknown;
   formula?: string;
+  /** Le code du cours (visuel « code »). */
+  code?: string;
   quote?: string;
   steps?: string[];
   keywords?: string[];
@@ -199,6 +203,8 @@ function resolveVisualKind(scene: VisualInput, has: { beam: boolean }): Omit<Res
       return has.beam ? { ...plain, visual: "solver_plot" } : plain;
     case "formula":
       return scene.formula?.trim() ? { ...plain, visual: "formula" } : plain;
+    case "code":
+      return scene.code?.trim() ? { ...plain, visual: "code" } : plain;
     case "chart":
       return isChartKey(scene.chart) ? { ...plain, visual: "chart", chart: scene.chart } : plain;
     case "flowchart": {

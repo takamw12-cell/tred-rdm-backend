@@ -87,6 +87,8 @@ export const videoSceneSchema = z.object({
   heading: z.string().describe("Titre court de la scène, 2 à 6 mots."),
   bullets: z.array(z.string()).describe("0 à 3 points très courts affichés à l'écran."),
   formula: z.string().describe("UNE formule en LaTeX pur, copiée de l'extrait cité. Chaîne vide s'il n'y en a pas."),
+  code: z.string().default("").describe("Seulement pour visual_cues = write_code : 1 à 12 lignes de code COPIÉES TELLES QUELLES de l'extrait cité (indentation comprise). Chaîne vide sinon."),
+  code_language: z.string().default("").describe("Le langage du code : python, javascript, typescript, java, c, cpp, matlab, sql, bash. Chaîne vide sinon."),
   sourceIndex: z.number().int().describe("Numéro de la source citée : 1 pour [S1], 2 pour [S2]…"),
   quote: z.string().describe("Pour un extrait de cours : UNE phrase courte (8 à 25 mots) copiée MOT POUR MOT de l'extrait, sans formule, qui prouve ce que dit la scène. Pour un calcul de solveur : chaîne vide."),
   voiceover: z.string().describe("Ce que dit la voix pendant la scène. Langue parlée, sans LaTeX ni symboles."),
@@ -145,6 +147,24 @@ export type ValidationResult =
 /* ── Texte ─────────────────────────────────────────────────────────────── */
 
 /** Compare deux textes sans se laisser tromper par la casse, les espaces ou la typographie. */
+/** Langages colorés par la vidéo (highlight.js) ; un autre devient du texte brut. */
+export const CODE_LANGUAGES = ["python", "javascript", "typescript", "java", "c", "cpp", "matlab", "sql", "bash"] as const;
+export function codeLanguage(raw: unknown): string {
+  const l = String(raw ?? "").trim().toLowerCase().replace(/^c\+\+$/, "cpp").replace(/^js$/, "javascript").replace(/^ts$/, "typescript").replace(/^py$/, "python");
+  return (CODE_LANGUAGES as readonly string[]).includes(l) ? l : "plaintext";
+}
+
+/**
+ * Le code est-il recopié du cours ? Chaque ligne non vide (espaces compactés)
+ * doit se retrouver telle quelle dans l'extrait. 12 lignes au plus.
+ */
+export function codeInSource(code: string | undefined, content: string): boolean {
+  const lines = (code ?? "").split("\n").map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean);
+  if (lines.length === 0 || lines.length > 12) return false;
+  const hay = content.replace(/\s+/g, " ");
+  return lines.every((l) => hay.includes(l));
+}
+
 export function normalizeText(text: string): string {
   return text
     .normalize("NFKC")
@@ -295,8 +315,8 @@ export function validateVideoScript(script: Pick<VideoScript, "title" | "scenes"
       if (figure !== undefined) return void dropped.push({ index, reason: "number_in_analogy", detail: figure });
       if (!isHook) analogies++;
       // Un exemple n'a ni citation à surligner, ni formule, ni calcul.
-      const visual = shown.visual === "formula" || shown.visual === "solver_plot" || shown.visual === "highlight" ? "text" : shown.visual;
-      return void scenes.push({ ...scene, formula: "", quote: "", bullets: scene.bullets.slice(0, 3), sourceTitle: "", sourceKind: "analogy", ...shown, visual, visual_cues: [cueOf(visual)], stage: scene.stage ?? "step" });
+      const visual = shown.visual === "formula" || shown.visual === "solver_plot" || shown.visual === "highlight" || shown.visual === "code" ? "text" : shown.visual;
+      return void scenes.push({ ...scene, formula: "", code: "", code_language: "", quote: "", bullets: scene.bullets.slice(0, 3), sourceTitle: "", sourceKind: "analogy", ...shown, visual, visual_cues: [cueOf(visual)], stage: scene.stage ?? "step" });
     }
 
     // Le schéma du solveur se prouve par le calcul lui-même : la scène n'a pas à
@@ -320,8 +340,17 @@ export function validateVideoScript(script: Pick<VideoScript, "title" | "scenes"
     const invented = extractNumbers(said).find((n) => !isStructural(n) && !allowed.has(n));
     if (invented !== undefined) return void dropped.push({ index, reason: "number_not_in_sources", detail: invented });
 
+    // Le code affiché doit être recopié du cours, ligne par ligne ; sinon la scène redevient une feuille de texte.
+    const codeOk = shown.visual === "code" && !computed && codeInSource(scene.code, src.content);
+    if (shown.visual === "code" && !codeOk) {
+      shown.visual = "text";
+      shown.visual_cues = [cueOf("text")];
+    }
+
     scenes.push({
       ...scene,
+      code: codeOk ? scene.code.replace(/\s+$/, "") : "",
+      code_language: codeOk ? codeLanguage(scene.code_language) : "",
       quote: computed ? "" : scene.quote,
       bullets: scene.bullets.slice(0, 3),
       sourceTitle: computed ? (sources.find((x) => x.solver)?.title ?? src.title) : src.title,
@@ -427,6 +456,7 @@ CHAQUE SCÈNE
 - "quote" : si la source est un extrait de cours, UNE phrase courte (8 à 25 mots) copiée MOT POUR MOT de cet extrait, dans SA langue d'origine. Ne la reformule pas, ne la traduis pas, ne la résume pas, ne corrige pas ses fautes. Choisis une phrase de texte courant, pas une formule ni un tableau. Un programme vérifie cette citation : une scène dont la citation ne vient pas de l'extrait est supprimée. Si la source est un calcul de solveur, laisse "quote" vide.
 - "voiceover" : ce que dit la voix, en langue parlée, naturelle et fluide. Pas de LaTeX, pas de symboles : écris « sigma égale M sur W » dans la langue de l'étudiant.
 - "formula" : au plus UNE formule, en LaTeX pur sans dollars, copiée de l'extrait. Chaîne vide sinon.
+- "code" : seulement avec "write_code" — 1 à 12 lignes de code copiées TELLES QUELLES de l'extrait (indentation comprise), avec "code_language". Chaîne vide sinon. Un code qui n'est pas dans l'extrait n'est pas affiché.
 - "bullets" : 0 à 3 points de 8 mots au plus.
 
 LA MINI-LEÇON — quatre temps, toujours dans cet ordre ("stage")
@@ -440,6 +470,7 @@ Tu ne dessines rien toi-même : pour chaque scène tu donnes UN ordre dans "visu
 - "ask_question" : la question mystère s'écrit en grand, lettre après lettre. Réservé à la scène "hook".
 - "draw_flowchart" : un enchaînement d'étapes ("steps", 2 à ${MAX_FLOW_STEPS}, CINQ MOTS AU PLUS chacune : un nom, pas une phrase). Les cases apparaissent UNE PAR UNE quand la voix les nomme : dis-les dans l'ordre. Pour des conditions à vérifier, un processus, un cycle, un raisonnement.
 - "write_equation" : la formule ("formula") s'écrit en grand, comme à la machine. Plusieurs lignes séparées par \\\\ s'écrivent l'une après l'autre.
+- "write_code" : le code ("code") du cours se tape caractère par caractère, coloré, sur fond sombre. Pour un programme, une fonction, une requête.
 - "show_beam" : la poutre se dessine (appuis, portée). "apply_loads" : les charges arrivent flèche après flèche et la poutre fléchit.
 - "plot_curves" : les courbes exactes du solveur se tracent (système, effort tranchant Q(x), moment M(x)). Seulement si un calcul de poutre existe (source « solver » ou champ "beam").
 - "draw_chart" : une courbe de principe sans valeurs se trace, avec "chart" parmi : ${CHARTS.join(", ")} (offre et demande).
@@ -456,6 +487,7 @@ SELON LA MATIÈRE
 - Droit, philosophie, sciences humaines : surtout "highlight_text" (le texte et ses mots-clés) et "draw_flowchart" (les conditions, le raisonnement), avec un "show_image".
 - Médecine, biologie, psychologie : surtout "draw_flowchart" (les phases, le mécanisme) et "show_image" (l'organe, le lieu).
 - Ingénierie, physique, mathématiques : surtout "write_equation", "show_beam", "apply_loads", "plot_curves".
+- Informatique, programmation : surtout "write_code" (le code du cours) et "draw_flowchart" (l'algorithme).
 - Économie, gestion : surtout "draw_chart", "write_equation" et "draw_flowchart".
 Tu ne décris jamais un schéma d'anatomie ni un dessin que TRED ne sait pas tracer : choisis dans la bibliothèque.
 

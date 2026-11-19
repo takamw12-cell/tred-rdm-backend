@@ -16,7 +16,7 @@ import { DynamicExplanation, EXPLAINER_FPS, EXPLAINER_SIZE, explainerFrames, typ
  * Vertical sur téléphone, horizontal sur ordinateur. La durée du lecteur est
  * celle de la voix (`durationMs`).
  */
-export default function ExplainerPlayer({ video, orientation, autoPlay = true }: { video: ExplainerVideo; orientation: ExplainerOrientation; autoPlay?: boolean }) {
+export default function ExplainerPlayer({ video, orientation, autoPlay = true, initialFrame }: { video: ExplainerVideo; orientation: ExplainerOrientation; autoPlay?: boolean; initialFrame?: number }) {
   const { t, locale } = useT();
   const program = useUserStore((s) => s.profile.degree);
   const size = EXPLAINER_SIZE[orientation];
@@ -66,6 +66,7 @@ export default function ExplainerPlayer({ video, orientation, autoPlay = true }:
       compositionHeight={size.height}
       controls
       autoPlay={autoPlay}
+      initialFrame={initialFrame}
       clickToPlay
       acknowledgeRemotionLicense
       style={{ width: "100%", aspectRatio: `${size.width} / ${size.height}`, borderRadius: 16, overflow: "hidden", background: "#070B14" }}

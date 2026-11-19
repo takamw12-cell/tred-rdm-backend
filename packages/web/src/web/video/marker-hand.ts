@@ -122,6 +122,7 @@ export const EFFECTS: Record<Visual, string> = {
   real_image: "image en fondu, lent travelling",
   highlight: "main-feutre : citation écrite, mots-clés surlignés",
   formula: "main-feutre : formule écrite caractère par caractère",
+  code: "code du cours tapé à la machine, coloré, curseur clignotant",
   beam: "main-feutre : poutre puis appuis",
   loads: "main-feutre : poutre, appuis, charges flèche après flèche",
   solver_plot: "main-feutre : courbes du solveur tracées de gauche à droite",

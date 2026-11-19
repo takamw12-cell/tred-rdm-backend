@@ -1,5 +1,7 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import katex from "katex";
+import hljs from "highlight.js/lib/core";
+import "highlight.js/styles/atom-one-dark.css";
 import { AbsoluteFill, Audio, Img, continueRender, delayRender, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { BoardStatus, GlassBoard, PaperNote, SolverStamp } from "@/components/hoersaal";
 import { HoersaalStage } from "@/components/hoersaal-stage";
@@ -80,6 +82,9 @@ export interface ExplainerScene {
   keywords?: string[];
   /** Courbe de principe. */
   chart?: ChartKey | null;
+  /** Le code du cours (visuel « code »), et son langage. */
+  code?: string;
+  code_language?: string;
   /** La place dans la mini-leçon. Absent (anciennes vidéos) : aucune étiquette. */
   stage?: Stage;
   /** L'ordre visuel exécuté (draw_flowchart, write_equation, show_beam…). Informatif : `visual` décide. */
@@ -217,6 +222,76 @@ function Formula({ tex, reveal, color }: { tex: string; reveal: number; color?: 
     />
   );
 }
+
+/**
+ * Le code du cours, tapé à la machine : le texte est coupé au caractère
+ * courant puis coloré par highlight.js (le même que les blocs de code du
+ * chat, thème sombre). Un curseur clignote au bout de la frappe.
+ */
+const CODE_GRAMMARS: Record<string, () => Promise<{ default: Parameters<typeof hljs.registerLanguage>[1] }>> = {
+  python: () => import("highlight.js/lib/languages/python"),
+  javascript: () => import("highlight.js/lib/languages/javascript"),
+  typescript: () => import("highlight.js/lib/languages/typescript"),
+  java: () => import("highlight.js/lib/languages/java"),
+  c: () => import("highlight.js/lib/languages/c"),
+  cpp: () => import("highlight.js/lib/languages/cpp"),
+  matlab: () => import("highlight.js/lib/languages/matlab"),
+  sql: () => import("highlight.js/lib/languages/sql"),
+  bash: () => import("highlight.js/lib/languages/bash"),
+};
+
+/** Charge la grammaire avant le rendu (delayRender : l'export MP4 attend la couleur). */
+function useGrammar(language: string): boolean {
+  // Langage inconnu (pas de grammaire) : prêt tout de suite, en texte brut.
+  const [ready, setReady] = useState(() => language === "plaintext" || !CODE_GRAMMARS[language] || Boolean(hljs.getLanguage(language)));
+  const [handle] = useState(() => (ready ? null : delayRender(`grammaire ${language}`)));
+  useLayoutEffect(() => {
+    if (ready || !handle) return;
+    void CODE_GRAMMARS[language]!()
+      .then((m) => hljs.registerLanguage(language, m.default))
+      .catch(() => {})
+      .finally(() => {
+        setReady(true);
+        continueRender(handle);
+      });
+  }, [ready, handle, language]);
+  return ready;
+}
+
+function CodeTyping({ code, language, reveal, local }: { code: string; language: string; reveal: number; local: number }) {
+  const ready = useGrammar(language);
+  const shown = code.slice(0, Math.round(Math.max(0, Math.min(1, reveal)) * code.length));
+  const html = useMemo(() => {
+    if (!ready || language === "plaintext" || !hljs.getLanguage(language)) return escapeCode(shown);
+    try {
+      return hljs.highlight(shown, { language, ignoreIllegals: true }).value;
+    } catch {
+      return escapeCode(shown);
+    }
+  }, [shown, language, ready]);
+  const caretOn = reveal < 1 || Math.floor(local / 15) % 2 === 0;
+  const lines = code.split("\n").length;
+  return (
+    <div className="flex h-full w-full items-center justify-center">
+      <div style={{ width: "100%", borderRadius: 14, background: "#0B1020", boxShadow: "0 24px 50px -24px rgb(0 0 0 / 0.9), inset 0 0 0 1px rgb(148 163 184 / 0.18)", overflow: "hidden" }}>
+        {/* La barre d'une fenêtre d'éditeur, et le langage. */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", background: "#111832", borderBottom: "1px solid rgb(148 163 184 / 0.15)" }}>
+          {["#EF4444", "#EAB308", "#22C55E"].map((c) => (
+            <span key={c} style={{ width: 9, height: 9, borderRadius: 9, background: c, opacity: 0.85 }} />
+          ))}
+          <span style={{ marginLeft: 8, fontFamily: "ui-monospace, Menlo, monospace", fontSize: 11, letterSpacing: "0.08em", color: "#94A3B8", textTransform: "uppercase" }}>{language === "plaintext" ? "code" : language}</span>
+        </div>
+        <pre className="hljs" style={{ margin: 0, padding: "14px 16px", background: "transparent", fontFamily: "'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace", fontSize: lines > 8 ? 15 : 18, lineHeight: 1.55, color: "#E2E8F0", whiteSpace: "pre-wrap" }}>
+          <code dangerouslySetInnerHTML={{ __html: html }} />
+          {/* Pas de « data-pen » : le code se tape au clavier, la main-feutre ne le suit pas. */}
+          <span style={{ display: "inline-block", width: "0.55em", height: "1.15em", verticalAlign: "-0.2em", background: caretOn ? "#EAB308" : "transparent" }} />
+        </pre>
+      </div>
+    </div>
+  );
+}
+
+const escapeCode = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 /**
  * À quelle image (dans la scène) la voix prononce chaque libellé : on cherche
@@ -812,7 +887,7 @@ type VisualProps = Pick<ExplainerProps, "beam" | "realImages" | "decimalComma" |
  * quand elle existe, l'image de contexte de la filière en dessous) ; les
  * schémas techniques (poutre, courbes du solveur) restent sur fond clair.
  */
-const DARK_VISUALS: readonly Visual[] = ["flowchart", "highlight", "formula", "chart", "question", "recap"];
+const DARK_VISUALS: readonly Visual[] = ["flowchart", "highlight", "formula", "code", "chart", "question", "recap"];
 const backdropUrl = (props: VisualProps) => (props.backdrop ? props.realImages?.[props.backdrop] : undefined);
 const isDarkStage = (scene: ExplainerScene, _props?: VisualProps) => DARK_VISUALS.includes(scene.visual ?? "text");
 
@@ -878,6 +953,11 @@ function SceneVisual({
         ))}
       </div>
     );
+  }
+  if (visual === "code" && scene.code) {
+    // La frappe occupe 65 % de la scène, avec une cadence régulière ; le curseur clignote ensuite.
+    const dur = to - from;
+    return <CodeTyping code={scene.code} language={scene.code_language ?? "plaintext"} reveal={interpolate(local, [8, Math.max(20, dur * 0.65)], [0, 1], clamp)} local={local} />;
   }
   if (visual === "flowchart" && scene.steps?.length) {
     return (
@@ -1037,6 +1117,8 @@ function DemoScene({
   const prev = scenes[index - 1];
   const continued = sameVisual(prev, scene);
   const fade = continued ? 1 : progress(local, 0, 14);
+  const { fps } = useVideoConfig();
+  const enter = continued ? 1 : spring({ frame: local, fps, config: { damping: 15, stiffness: 120, mass: 0.7 } });
   const prevIsDemo = !!prev && (prev.visual ?? "text") !== "text";
   const textIn = progress(local, 2, 12) * (1 - progress(local, to - from - 6, to - from));
   const isSolver = scene.visual === "solver_plot";
@@ -1087,11 +1169,12 @@ function DemoScene({
         {/* Les halos jaunes, par-dessus le fond sombre et sous le visuel. */}
         {dark && <Halos local={local} />}
         {!continued && prevIsDemo && fade < 1 && (
-          <div style={{ position: "absolute", inset: isPhoto ? 0 : 12, opacity: 1 - fade }}>
+          <div style={{ position: "absolute", inset: isPhoto ? 0 : 12, opacity: 1 - fade, transform: `translateY(${-fade * 18}px)` }}>
             <SceneVisual scenes={scenes} index={index - 1} timings={timings} frame={timings[index - 1]!.to} landscape={landscape} props={props} />
           </div>
         )}
-        <div style={{ position: "absolute", inset: isPhoto ? 0 : 12, opacity: fade }}>
+        {/* Entrée avec un ressort : le visuel monte et se pose (la sortie, elle, est le fondu ci-dessus). */}
+        <div style={{ position: "absolute", inset: isPhoto ? 0 : 12, opacity: fade, transform: continued ? undefined : `translateY(${(1 - enter) * 26}px) scale(${0.965 + 0.035 * enter})` }}>
           <SceneVisual scenes={scenes} index={index} timings={timings} frame={frame} landscape={landscape} props={props} />
         </div>
         {/* La main-feutre des visuels non SVG : elle suit l'élément marqué `data-pen`. */}

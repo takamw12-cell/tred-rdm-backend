@@ -77,6 +77,7 @@ const AdminPage = lazyPage(() => import("./pages/admin"));
 const AdminAnalyticsPage = lazyPage(() => import("./pages/admin-analytics"));
 const AdminFeedbackPage = lazyPage(() => import("./pages/admin-feedback"));
 const AdminRetentionPage = lazyPage(() => import("./pages/admin-retention"));
+const AdminVideoDemoPage = lazyPage(() => import("./pages/admin-video-demo"));
 const ProfessorsPage = lazyPage(() => import("./pages/professors"));
 
 function RootRedirect() {
@@ -151,6 +152,7 @@ function AuthedApp() {
             <Route path="/admin/analytics">{() => <AdminGate><AdminAnalyticsPage /></AdminGate>}</Route>
             <Route path="/admin/feedback">{() => <AdminGate><AdminFeedbackPage /></AdminGate>}</Route>
             <Route path="/admin/retention">{() => <AdminGate><AdminRetentionPage /></AdminGate>}</Route>
+            <Route path="/admin/video-demo">{() => <AdminGate><AdminVideoDemoPage /></AdminGate>}</Route>
             <Route path="/admin">{() => <AdminGate><AdminPage /></AdminGate>}</Route>
             <Route component={RootRedirect} />
           </Switch>
