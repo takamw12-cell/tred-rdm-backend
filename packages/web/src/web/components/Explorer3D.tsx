@@ -7,7 +7,7 @@ import { cameraStart, GEAR, gearCentres, gearPitchPoint, type ExplorerModel, typ
 import { cn } from "@/lib/utils";
 import { ActiveContext, HIGHLIGHT, Part, SectionContext, SelectContext, Skin } from "@/components/explorer-kit";
 import { StudioEffects } from "@/components/explorer-effects";
-import { Atom, Cell, GltfModel, Heart, Norms, Surface, TurbofanModel } from "@/components/explorer-scenes";
+import { Atom, Cell, GltfModel, Heart, Network, Norms, Surface, TurbofanModel } from "@/components/explorer-scenes";
 import { renderSettings, type DeviceTier } from "@/lib/device-tier";
 
 /**
@@ -535,14 +535,16 @@ function MarkerTracker({ model, buttons, onCompact }: { model: ExplorerModel; bu
   return null;
 }
 
-function Markers({ model, active, onSelect, labels, buttons, compact }: { model: ExplorerModel; active: string | null; onSelect: (id: string | null) => void; labels: Record<string, string>; buttons: React.RefObject<(HTMLButtonElement | null)[]>; compact: boolean }) {
+function Markers({ model, active, onSelect, labels, buttons, compact, marks }: { marks?: Record<string, "right" | "wrong">; model: ExplorerModel; active: string | null; onSelect: (id: string | null) => void; labels: Record<string, string>; buttons: React.RefObject<(HTMLButtonElement | null)[]>; compact: boolean }) {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
       {model.hotspots.map((h, i) => {
         const on = active === h.id;
+        const mark = marks?.[h.id];
         return (
           <button
             key={`${model.id}:${h.id}`}
+            data-mark={mark}
             ref={(el) => {
               buttons.current[i] = el;
             }}
@@ -555,6 +557,9 @@ function Markers({ model, active, onSelect, labels, buttons, compact }: { model:
             // Petit écran : repères plus petits pour ne pas se recouvrir (la liste à côté offre des cibles de 44 px).
             className={cn("group pointer-events-auto absolute top-0 left-0 grid place-items-center rounded-full focus-visible:outline-none", compact ? "size-6" : "size-9", on && "z-10")}
           >
+            {/* 3D Detective : la pièce cliquée brille en vert (juste) ou en rouge (faux). */}
+            {mark && <span aria-hidden className={cn("absolute rounded-full motion-safe:animate-ping", compact ? "size-7" : "size-10", mark === "right" ? "bg-[#22C55E]/50" : "bg-[#EF4444]/50")} />}
+            {mark && <span aria-hidden className={cn("absolute rounded-full ring-4", compact ? "size-7" : "size-10", mark === "right" ? "bg-[#22C55E]/35 shadow-[0_0_24px_#22C55E] ring-[#22C55E]" : "bg-[#EF4444]/35 shadow-[0_0_24px_#EF4444] ring-[#EF4444]")} />}
             {/* Un anneau de verre dépoli, fin, qui respire doucement : il montre la pièce sans la cacher. */}
             <span aria-hidden className={cn("absolute rounded-full motion-safe:animate-[pulse_3.2s_ease-in-out_infinite]", compact ? "size-6" : "size-9", on ? "bg-[#EAB308]/25 ring-1 ring-[#EAB308]/70" : "bg-white/10 ring-1 ring-white/35")} />
             <span
@@ -695,6 +700,7 @@ const SCENES: Record<ExplorerModelId, ComponentType<{ playing: boolean }>> = {
   surface: Surface,
   atom: Atom,
   norms: Norms,
+  network: Network,
 };
 
 export default function Explorer3D({
@@ -710,6 +716,7 @@ export default function Explorer3D({
   onResetReady,
   tier = "high",
   contextLost,
+  marks,
 }: {
   model: ExplorerModel;
   /** Un fichier .glb à charger À LA PLACE de la scène construite (public/models/). */
@@ -732,6 +739,8 @@ export default function Explorer3D({
   tier?: DeviceTier;
   /** Affiché si le navigateur retire le contexte WebGL (mémoire graphique pleine). */
   contextLost?: ReactNode;
+  /** 3D Detective : repères à faire briller (vert juste, rouge faux). */
+  marks?: Record<string, "right" | "wrong">;
 }) {
   const settings = renderSettings(tier);
   // Le téléphone peut retirer le contexte WebGL (mémoire graphique pleine) : écran noir sinon.
@@ -806,7 +815,7 @@ export default function Explorer3D({
           </SelectContext.Provider>
         </ActiveContext.Provider>
       </Canvas>
-      <Markers model={model} active={active} onSelect={onSelect} labels={labels} buttons={buttons} compact={compact} />
+      <Markers model={model} active={active} onSelect={onSelect} labels={labels} buttons={buttons} compact={compact} marks={marks} />
     </WebGLBoundary>
   );
 }

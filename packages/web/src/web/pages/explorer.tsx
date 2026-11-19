@@ -12,6 +12,11 @@ import { cn } from "@/lib/utils";
 import { safeLazy } from "@/lib/lazy-import";
 import { deviceTier } from "@/lib/device-tier";
 import { report as reportClientError } from "@/components/error-boundary";
+import { ExplorerLibrary } from "@/components/explorer-library";
+import { guessDetective, startDetective } from "@/lib/detective";
+import { useQueryClient } from "@tanstack/react-query";
+import { creditsMeKey } from "@/queries/credits";
+import { useToastStore } from "@/stores/toast";
 
 /**
  * L'Explorateur 3D (2026-11-15) : un modèle que l'on tourne et que l'on
@@ -29,7 +34,16 @@ export const ASK_DRAFT_KEY = "tred.askDraft";
 
 const SPRING = { type: "spring", stiffness: 320, damping: 28 } as const;
 
+/**
+ * /explorer : la bibliothèque (grille des scènes) ; /explorer?model=… ou ?glb=… : la scène.
+ */
 export default function ExplorerPage() {
+  const search = useSearch();
+  const params = new URLSearchParams(search);
+  return params.get("model") || params.get("glb") ? <ExplorerViewer /> : <ExplorerLibrary />;
+}
+
+function ExplorerViewer() {
   const { t, locale } = useT();
   const [, navigate] = useLocation();
   const search = useSearch();
@@ -63,6 +77,59 @@ export default function ExplorerPage() {
   const [force3d, setForce3d] = useState(false);
   const show3d = tier === "high" || tier === "mobile" || (tier === "low" && force3d);
   const posterId = modelUrl ? null : modelId;
+
+  // ── 3D Detective (api/explorer/detective.ts) : le serveur tire les pièces et corrige.
+  const qc = useQueryClient();
+  const showToast = useToastStore((x) => x.show);
+  const [game, setGame] = useState<{ sessionId: string; total: number; target: string; nextTarget: string | null; round: number; correct: number; finished: boolean } | null>(null);
+  const [guessFx, setGuessFx] = useState<{ right: boolean; clicked: string; target: string } | null>(null);
+  const [marks, setMarks] = useState<Record<string, "right" | "wrong">>({});
+  const [gameBusy, setGameBusy] = useState(false);
+  const canPlay = !modelUrl && model.hotspots.length >= 3;
+
+  async function startGame() {
+    setGameBusy(true);
+    try {
+      const data = await startDetective(modelId);
+      if (!data) return;
+      setActive(null);
+      setMarks({});
+      setGuessFx(null);
+      setGame({ ...data, nextTarget: null, round: 0, correct: 0, finished: false });
+    } finally {
+      setGameBusy(false);
+    }
+  }
+  async function guessPart(id: string | null) {
+    if (!game || !id || guessFx || gameBusy || game.finished) return;
+    setGameBusy(true);
+    try {
+      const r = await guessDetective(game.sessionId, id);
+      if (!r) return;
+      setMarks(r.right ? { [id]: "right" } : { [id]: "wrong", [r.target]: "right" });
+      setGuessFx({ right: r.right, clicked: id, target: r.target });
+      // La question affichée reste celle qu'on vient de jouer jusqu'à « Weiter ».
+      setGame((g) => (g ? { ...g, round: r.round, correct: r.correct, finished: r.finished, nextTarget: r.next } : g));
+      if (r.finished && r.reward?.granted) {
+        showToast(t("detective.reward", { n: r.reward.amount }));
+        void qc.invalidateQueries({ queryKey: creditsMeKey() });
+      } else if (r.finished && r.reward?.reason === "daily_cap") showToast(t("detective.rewardCap"));
+    } finally {
+      setGameBusy(false);
+    }
+  }
+  function nextRound() {
+    setGuessFx(null);
+    setMarks({});
+    setGame((g) => (g && g.nextTarget ? { ...g, target: g.nextTarget, nextTarget: null } : g));
+  }
+  function endGame() {
+    setGame(null);
+    setGuessFx(null);
+    setMarks({});
+  }
+  const targetSpot = game ? hotspotOf(model, game.target) : null;
+  const pickPart = useCallback((id: string | null) => (game ? void guessPart(id) : setActive(id)), [game, guessFx, gameBusy]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const resetView = useRef<() => void>(() => {});
   const onResetReady = useCallback((fn: () => void) => {
@@ -111,12 +178,15 @@ export default function ExplorerPage() {
 
   return (
     <PageContainer className="max-w-7xl">
+      <Link to="/explorer" className="text-muted-foreground hover:text-foreground mb-2 inline-flex items-center gap-1 text-sm font-medium" data-testid="explorer-back">
+        ← {t("explorer.allModels")}
+      </Link>
       <PageHeader title={t("explorer.title")} subtitle={t("explorer.subtitle")} />
 
       {/* Les filières : TRED n'est pas réservé aux ingénieurs. */}
       <Reveal className="mb-3">
         <div role="tablist" aria-label={t("explorer.discipline")} className="flex gap-1.5 overflow-x-auto pb-1" data-testid="discipline-tabs">
-          {DISCIPLINES.map((d) => {
+          {DISCIPLINES.filter((d) => modelsOf(d.id).length > 0).map((d) => {
             const on = !modelUrl && d.id === discipline;
             return (
               <button
@@ -187,7 +257,8 @@ export default function ExplorerPage() {
                   modelUrl={modelUrl}
                   section={canSection ? section : null}
                   active={active}
-                  onSelect={setActive}
+                  onSelect={pickPart}
+                  marks={marks}
                   playing={playing}
                   labels={labels}
                   label={t("explorer.sceneLabel", { name: pick(model.name, locale) })}
@@ -219,6 +290,14 @@ export default function ExplorerPage() {
                 </button>
               ))}
             </fieldset>
+
+            {/* 3D Detective : la pièce à trouver, en haut à gauche de la scène. */}
+            {game && targetSpot && !(game.finished && !guessFx) && (
+              <div className="absolute top-3 left-3 z-10 max-w-[min(26rem,calc(100%-11rem))] rounded-2xl bg-[#0B0F19]/85 p-3 text-white shadow-[0_0_30px_-8px_rgba(34,211,238,0.6)] ring-1 ring-[#22D3EE]/40 backdrop-blur" data-testid="detective-question">
+                <p className="text-[11px] font-semibold tracking-[0.14em] text-[#67E8F9] uppercase">{t("detective.round", { n: Math.min(game.round + (guessFx ? 0 : 1), game.total), total: game.total })}</p>
+                <p className="mt-1 text-sm leading-snug font-medium">{pick(targetSpot.quiz, locale)}</p>
+              </div>
+            )}
 
             {/* Commandes de la scène (absentes tant que la 3D n'est pas ouverte). */}
             <div className={cn("absolute top-3 right-3 flex gap-1.5", !show3d && "hidden")}>
@@ -262,6 +341,25 @@ export default function ExplorerPage() {
                 <p className="truncate text-xs text-white/70">{pick(model.name, locale)}</p>
               </div>
             </div>
+
+            {game ? (
+              <DetectivePanel
+                game={game}
+                feedback={guessFx}
+                titleOf={(id) => pick(hotspotOf(model, id)?.title ?? { de: id, en: id, fr: id, es: id }, locale)}
+                textOf={(id) => pick(hotspotOf(model, id)?.text ?? { de: "", en: "", fr: "", es: "" }, locale)}
+                onNext={nextRound}
+                onAgain={() => void startGame()}
+                onEnd={endGame}
+              />
+            ) : (
+              canPlay && (
+                <button type="button" onClick={() => void startGame()} disabled={gameBusy} data-testid="detective-start" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#06B6D4] px-4 text-sm font-bold text-white shadow-[0_10px_30px_-10px_rgba(124,58,237,0.8)] transition-transform hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none disabled:opacity-60">
+                  {gameBusy ? <Loader2 className="size-4 animate-spin" /> : <Gamepad2 className="size-4" />}
+                  {t("detective.start")}
+                </button>
+              )
+            )}
 
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
@@ -330,7 +428,7 @@ export default function ExplorerPage() {
                         type="button"
                         data-testid={`part-${h.id}`}
                         aria-pressed={on}
-                        onClick={() => setActive(on ? null : h.id)}
+                        onClick={() => pickPart(on ? null : h.id)}
                         className={cn(
                           "flex min-h-11 w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-[#EAB308] focus-visible:outline-none",
                           on ? "bg-[#EAB308] text-[#0F172A]" : "bg-white/[0.05] text-white/90 hover:bg-white/10",
@@ -392,4 +490,66 @@ class ExplorerCrashBoundary extends Component<{ resetKey: string; fallback: Reac
   render() {
     return this.state.failed ? this.props.fallback : this.props.children;
   }
+}
+
+/** Le panneau du 3D Detective : retour sur le clic, puis la suite ou le résultat. */
+function DetectivePanel({
+  game,
+  feedback,
+  titleOf,
+  textOf,
+  onNext,
+  onAgain,
+  onEnd,
+}: {
+  game: { round: number; total: number; correct: number; finished: boolean };
+  feedback: { right: boolean; clicked: string; target: string } | null;
+  titleOf: (id: string) => string;
+  textOf: (id: string) => string;
+  onNext: () => void;
+  onAgain: () => void;
+  onEnd: () => void;
+}) {
+  const { t } = useT();
+  const done = game.finished && feedback === null;
+  return (
+    <div className="space-y-3 rounded-2xl bg-white/[0.05] p-4 ring-1 ring-white/10 backdrop-blur" data-testid="detective-panel" aria-live="polite">
+      <div className="flex items-center justify-between text-sm">
+        <span className="flex items-center gap-2 font-semibold text-[#67E8F9]">
+          <Gamepad2 className="size-4" />
+          3D Detective
+        </span>
+        <span className="font-semibold text-[#EAB308] tabular-nums">{t("detective.score", { n: game.correct, total: game.total })}</span>
+      </div>
+      {feedback ? (
+        <>
+          <p className={cn("text-sm font-semibold", feedback.right ? "text-[#86EFAC]" : "text-[#FCA5A5]")} data-testid="detective-feedback" data-right={feedback.right ? "true" : "false"}>
+            {feedback.right ? t("detective.right", { part: titleOf(feedback.target) }) : t("detective.wrong", { part: titleOf(feedback.clicked), target: titleOf(feedback.target) })}
+          </p>
+          {/* Pourquoi : ce que fait la pièce cliquée (texte écrit et relu, pas d'appel à l'IA). */}
+          {!feedback.right && <p className="text-sm leading-relaxed text-white/80">{textOf(feedback.clicked)}</p>}
+          <p className="text-sm leading-relaxed text-white/70">{textOf(feedback.target)}</p>
+          <button type="button" onClick={onNext} data-testid="detective-next" className="inline-flex min-h-10 items-center rounded-xl bg-[#EAB308] px-4 text-sm font-semibold text-[#0F172A]">
+            {game.finished ? t("detective.result") : t("detective.next")}
+          </button>
+        </>
+      ) : done ? (
+        <>
+          <p className="text-lg font-bold" data-testid="detective-done">
+            {t("detective.final", { n: game.correct, total: game.total })}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={onAgain} className="inline-flex min-h-10 items-center rounded-xl bg-[#EAB308] px-4 text-sm font-semibold text-[#0F172A]">
+              {t("detective.again")}
+            </button>
+            <button type="button" onClick={onEnd} className="inline-flex min-h-10 items-center rounded-xl px-4 text-sm font-semibold text-white ring-1 ring-white/25">
+              {t("detective.end")}
+            </button>
+          </div>
+        </>
+      ) : (
+        <p className="text-sm text-white/75">{t("detective.hint")}</p>
+      )}
+    </div>
+  );
 }

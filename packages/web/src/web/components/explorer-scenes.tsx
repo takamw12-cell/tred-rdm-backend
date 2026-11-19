@@ -6,6 +6,7 @@ import { ActiveContext, HIGHLIGHT, Part, SelectContext, Skin } from "@/component
 import { EXPLORER_MODELS, TURBOFAN_FILE } from "@/lib/explorer-models";
 import { ATOM_SHELLS, descend, HEART_GLB, HEART_PART_OF, NORM_LEVELS, SURFACE, surfaceGradient, surfaceHeight, surfacePoint } from "@/lib/explorer-more";
 import { ORBITALS, sampleOrbital } from "@/lib/orbitals";
+import { APP_Z, NETWORK_NODES } from "@/lib/explorer-network";
 import { draggedSinceDown } from "@/lib/tap-guard";
 import { machinedMetalShader } from "@/components/explorer-effects";
 
@@ -534,6 +535,77 @@ export function Norms() {
           </mesh>
         </Part>
       ))}
+    </group>
+  );
+}
+
+/* ── Informatik : architecture web (lib/explorer-network.ts) ─────────────── */
+
+const NET = { clients: "#38BDF8", firewall: "#F97316", balancer: "#A855F7", app: "#22C55E", database: "#EAB308", link: "#64748B" };
+
+/** Un câble entre deux points du sol (cylindre fin). */
+function Link3D({ from, to }: { from: [number, number, number]; to: [number, number, number] }) {
+  const { mid, len, rot } = useMemo(() => {
+    const a = new THREE.Vector3(...from);
+    const b = new THREE.Vector3(...to);
+    const dir = b.clone().sub(a);
+    const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+    return { mid: a.clone().add(b).multiplyScalar(0.5), len: dir.length(), rot: new THREE.Euler().setFromQuaternion(q) };
+  }, [from, to]);
+  return (
+    <mesh position={mid} rotation={rot}>
+      <cylinderGeometry args={[0.03, 0.03, len, 8]} />
+      <meshStandardMaterial color={NET.link} emissive={NET.link} emissiveIntensity={0.35} />
+    </mesh>
+  );
+}
+
+function Block({ id, x, z, w, h, color }: { id: string; x: number; z: number; w: number; h: number; color: string }) {
+  return (
+    <Part id={id}>
+      <mesh position={[x, h / 2, z]}>
+        <boxGeometry args={[w, h, w]} />
+        <Skin part={id} color={color} metalness={0.25} roughness={0.4} />
+      </mesh>
+    </Part>
+  );
+}
+
+export function Network() {
+  const n = NETWORK_NODES;
+  const y = 0.2;
+  return (
+    <group>
+      {/* Trois clients, un pare-feu, un répartiteur, deux serveurs, UNE base. */}
+      {[-0.8, 0, 0.8].map((z) => (
+        <Block key={z} id="clients" x={n.clients.x} z={z} w={n.clients.w} h={n.clients.h} color={NET.clients} />
+      ))}
+      <Block id="firewall" x={n.firewall.x} z={0} w={n.firewall.w} h={n.firewall.h} color={NET.firewall} />
+      <Block id="balancer" x={n.balancer.x} z={0} w={n.balancer.w} h={n.balancer.h} color={NET.balancer} />
+      {APP_Z.map((z) => (
+        <Block key={z} id="app" x={n.app.x} z={z} w={n.app.w} h={n.app.h} color={NET.app} />
+      ))}
+      <Part id="database">
+        <mesh position={[n.database.x, n.database.h / 2, 0]}>
+          <cylinderGeometry args={[n.database.w / 2, n.database.w / 2, n.database.h, 32]} />
+          <Skin part="database" color={NET.database} metalness={0.35} roughness={0.35} />
+        </mesh>
+      </Part>
+      {[-0.8, 0, 0.8].map((z) => (
+        <Link3D key={`c${z}`} from={[n.clients.x, y, z]} to={[n.firewall.x, y, 0]} />
+      ))}
+      <Link3D from={[n.firewall.x, y, 0]} to={[n.balancer.x, y, 0]} />
+      {APP_Z.map((z) => (
+        <Link3D key={`b${z}`} from={[n.balancer.x, y, 0]} to={[n.app.x, y, z]} />
+      ))}
+      {APP_Z.map((z) => (
+        <Link3D key={`d${z}`} from={[n.app.x, y, z]} to={[n.database.x, y, 0]} />
+      ))}
+      {/* Le sol de la salle serveur. */}
+      <mesh position={[-0.2, -0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[7.6, 3.6]} />
+        <meshStandardMaterial color="#1E293B" roughness={0.9} />
+      </mesh>
     </group>
   );
 }

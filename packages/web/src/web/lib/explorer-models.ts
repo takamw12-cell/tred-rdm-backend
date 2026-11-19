@@ -22,6 +22,7 @@
  */
 
 import { ATOM, CELL, HEART, MATH_SURFACE, NORMS } from "./explorer-more";
+import { NETWORK } from "./explorer-network";
 
 export const CONTENT_LOCALES = ["de", "en", "fr", "es"] as const;
 export type ContentLocale = (typeof CONTENT_LOCALES)[number];
@@ -55,10 +56,10 @@ export interface ExplorerHotspot {
   steps?: FormulaStep[];
 }
 
-export type ExplorerModelId = "turbofan" | "gearbox" | "cell" | "heart" | "surface" | "atom" | "norms";
+export type ExplorerModelId = "turbofan" | "gearbox" | "cell" | "heart" | "surface" | "atom" | "norms" | "network";
 
 /** Les filières de l'Explorateur : TRED n'est pas réservé aux ingénieurs. */
-export type Discipline = "engineering" | "medicine" | "mathematics" | "physics" | "law";
+export type Discipline = "engineering" | "medicine" | "mathematics" | "physics" | "law" | "informatics";
 
 export interface ExplorerModel {
   /** « custom » : un fichier .glb déposé dans public/models/, sans repères. */
@@ -442,8 +443,8 @@ const GEARBOX: ExplorerModel = {
   ],
 };
 
-export const EXPLORER_MODELS: Record<ExplorerModelId, ExplorerModel> = { turbofan: TURBOFAN, gearbox: GEARBOX, cell: CELL, heart: HEART, surface: MATH_SURFACE, atom: ATOM, norms: NORMS };
-export const MODEL_IDS: ExplorerModelId[] = ["turbofan", "gearbox", "cell", "heart", "surface", "atom", "norms"];
+export const EXPLORER_MODELS: Record<ExplorerModelId, ExplorerModel> = { turbofan: TURBOFAN, gearbox: GEARBOX, cell: CELL, heart: HEART, surface: MATH_SURFACE, atom: ATOM, norms: NORMS, network: NETWORK };
+export const MODEL_IDS: ExplorerModelId[] = ["turbofan", "gearbox", "cell", "heart", "surface", "atom", "norms", "network"];
 
 /**
  * Le turboréacteur livré : coupe pédagogique Grab3D (CC0), deux pièces — le
@@ -459,6 +460,8 @@ export const DISCIPLINES: { id: Discipline; name: LocalText }[] = [
   { id: "mathematics", name: { de: "Mathematik", en: "Mathematics", fr: "Mathématiques", es: "Matemáticas" } },
   { id: "physics", name: { de: "Physik", en: "Physics", fr: "Physique", es: "Física" } },
   { id: "law", name: { de: "Jura", en: "Law", fr: "Droit", es: "Derecho" } },
+  // Pas encore de modèle livré : un .glb déposé dans public/models/informatics/ y apparaît (catalogue du serveur).
+  { id: "informatics", name: { de: "Informatik", en: "Computer science", fr: "Informatique", es: "Informática" } },
 ];
 export const modelsOf = (discipline: Discipline): ExplorerModel[] => MODEL_IDS.map((id) => EXPLORER_MODELS[id]).filter((m) => m.discipline === discipline);
 
@@ -484,7 +487,7 @@ export function explorerModelFor(question: string): ExplorerModelId | null {
  * autre dossier ni un autre site.
  */
 export function glbUrl(name: string | null | undefined): string | null {
-  return name && /^((engineering|medicine|mathematics|physics|law)\/)?[a-z0-9][a-z0-9-]{0,60}$/.test(name) ? `/models/${name}.glb` : null;
+  return name && /^((engineering|medicine|mathematics|physics|law|informatics)\/)?[a-z0-9][a-z0-9-]{0,60}$/.test(name) ? `/models/${name}.glb` : null;
 }
 
 export const isModelId = (v: unknown): v is ExplorerModelId => typeof v === "string" && (MODEL_IDS as string[]).includes(v);

@@ -103,6 +103,7 @@ import { writeVideoQuery } from "./lib/video-query";
 import { finalizeQuiz, quizContext, quizModelSchema, quizRequestSchema, quizSystemPrompt } from "./lib/quiz";
 import { challengeModelSchema, challengePrompt, challengeRequestSchema, challengeSystemPrompt, excerptFor, groundChallenge, type ChallengeMode, type ChallengeQuestion } from "./lib/doc-challenge";
 import { registerArcadeRoutes } from "./arcade/routes";
+import { registerExplorerRoutes } from "./explorer/routes";
 import {
   getAccess,
   setActive,
@@ -280,6 +281,7 @@ app.use("/api/app-integrity/*", rateLimitMiddleware({ limit: 20, scope: "app-int
 // Arcade : une partie = 1 génération (bornée comme le Fall-Check) + ~12 petits appels (question, réponse).
 app.use("/api/arcade/start", rateLimitMiddleware({ limit: 5, scope: "arcade-start" }));
 app.use("/api/arcade/*", rateLimitMiddleware({ limit: 90, scope: "arcade" }));
+app.use("/api/explorer/*", rateLimitMiddleware({ limit: 90, scope: "explorer" }));
 for (const p of ["/api/agent/*", "/api/arcade/start", "/api/documents/upload", "/api/documents/upload-batch", "/api/tts", "/api/auth/sign-up/*", "/api/rpc/*"]) app.use(p, appIntegrityGate());
 // Règles des magasins (App Store 3.1.1, Google Play « Paiements ») : l'app
 // mobile ne vend rien par Stripe. Les écrans sont masqués (mobile/lib/store-policy.ts) ;
@@ -2109,6 +2111,8 @@ app.post("/api/agent/doc-challenge", async (c) => {
 });
 
 registerArcadeRoutes(app, { buildChallenge });
+// Les modèles livrés ont leurs scènes ; le catalogue liste seulement les .glb DÉPOSÉS en plus.
+registerExplorerRoutes(app, new Set(["engineering/turbofan", "medicine/heart"]));
 
 // ── « Panik-Modus » : la feuille de secours de la veille d'examen ──────────
 // Trois notions et trois formules tirées d'UN document du compte, par le

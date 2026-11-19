@@ -10,10 +10,10 @@ import { ATOM_SHELLS, NORM_LEVELS, surfaceHeight, surfacePoint } from "../src/we
  */
 const read = (p: string) => readFileSync(join(import.meta.dir, p), "utf8");
 
-describe("cinq filières, chacune avec au moins un modèle", () => {
-  test("ingénierie, médecine, mathématiques, physique, droit — dans cet ordre", () => {
-    expect(DISCIPLINES.map((d) => d.id)).toEqual(["engineering", "medicine", "mathematics", "physics", "law"]);
-    expect(DISCIPLINES.map((d) => d.name.fr)).toEqual(["Ingénierie", "Médecine", "Mathématiques", "Physique", "Droit"]);
+describe("six filières, chacune avec au moins un modèle", () => {
+  test("ingénierie, médecine, mathématiques, physique, droit, informatique — dans cet ordre", () => {
+    expect(DISCIPLINES.map((d) => d.id)).toEqual(["engineering", "medicine", "mathematics", "physics", "law", "informatics"]);
+    expect(DISCIPLINES.map((d) => d.name.fr)).toEqual(["Ingénierie", "Médecine", "Mathématiques", "Physique", "Droit", "Informatique"]);
     for (const d of DISCIPLINES) for (const l of CONTENT_LOCALES) expect(d.name[l].length).toBeGreaterThan(2);
   });
 
@@ -23,8 +23,10 @@ describe("cinq filières, chacune avec au moins un modèle", () => {
     expect(ids("medicine")).toEqual(["cell", "heart"]);
     expect(ids("mathematics")).toEqual(["surface"]);
     expect(ids("physics")).toEqual(["atom"]);
+    // Informatik (19 nov. 2026) : architecture web, la base de données unique en point de défaillance.
+    expect(ids("informatics")).toEqual(["network"]);
     expect(ids("law")).toEqual(["norms"]);
-    expect(MODEL_IDS).toHaveLength(7);
+    expect(MODEL_IDS).toHaveLength(8);
   });
 
   test("tous les modèles tiennent les mêmes règles : repères dans la boîte, textes dans les quatre langues, questions qui finissent par « ? »", () => {
