@@ -87,7 +87,7 @@ export const voiceOf = (id: string) => {
   return mp3 && json?.words?.length ? { src: url(mp3), words: json.words } : null;
 };
 export const musicOf = (id: string) => {
-  const m = droppedFile(`music-${id}.mp3`) ?? droppedFile("music.mp3") ?? droppedFile("music.wav");
+  const m = droppedFile(`music-${id}.mp3`) ?? droppedFile(`music-${id}.wav`) ?? droppedFile("music.mp3") ?? droppedFile("music.wav");
   return m ? url(m) : null;
 };
 

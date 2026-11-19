@@ -1,3 +1,4 @@
 node_modules
 out
 public/pro/music.wav
+public/pro/music-*.wav

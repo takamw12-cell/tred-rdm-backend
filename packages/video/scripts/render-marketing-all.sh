@@ -10,7 +10,7 @@ ids=(en1-panic-hack en2-3d-arcade en3-personal-professor de1-klausur-rettung de2
 [ $# -gt 0 ] && ids=("$@")
 mkdir -p out/marketing
 # La musique est synthétisée (libre de droits) : générée si elle manque.
-[ -f public/pro/music.wav ] || node scripts/lofi-music.mjs
+[ -f public/pro/music-de3-lernprofil.wav ] || node scripts/lofi-music.mjs
 npx remotion bundle src/index.ts --out-dir=out/.bundle-marketing
 for id in "${ids[@]}"; do
   npx remotion render out/.bundle-marketing "Pro-$id" "out/marketing/$id.mp4" --concurrency=2 --codec=h264 --crf=18
