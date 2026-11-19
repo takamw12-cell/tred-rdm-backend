@@ -69,7 +69,7 @@ const tiktok = (require as any).context("../assets/tiktok", false, /\.(jpg|mp4)$
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const pro = (require as any).context("../assets/pro", false, /\.(png|jpg)$/) as Ctx;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const dropped = (require as any).context("../../public/pro", false, /\.(mp3|json)$/) as Ctx;
+const dropped = (require as any).context("../../public/pro", false, /\.(mp3|wav|json)$/) as Ctx;
 const url = (m: unknown) => (typeof m === "string" ? m : (m as { default: string }).default);
 
 export function mediaOf(name: string): { src: string; video: boolean } | null {
@@ -87,7 +87,7 @@ export const voiceOf = (id: string) => {
   return mp3 && json?.words?.length ? { src: url(mp3), words: json.words } : null;
 };
 export const musicOf = (id: string) => {
-  const m = droppedFile(`music-${id}.mp3`) ?? droppedFile("music.mp3");
+  const m = droppedFile(`music-${id}.mp3`) ?? droppedFile("music.mp3") ?? droppedFile("music.wav");
   return m ? url(m) : null;
 };
 
@@ -394,8 +394,8 @@ export function ProMarketingVideo({ board, timeline, words }: ProProps) {
       <Captions words={plan.words} scene={current} accent={palette.accent} />
       <Grain />
       {voice && <Audio src={voice.src} />}
-      {/* −20 dB ≈ 0,1 en amplitude, avec un fondu à l'entrée et à la sortie. */}
-      {music && <Audio src={music} volume={(f) => 0.1 * Math.min(1, f / 30, (durationInFrames - f) / 45)} />}
+      {/* Musique synthétisée (scripts/lofi-music.mjs), en boucle ; −20 dB = 0,1 en amplitude, fondu à l'entrée et à la sortie. */}
+      {music && <Audio src={music} loop volume={(f) => 0.1 * Math.min(1, f / 30, (durationInFrames - f) / 45)} />}
     </AbsoluteFill>
   );
 }
