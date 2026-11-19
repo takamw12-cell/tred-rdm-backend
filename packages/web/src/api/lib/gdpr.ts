@@ -10,6 +10,7 @@ import {
   studyDay,
   referral,
   referralCode,
+  professorCustom,
   examDate,
   contentReport,
   creditTransaction,
@@ -85,6 +86,8 @@ export const PERSONAL_DATA_TABLES = [
   // Parrainage (2026-11-18) : le code du compte, et qui a parrainé qui.
   "referral_code",
   "referral",
+  // « Dein Professor » (2026-11-19) : le prénom et la voix choisis.
+  "professor_custom",
   // Six tables secondaires oubliées, traitées par lib/gdpr-ancillary.ts
   // (décisions du fondateur du 2026-11-11). Deux sont ANONYMISÉES — le contenu
   // reste, le lien vers le compte disparaît — et quatre sont effacées.
@@ -132,7 +135,7 @@ export async function exportUserData(userId: string) {
   // Tables créées par un script migre-*.mjs : si l'une manque encore sur une
   // base, l'export ne doit pas échouer pour autant.
   const optional = <T>(query: Promise<T[]>): Promise<T[]> => query.catch(() => []);
-  const [karteikarten, erklaervideos, solverErgebnisse, lernstand, briefings, klausurtermine, lerntage, einladungscode, einladungen] = await Promise.all([
+  const [karteikarten, erklaervideos, solverErgebnisse, lernstand, briefings, klausurtermine, lerntage, einladungscode, einladungen, meinProfessor] = await Promise.all([
     optional(db.select().from(flashcard).where(eq(flashcard.userId, userId))),
     optional(db.select().from(generatedVideo).where(eq(generatedVideo.userId, userId))),
     optional(db.select().from(solverResult).where(eq(solverResult.userId, userId))),
@@ -143,6 +146,7 @@ export async function exportUserData(userId: string) {
     optional(db.select().from(referralCode).where(eq(referralCode.userId, userId))),
     // Les deux sens : qui m'a invité, et les comptes que j'ai invités (leur identifiant seulement).
     optional(db.select().from(referral).where(or(eq(referral.refereeId, userId), eq(referral.referrerId, userId)))),
+    optional(db.select().from(professorCustom).where(eq(professorCustom.userId, userId))),
   ]);
 
   const nebentabellen = await exportAncillaryData(db, userId);
@@ -203,6 +207,7 @@ export async function exportUserData(userId: string) {
     lerntage,
     einladungscode,
     einladungen,
+    meinProfessor,
     karteikarten,
     erklaervideos,
     solverErgebnisse,
@@ -330,6 +335,7 @@ export async function deleteUserData(userId: string): Promise<DeletionReport> {
   );
   await step("study_day", () => db.delete(studyDay).where(eq(studyDay.userId, userId)));
   await step("referral_code", () => db.delete(referralCode).where(eq(referralCode.userId, userId)));
+  await step("professor_custom", () => db.delete(professorCustom).where(eq(professorCustom.userId, userId)));
   // Les deux sens : le lien vers ce compte disparaît, qu'il ait été parrain ou filleul.
   await step("referral", () => db.delete(referral).where(or(eq(referral.refereeId, userId), eq(referral.referrerId, userId))));
   // Feedback et explications partagées : anonymisés. Cours, avatar, votes,

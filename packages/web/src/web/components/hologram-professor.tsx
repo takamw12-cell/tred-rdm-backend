@@ -147,7 +147,7 @@ export function useProfessorChoreography({
   failed: boolean;
   answerText: () => string;
   locale: string;
-  professor: Professor;
+  professor: Professor & { voiceSlot?: string };
 }) {
   const [pose, setPose] = useState<ProfessorPose>("idle");
   const [beat, setBeat] = useState(0);
@@ -182,7 +182,7 @@ export function useProfessorChoreography({
         window.dispatchEvent(new CustomEvent(TTS_EVENT, { detail: "hologram" }));
         setBeat(0);
         void speak(text, lang, {
-          professorId: prof.id,
+          professorId: prof.voiceSlot ?? prof.id,
           defaultStyle: PROFESSOR_STYLE[prof.id],
           onEnd: () => dispatch({ type: "spoken" }),
           onWord: () => setBeat((b) => b + 1),

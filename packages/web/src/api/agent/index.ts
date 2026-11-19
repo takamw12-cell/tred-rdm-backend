@@ -150,6 +150,8 @@ function buildMemoryBlock(
   mastery?: TutorMastery,
   /** Consigne du mode socratique (lib/socratic.ts), déjà vide s'il est éteint. */
   socraticLines: string[] = [],
+  /** Prénom donné par l'étudiant (lib/professor-name.ts : lettres seulement). */
+  professorName: string | null = null,
 ): string {
   // Lernstand : les concepts fragiles de CETTE personne, et la consigne de
   // signaler ce qu'elle montre. Vide sans modèle de l'apprenant.
@@ -159,6 +161,9 @@ function buildMemoryBlock(
   const personaLines = [
     "DEINE ROLLE (vom Studierenden gewählter Professor):",
     ...PROFESSORS[professor].persona,
+    ...(professorName
+      ? [`- Die Studentin oder der Student hat dich „${professorName}“ genannt. Das ist dein Name: stell dich so vor, wenn du dich vorstellst.`]
+      : []),
     "- Gesprochen (vorgelesen) wird nur deine Erklärung in eigenen Worten —",
     "  nie die Tafel, nie eine Formel (NIVEAU 7, [[PROFESSEUR]]).",
     "- Die Rolle bestimmt den TON, nie den Inhalt: Richtigkeit, Werkzeuge,",
@@ -260,6 +265,8 @@ export function buildTutorAgent(opts: {
   learningStyle?: LearningStyle;
   /** Professeur choisi (lib/professors.ts). Absent = « genius ». */
   professor?: ProfessorId;
+  /** Prénom donné au professeur (« Dein Professor »). */
+  professorName?: string | null;
   /**
    * La recherche dans TOUT le cours, pas seulement dans les extraits retenus.
    *
@@ -338,7 +345,7 @@ export function buildTutorAgent(opts: {
   const rule = langRule(opts.locale);
   // Mode socratique : jamais en Prüfungsmodus, qui a ses propres règles.
   const socraticLines = opts.socratic && !opts.examMode ? socraticPromptLines(opts.socratic) : [];
-  const memoryBlock = buildMemoryBlock(opts.memory, opts.learningStyle, opts.professor, opts.mastery, socraticLines);
+  const memoryBlock = buildMemoryBlock(opts.memory, opts.learningStyle, opts.professor, opts.mastery, socraticLines, opts.professorName ?? null);
   const lang = rule.label;
   const student = opts.studentName?.trim() || null;
   const uni = opts.university?.trim() || "FH Aachen";

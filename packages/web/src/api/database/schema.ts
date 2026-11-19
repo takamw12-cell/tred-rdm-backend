@@ -1026,3 +1026,33 @@ export const examDate = sqliteTable(
 );
 
 export type ExamDate = typeof examDate.$inferSelect;
+
+/**
+ * « Dein Professor » (2026-11-19) : prénom et voix choisis par l'étudiant
+ * (lib/professor-custom.ts). Créée par migre-prof-perso.mjs.
+ */
+export const professorCustom = sqliteTable("professor_custom", {
+  userId: text("user_id").primaryKey(),
+  /** Passé par lib/professor-name.ts ; null = nom du professeur du vestiaire. */
+  name: text("name"),
+  /** Identifiant d'une des 9 voix ; null = voix du professeur choisi. */
+  voice: text("voice"),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
+});
+
+/**
+ * Cache des voix ElevenLabs (2026-11-19, api/tts/cache.ts) : la même phrase
+ * dans la même voix n'est payée qu'une fois. L'audio est dans le stockage
+ * (préfixe tts-cache/), la ligne dit où et combien de fois il a servi.
+ */
+export const ttsCache = sqliteTable("tts_cache", {
+  /** sha256(version | voix | style | texte). */
+  key: text("key").primaryKey(),
+  voiceId: text("voice_id").notNull(),
+  chars: integer("chars").notNull(),
+  bytes: integer("bytes").notNull(),
+  objectKey: text("object_key").notNull(),
+  hits: integer("hits").notNull().default(0),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
+  lastUsedAt: integer("last_used_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
+}, (t) => [index("tts_cache_last_used_idx").on(t.lastUsedAt)]);

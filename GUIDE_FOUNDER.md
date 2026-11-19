@@ -1595,3 +1595,10 @@ Supprimer `STRIPE_PRICE_PRO_SEMESTER` (ancien abonnement à 59,99 €). Les iden
 - **Parrainage** : page `/invite`, code `TRED-XXXXXX`, lien `/?ref=…`. +15 crédits au parrain et au filleul, si le filleul a confirmé son adresse e-mail et s'est inscrit depuis moins de 7 jours ; 20 filleuls au plus par parrain.
 - **À lancer une fois** : `node C:\dev\tred-rdm\aerostudy-ai\migre-referral.mjs`. Avant, la page `/invite` dit que les invitations arrivent bientôt.
 - **Webhook Stripe** : ajouter l'événement `invoice.paid` (crédits de l'abonnement mensuel) à ceux de la section « Paiements : passer en réel ».
+
+## « Dein Professor » et cache des voix (19 nov. 2026)
+
+- **Réglages → Dein Professor** : l'étudiant donne un prénom à son professeur (2 à 24 caractères, lettres seulement) et choisit une des 9 voix ; « Stimme testen » joue une phrase d'accueil. Le prénom s'affiche dans le Hörsaal et le tuteur se présente avec. Vide = nom et voix du professeur choisi dans le vestiaire.
+- **Filtre** (`packages/web/src/api/lib/professor-name.ts`) : refuse marques, célébrités, personnages connus, assistants d'IA, « TRED / Admin / Support » et grossièretés, y compris écrits avec accents, chiffres (« Einst3in ») ou collés à un titre. La liste s'allonge dans ce fichier ; un nom refusé après coup n'est plus affiché.
+- **Cache des voix** (`packages/web/src/api/tts/cache.ts`) : chaque extrait ElevenLabs est rangé dans le stockage (préfixe `tts-cache/`) et noté dans la table `tts_cache` ; la même phrase dans la même voix n'est plus jamais repayée, pour aucun compte. La table ne contient que des empreintes, pas de texte.
+- **À lancer une fois** : `node C:\dev\tred-rdm\aerostudy-ai\migre-prof-perso.mjs` (tables `professor_custom` et `tts_cache`). Avant, l'écran « Dein Professor » dit que la fonction arrive, et le cache reste en mémoire du serveur.

@@ -134,7 +134,7 @@ export function ListenButton({ text, locale }: { text: string; locale: string })
     void speak(spoken, locale, {
       onEnd: () => setSpeaking(false),
       onEngine: setEngine,
-      professorId: professor.id,
+      professorId: professor.voiceSlot,
       defaultStyle: PROFESSOR_STYLE[professor.id],
     }).then((ok) => {
       if (!ok) setSpeaking(false);

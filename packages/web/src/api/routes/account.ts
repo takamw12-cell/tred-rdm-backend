@@ -12,6 +12,7 @@ import { DEFAULT_LEARNING_STYLE, LEARNING_STYLES } from "../lib/learning-style";
 import { readLearningStyle } from "../lib/learning-style-store";
 import { PROFESSOR_IDS } from "../lib/professors";
 import { readProfessor } from "../lib/professor-store";
+import { readProfessorCustom, saveProfessorCustom } from "../lib/professor-custom";
 import { profileUpdateSchema } from "../lib/stored-profile";
 import { readStoredProfile, saveStoredProfile, type ProfileDb } from "../lib/stored-profile-db";
 
@@ -86,9 +87,19 @@ export const account = {
     }),
 
   /** Gewählter Professor (lib/professors.ts). `genius`, solange nichts gewählt wurde. */
-  getProfessor: authed.handler(async ({ context }) => ({
-    professorId: await readProfessor(context.user.id),
-  })),
+  getProfessor: authed.handler(async ({ context }) => {
+    const [professorId, custom] = await Promise.all([readProfessor(context.user.id), readProfessorCustom(context.user.id)]);
+    return { professorId, customName: custom.name, customVoice: custom.voice };
+  }),
+
+  /**
+   * « Dein Professor » : prénom (filtre anti-marques, lib/professor-name.ts) et
+   * voix. null ou vide = revenir au nom / à la voix du professeur choisi. Un
+   * refus n'est pas une erreur : la raison s'affiche sous le champ.
+   */
+  setProfessorCustom: authed
+    .input(z.object({ name: z.string().max(80).nullable(), voice: z.enum(PROFESSOR_IDS).nullable() }))
+    .handler(({ input, context }) => saveProfessorCustom(context.user.id, input)),
 
   /** Professor setzen. Der Tutor liest ihn bei jeder Nachricht neu. */
   setProfessor: authed

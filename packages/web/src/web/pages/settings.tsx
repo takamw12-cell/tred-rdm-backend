@@ -17,9 +17,11 @@ import {
   BookOpen,
   Volume2,
   Landmark,
+  UserPen,
 } from "lucide-react";
 import { LearningStylePicker } from "@/components/learning-style-picker";
 import { ProfessorPicker } from "@/components/professor-picker";
+import { ProfessorCustom } from "@/components/professor-custom";
 import { VoicePicker, voicePickerTitle } from "@/components/voice-picker";
 import { professorUi } from "@/lib/professors";
 import { StudiengangPicker } from "@/components/studiengang-picker";
@@ -323,6 +325,11 @@ export default function SettingsPage() {
         description={professorUi(locale).sectionDesc}
       >
         <ProfessorPicker />
+      </Section>
+
+      {/* « Dein Professor » : prénom et voix (components/professor-custom.tsx). */}
+      <Section icon={<UserPen className="size-4" />} title={t("profCustom.title")} description={t("profCustom.subtitle")}>
+        <ProfessorCustom />
       </Section>
 
       <Section icon={<Volume2 className="size-4" />} title={voicePickerTitle(locale)}>

@@ -7,6 +7,7 @@ import { registerAvatarRoutes } from "./avatar/routes";
 import { registerMediaRoutes } from "./media/routes";
 import { registerTtsRoutes } from "./tts/routes";
 import { readProfessor } from "./lib/professor-store";
+import { readProfessorCustom } from "./lib/professor-custom";
 import { generateMedia, replicateConfigured } from "./lib/replicate-media";
 import { ping } from "./routes/ping";
 import { documents } from "./routes/documents";
@@ -831,6 +832,8 @@ app.post("/api/agent/messages", async (c) => {
     readLearningStyle(uid),
     // Professeur choisi (vestiaire). Ne lève jamais (→ « genius »).
     readProfessor(uid),
+    // Prénom donné au professeur (« Dein Professor »). Ne lève jamais (→ aucun).
+    readProfessorCustom(uid).then((c) => c.name),
   ]);
 
   let rows;
@@ -921,7 +924,7 @@ app.post("/api/agent/messages", async (c) => {
 
   // Langue enregistrée, lacunes, concepts fragiles, style, professeur : lus
   // plus haut, pendant la lecture des documents.
-  const [storedLocale, gaps, weakest, learningStyle, professor] = await personal;
+  const [storedLocale, gaps, weakest, learningStyle, professor, professorName] = await personal;
 
   // Domain-Based Agent universel (lib/domains/) : matière → famille (méthode
   // du droit, de la médecine, de l'éco… ; niveau scolaire) → spécialisation
@@ -973,6 +976,7 @@ app.post("/api/agent/messages", async (c) => {
     studyProfile: [studyProfileHint(studyProfile), realWorldRules(studyProfile, { examMode: examMode === true })].filter(Boolean).join("\n\n") || null,
     learningStyle,
     professor,
+    professorName,
     sources,
     // L'inventaire complet, pas seulement les extraits retenus. `sources` peut
     // n'en contenir que cinq sur neuf selon la question ; sans cette liste, le

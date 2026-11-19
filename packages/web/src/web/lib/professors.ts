@@ -21,7 +21,7 @@ export {
  * Le professeur choisi par l'étudiant connecté. Sans session (page publique
  * /classroom) ou en cas d'erreur : le professeur par défaut, sans requête.
  */
-export function useProfessor(): Professor {
+export function useProfessor(): Professor & { voiceSlot: string; customName: string | null } {
   const { data: session } = authClient.useSession();
   const query = useQuery({
     ...orpc.account.getProfessor.queryOptions(),
@@ -29,7 +29,11 @@ export function useProfessor(): Professor {
     staleTime: 5 * 60_000,
   });
   const id = query.data?.professorId;
-  return PROFESSORS[isProfessorId(id) ? id : DEFAULT_PROFESSOR];
+  const base = PROFESSORS[isProfessorId(id) ? id : DEFAULT_PROFESSOR];
+  // « Dein Professor » : le prénom donné remplace le nom affiché ; la voix choisie, celle du professeur.
+  const customName = query.data?.customName ?? null;
+  const customVoice = query.data?.customVoice ?? null;
+  return { ...base, name: customName ?? base.name, customName, voiceSlot: customVoice ?? base.id };
 }
 
 /** Textes du vestiaire (de / en / fr ; les autres langues lisent l'anglais). */

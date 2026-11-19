@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { ttsAudioCache, ttsCacheKey } from "./cache";
 import type { Hono } from "hono";
 import { auth } from "../auth";
 import { reserveChars } from "./budget";
@@ -12,17 +12,12 @@ import { createElevenLabsTts, elevenLabsConfigured, premiumVoices, resolvePremiu
  *  - session obligatoire + limite de requêtes (index.ts) ;
  *  - 2 500 caractères par appel (le navigateur découpe les longues réponses) ;
  *  - plafond quotidien par étudiant (ELEVENLABS_DAILY_CHARS, défaut 20 000) ;
- *  - cache mémoire : réécouter la même réponse ne coûte rien.
+ *  - cache (mémoire, puis table tts_cache + stockage) : la même phrase dans
+ *    la même voix ne coûte qu'une fois, pour tous les comptes (cache.ts).
  */
 export const MAX_TTS_CHARS = 2500;
 const STYLES: readonly VoiceStyle[] = ["calm", "energetic", "strict"];
 
-const CACHE_MAX = 60;
-const cache = new Map<string, ArrayBuffer>();
-function remember(key: string, audio: ArrayBuffer) {
-  cache.set(key, audio);
-  if (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value!);
-}
 
 export function registerTtsRoutes(app: Hono) {
   app.get("/api/tts/status", async (c) => {
@@ -49,16 +44,17 @@ export function registerTtsRoutes(app: Hono) {
     const voice = resolvePremiumVoice(typeof body?.voice === "string" ? body.voice : undefined, style);
     if (!voice) return c.json({ error: "not_configured" }, 503);
 
-    const key = createHash("sha256").update(`${voice.voiceId}|${voice.style}|${text}`).digest("hex");
+    const key = ttsCacheKey(voice.voiceId, voice.style, text);
     const headers = { "Content-Type": "audio/mpeg", "Cache-Control": "private, max-age=86400" };
-    const hit = cache.get(key);
-    if (hit) return new Response(hit.slice(0), { headers });
+    // Déjà payé : servi sans appel à ElevenLabs et sans entamer le plafond du jour (api/tts/cache.ts).
+    const hit = await ttsAudioCache.get(key);
+    if (hit) return new Response(hit.audio.slice(0), { headers: { ...headers, "X-TTS-Cache": hit.source } });
 
     if (!reserveChars(session.user.id, text.length)) return c.json({ error: "daily_limit" }, 429);
     try {
       const audio = await createElevenLabsTts({ slot: voice.id, style: voice.style }).synthesize(text);
-      remember(key, audio);
-      return new Response(audio.slice(0), { headers });
+      await ttsAudioCache.put(key, voice.voiceId, text.length, audio);
+      return new Response(audio.slice(0), { headers: { ...headers, "X-TTS-Cache": "miss" } });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (/missing_permissions|text_to_speech/i.test(msg)) {
