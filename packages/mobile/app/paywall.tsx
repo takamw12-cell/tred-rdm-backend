@@ -144,7 +144,7 @@ export default function Paywall() {
         {plan.isLoading ? (
           <ActivityIndicator color={c.accent} />
         ) : purchasesHidden && !isPaid ? (
-          // iOS : aucun achat, aucun prix, aucun lien (lib/store-policy.ts).
+          // iOS et Android : aucun achat, aucun prix, aucun lien (lib/store-policy.ts).
           <Card>
             <Text testID="ios-no-purchase" style={{ color: c.mutedForeground, lineHeight: 21 }}>
               {t("plan.notInApp")}

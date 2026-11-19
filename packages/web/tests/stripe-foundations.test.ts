@@ -182,14 +182,20 @@ describe("page de tarifs", () => {
 });
 
 describe("app mobile", () => {
-  test("iOS : ni bouton d'achat, ni prix, ni lien vers un paiement — et aucune invitation à payer ailleurs", () => {
+  test("iOS et Android : ni bouton d'achat, ni prix, ni lien vers un paiement — et aucune invitation à payer ailleurs", () => {
     const policy = read("../mobile/lib/store-policy.ts");
-    expect(policy).toContain('return os === "ios";');
+    // Décision du fondateur (19 nov. 2026) : Google Play aussi, pas seulement l'App Store.
+    expect(policy).toContain('return os === "ios" || os === "android";');
     for (const screen of ["../mobile/app/paywall.tsx", "../mobile/app/credits.tsx", "../mobile/app/(tabs)/settings.tsx"]) {
       const src = read(screen);
       expect(src).toContain("purchasesHidden");
       expect(src).toContain('testID="ios-no-purchase"');
     }
+    // Verrou serveur : un paiement demandé par l'app (X-TRED-Platform) est refusé.
+    const index = read("src/api/index.ts");
+    for (const route of ["subscriptions/createCheckout", "subscriptions/createPassCheckout", "subscriptions/portal", "credits/purchase"]) expect(index).toContain(`"/api/rpc/${route}"`);
+    expect(index).toContain('c.json({ error: "purchases_not_in_store_app" }, 403)');
+    expect(read("../mobile/lib/app-integrity.ts")).toContain('headers["X-TRED-Platform"] = Platform.OS;');
     for (const lang of ["de", "en", "fr"]) {
       const notice = /notInApp: "([^"]+)"/.exec(read(`../mobile/i18n/${lang}.ts`))?.[1] ?? "";
       expect(notice.length).toBeGreaterThan(20);

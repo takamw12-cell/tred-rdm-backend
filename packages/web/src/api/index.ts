@@ -6,6 +6,10 @@ import { createApp } from "./__core/app";
 import { registerAvatarRoutes } from "./avatar/routes";
 import { registerMediaRoutes } from "./media/routes";
 import { registerTtsRoutes } from "./tts/routes";
+import { appIntegrityGate, registerAppIntegrityRoutes } from "./integrity/routes";
+
+/** Plateformes des magasins d'applications (en-tête X-TRED-Platform de l'app mobile). */
+const STORE_PLATFORMS = new Set(["ios", "android"]);
 import { readProfessor } from "./lib/professor-store";
 import { readProfessorCustom } from "./lib/professor-custom";
 import { generateMedia, replicateConfigured } from "./lib/replicate-media";
@@ -268,6 +272,20 @@ app.use("/api/attribution", rateLimitMiddleware({ limit: 10, scope: "attribution
 // Logos des établissements : publics, liste fermée, en cache — bornés quand même.
 app.use("/api/logo/*", rateLimitMiddleware({ limit: 120, scope: "logo", by: "ip" }));
 app.use("/api/agent/*", rateLimitMiddleware({ limit: 5, scope: "agent" }));
+// Intégrité de l'app mobile (integrity/routes.ts) : défis bornés par IP ; les
+// routes coûteuses classent (« report ») ou refusent (« enforce ») les requêtes
+// de l'app sans jeton valide. Le site web n'est jamais concerné.
+app.use("/api/app-integrity/*", rateLimitMiddleware({ limit: 20, scope: "app-integrity", by: "ip" }));
+for (const p of ["/api/agent/*", "/api/documents/upload", "/api/documents/upload-batch", "/api/tts", "/api/auth/sign-up/*", "/api/rpc/*"]) app.use(p, appIntegrityGate());
+// Règles des magasins (App Store 3.1.1, Google Play « Paiements ») : l'app
+// mobile ne vend rien par Stripe. Les écrans sont masqués (mobile/lib/store-policy.ts) ;
+// le serveur refuse en plus tout paiement demandé par l'app, au cas où.
+for (const p of ["/api/rpc/subscriptions/createCheckout", "/api/rpc/subscriptions/createPassCheckout", "/api/rpc/subscriptions/portal", "/api/rpc/credits/purchase"]) {
+  app.use(p, async (c, next) => {
+    if (STORE_PLATFORMS.has(c.req.header("x-tred-platform") ?? "")) return c.json({ error: "purchases_not_in_store_app" }, 403);
+    await next();
+  });
+}
 app.use(
   "/api/documents/upload",
   rateLimitMiddleware({ limit: 10, scope: "upload", windowMs: 5 * 60_000 }),
@@ -640,6 +658,7 @@ registerAvatarRoutes(app, requireAdmin);
 registerMediaRoutes(app);
 // Voix premium du professeur (ElevenLabs) — inerte sans clé.
 registerTtsRoutes(app);
+registerAppIntegrityRoutes(app);
 // Betreiber-Dashboard /admin/analytics (DB + PostHog), nur Rolle admin.
 registerAnalyticsRoutes(app, requireAdmin);
 registerFlashcardRoutes(app);

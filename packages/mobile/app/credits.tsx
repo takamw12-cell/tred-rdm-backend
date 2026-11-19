@@ -171,7 +171,7 @@ export default function Credits() {
         {credits.isLoading ? (
           <ActivityIndicator color={c.accent} style={styles.loader} />
         ) : purchasesHidden ? (
-          // iOS : le solde reste visible, mais ni paquet, ni prix, ni lien (lib/store-policy.ts).
+          // iOS et Android : le solde reste visible, mais ni paquet, ni prix, ni lien (lib/store-policy.ts).
           <Card>
             <Text testID="ios-no-purchase" style={[styles.note, { color: c.mutedForeground }]}>
               {t("plan.notInApp")}

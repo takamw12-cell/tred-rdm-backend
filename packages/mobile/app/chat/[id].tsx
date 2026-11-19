@@ -18,6 +18,7 @@ import * as Haptics from "expo-haptics";
 import { fetch as expoFetch } from "expo/fetch";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useChat } from "@ai-sdk/react";
+import { integrityHeaders } from "@/lib/app-integrity";
 import { RichText } from "@/components/chat/RichText";
 import { ReportButton } from "@/components/chat/ReportButton";
 import { CreditBadge } from "@/components/CreditBadge";
@@ -91,7 +92,7 @@ export default function ChatScreen() {
         headers: async () => {
           // Toujours un Record<string, string>, jamais un objet à propriété
           // optionnelle : le transport n'accepte pas `{ Cookie?: undefined }`.
-          const headers: Record<string, string> = {};
+          const headers: Record<string, string> = await integrityHeaders();
           // Depuis @better-auth/expo 1.7, le cookie se lit de façon asynchrone.
           const cookie = await authClient.getCookie();
           if (cookie) headers.Cookie = cookie;

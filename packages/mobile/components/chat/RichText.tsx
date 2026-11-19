@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
+import { CDN_FILES, scriptSafeJson, WEBVIEW_CSP } from "@/lib/webview-safety";
 import { useColors } from "@/hooks/use-colors";
 import { Space } from "@/constants/theme";
 
@@ -39,14 +40,17 @@ function buildHtml(markdown: string, colors: {
 }): string {
   // JSON.stringify échappe guillemets, retours à la ligne et antislashs —
   // indispensable ici : le LaTeX est fait d'antislashs, et une simple
-  // interpolation casserait le script au premier `\frac`.
-  const payload = JSON.stringify(markdown);
+  // interpolation casserait le script au premier `\frac`. scriptSafeJson
+  // échappe en plus `<` et `>` : une réponse contenant `</script>` ne ferme
+  // plus rien (lib/webview-safety.ts).
+  const payload = scriptSafeJson(markdown);
 
   return `<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<meta http-equiv="Content-Security-Policy" content="${WEBVIEW_CSP}">
+<link rel="stylesheet" href="${CDN_FILES.katexCss.src}" integrity="${CDN_FILES.katexCss.integrity}" crossorigin="anonymous">
 <style>
   :root { color-scheme: light dark; }
   html,body { margin:0; padding:0; background:transparent; }
@@ -92,17 +96,19 @@ function buildHtml(markdown: string, colors: {
     window.ReactNativeWebView && window.ReactNativeWebView.postMessage(String(h));
   }
 
-  function load(src) {
+  function load(src, integrity) {
     return new Promise(function (res) {
       var s = document.createElement('script');
+      // Empreinte SRI : un fichier modifié sur le CDN n'est pas exécuté (le texte brut reste).
+      s.integrity = integrity; s.crossOrigin = 'anonymous';
       s.src = src; s.onload = res; s.onerror = res;
       document.head.appendChild(s);
     });
   }
 
   Promise.all([
-    load('https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/dist/markdown-it.min.js'),
-    load('https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js'),
+    load(${JSON.stringify(CDN_FILES.markdownIt.src)}, ${JSON.stringify(CDN_FILES.markdownIt.integrity)}),
+    load(${JSON.stringify(CDN_FILES.katex.src)}, ${JSON.stringify(CDN_FILES.katex.integrity)}),
   ]).then(function () {
     try {
       if (window.markdownit) {

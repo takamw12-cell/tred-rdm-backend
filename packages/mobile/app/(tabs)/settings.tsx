@@ -247,7 +247,7 @@ export default function Settings() {
             </View>
 
             {purchasesHidden ? (
-              // iOS : ni achat, ni prix, ni lien (lib/store-policy.ts).
+              // iOS et Android : ni achat, ni prix, ni lien (lib/store-policy.ts).
               <Text testID="ios-no-purchase" style={{ color: c.mutedForeground, fontSize: 13, lineHeight: 19, marginTop: 10 }}>
                 {t("plan.notInApp")}
               </Text>

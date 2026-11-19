@@ -21,6 +21,9 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
+      "entitlements": {
+        "com.apple.developer.devicecheck.appattest-environment": "production"
+      },
       "buildNumber": "1"
     },
     "android": {
@@ -30,6 +33,7 @@
         "backgroundColor": "#F8F9FA"
       },
       "edgeToEdgeEnabled": true,
+      "allowBackup": false,
       "versionCode": 1
     },
     "web": {
@@ -54,7 +58,8 @@
       "scheme": "tred",
       "privacyPolicyUrl": "https://www.tred-tutor.de/datenschutz",
       "termsUrl": "https://www.tred-tutor.de/agb",
-      "supportEmail": "takamw12@gmail.com"
+      "supportEmail": "takamw12@gmail.com",
+      "playIntegrityCloudProjectNumber": ""
     }
   }
 }

@@ -3,6 +3,7 @@ import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import { createTanstackQueryUtils } from "@orpc/tanstack-query";
 import type { AppRouterClient } from "@template/web";
+import { integrityHeaders } from "@/lib/app-integrity";
 
 const baseUrl =
   Constants.expoConfig?.extra?.apiUrl ??
@@ -10,6 +11,16 @@ const baseUrl =
 
 const link = new RPCLink({
   url: `${baseUrl}/api/rpc`,
+  // Le cookie de session (lu dans le trousseau) et l'intégrité de l'app.
+  // Sans ce cookie, chaque appel typé partait sans session : audit MASVS du
+  // 19 nov. 2026 (le chat et les envois le joignaient déjà eux-mêmes).
+  headers: async () => {
+    const { authClient } = await import("@/lib/auth-client");
+    const headers: Record<string, string> = await integrityHeaders();
+    const cookie = await authClient.getCookie();
+    if (cookie) headers.Cookie = cookie;
+    return headers;
+  },
 });
 
 /** Direct typed client: await client.ping() */
@@ -33,6 +44,7 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
   const { authClient } = await import("@/lib/auth-client");
 
   const headers = new Headers(init.headers);
+  for (const [k, v] of Object.entries(await integrityHeaders())) headers.set(k, v);
   // Depuis @better-auth/expo 1.7, le cookie se lit de façon asynchrone.
   const cookie = await authClient.getCookie();
   if (cookie) headers.set("Cookie", cookie);

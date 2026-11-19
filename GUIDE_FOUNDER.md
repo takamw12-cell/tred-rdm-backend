@@ -1602,3 +1602,20 @@ Supprimer `STRIPE_PRICE_PRO_SEMESTER` (ancien abonnement à 59,99 €). Les iden
 - **Filtre** (`packages/web/src/api/lib/professor-name.ts`) : refuse marques, célébrités, personnages connus, assistants d'IA, « TRED / Admin / Support » et grossièretés, y compris écrits avec accents, chiffres (« Einst3in ») ou collés à un titre. La liste s'allonge dans ce fichier ; un nom refusé après coup n'est plus affiché.
 - **Cache des voix** (`packages/web/src/api/tts/cache.ts`) : chaque extrait ElevenLabs est rangé dans le stockage (préfixe `tts-cache/`) et noté dans la table `tts_cache` ; la même phrase dans la même voix n'est plus jamais repayée, pour aucun compte. La table ne contient que des empreintes, pas de texte.
 - **À lancer une fois** : `node C:\dev\tred-rdm\aerostudy-ai\migre-prof-perso.mjs` (tables `professor_custom` et `tts_cache`). Avant, l'écran « Dein Professor » dit que la fonction arrive, et le cache reste en mémoire du serveur.
+
+## Intégrité de l'app mobile : Play Integrity et App Attest (19 nov. 2026)
+
+Le serveur vérifie que les requêtes de l'app viennent d'une app non modifiée (Android : installée depuis le Play Store, sur un appareil certifié ; iOS : clé dans la Secure Enclave, attestée par Apple). Code : `packages/web/src/api/integrity/`, `packages/mobile/lib/app-integrity.ts`.
+
+**Mode par défaut : `report`** — rien n'est bloqué. Toutes les 15 minutes, les journaux Railway disent combien de requêtes de l'app avaient un jeton valide : `[intégrité] mode=report requêtes app (15 min) : valides=… sans_jeton=… invalides=…`. Passe `APP_INTEGRITY_MODE=enforce` seulement quand `sans_jeton` et `invalides` sont à zéro depuis plusieurs jours.
+
+**À configurer (rien ne marche sans) :**
+1. **Android** — Play Console → Intégrité de l'app → « Lier un projet Cloud » (crée ou choisis un projet Google Cloud). Dans ce projet : API « Google Play Integrity » activée, puis IAM → Comptes de service → nouveau compte → Clés → JSON.
+   - Railway (service TRED) : `PLAY_INTEGRITY_SERVICE_ACCOUNT` = le contenu du fichier JSON (ou ce contenu en base64).
+   - `packages/mobile/app.json` → `extra.playIntegrityCloudProjectNumber` = le **numéro** du projet Google Cloud (chiffres, pas l'identifiant texte), puis nouveau build EAS.
+2. **iOS** — Railway : `APPLE_TEAM_ID` = ton Team ID Apple (10 caractères, developer.apple.com → Membership). L'entitlement App Attest est déjà dans `app.json` ; EAS active la capacité « App Attest » sur l'identifiant `de.tred.app` au prochain build. Pour tester avec un build de développement : `APP_ATTEST_ALLOW_DEVELOPMENT=true`.
+3. Vérifier : `https://www.tred-tutor.de/api/app-integrity/status` doit répondre `"ios": true, "android": true`.
+
+**Limite** : le site web utilise la même API ; un script peut se faire passer pour le navigateur. L'intégrité protège l'app (copies modifiées, émulateurs, appareils rootés), pas l'API dans son ensemble.
+
+**Aussi dans ce lot** : les achats Stripe sont masqués sur Android comme sur iOS, et le serveur refuse tout paiement demandé par l'app. Fiche Google « Sécurité des données » : `docs/STORE-DATA-SAFETY.md`. Note avatar personnalisé : `docs/NOTE-AVATAR-PERSONNALISE.md`.

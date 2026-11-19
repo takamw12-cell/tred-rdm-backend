@@ -11,10 +11,15 @@ import { Platform } from "react-native";
  * ici, sans adresse ni lien. Un compte qui a déjà un accès le garde et le
  * voit ; il ne peut simplement rien acheter depuis l'iPhone.
  *
- * Android et web : inchangés.
+ * Google Play (règle « Paiements ») : même principe — un bien numérique vendu
+ * dans l'app doit passer par Google Play Billing. Décision du fondateur
+ * (19 nov. 2026) : sur Android aussi, aucun achat, aucun prix, aucun lien.
+ * Le message affiché est le même, sans adresse ni invitation à payer ailleurs.
+ *
+ * Seule la version web (navigateur) garde les achats Stripe.
  */
 export function purchasesHiddenOn(os: string): boolean {
-  return os === "ios";
+  return os === "ios" || os === "android";
 }
 
 export const purchasesHidden: boolean = purchasesHiddenOn(Platform.OS);

@@ -42,6 +42,15 @@ export const APP_SCHEME: string =
 
 export const authClient = createAuthClient({
   baseURL: API_URL,
+  // Plateforme et jeton d'intégrité sur chaque appel d'authentification
+  // (l'inscription compte parmi les routes contrôlées par le serveur).
+  fetchOptions: {
+    onRequest: async (context) => {
+      const { integrityHeaders } = await import("@/lib/app-integrity");
+      for (const [k, v] of Object.entries(await integrityHeaders())) context.headers.set(k, v);
+      return context;
+    },
+  },
   plugins: [
     expoClient({
       scheme: APP_SCHEME,
