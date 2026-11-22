@@ -191,6 +191,15 @@ describe("icônes animées et musique", () => {
     expect(placed[1]!.el.size).toBe(320);
   });
 
+  test("deux étiquettes posées au même endroit sont écartées, les formes ne bougent pas", () => {
+    const { placed } = cleanSketch([el({ kind: "label", points: [[800, 460]], text: "Mutter" }), el({ kind: "label", points: [[820, 470]], text: "0,2 m" }), el({ kind: "circle", points: [[800, 460]], r: 60 }), el({ kind: "label", points: [[300, 460]], text: "weit weg" })], new Set(["0.2"]));
+    const [a, b, c, d] = placed.map((p) => p.el.center!);
+    expect(a).toEqual([800, 460]);
+    expect(b![1]).toBeGreaterThan(500);
+    expect(c).toEqual([800, 460]);
+    expect(d).toEqual([300, 460]);
+  });
+
   test("une icône compte comme un vrai élément de schéma", () => {
     const scene = { heading: "Motor", bullets: [], steps: [], formula: "", visual: "text", voiceover: "eins zwei", sketch: [el({ kind: "icon", points: [[500, 500]], text: "cog" }), el({ kind: "icon", points: [[1100, 500]], text: "zap" })] };
     expect(layoutScene(scene, allowed).placed.filter((p) => p.el.kind === "icon")).toHaveLength(2);

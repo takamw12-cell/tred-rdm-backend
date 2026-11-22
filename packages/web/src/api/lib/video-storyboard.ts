@@ -77,14 +77,16 @@ export const sketchField = z.array(sketchElementSchema).default([]).describe(`Le
 export function sketchPromptBlock(style: DrawStyle, languageCode: string): string {
   const latin = ["de", "en", "fr", "es", "it", "pt"].includes(languageCode);
   return `LE CROQUIS ("sketch") — CETTE VIDÉO EST DESSINÉE
-La vidéo est un ${style === "whiteboard" ? "tableau blanc où une main trace" : "tableau sombre où une pointe lumineuse trace"} le schéma PENDANT que la voix parle. Rien n'apparaît d'un coup : chaque trait se dessine. Pour chaque scène "step" ou "example" qui n'a ni "draw_flowchart", ni "write_equation", donne dans "sketch" 4 à ${MAX_SKETCH_ELEMENTS} tracés qui construisent UN schéma de principe, dans l'ordre où la voix les décrit.
+La vidéo est un ${style === "whiteboard" ? "tableau blanc où une main trace" : "tableau sombre où une pointe lumineuse trace"} le schéma PENDANT que la voix parle. Rien n'apparaît d'un coup : chaque trait se dessine.
+Dans une vidéo dessinée, quatre ordres seulement existent : "ask_question" (la scène "hook"), "draw_flowchart", "write_equation" (une scène au plus) et "check_recap" (la scène "recap"). "show_image", "highlight_text", "draw_chart", "show_beam", "apply_loads", "plot_curves" et "write_code" n'existent PAS ici : à leur place, mets "write_points" dans "visual_cues" et DESSINE dans "sketch". Toute scène "step" ou "example" qui n'est ni un "draw_flowchart" ni le "write_equation" porte donc un "sketch" de 5 à ${MAX_SKETCH_ELEMENTS} tracés qui construisent UN schéma de principe, dans l'ordre où la voix les décrit. Une vidéo où l'on ne voit que du texte est ratée.
 - La toile fait 1600 × 900, origine en haut à gauche, y vers le bas. Le titre s'écrit tout seul en haut : ton croquis tient dans x de ${SKETCH_AREA.x0} à ${SKETCH_AREA.x1} et y de ${SKETCH_AREA.y0} à ${SKETCH_AREA.y1}. Travaille sur une grille de 50 : des coordonnées rondes, des traits alignés, de grandes formes bien espacées.
 - Des formes simples seulement : traits, flèches, cases, cercles, courbes d'allure, axes. Pas d'objet réaliste, pas d'anatomie, pas de perspective.
 - "word" : le numéro du mot de "voiceover" (0 = le premier) où le tracé commence. Les valeurs croissent d'un tracé au suivant : la main suit la voix.
 - "label" : 1 à 3 mots, jamais une phrase — c'est la voix qui explique. "symbol" : un symbole court en LaTeX (F_1, \\alpha, M_b).${latin ? "" : " Dans cette langue, n'écris AUCUN mot en \"label\" : seulement des symboles et des lettres latines (F, x, A)."}
-- "icon" : une ICÔNE ANIMÉE qui apparaît quand la voix nomme la chose, puis bouge toute seule (l'engrenage tourne, le cerveau bat, la balance oscille). Mets-en une ou deux par croquis quand un objet ou une idée de la voix a son icône — jamais pour décorer. "text" est le nom EXACT, pris dans cette liste et nulle part ailleurs : ${ICON_NAMES.join(", ")}. Une icône inconnue est retirée. Laisse-lui de la place : rien d'autre dans un rayon de 150 autour de son centre.
+- "icon" : une ICÔNE ANIMÉE qui apparaît quand la voix nomme la chose, puis bouge toute seule (l'engrenage tourne, le cerveau bat, la balance oscille). Mets-en une ou deux par croquis quand un objet ou une idée de la voix a son icône — jamais pour décorer ; une vidéo sur un objet concret (outil, machine, organe, argent, loi) en montre au moins une. "text" est le nom EXACT, pris dans cette liste et nulle part ailleurs : ${ICON_NAMES.join(", ")}. Une icône inconnue est retirée. Laisse-lui de la place : rien d'autre dans un rayon de 150 autour de son centre.
 - Aucun nombre qui ne figure pas dans les sources ou la question : un tracé qui en porte un est retiré.
 - Une scène "draw_flowchart", "write_equation" ou "check_recap" est tracée par TRED lui-même : laisse son "sketch" vide.
+- De la place : un objet principal fait au moins 300 de large ; un cercle a un rayon d'au moins 50. Pas de cadre autour du croquis. Une étiquette se pose À CÔTÉ de ce qu'elle nomme (60 au-dessus ou au-dessous d'un trait, jamais dessus), et deux étiquettes ne se touchent jamais : au moins 220 d'écart en x ou 90 en y. Pour comparer deux cas (court / long, avant / après), dessine-les l'un sous l'autre ou côte à côte, jamais superposés.
 - Pense le croquis comme un professeur au tableau : d'abord l'objet, puis ce qui agit sur lui, puis ce qu'il faut remarquer (en "accent").`;
 }
 
@@ -189,7 +191,41 @@ export function cleanSketch(raw: SketchElement[] | undefined, allowed: ReadonlyS
     }
     if (out) placed.push({ el: out, word });
   }
+  separateLabels(placed);
   return { placed, dropped };
+}
+
+/** La boîte qu'occupe une étiquette, une formule ou une icône (estimation prudente). */
+function labelBox(el: DrawElement): { x0: number; y0: number; x1: number; y1: number } | null {
+  if (!el.center) return null;
+  const [cx, cy] = el.center;
+  if (el.kind === "icon") return { x0: cx - el.size! / 2, y0: cy - el.size! / 2, x1: cx + el.size! / 2, y1: cy + el.size! / 2 };
+  if (el.kind !== "text" && el.kind !== "formula") return null;
+  const chars = el.kind === "text" ? [...(el.text ?? "")].length : Math.max(2, (el.tex ?? "").replace(/\\[a-zA-Z]+|[{}_^]/g, "").length);
+  const w = Math.max(40, chars * el.size! * 0.62);
+  const h = el.size! * 1.3;
+  return { x0: cx - w / 2, y0: cy - h / 2, x1: cx + w / 2, y1: cy + h / 2 };
+}
+
+/**
+ * Deux étiquettes posées l'une sur l'autre sont illisibles — et le modèle en
+ * pose. La seconde descend (ou monte, en bas de la toile) jusqu'à être libre.
+ * Les formes, elles, ne bougent pas : c'est le schéma.
+ */
+export function separateLabels(placed: PlacedElement[]): void {
+  const taken: { x0: number; y0: number; x1: number; y1: number }[] = [];
+  const hits = (b: { x0: number; y0: number; x1: number; y1: number }) => taken.some((t) => b.x0 < t.x1 + 12 && b.x1 > t.x0 - 12 && b.y0 < t.y1 + 6 && b.y1 > t.y0 - 6);
+  for (const p of placed) {
+    let box = labelBox(p.el);
+    if (!box) continue;
+    const step = box.y1 - box.y0 + 10;
+    const down = p.el.center![1] < CANVAS.h - 220;
+    for (let tries = 0; tries < 5 && hits(box); tries++) {
+      p.el.center = [p.el.center![0], round(p.el.center![1] + (down ? step : -step))];
+      box = labelBox(p.el)!;
+    }
+    taken.push(box);
+  }
 }
 
 /* ── Mise en page par le code ──────────────────────────────────────────── */
