@@ -3,7 +3,7 @@
 # Railway construit l'image à chaque push sur master, sans attendre la CI : un
 # Dockerfile cassé y bloquerait tous les déploiements. Ce flux construit donc la
 # MÊME image ici, sur la branche, avant toute fusion — y compris les contrôles
-# intégrés au Dockerfile (chaîne LaTeX, SymPy, moteur de dessin des vidéos).
+# intégrés au Dockerfile (chaîne LaTeX, SymPy).
 #
 # Il ne pousse rien et ne déploie rien.
 name: Docker (build de test)
@@ -15,7 +15,6 @@ on:
     paths:
       - Dockerfile
       - .dockerignore
-      - packages/web/src/api/video-engine/**
       - packages/web/src/api/sympy/**
       - .github/workflows/docker-build.yml
   workflow_dispatch:
@@ -37,10 +36,6 @@ jobs:
 
       - name: Construire l'image (comme Railway)
         run: docker build --progress=plain -t tred-image-test .
-
-      # Dans le conteneur fini, sous le compte du serveur : le moteur dessine-t-il ?
-      - name: Moteur de dessin dans l'image
-        run: docker run --rm -e HOME=/tmp -e MPLCONFIGDIR=/tmp tred-image-test /opt/video-engine/bin/python -I -B -X utf8 packages/web/src/api/video-engine/render_video.py --self-test
 
       - name: Taille de l'image
         run: docker image inspect tred-image-test --format '{{.Size}}' | awk '{printf "%.0f Mo\n", $1 / 1048576}'
