@@ -245,6 +245,8 @@ export function registerVideoRoutes(app: Hono) {
       professor: script.professor ?? null,
       beam: script.beam ?? null,
       backdrop: script.backdrop ?? null,
+      // Motion design : la boucle de fond, baissée sous la voix par le lecteur (VIDEO_MUSIC=off : aucune).
+      music: process.env.VIDEO_MUSIC?.trim().toLowerCase() !== "off",
     });
   });
 

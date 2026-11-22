@@ -6,7 +6,11 @@ import { useT } from "@/i18n";
 import { useUserStore } from "@/stores/user";
 import { backgroundsFor, categoryForProgram, portraitOf, shuffled } from "@/lib/background-sets";
 import type { ExplainerVideo } from "@/lib/explainer-video";
+import { MotionExplanation, type MotionProps } from "./motion-explanation";
 import { DynamicExplanation, EXPLAINER_FPS, EXPLAINER_SIZE, explainerFrames, type ExplainerOrientation, type ExplainerProps } from "./dynamic-explanation";
+
+/** La boucle de fond des vidéos en motion design (synthétisée par nous, libre de droits). */
+const MUSIC_BED = "/audio/video-focus.mp3";
 
 /**
  * Le lecteur de la vidéo explicative : la composition jouée en direct par le
@@ -56,6 +60,45 @@ export default function ExplainerPlayer({ video, orientation, autoPlay = true, i
     [video, backgroundImages, t, locale],
   );
 
+  // Motion design : les scènes portent leurs blocs et leurs actions (api/lib/video-motion.ts).
+  const motionProps: MotionProps | null = useMemo(
+    () =>
+      video.scenes.some((s) => s.motion)
+        ? {
+            audioUrl: video.audioUrl,
+            musicUrl: video.music === false ? null : MUSIC_BED,
+            durationMs: video.durationMs,
+            title: video.title,
+            scenes: video.scenes,
+            words: video.words,
+            sceneStartsMs: video.sceneStartsMs,
+            labels: { source: t("explainer.source"), example: t("explainer.example"), solver: `${t("explainer.solver1")} ${t("explainer.solver2")}`, stages: inputProps.labels.stages },
+            decimalComma: inputProps.decimalComma,
+          }
+        : null,
+    [video, inputProps, t],
+  );
+
+  const playerStyle = { width: "100%", aspectRatio: `${size.width} / ${size.height}`, borderRadius: 16, overflow: "hidden", background: "#070B14" } as const;
+  if (motionProps) {
+    return (
+      <Player
+        component={MotionExplanation}
+        inputProps={motionProps}
+        durationInFrames={explainerFrames(video.durationMs)}
+        fps={EXPLAINER_FPS}
+        compositionWidth={size.width}
+        compositionHeight={size.height}
+        controls
+        autoPlay={autoPlay}
+        initialFrame={initialFrame}
+        clickToPlay
+        acknowledgeRemotionLicense
+        style={playerStyle}
+      />
+    );
+  }
+
   return (
     <Player
       component={DynamicExplanation}
@@ -69,7 +112,7 @@ export default function ExplainerPlayer({ video, orientation, autoPlay = true, i
       initialFrame={initialFrame}
       clickToPlay
       acknowledgeRemotionLicense
-      style={{ width: "100%", aspectRatio: `${size.width} / ${size.height}`, borderRadius: 16, overflow: "hidden", background: "#070B14" }}
+      style={playerStyle}
     />
   );
 }

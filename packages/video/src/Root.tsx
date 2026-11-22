@@ -11,6 +11,7 @@ import { CAMPAIGN_IDS } from "./campaign/videos";
 import { DEMO_IDS } from "./campaign/demo";
 import { V4_IDS } from "./campaign/v4";
 import { DynamicExplanationCompositions } from "./dynamic";
+import { MotionExplanationCompositions } from "./dynamic/motion";
 import { FILM } from "./cinematic/engine";
 import { CINEMATIC_A } from "./cinematic/series-a";
 import { CINEMATIC_B } from "./cinematic/series-b";
@@ -55,6 +56,7 @@ export function Root() {
       {/* « Als Video erklären » : la composition de l'app, durée calculée sur l'audio. */}
       <Folder name="Als-Video-erklaeren">
         <DynamicExplanationCompositions />
+        <MotionExplanationCompositions />
       </Folder>
       {/* Campagne V3 « démonstration » (2026-11-11) : l'interface, le curseur, 5 concepts × EN/DE, 30 s. */}
       <Folder name="Demo-30s">

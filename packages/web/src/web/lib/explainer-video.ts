@@ -27,6 +27,8 @@ export interface ExplainerVideo {
   /** La vidéo dessinée (MP4), quand le serveur en a rendu une : le navigateur la joue telle quelle. */
   videoUrl?: string | null;
   style?: DrawStyle | null;
+  /** Motion design : la boucle de fond est jouée sous la voix. */
+  music?: boolean;
 }
 
 /** Les deux styles de vidéo dessinée : tracé à la main, ou traits nets sur fond nuit. */

@@ -17,6 +17,8 @@ import {
   allowedNumbers,
   buildVideoPrompt,
   countWords,
+  fromMotionScript,
+  motionScriptSchema,
   resolveBeam,
   sceneStartsMs,
   scriptVoiceText,
@@ -26,10 +28,12 @@ import {
   videoSceneSchema,
   videoScriptSchema,
   type ValidatedScene,
+  type VideoScript,
   type VoiceWord,
 } from "../lib/video-script";
 import { drawnVideoReady, renderDrawnVideo, synthesizeEdge, voiceProvider } from "../lib/video-engine";
 import { buildSrt, buildStoryboard, layoutScene, sketchField, sketchPromptBlock, type DrawStyle, type PlacedElement, type SketchElement, type WordRange } from "../lib/video-storyboard";
+import { cleanMotion, defaultMotion, motionEnabled, motionPromptBlock, type MotionScene, type RawMotion } from "../lib/video-motion";
 import { isRealImageKey } from "../lib/video-visuals";
 import { reserveChars } from "../tts/budget";
 
@@ -156,14 +160,19 @@ async function writeScript(job: VideoJobData): Promise<Draft> {
   // Le style n'est suivi que si le moteur de dessin est là : sinon la vidéo classique, sans rien dire de plus au modèle.
   const style: DrawStyle | null = req.style && drawnVideoReady() ? req.style : null;
   try {
-    const { system, prompt } = buildVideoPrompt({ language, sources, question: req.question, answer: req.answer, extra: style ? sketchPromptBlock(style, req.language) : undefined });
-    const { object, usage } = await generateObject({
-      model: gateway(PRIMARY_MODEL),
-      schema: style ? drawnScriptSchema : videoScriptSchema,
-      system,
-      prompt,
-      abortSignal: AbortSignal.timeout(90_000),
-    });
+    // Motion design (le rendu normal) : le modèle choisit des blocs et des actions, il ne dessine rien.
+    const motion = !style && motionEnabled();
+    const { system, prompt } = buildVideoPrompt({ language, sources, question: req.question, answer: req.answer, extra: style ? sketchPromptBlock(style, req.language) : motion ? motionPromptBlock() : undefined });
+    const request = { model: gateway(PRIMARY_MODEL), system, prompt, abortSignal: AbortSignal.timeout(motion ? 150_000 : 90_000) };
+    let object: VideoScript;
+    let usage: { outputTokens?: number } | undefined;
+    if (motion) {
+      const out = await generateObject({ ...request, schema: motionScriptSchema });
+      object = fromMotionScript(out.object);
+      usage = out.usage;
+    } else {
+      ({ object, usage } = await generateObject({ ...request, schema: style ? drawnScriptSchema : videoScriptSchema }));
+    }
     void addOutputTokens(userId, usage?.outputTokens ?? 0);
     // La poutre de la vidéo : un calcul du chat, ou l'exemple chiffré du cours
     // passé au solveur. Jamais un schéma dessiné d'après le modèle.
@@ -180,6 +189,19 @@ async function writeScript(job: VideoJobData): Promise<Draft> {
     if (!checked.ok) {
       console.warn(`[video] ${id} : script refusé (${checked.error}, ${checked.words} mots, ${object.scenes.length} scènes écrites, ${sources.length} sources dont ${sources.filter((x) => x.solver).length} solveur)`);
       throw new PipelineError("not_grounded");
+    }
+    if (motion) {
+      // La mise en scène de chaque scène gardée, contrôlée (nombres, icônes, formules) ; sinon celle du code.
+      const allowed = allowedNumbers(allSources, req.question);
+      let removed = 0;
+      let fallback = 0;
+      checked.scenes.forEach((scene, i) => {
+        const staged = cleanMotion((scene as { motion?: RawMotion }).motion, allowed);
+        removed += staged.dropped.length;
+        if (!staged.motion) fallback++;
+        (scene as { motion?: MotionScene }).motion = staged.motion ?? defaultMotion(scene, i);
+      });
+      if (removed > 0 || fallback > 0) console.warn(`[video] ${id} : mise en scène — ${removed} bloc(s) retiré(s), ${fallback} scène(s) mises en scène par le code`);
     }
     if (!style) return { draft: true, scenes: checked.scenes, title: checked.title, beam, backdrop, charsReserved: false };
     // Le croquis de chaque scène gardée, contrôlé et mis en page ; le croquis brut ne quitte pas ce fichier.

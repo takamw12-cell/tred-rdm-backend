@@ -922,7 +922,7 @@ def self_test() -> int:
     import tempfile
     import wave
 
-    music = os.path.join(os.path.dirname(os.path.abspath(__file__)), "music", "focus.mp3")
+    music = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "public", "audio", "video-focus.mp3")
     elements = [
         {"kind": "line", "from": [300, 600], "to": [1300, 600], "at": 0.0, "dur": 0.4},
         {"kind": "circle", "center": [500, 400], "r": 90, "fill": True, "at": 0.1, "dur": 0.4},

@@ -11,6 +11,7 @@ import { payloadToProblem, type BeamDiagramPayload } from "../../api/lib/beam-to
 import { solveMechanicsSafe } from "../../api/lib/mechanics-solver";
 import { BEAM_VISUALS, tiePunctuation, type ChartKey, type RealImageKey, type Stage, type Visual, type VisualCue } from "../../api/lib/video-visuals";
 import type { Professor } from "../../api/lib/professors";
+import type { MotionScene } from "../../api/lib/video-motion";
 import { beamPen, loadCueFrame, type PenPoint } from "./marker-hand";
 
 /**
@@ -89,6 +90,8 @@ export interface ExplainerScene {
   stage?: Stage;
   /** L'ordre visuel exécuté (draw_flowchart, write_equation, show_beam…). Informatif : `visual` décide. */
   visual_cues?: VisualCue[];
+  /** La mise en scène en motion design (web/video/motion-explanation.tsx). Absent : la composition classique. */
+  motion?: MotionScene;
 }
 
 export interface ExplainerWord {

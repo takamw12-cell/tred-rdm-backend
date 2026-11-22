@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { Language } from "./languages";
 import { runBalkenstatik, type BalkenstatikInput, type BeamDiagramPayload } from "./beam-tool";
 import { collectNumbers, type SolverRun } from "./solver-results";
+import { motionField } from "./video-motion";
 import { cueOf } from "./video-visuals";
 import { CHARTS, MAX_FLOW_STEPS, MAX_KEYWORDS, REAL_IMAGE_KEYS, STAGES, VISUALS, VISUAL_CUES, lessonStages, resolveVisual, type ChartKey, type RealImageKey, type Stage, type Visual, type VisualCue } from "./video-visuals";
 
@@ -112,6 +113,21 @@ export const videoScriptSchema = z.object({
     ),
   scenes: z.array(videoSceneSchema),
 });
+
+/**
+ * Le script en motion design (lib/video-motion.ts) : chaque scène porte ses
+ * blocs et ses actions ("motion"). Les champs des anciens visuels (mots-clés,
+ * courbe, image, code) n'y sont pas : la bibliothèque de blocs les remplace, et
+ * la sortie structurée du modèle refuse un schéma trop gros.
+ */
+export const motionScriptSchema = videoScriptSchema.extend({
+  scenes: z.array(videoSceneSchema.omit({ visual: true, keywords: true, chart: true, image: true, code: true, code_language: true }).extend({ motion: motionField })),
+});
+
+/** Le script en motion design, remis à la forme que le contrôle attend (anciens champs vides). */
+export function fromMotionScript(script: z.infer<typeof motionScriptSchema>): VideoScript {
+  return { ...script, scenes: script.scenes.map((s) => ({ keywords: [], chart: "", image: "", code: "", code_language: "", ...s })) };
+}
 
 export type VideoScene = z.infer<typeof videoSceneSchema>;
 export type VideoScript = z.infer<typeof videoScriptSchema>;

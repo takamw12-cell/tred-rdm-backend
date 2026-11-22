@@ -1629,7 +1629,33 @@ Le serveur vérifie que les requêtes de l'app viennent d'une app non modifiée 
   - envoyer : même commande avec `dryRun: false` dans le corps. 200 adresses au plus par appel ; un compte ne reçoit jamais deux fois la même campagne.
 - Le domaine de `MAIL_FROM` doit être vérifié chez Resend (sinon seuls les envois à ton propre compte Resend passent).
 
-## Vidéos dessinées (22 nov. 2026)
+## Vidéos en motion design (23 nov. 2026)
+
+« Als Video erklären » est maintenant un film de **motion design** : fond sombre, typographie nette, éléments qui glissent, rebondissent et se répondent, calés sur la voix. C'est le rendu normal de toute nouvelle vidéo. Les anciennes vidéos gardent l'ancienne composition.
+
+**Le modèle ne dessine plus.** Les deux essais du 22 nov. (croquis tracés par le modèle) donnaient des schémas tassés et des étiquettes sur les traits. Ici le modèle ne donne **aucune coordonnée**. Pour chaque scène il choisit :
+
+- des **blocs** dans une bibliothèque fermée : titre, carte de texte, icône animée (les 84 icônes Lucide), formule KaTeX, étapes, liste à cocher, courbe de principe, barres, levier ;
+- des **actions** dans une liste fermée, chacune sur un mot de la voix : `fadeIn`, `slideUp`, `slideLeft`, `popIn`, `write`, `pulse`, `shake`, `rotate`, `highlight` (un encadré se trace), `pointTo` (une flèche va d'un bloc à l'autre), `annotate` (une étiquette descend sous une variable de la formule), `fadeOut`.
+
+Le code place les blocs (`layoutBlocks`, `api/lib/video-motion.ts`) : deux blocs ne se chevauchent jamais — un test essaie toutes les combinaisons. Quand un bloc entre ou sort, les autres glissent vers leur nouvelle place. Les scènes s'enchaînent par un fondu, un volet, un glissement ou un zoom.
+
+**Rien n'est inventé.** Même règle que le script : un bloc qui affiche un nombre absent des sources est retiré (`cleanMotion`). Une icône inconnue ou une formule que KaTeX ne lit pas aussi. Une scène sans bloc valable reçoit une mise en scène fabriquée par le code à partir de ses champs déjà contrôlés.
+
+**Aucun rendu côté serveur.** La composition (`web/video/motion-explanation.tsx`) est jouée en direct par le lecteur Remotion du navigateur, comme l'ancienne. L'étudiant attend le script et la voix, rien de plus. La musique de fond (`public/audio/video-focus.mp3`) passe à −20 dB sous la voix et remonte à −10 dB dans les silences ; `VIDEO_MUSIC=off` la coupe. `VIDEO_MOTION=off` revient à l'ancienne composition.
+
+**Exporter un MP4** (publicité, réseaux) : depuis `packages/video`, `remotion render src/index.ts MotionExplanation out/x.mp4 --props=video.json --scale=2`. C'est un outil de bureau ; il n'y a pas d'export MP4 pour l'étudiant en production (il faudrait Chrome dans l'image et un cœur pendant plusieurs minutes par vidéo).
+
+**Limites connues.**
+
+- La poutre calculée par le solveur (schéma, Q(x), M(x)) n'existe pas encore comme bloc : une question de poutre est expliquée avec les blocs généraux. `VIDEO_MOTION=off` rend l'ancien rendu, qui la dessine.
+- Le bloc « levier » est le seul schéma de physique. Les autres matières utilisent les blocs généraux (icônes, étapes, courbes, barres, formules). La bibliothèque est faite pour grandir : un bloc = un composant React + une ligne dans la consigne.
+- Remotion est gratuit pour une entreprise de 3 personnes au plus ; au-delà il faut une licence payante (remotion.dev/license).
+
+## Vidéos dessinées (22 nov. 2026) — abandonnées le 23 nov.
+
+> Remplacées par le motion design ci-dessus. Le moteur Python est retiré de l'image Docker ; le code reste dans le dépôt, inactif (`VIDEO_DRAWN=on` + un interpréteur pour un essai). Le texte qui suit décrit l'état du 22 nov.
+
 
 « Als Video erklären » peut maintenant produire un **vrai MP4** où le schéma se trace pendant que la voix parle, en deux styles : **tableau blanc** (tracé à la main) et **cinématique** (traits lumineux, flou de mouvement). **En production, rien n'a changé** : le moteur n'est pas dans l'image Docker, donc le choix du style n'apparaît pas et la vidéo reste celle d'avant.
 

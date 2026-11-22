@@ -32,7 +32,8 @@ import type { EngineStoryboard, WordRange } from "./video-storyboard";
 const ENGINE_DIR = fileURLToPath(new URL("../video-engine/", import.meta.url).href);
 export const RENDER_SCRIPT = join(ENGINE_DIR, "render_video.py");
 export const VOICE_SCRIPT = join(ENGINE_DIR, "synthesize_voice.py");
-const MUSIC_BED = join(ENGINE_DIR, "music", "focus.mp3");
+/** La même boucle que le lecteur du navigateur (public/audio), pour le mixage des vidéos dessinées. */
+const MUSIC_BED = join(ENGINE_DIR, "..", "..", "..", "public", "audio", "video-focus.mp3");
 const IMAGE_PYTHON = "/opt/video-engine/bin/python";
 const MAX_STDOUT = 512 * 1024;
 
@@ -45,7 +46,12 @@ export function enginePython(env: Env = process.env): string | null {
   return existsSync(IMAGE_PYTHON) ? IMAGE_PYTHON : null;
 }
 
-export const drawnVideoReady = (env: Env = process.env): boolean => enginePython(env) !== null;
+/**
+ * La vidéo dessinée (tracés du modèle) est abandonnée au profit du motion
+ * design (lib/video-motion.ts) : elle ne se propose plus toute seule. Elle
+ * reste disponible pour un essai, avec `VIDEO_DRAWN=on` ET un interpréteur.
+ */
+export const drawnVideoReady = (env: Env = process.env): boolean => env.VIDEO_DRAWN?.trim().toLowerCase() === "on" && enginePython(env) !== null;
 
 /**
  * La musique de fond des vidéos dessinées : une boucle lofi synthétisée par nous
@@ -65,7 +71,7 @@ export type VoiceProvider = "elevenlabs" | "edge";
  * fondateur l'a choisi (`VIDEO_VOICE_PROVIDER=edge`) et que le moteur est là.
  */
 export function voiceProvider(env: Env = process.env): VoiceProvider {
-  return env.VIDEO_VOICE_PROVIDER?.trim().toLowerCase() === "edge" && drawnVideoReady(env) ? "edge" : "elevenlabs";
+  return env.VIDEO_VOICE_PROVIDER?.trim().toLowerCase() === "edge" && enginePython(env) !== null ? "edge" : "elevenlabs";
 }
 
 /** Une voix neuronale par langue de l'interface (noms vérifiés dans la liste du service le 22 nov. 2026). */
