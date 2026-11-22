@@ -32,6 +32,7 @@ import type { EngineStoryboard, WordRange } from "./video-storyboard";
 const ENGINE_DIR = fileURLToPath(new URL("../video-engine/", import.meta.url).href);
 export const RENDER_SCRIPT = join(ENGINE_DIR, "render_video.py");
 export const VOICE_SCRIPT = join(ENGINE_DIR, "synthesize_voice.py");
+const MUSIC_BED = join(ENGINE_DIR, "music", "focus.mp3");
 const IMAGE_PYTHON = "/opt/video-engine/bin/python";
 const MAX_STDOUT = 512 * 1024;
 
@@ -45,6 +46,16 @@ export function enginePython(env: Env = process.env): string | null {
 }
 
 export const drawnVideoReady = (env: Env = process.env): boolean => enginePython(env) !== null;
+
+/**
+ * La musique de fond des vidéos dessinées : une boucle lofi synthétisée par nous
+ * (packages/video/scripts/lofi-music.mjs, aucun échantillon — libre de droits).
+ * Le moteur la baisse à −20 dB quand la voix parle. `VIDEO_MUSIC=off` : pas de musique.
+ */
+export function musicBed(env: Env = process.env): string | null {
+  if (env.VIDEO_MUSIC?.trim().toLowerCase() === "off") return null;
+  return existsSync(MUSIC_BED) ? MUSIC_BED : null;
+}
 
 export type VoiceProvider = "elevenlabs" | "edge";
 
@@ -259,6 +270,8 @@ export async function renderDrawnVideo(input: { storyboard: EngineStoryboard; au
       writeFileSync(srt, input.srt);
       args.push("--subtitles", srt);
     }
+    const music = musicBed();
+    if (music) args.push("--music", music);
     const run = await runEngine(RENDER_SCRIPT, args, { cwd: dir, timeoutMs: envMs("VIDEO_RENDER_TIMEOUT_MS", 12 * 60_000, 30 * 60_000), onProgress: input.onProgress });
     if (run.result?.ok !== true || !existsSync(out)) {
       throw new Error(`moteur de dessin : ${run.timedOut ? "délai dépassé" : `${String(run.result?.error ?? "aucune réponse")} ${String(run.result?.detail ?? "").slice(0, 200)}`}`);

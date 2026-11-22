@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { edgeVoiceFor, EDGE_VOICES, enginePython, parseEdgeSegments, parseEngineLine, voiceProvider } from "../src/api/lib/video-engine";
+import { edgeVoiceFor, EDGE_VOICES, enginePython, musicBed, parseEdgeSegments, parseEngineLine, voiceProvider } from "../src/api/lib/video-engine";
 import { videoJobView } from "../src/api/lib/queue";
 import { videoRequestSchema, type VoiceWord } from "../src/api/lib/video-script";
-import { buildSrt, buildStoryboard, buildVtt, CANVAS, cleanSketch, drawableTex, drawSeconds, fitSize, flowchartElements, layoutScene, sketchPromptBlock, type SketchElement } from "../src/api/lib/video-storyboard";
+import { buildSrt, buildStoryboard, buildVtt, ICON_NAMES, speechSpans, CANVAS, cleanSketch, drawableTex, drawSeconds, fitSize, flowchartElements, layoutScene, sketchPromptBlock, type SketchElement } from "../src/api/lib/video-storyboard";
 
 const el = (over: Partial<SketchElement>): SketchElement => ({ kind: "line", points: [[200, 400], [900, 400]], r: 0, ry: 0, text: "", color: "ink", fill: false, closed: false, word: 0, ...over });
 const allowed = new Set(["12", "3.5"]);
@@ -178,6 +178,39 @@ describe("calage sur la voix", () => {
     const long = drawSeconds({ kind: "line", color: "ink", from: [0, 0], to: [900, 0] });
     expect(long).toBeGreaterThan(short);
     expect(drawSeconds({ kind: "text", color: "ink", text: "x".repeat(60) })).toBeLessThanOrEqual(1.8);
+  });
+});
+
+describe("icônes animées et musique", () => {
+  test("une icône de la bibliothèque est gardée, une inconnue retirée", () => {
+    expect(ICON_NAMES).toContain("cog");
+    expect(ICON_NAMES).toContain("brain");
+    const { placed, dropped } = cleanSketch([el({ kind: "icon", points: [[800, 500]], text: " Cog ", r: 120, word: 6 }), el({ kind: "icon", points: [[400, 500]], text: "unicorn" }), el({ kind: "icon", points: [[400, 500]], text: "brain", r: 9000 })], allowed);
+    expect(dropped).toEqual(["unknown_icon"]);
+    expect(placed[0]).toEqual({ el: { kind: "icon", color: "ink", name: "cog", center: [800, 500], size: 240 }, word: 6 });
+    expect(placed[1]!.el.size).toBe(320);
+  });
+
+  test("une icône compte comme un vrai élément de schéma", () => {
+    const scene = { heading: "Motor", bullets: [], steps: [], formula: "", visual: "text", voiceover: "eins zwei", sketch: [el({ kind: "icon", points: [[500, 500]], text: "cog" }), el({ kind: "icon", points: [[1100, 500]], text: "zap" })] };
+    expect(layoutScene(scene, allowed).placed.filter((p) => p.el.kind === "icon")).toHaveLength(2);
+  });
+
+  test("la consigne donne la liste fermée des icônes", () => {
+    const block = sketchPromptBlock("whiteboard", "de");
+    for (const name of ["cog", "brain", "scale"]) expect(block).toContain(name);
+  });
+
+  test("les passages parlés : les mots proches se rejoignent, un silence coupe", () => {
+    expect(speechSpans([...speak(5, 0), ...speak(3, 2000)])).toEqual([[0, 0.48], [2, 2.28]]);
+    expect(speechSpans([])).toEqual([]);
+    const sb = buildStoryboard({ style: "whiteboard", scenes: [{ wordCount: 5, placed: [] }], words: speak(5), ranges: [{ from: 0, to: 5 }], sceneStartsMs: [0], durationMs: 2000 });
+    expect(sb.speech).toEqual([[0, 0.48]]);
+  });
+
+  test("la musique se coupe par une variable", () => {
+    expect(musicBed({ VIDEO_MUSIC: "off" })).toBeNull();
+    expect(musicBed({})).toMatch(/focus\.mp3$/);
   });
 });
 

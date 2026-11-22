@@ -91,6 +91,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates \
       python3 \
       python3-venv \
+      libcairo2 \
+      libcairo2-dev \
+      pkg-config \
+      gcc \
+      libc6-dev \
+      libgl1 \
+      libegl1 \
+      libfontconfig1 \
+      fonts-dejavu-core \
  && rm -rf /var/lib/apt/lists/*
 
 # SymPy, pour la vérification symbolique (pastille « Mit SymPy geprüft ») :
@@ -101,6 +110,27 @@ COPY packages/web/src/api/sympy/requirements.txt /tmp/sympy-requirements.txt
 RUN python3 -m venv /opt/sympy \
  && /opt/sympy/bin/pip install --no-cache-dir --disable-pip-version-check -r /tmp/sympy-requirements.txt \
  && rm /tmp/sympy-requirements.txt
+
+# ── Le moteur de dessin de « Als Video erklären » (api/video-engine/) ──────
+#
+# Handanim (tableau blanc), Buttery (cinématique), Matplotlib (formules) et
+# FFmpeg (fourni par imageio-ffmpeg) dans un environnement à part,
+# /opt/video-engine. Le serveur le lance en sous-processus isolé
+# (packages/web/src/api/lib/video-engine.ts) ; sans lui, l'application se
+# comporte comme avant.
+#
+# Python 3.12, pas celui de Debian : numpy 2.5 n'a pas de roue pour le 3.11 de
+# bookworm. `uv` (binaire figé, pris dans son image officielle) installe cet
+# interpréteur. pycairo n'a pas de roue Linux : il se compile ici, d'où
+# libcairo2-dev, pkg-config et gcc plus haut. libgl1, libegl1 et
+# libfontconfig1 sont les bibliothèques que Skia charge ; fonts-dejavu-core
+# donne une police aux étiquettes du style cinématique.
+COPY --from=ghcr.io/astral-sh/uv:0.11.15 /uv /usr/local/bin/uv
+COPY packages/web/src/api/video-engine/requirements.txt /tmp/video-requirements.txt
+RUN UV_PYTHON_INSTALL_DIR=/opt/uv-python uv venv --python 3.12 /opt/video-engine \
+ && uv pip install --python /opt/video-engine/bin/python --no-cache -r /tmp/video-requirements.txt \
+ && rm /tmp/video-requirements.txt \
+ && chmod -R a+rX /opt/uv-python /opt/video-engine
 
 # Vérification à la construction, pas à la première question d'un étudiant.
 # Une image sans circuitikz doit échouer ICI, où on la regarde, et non six
@@ -131,6 +161,12 @@ COPY --from=web-build /app/packages/web/dist packages/web/dist
 # prouve aussi qu'il lit ses bibliothèques sous ce compte.
 RUN /opt/sympy/bin/python -I -B packages/web/src/api/sympy/verify_math.py --self-test | grep -q '"is_valid": true' \
  && echo "verification SymPy operationnelle"
+
+# Et le moteur de dessin : une courte vidéo dans chaque style (tracés, icône
+# animée, formule, musique baissée sous la voix), encodée par FFmpeg. Une image
+# qui ne sait pas dessiner échoue ICI.
+RUN HOME=/tmp MPLCONFIGDIR=/tmp /opt/video-engine/bin/python -I -B -X utf8 packages/web/src/api/video-engine/render_video.py --self-test | grep -q '"ok": true' \
+ && echo "moteur de dessin operationnel"
 
 ENV NODE_ENV=production
 EXPOSE 3000

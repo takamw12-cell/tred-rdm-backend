@@ -1,4 +1,5 @@
 import { z } from "zod";
+import iconLibrary from "../video-engine/icons.json";
 import { extractNumbers, type VoiceWord } from "./video-script";
 
 /**
@@ -41,6 +42,14 @@ const MAX_SYMBOL = 40;
 const CLEAR_BEFORE_END = 0.5;
 const MIN_DRAW = 0.15;
 
+/**
+ * La bibliothèque locale d'icônes animées (Lucide, licence ISC ; fabriquée par
+ * api/video-engine/build_icons.mjs). Le modèle choisit un NOM dans cette liste ;
+ * le mouvement (tourne, bat, oscille…) appartient à l'icône.
+ */
+export const ICON_NAMES: readonly string[] = Object.keys(iconLibrary.icons);
+const ICON_SET: ReadonlySet<string> = new Set(ICON_NAMES);
+
 const COLORS = ["ink", "accent", "red", "blue", "green", "gray"] as const;
 export type DrawColor = (typeof COLORS)[number];
 
@@ -48,12 +57,12 @@ const TEX_ONLY = /^[A-Za-z0-9\s\\{}^_+\-*/=()[\]|.,!<>:;'&]+$/;
 
 export const sketchElementSchema = z.object({
   kind: z
-    .enum(["line", "arrow", "polyline", "curve", "circle", "ellipse", "rect", "label", "symbol"])
-    .describe("line / arrow : deux points. polyline / curve : 2 à 12 points (curve = courbe lisse). circle / ellipse : un point (le centre) + r (et ry). rect : deux points (coin haut-gauche, coin bas-droit). label : 1 à 3 mots, un point (le centre). symbol : un symbole court en LaTeX (F_1, \\alpha), un point (le centre)."),
+    .enum(["line", "arrow", "polyline", "curve", "circle", "ellipse", "rect", "label", "symbol", "icon"])
+    .describe("icon : une icône animée de la bibliothèque, un point (le centre), son nom dans text, r = demi-taille (60 à 160). line / arrow : deux points. polyline / curve : 2 à 12 points (curve = courbe lisse). circle / ellipse : un point (le centre) + r (et ry). rect : deux points (coin haut-gauche, coin bas-droit). label : 1 à 3 mots, un point (le centre). symbol : un symbole court en LaTeX (F_1, \\alpha), un point (le centre)."),
   points: z.array(z.array(z.number())).describe("Les points [x, y] sur la toile 1600 × 900 (origine en haut à gauche, y vers le bas)."),
   r: z.number().default(0).describe("Rayon du cercle, ou demi-largeur de l'ellipse. 0 sinon."),
   ry: z.number().default(0).describe("Demi-hauteur de l'ellipse. 0 sinon."),
-  text: z.string().default("").describe("label : le texte (28 caractères au plus). symbol : le LaTeX sans dollars. Chaîne vide sinon."),
+  text: z.string().default("").describe("label : le texte (28 caractères au plus). symbol : le LaTeX sans dollars. icon : le nom exact de l'icône. Chaîne vide sinon."),
   color: z.enum(COLORS).default("ink").describe("ink (trait normal), accent (ce qu'il faut regarder), red (forces, charges), blue, green, gray (repères)."),
   fill: z.boolean().default(false).describe("Vrai pour hachurer / teinter une forme fermée."),
   closed: z.boolean().default(false).describe("polyline / curve : vrai pour refermer la forme."),
@@ -73,6 +82,7 @@ La vidéo est un ${style === "whiteboard" ? "tableau blanc où une main trace" :
 - Des formes simples seulement : traits, flèches, cases, cercles, courbes d'allure, axes. Pas d'objet réaliste, pas d'anatomie, pas de perspective.
 - "word" : le numéro du mot de "voiceover" (0 = le premier) où le tracé commence. Les valeurs croissent d'un tracé au suivant : la main suit la voix.
 - "label" : 1 à 3 mots, jamais une phrase — c'est la voix qui explique. "symbol" : un symbole court en LaTeX (F_1, \\alpha, M_b).${latin ? "" : " Dans cette langue, n'écris AUCUN mot en \"label\" : seulement des symboles et des lettres latines (F, x, A)."}
+- "icon" : une ICÔNE ANIMÉE qui apparaît quand la voix nomme la chose, puis bouge toute seule (l'engrenage tourne, le cerveau bat, la balance oscille). Mets-en une ou deux par croquis quand un objet ou une idée de la voix a son icône — jamais pour décorer. "text" est le nom EXACT, pris dans cette liste et nulle part ailleurs : ${ICON_NAMES.join(", ")}. Une icône inconnue est retirée. Laisse-lui de la place : rien d'autre dans un rayon de 150 autour de son centre.
 - Aucun nombre qui ne figure pas dans les sources ou la question : un tracé qui en porte un est retiré.
 - Une scène "draw_flowchart", "write_equation" ou "check_recap" est tracée par TRED lui-même : laisse son "sketch" vide.
 - Pense le croquis comme un professeur au tableau : d'abord l'objet, puis ce qui agit sur lui, puis ce qu'il faut remarquer (en "accent").`;
@@ -81,7 +91,9 @@ La vidéo est un ${style === "whiteboard" ? "tableau blanc où une main trace" :
 /* ── Contrôle du croquis ───────────────────────────────────────────────── */
 
 export interface DrawElement {
-  kind: "line" | "arrow" | "polyline" | "curve" | "circle" | "ellipse" | "rect" | "text" | "formula";
+  kind: "line" | "arrow" | "polyline" | "curve" | "circle" | "ellipse" | "rect" | "text" | "formula" | "icon";
+  /** Icône : son nom dans la bibliothèque. */
+  name?: string;
   color: DrawColor;
   fill?: boolean;
   closed?: boolean;
@@ -120,7 +132,7 @@ function pt(p: unknown): [number, number] | null {
   return [round(Math.min(CANVAS.w - 20, Math.max(20, x))), round(Math.min(CANVAS.h - 20, Math.max(150, y)))];
 }
 
-export type SketchDrop = "bad_points" | "bad_size" | "empty_text" | "bad_tex" | "number_not_in_sources";
+export type SketchDrop = "bad_points" | "bad_size" | "empty_text" | "bad_tex" | "number_not_in_sources" | "unknown_icon";
 
 /**
  * Le croquis du modèle, tel qu'il a le droit d'être dessiné. Chaque tracé est
@@ -158,6 +170,10 @@ export function cleanSketch(raw: SketchElement[] | undefined, allowed: ReadonlyS
       const h = b ? Math.abs(b[1] - a[1]) : 0;
       if (!b || w < 12 || h < 12) dropped.push("bad_points");
       else out = { ...base, kind: "rect", corner: [Math.min(a[0], b[0]), Math.min(a[1], b[1])], w: round(w), h: round(h), fill: Boolean(el.fill) };
+    } else if (el.kind === "icon") {
+      const name = (el.text ?? "").trim().toLowerCase();
+      if (!ICON_SET.has(name)) dropped.push("unknown_icon");
+      else out = { ...base, kind: "icon", name, center: points[0]!, size: Math.round(Math.min(320, Math.max(120, (el.r || 100) * 2))) };
     } else {
       const text = (el.text ?? "").replace(/\s+/g, " ").trim();
       const invented = extractNumbers(text).find((n) => !isStructural(n) && !allowed.has(n));
@@ -345,14 +361,29 @@ export function drawSeconds(el: DrawElement): number {
       return Math.min(1.2, Math.max(0.6, (el.w! + el.h!) / 700));
     case "text":
       return Math.min(1.8, 0.3 + [...(el.text ?? "")].length * 0.045);
+    case "icon":
+      return 0.9;
     default:
       return Math.min(2.2, 0.8 + (el.tex ?? "").length * 0.035);
   }
 }
 
+/** Les passages parlés [début, fin] en secondes : des mots séparés par moins de `gapMs` forment un seul passage. */
+export function speechSpans(words: VoiceWord[], gapMs = 700): [number, number][] {
+  const spans: [number, number][] = [];
+  for (const w of words) {
+    const last = spans[spans.length - 1];
+    if (last && w.startMs / 1000 - last[1] <= gapMs / 1000) last[1] = Math.max(last[1], w.endMs / 1000);
+    else spans.push([w.startMs / 1000, Math.max(w.startMs, w.endMs) / 1000]);
+  }
+  return spans;
+}
+
 export interface EngineStoryboard {
   style: DrawStyle;
   duration: number;
+  /** Quand la voix parle : la musique de fond s'efface pendant ces passages. */
+  speech: [number, number][];
   elements: (DrawElement & { at: number; dur: number; until?: number; group: number })[];
 }
 
@@ -407,7 +438,7 @@ export function buildStoryboard(input: {
       elements.push({ ...p.el, at: Math.round(at * 1000) / 1000, dur: Math.round(dur * 1000) / 1000, ...(until !== undefined ? { until: Math.round(until * 1000) / 1000 } : {}), group: i % 64 });
     }
   });
-  return { style, duration: Math.round(duration * 1000) / 1000, elements };
+  return { style, duration: Math.round(duration * 1000) / 1000, speech: speechSpans(words).map(([a, b]) => [Math.min(a, duration), Math.min(b, duration)] as [number, number]), elements };
 }
 
 /* ── Sous-titres ───────────────────────────────────────────────────────── */

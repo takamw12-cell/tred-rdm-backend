@@ -13,6 +13,14 @@ Deux styles, un seul format d'entrée :
   · « cinematic »  : traits nets, lueur et flou de mouvement (Buttery, Skia)
                      sur fond nuit.
 
+Par-dessus le tracé, deux couches :
+  · des ICÔNES ANIMÉES (kind « icon ») prises dans icons.json — une bibliothèque
+    locale tirée de Lucide. L'icône se trace, puis vit : l'engrenage tourne,
+    le cerveau bat, la balance oscille. Le mouvement appartient à l'icône,
+    jamais au storyboard ;
+  · une MUSIQUE de fond (--music) qui s'efface quand la voix parle (« ducking ») :
+    −20 dB pendant chaque passage parlé du storyboard (« speech »), −10 dB sinon.
+
 ── Ce que ce programme ne fait jamais ──────────────────────────────────────
 Le storyboard est écrit par un modèle de langage : il est traité comme une
 donnée hostile. Aucun `eval`, aucun chemin de fichier lu dans le JSON, aucune
@@ -55,7 +63,8 @@ MIN_DRAW = 0.15
 FADE = 0.4
 
 STYLES = ("whiteboard", "cinematic")
-KINDS = ("line", "arrow", "polyline", "curve", "circle", "ellipse", "rect", "text", "formula")
+KINDS = ("line", "arrow", "polyline", "curve", "circle", "ellipse", "rect", "text", "formula", "icon")
+MAX_SPEECH_SPANS = 600
 COLORS = ("ink", "accent", "red", "blue", "green", "gray")
 
 # La charte de TRED : crème / encre / jaune le jour, nuit / craie / jaune le soir.
@@ -66,6 +75,18 @@ PALETTES = {
 
 # Les caractères d'une formule TeX, et eux seuls.
 TEX_ONLY = re.compile(r"^[A-Za-z0-9\s\\{}^_+\-*/=()\[\]|.,!<>:;'&]+$")
+
+
+_ICONS: dict | None = None
+
+
+def icon_library() -> dict:
+    """La bibliothèque locale d'icônes (icons.json, à côté de ce programme)."""
+    global _ICONS
+    if _ICONS is None:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons.json"), encoding="utf-8") as fh:
+            _ICONS = json.load(fh)["icons"]
+    return _ICONS
 
 
 class StoryboardError(ValueError):
@@ -185,8 +206,27 @@ def validate(data) -> dict:
             out["tex"] = tex
             out["center"] = _point(el.get("center"), f"{name}.center")
             out["size"] = _num(el.get("size", 52.0), 18.0, 140.0, f"{name}.size")
+        elif kind == "icon":
+            name_ = el.get("name")
+            if not isinstance(name_, str) or name_ not in icon_library():
+                raise StoryboardError(f"{name}.name: icône inconnue")
+            out["name"] = name_
+            out["center"] = _point(el.get("center"), f"{name}.center")
+            out["size"] = _num(el.get("size", 200.0), 60.0, 420.0, f"{name}.size")
         elements.append(out)
-    return {"style": style, "duration": duration, "elements": elements}
+
+    # Les passages parlés, pour baisser la musique : [début, fin] en secondes.
+    speech = []
+    raw_speech = data.get("speech", [])
+    if not isinstance(raw_speech, list) or len(raw_speech) > MAX_SPEECH_SPANS:
+        raise StoryboardError("speech: liste de passages attendue")
+    for i, span in enumerate(raw_speech):
+        if not isinstance(span, (list, tuple)) or len(span) != 2:
+            raise StoryboardError(f"speech[{i}]: [début, fin] attendu")
+        a = _num(span[0], 0.0, MAX_DURATION, f"speech[{i}][0]")
+        b = _num(span[1], a, MAX_DURATION, f"speech[{i}][1]")
+        speech.append((a, b))
+    return {"style": style, "duration": duration, "elements": elements, "speech": speech}
 
 
 # ────────────────────────────────────────────────────────────── géométrie
@@ -305,6 +345,144 @@ def text_mask(text: str, size_px: float):
     return mask if mask.ndim == 2 and mask.size > 0 else None
 
 
+_ICON_OPS: dict[str, list] = {}
+
+
+def icon_ops(name: str) -> list:
+    """Les tracés d'une icône, prêts pour Cairo : [(longueur, [(op, points…)])], dans le repère 24 × 24 de Lucide."""
+    if name in _ICON_OPS:
+        return _ICON_OPS[name]
+    import cairo
+    from svgelements import Close, CubicBezier, Line, Move, Path, QuadraticBezier
+
+    probe = cairo.Context(cairo.ImageSurface(cairo.FORMAT_A8, 1, 1))
+    out = []
+    for d in icon_library()[name]["paths"]:
+        path = Path(d)
+        path.approximate_arcs_with_cubics()
+        ops = []
+        for seg in path:
+            if isinstance(seg, Move):
+                ops.append(("M", seg.end.x, seg.end.y))
+            elif isinstance(seg, Line):
+                ops.append(("L", seg.end.x, seg.end.y))
+            elif isinstance(seg, CubicBezier):
+                ops.append(("C", seg.control1.x, seg.control1.y, seg.control2.x, seg.control2.y, seg.end.x, seg.end.y))
+            elif isinstance(seg, QuadraticBezier):
+                # Quadratique → cubique (2/3 du chemin vers le point de contrôle).
+                x0, y0, qx, qy, x1, y1 = seg.start.x, seg.start.y, seg.control.x, seg.control.y, seg.end.x, seg.end.y
+                ops.append(("C", x0 + 2 / 3 * (qx - x0), y0 + 2 / 3 * (qy - y0), x1 + 2 / 3 * (qx - x1), y1 + 2 / 3 * (qy - y1), x1, y1))
+            elif isinstance(seg, Close):
+                ops.append(("Z",))
+        # La longueur du tracé, pour le faire avancer : on le mesure aplati.
+        probe.new_path()
+        trace_icon(probe, ops)
+        length, last, start = 0.0, None, None
+        for kind, pts in probe.copy_path_flat():
+            if kind == cairo.PATH_MOVE_TO:
+                last = start = pts
+            elif kind == cairo.PATH_LINE_TO:
+                length += math.dist(last, pts)
+                last = pts
+            elif kind == cairo.PATH_CLOSE_PATH and last is not None and start is not None:
+                length += math.dist(last, start)
+                last = start
+        out.append((max(length, 0.01), ops))
+    _ICON_OPS[name] = out
+    return out
+
+
+def trace_icon(ctx, ops: list) -> None:
+    for op in ops:
+        if op[0] == "M":
+            ctx.move_to(op[1], op[2])
+        elif op[0] == "L":
+            ctx.line_to(op[1], op[2])
+        elif op[0] == "C":
+            ctx.curve_to(*op[1:])
+        else:
+            ctx.close_path()
+
+
+def icon_overlay(el: dict, color_hex: str, width: int, height: int, glow: bool) -> dict:
+    """Une icône animée en calque : sa place en pixels, sa couleur, son mouvement."""
+    return {
+        "icon": el["name"],
+        "anim": icon_library()[el["name"]]["anim"],
+        "cx": el["center"][0] * width / LOGICAL_W,
+        "cy": el["center"][1] * height / LOGICAL_H,
+        "size": el["size"] * width / LOGICAL_W,
+        "color": hex_rgb(color_hex),
+        "weight": el["weight"],
+        "glow": glow,
+        "at": el["at"],
+        "dur": el["dur"],
+        "until": el["until"],
+    }
+
+
+def draw_icon(out, ov: dict, t: float, fade: float, width: int, height: int) -> None:
+    """Trace l'icône à l'instant t dans l'image (float32) : elle se dessine, puis elle vit."""
+    import cairo
+    import numpy as np
+
+    size = ov["size"]
+    box = int(math.ceil(size * 1.9)) | 1
+    x0, y0 = int(round(ov["cx"] - box / 2)), int(round(ov["cy"] - box / 2))
+    fx0, fy0, fx1, fy1 = max(x0, 0), max(y0, 0), min(x0 + box, width), min(y0 + box, height)
+    if fx1 <= fx0 or fy1 <= fy0:
+        return
+    progress = min(1.0, (t - ov["at"]) / ov["dur"])
+    life = max(0.0, t - ov["at"] - ov["dur"])
+    # L'entrée : l'icône grandit un peu en se traçant. Ensuite, son mouvement propre.
+    scale, rot, dy, alpha = 0.86 + 0.14 * (1 - (1 - progress) ** 3), 0.0, 0.0, fade
+    anim = ov["anim"]
+    if anim == "spin":
+        rot = life * 2 * math.pi / 5.0
+    elif anim == "pulse":
+        scale *= 1 + 0.09 * math.sin(2 * math.pi * 1.1 * life)
+    elif anim == "sway":
+        rot = math.radians(11) * math.sin(2 * math.pi * 0.55 * life)
+    elif anim == "bounce":
+        dy = -abs(math.sin(math.pi * 1.3 * life)) * 0.13 * size
+    elif anim == "float":
+        dy = -0.05 * size * math.sin(2 * math.pi * 0.4 * life)
+    elif anim == "blink":
+        alpha *= 0.55 + 0.45 * (0.5 + 0.5 * math.cos(2 * math.pi * 1.2 * life))
+
+    surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, box, box)
+    ctx = cairo.Context(surface)
+    ctx.translate(box / 2, box / 2 + dy)
+    ctx.rotate(rot)
+    ctx.scale(size / 24 * scale, size / 24 * scale)
+    ctx.translate(-12, -12)
+    ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+    ctx.set_line_join(cairo.LINE_JOIN_ROUND)
+    paths = icon_ops(ov["icon"])
+    total = sum(length for length, _ in paths)
+    done = progress * total
+    r, g, b = ov["color"]
+    for length, ops in paths:
+        part = min(1.0, done / length) if done > 0 else 0.0
+        done -= length
+        if part <= 0:
+            break
+        for line_width, a in ((4.6, 0.16), (1.6, 1.0)) if ov["glow"] else ((1.6, 1.0),):
+            ctx.new_path()
+            trace_icon(ctx, ops)
+            ctx.set_dash([length * part, length * 2] if part < 1 else [])
+            ctx.set_source_rgba(r, g, b, a * alpha)
+            ctx.set_line_width(line_width * ov["weight"])
+            ctx.stroke()
+    surface.flush()
+    # Cairo range l'image en BGRA prémultiplié (petit-boutiste).
+    px = np.frombuffer(surface.get_data(), dtype=np.uint8).reshape(box, surface.get_stride() // 4, 4)[:, :box].astype(np.float32)
+    crop = px[fy0 - y0 : fy1 - y0, fx0 - x0 : fx1 - x0]
+    a = crop[:, :, 3:4] / 255.0
+    out[fy0:fy1, fx0:fx1] = out[fy0:fy1, fx0:fx1] * (1.0 - a) + crop[:, :, 2::-1]
+    surface.finish()
+
+
 def formula_overlay(el: dict, color_hex: str, width: int, height: int):
     """Une formule (ou une étiquette typographiée) en calque : gris de couverture + position en pixels. None si impossible."""
     import numpy as np
@@ -328,7 +506,7 @@ def formula_overlay(el: dict, color_hex: str, width: int, height: int):
 
 
 def composite(frame, overlays: list[dict], t: float, width: int, height: int):
-    """Pose les formules en calque : chacune s'écrit de gauche à droite (volet au bord adouci)."""
+    """Pose les calques : les formules s'écrivent de gauche à droite (volet au bord adouci), les icônes s'animent."""
     import numpy as np
 
     live = [ov for ov in overlays if t >= ov["at"] and (ov["until"] is None or t < ov["until"] + FADE)]
@@ -337,6 +515,9 @@ def composite(frame, overlays: list[dict], t: float, width: int, height: int):
     out = frame.astype(np.float32)
     for ov in live:
         fade = 1.0 if ov["until"] is None or t <= ov["until"] else max(0.0, 1.0 - (t - ov["until"]) / FADE)
+        if "icon" in ov:
+            draw_icon(out, ov, t, fade, width, height)
+            continue
         mask = ov["mask"]
         mh, mw = mask.shape
         progress = min(1.0, (t - ov["at"]) / ov["dur"])
@@ -423,6 +604,9 @@ def whiteboard_frames(sb: dict, width: int, height: int, fps: int, dropped: list
                 drawable = Ellipse(el["center"], 2 * el["rx"], 2 * el["ry"], **common)
             elif kind == "rect":
                 drawable = Rectangle(el["corner"], el["w"], el["h"], **common)
+            elif kind == "icon":
+                overlays.append(icon_overlay(el, pal[el["color"]], width, height, glow=False))
+                continue
             elif kind == "text":
                 missing = sorted({c for c in el["text"] if c != " " and ord(c) not in known_glyphs})
                 if missing:
@@ -538,6 +722,9 @@ def cinematic_frames(sb: dict, width: int, height: int, fps: int, dropped: list[
         win[0] = min(win[0], at)
         win[1] = max(win[1], sb["duration"] if until is None else until + FADE + 0.1)
         color = pal[el["color"]]
+        if kind == "icon":
+            overlays.append(icon_overlay(el, color, width, height, glow=True))
+            continue
         sw = 0.045 * el["weight"]
         if kind == "text":
             if SHAPED_SCRIPTS.search(el["text"]) or any(c != " " and font_probe.unicharToGlyph(ord(c)) == 0 for c in el["text"]):
@@ -627,7 +814,7 @@ def cinematic_frames(sb: dict, width: int, height: int, fps: int, dropped: list[
 # ────────────────────────────────────────────────────────────── assemblage (FFmpeg)
 
 
-def assemble(frames, total: int, out_path: str, width: int, height: int, fps: int, audio: str | None) -> int:
+def assemble(frames, total: int, out_path: str, width: int, height: int, fps: int, audio: str | None, audio_codec: str = "aac") -> int:
     """Les images partent dans FFmpeg au fil du dessin ; la voix est multiplexée dans la même passe."""
     import imageio_ffmpeg
 
@@ -643,7 +830,7 @@ def assemble(frames, total: int, out_path: str, width: int, height: int, fps: in
         ffmpeg_log_level="error",
         output_params=["-crf", "20", "-preset", "veryfast", "-movflags", "+faststart"],
         audio_path=audio,
-        audio_codec="aac" if audio else None,
+        audio_codec=audio_codec if audio else None,
     )
     writer.send(None)
     count = 0
@@ -659,6 +846,59 @@ def assemble(frames, total: int, out_path: str, width: int, height: int, fps: in
     finally:
         writer.close()
     return count
+
+
+MUSIC_RATE = 44_100
+MUSIC_GAIN = 10 ** (-10 / 20)  # la musique seule : −10 dB
+DUCK_GAIN = 10 ** (-20 / 20)  # sous la voix : −20 dB
+DUCK_ATTACK, DUCK_RELEASE = 0.3, 0.7  # elle baisse vite, elle remonte doucement
+
+
+def duck_envelope(speech: list[tuple[float, float]], duration: float, rate: int = MUSIC_RATE):
+    """Le gain de la musique, échantillon par échantillon : −20 dB pendant la voix, −10 dB sinon."""
+    import numpy as np
+
+    n = max(1, int(round(duration * rate)))
+    duck = np.zeros(n, dtype=np.float32)
+    for a, b in speech:
+        lo, hi = max(0, int((a - DUCK_ATTACK) * rate)), min(n, int((b + DUCK_RELEASE) * rate))
+        if hi <= lo:
+            continue
+        t = np.arange(lo, hi, dtype=np.float32) / rate
+        shape = np.minimum(np.clip((t - (a - DUCK_ATTACK)) / DUCK_ATTACK, 0.0, 1.0), np.clip((b + DUCK_RELEASE - t) / DUCK_RELEASE, 0.0, 1.0))
+        duck[lo:hi] = np.maximum(duck[lo:hi], shape)
+    gain = MUSIC_GAIN + (DUCK_GAIN - MUSIC_GAIN) * duck
+    # La musique entre et sort en fondu.
+    t = np.arange(n, dtype=np.float32) / rate
+    return gain * np.clip(t / 0.6, 0.0, 1.0) * np.clip((duration - t) / 1.5, 0.0, 1.0)
+
+
+def mix_music(voice: str, music: str, speech: list[tuple[float, float]], duration: float, work_dir: str) -> str:
+    """La voix + la musique de fond, baissée sous la voix. Rend le chemin du mixage (AAC)."""
+    import wave
+
+    import imageio_ffmpeg
+    import numpy as np
+
+    ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+    decoded = subprocess.run([ffmpeg, "-loglevel", "error", "-i", music, "-f", "s16le", "-ac", "2", "-ar", str(MUSIC_RATE), "-"], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120, check=False)
+    loop = np.frombuffer(decoded.stdout, dtype=np.int16).reshape(-1, 2)
+    if decoded.returncode != 0 or len(loop) < MUSIC_RATE:
+        raise RuntimeError("ffmpeg (musique) : " + decoded.stderr.decode("utf-8", "replace")[-200:])
+    gain = duck_envelope(speech, duration)
+    bed = np.resize(loop, (len(gain), 2)).astype(np.float32) * gain[:, None]
+    bed_path = os.path.join(work_dir, "bed.wav")
+    with wave.open(bed_path, "wb") as fh:
+        fh.setnchannels(2)
+        fh.setsampwidth(2)
+        fh.setframerate(MUSIC_RATE)
+        fh.writeframes(np.clip(np.rint(bed), -32768, 32767).astype(np.int16).tobytes())
+    out = os.path.join(work_dir, "mix.m4a")
+    cmd = [ffmpeg, "-y", "-loglevel", "error", "-i", voice, "-i", bed_path, "-filter_complex", f"[0:a]aresample={MUSIC_RATE},aformat=channel_layouts=stereo[v];[v][1:a]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[a]", "-map", "[a]", "-c:a", "aac", "-b:a", "160k", out]
+    done = subprocess.run(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=180, check=False)
+    if done.returncode != 0 or not os.path.exists(out):
+        raise RuntimeError("ffmpeg (mixage) : " + done.stderr.decode("utf-8", "replace")[-200:])
+    return out
 
 
 def add_subtitles(video: str, srt: str, language: str) -> None:
@@ -677,12 +917,49 @@ def add_subtitles(video: str, srt: str, language: str) -> None:
 SUBTITLE_LANG = {"de": "deu", "en": "eng", "fr": "fra", "es": "spa", "it": "ita", "pt": "por", "ru": "rus", "ar": "ara", "hi": "hin", "bn": "ben", "ja": "jpn", "zh": "zho"}
 
 
+def self_test() -> int:
+    """Contrôle de l'image Docker : les deux styles, une icône, une formule, la musique — de bout en bout."""
+    import tempfile
+    import wave
+
+    music = os.path.join(os.path.dirname(os.path.abspath(__file__)), "music", "focus.mp3")
+    elements = [
+        {"kind": "line", "from": [300, 600], "to": [1300, 600], "at": 0.0, "dur": 0.4},
+        {"kind": "circle", "center": [500, 400], "r": 90, "fill": True, "at": 0.1, "dur": 0.4},
+        {"kind": "icon", "name": "cog", "center": [1050, 380], "size": 220, "at": 0.2, "dur": 0.4},
+        {"kind": "text", "text": "Hebel", "center": [800, 150], "at": 0.3, "dur": 0.3},
+        {"kind": "formula", "tex": "F_1 \\cdot a = F_2 \\cdot b", "center": [800, 760], "at": 0.4, "dur": 0.4, "until": 1.0},
+    ]
+    with tempfile.TemporaryDirectory() as tmp:
+        voice = os.path.join(tmp, "voice.wav")
+        with wave.open(voice, "wb") as fh:
+            fh.setnchannels(1)
+            fh.setsampwidth(2)
+            fh.setframerate(24_000)
+            fh.writeframes(b"\x00\x00" * 24_000)
+        report = {}
+        for style in STYLES:
+            sb = validate({"style": style, "duration": 1.5, "elements": elements, "speech": [[0.2, 0.8]]})
+            dropped: list[str] = []
+            out = os.path.join(tmp, f"{style}.mp4")
+            make = whiteboard_frames if style == "whiteboard" else cinematic_frames
+            frames = assemble(make(sb, 640, 360, 24, dropped), 36, out, 640, 360, 24, mix_music(voice, music, sb["speech"], sb["duration"], tmp), "copy")
+            if frames != 36 or dropped or os.path.getsize(out) < 2000:
+                emit({"ok": False, "error": "self_test", "detail": f"{style}: {frames} images, sautés {dropped}"})
+                return 1
+            report[style] = os.path.getsize(out)
+    emit({"ok": True, "self_test": report, "icons": len(icon_library())})
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="TRED — storyboard JSON → vidéo dessinée (MP4)")
-    parser.add_argument("--storyboard", required=True)
-    parser.add_argument("--out", required=True)
+    parser.add_argument("--self-test", action="store_true", help="rend une courte vidéo dans chaque style et vérifie le résultat")
+    parser.add_argument("--storyboard")
+    parser.add_argument("--out")
     parser.add_argument("--audio")
     parser.add_argument("--subtitles")
+    parser.add_argument("--music", help="musique de fond (mise en boucle, baissée sous la voix)")
     parser.add_argument("--language", default="de")
     parser.add_argument("--width", type=int, default=1280)
     parser.add_argument("--height", type=int, default=720)
@@ -692,6 +969,10 @@ def main() -> int:
 
     started = time.time()
     try:
+        if args.self_test:
+            return self_test()
+        if not args.storyboard or not args.out:
+            raise StoryboardError("--storyboard et --out sont obligatoires")
         if not (320 <= args.width <= 1920 and 180 <= args.height <= 1080 and args.width % 2 == 0 and args.height % 2 == 0 and 12 <= args.fps <= 60):
             raise StoryboardError("taille ou cadence hors limites")
         with open(args.storyboard, encoding="utf-8") as fh:
@@ -702,10 +983,14 @@ def main() -> int:
         dropped: list[str] = []
         total = max(1, round(sb["duration"] * args.fps))
         make = whiteboard_frames if sb["style"] == "whiteboard" else cinematic_frames
-        frames = assemble(make(sb, args.width, args.height, args.fps, dropped), total, args.out, args.width, args.height, args.fps, args.audio)
+        audio, codec = args.audio, "aac"
+        if args.audio and args.music:
+            # Le mixage se fait avant le dessin : une musique illisible échoue tout de suite, pas après dix minutes de rendu.
+            audio, codec = mix_music(args.audio, args.music, sb["speech"], sb["duration"], os.path.dirname(os.path.abspath(args.out))), "copy"
+        frames = assemble(make(sb, args.width, args.height, args.fps, dropped), total, args.out, args.width, args.height, args.fps, audio, codec)
         if args.subtitles:
             add_subtitles(args.out, args.subtitles, SUBTITLE_LANG.get(args.language, "und"))
-        emit({"ok": True, "style": sb["style"], "frames": frames, "duration": round(frames / args.fps, 3), "elements": len(sb["elements"]), "dropped": dropped, "seconds": round(time.time() - started, 2)})
+        emit({"ok": True, "style": sb["style"], "music": bool(args.audio and args.music), "frames": frames, "duration": round(frames / args.fps, 3), "elements": len(sb["elements"]), "dropped": dropped, "seconds": round(time.time() - started, 2)})
         return 0
     except StoryboardError as exc:
         emit({"ok": False, "error": "invalid_storyboard", "detail": str(exc)[:300]})
