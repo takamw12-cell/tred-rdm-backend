@@ -12,6 +12,8 @@ import { queueConfigured, queueReady, videoQueue, type VideoJobData } from "../l
 import { readProfessor } from "../lib/professor-store";
 import { selectRelevantContext } from "../lib/retrieval";
 import { MAX_SOLVER_RUNS, SOLVER_WINDOW_MS, serializeSolverRun, type SolverRun } from "../lib/solver-results";
+import { drawnVideoReady, edgeVoiceFor, voiceProvider } from "../lib/video-engine";
+import { buildVtt } from "../lib/video-storyboard";
 import { solverSource, videoRequestSchema, type VideoRequest, type VideoSource } from "../lib/video-script";
 import { visibleDocuments } from "../lib/visible-documents";
 import { myCourseIds } from "../routes/courses";
@@ -25,6 +27,7 @@ import { failVideo, runPipelineInline, type StoredScript } from "./pipeline";
  *   POST /api/video/generate   crée la vidéo, répond tout de suite { id }
  *   GET  /api/video/:id        l'avancement (polling), puis le script et l'audio
  *   GET  /api/video/:id/audio  la voix (MP3), réservée au propriétaire
+ *   GET  /api/video/:id/mp4    la vidéo dessinée (MP4), réservée au propriétaire
  *   POST /api/video/:id/save   « Im Dashboard speichern »
  *   GET  /api/video            les vidéos sauvegardées (tableau de bord)
  *
@@ -54,7 +57,7 @@ const MAX_CONTEXT_CHARS = 24_000;
  * Avec la file, une vidéo peut attendre son tour derrière d'autres et être
  * reprise deux fois : on lui laisse vingt minutes.
  */
-const staleMs = () => (queueConfigured() ? 20 : 5) * 60_000;
+const staleMs = () => (queueConfigured() || drawnVideoReady() ? 20 : 5) * 60_000;
 const ID_RE = /^gv_[a-f0-9]{20}$/;
 
 /**
@@ -107,7 +110,9 @@ export function registerVideoRoutes(app: Hono) {
   app.post("/api/video/generate", async (c) => {
     const session = await requestSession(c.req.raw);
     if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);
-    if (!process.env.ANTHROPIC_API_KEY || !elevenLabsConfigured() || !mediaStorageConfigured()) {
+    // La voix : ElevenLabs, ou Edge-TTS si le fondateur l'a choisi et que le moteur est installé.
+    const edge = voiceProvider() === "edge";
+    if (!process.env.ANTHROPIC_API_KEY || !(edge || elevenLabsConfigured()) || !mediaStorageConfigured()) {
       return c.json({ error: "not_configured" }, 503);
     }
     const uid = session.user.id;
@@ -117,12 +122,13 @@ export function registerVideoRoutes(app: Hono) {
     // La langue de l'étudiant, exactement : jamais de repli silencieux sur l'allemand.
     const language = parsed.data.language.trim().toLowerCase().split("-")[0]!;
     if (!LANGUAGES[language]) return c.json({ error: "unsupported_language" }, 400);
-    const req: VideoRequest = { ...parsed.data, language };
+    // Un style demandé sans moteur de dessin : la vidéo classique, pas une erreur.
+    const req: VideoRequest = { ...parsed.data, language, style: parsed.data.style && drawnVideoReady() ? parsed.data.style : null };
 
     // Le professeur de la vidéo (sa voix, son hologramme) : celui que l'étudiant a choisi.
     const professor = req.professor ?? (await readProfessor(uid));
-    const voiceId = voiceFor(language, professor);
-    if (!voiceId) return c.json({ error: "not_configured" }, 503);
+    const voiceId = edge ? (edgeVoiceFor(language) ?? "") : voiceFor(language, professor);
+    if (!voiceId) return c.json({ error: edge ? "unsupported_language" : "not_configured" }, edge ? 400 : 503);
 
     // Les mêmes documents que le chat : les miens, et ceux partagés dans mes cours.
     const visible = visibleDocuments(uid, await myCourseIds(uid));
@@ -214,7 +220,11 @@ export function registerVideoRoutes(app: Hono) {
       await failVideo(id, "timeout");
       return c.json({ id, status: "failed", error: "timeout" });
     }
-    if (row.status !== "done") return c.json({ id, status: row.status, error: row.error ?? undefined, title: row.title });
+    if (row.status !== "done") {
+      // « drawing:40 » : l'étape et l'avancement du dessin voyagent dans le même champ.
+      const [step, pct] = row.status.split(":");
+      return c.json({ id, status: step, progress: pct ? Number(pct) || 0 : undefined, error: row.error ?? undefined, title: row.title });
+    }
 
     const script = JSON.parse(row.script ?? "{}") as Partial<StoredScript>;
     return c.json({
@@ -226,6 +236,9 @@ export function registerVideoRoutes(app: Hono) {
       saved: row.saved,
       createdAt: row.createdAt,
       audioUrl: `/api/video/${id}/audio`,
+      // La vidéo dessinée, quand elle existe : le navigateur la joue telle quelle.
+      videoUrl: row.videoKey ? `/api/video/${id}/mp4` : null,
+      style: row.videoKey ? (script.style ?? null) : null,
       scenes: script.scenes ?? [],
       words: script.words ?? [],
       sceneStartsMs: script.sceneStartsMs ?? [],
@@ -257,6 +270,56 @@ export function registerVideoRoutes(app: Hono) {
         },
       });
     } catch {
+      return c.json({ error: "not found" }, 404);
+    }
+  });
+
+  // Les sous-titres de la vidéo dessinée (WebVTT), refaits à partir des mots horodatés.
+  app.get("/api/video/:id/captions", async (c) => {
+    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);
+    const id = c.req.param("id");
+    if (!ID_RE.test(id)) return c.json({ error: "not found" }, 404);
+    const [row] = await db
+      .select({ script: generatedVideo.script, status: generatedVideo.status })
+      .from(generatedVideo)
+      .where(and(eq(generatedVideo.id, id), eq(generatedVideo.userId, session.user.id)));
+    if (!row?.script || row.status !== "done") return c.json({ error: "not found" }, 404);
+    const words = (JSON.parse(row.script) as Partial<StoredScript>).words ?? [];
+    return new Response(buildVtt(words), { headers: { "Content-Type": "text/vtt; charset=utf-8", "Cache-Control": "private, max-age=86400", "X-Content-Type-Options": "nosniff" } });
+  });
+
+  // La vidéo dessinée. Le lecteur du navigateur demande des plages (avance rapide,
+  // Safari) : elles sont relayées telles quelles au stockage.
+  app.get("/api/video/:id/mp4", async (c) => {
+    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);
+    const id = c.req.param("id");
+    if (!ID_RE.test(id)) return c.json({ error: "not found" }, 404);
+    const [row] = await db
+      .select({ videoKey: generatedVideo.videoKey })
+      .from(generatedVideo)
+      .where(and(eq(generatedVideo.id, id), eq(generatedVideo.userId, session.user.id)));
+    if (!row?.videoKey) return c.json({ error: "not found" }, 404);
+    const asked = c.req.header("range");
+    const range = asked && /^bytes=\d*-\d*$/.test(asked) && asked !== "bytes=-" ? asked : undefined;
+    try {
+      const obj = await mediaClient.send(new GetObjectCommand({ Bucket: MEDIA_BUCKET, Key: row.videoKey, ...(range ? { Range: range } : {}) }));
+      if (!obj.Body) return c.json({ error: "not found" }, 404);
+      return new Response(obj.Body.transformToWebStream(), {
+        status: range && obj.ContentRange ? 206 : 200,
+        headers: {
+          "Content-Type": "video/mp4",
+          "Accept-Ranges": "bytes",
+          ...(obj.ContentLength ? { "Content-Length": String(obj.ContentLength) } : {}),
+          ...(range && obj.ContentRange ? { "Content-Range": obj.ContentRange } : {}),
+          "Cache-Control": "private, max-age=86400",
+          "X-Content-Type-Options": "nosniff",
+        },
+      });
+    } catch (err) {
+      // Une plage hors du fichier : le stockage répond 416, on le relaie.
+      if ((err as { name?: string }).name === "InvalidRange") return c.body(null, 416);
       return c.json({ error: "not found" }, 404);
     }
   });

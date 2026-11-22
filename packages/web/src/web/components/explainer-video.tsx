@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import { Link } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookmarkCheck, BookmarkPlus, Check, Clapperboard, Loader2, Play, Upload } from "lucide-react";
+import { BookmarkCheck, BookmarkPlus, Check, Clapperboard, Loader2, PenLine, Play, Sparkles, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Modal } from "@/components/modal";
@@ -13,6 +13,7 @@ import {
   formatDuration,
   listSavedExplainerVideos,
   saveExplainerVideo,
+  type DrawStyle,
   type ExplainerState,
   type ExplainerStep,
   type ExplainerVideo,
@@ -50,17 +51,25 @@ const Spinner = () => (
 );
 
 /** La préparation : ce que TRED est en train de faire, étape par étape. */
-function Preparing({ step }: { step: ExplainerStep }) {
+function Preparing({ step, drawn, progress }: { step: ExplainerStep; drawn?: boolean; progress?: number }) {
   const { t } = useT();
   const steps: { key: ExplainerStep; label: string }[] = [
     { key: "script", label: t("explainer.stepScript") },
     { key: "voice", label: t("explainer.stepVoice") },
+    // Vidéo dessinée : deux étapes de plus, le dessin puis l'assemblage du MP4.
+    ...(drawn ? [{ key: "drawing" as const, label: t("explainer.stepDrawing") }, { key: "assembly" as const, label: t("explainer.stepAssembly") }] : []),
   ];
-  const active = step === "voice" ? 1 : 0;
+  const active = Math.max(0, steps.findIndex((s) => s.key === step));
+  // La barre : une part égale par étape ; pendant le dessin, elle avance avec les images rendues.
+  const within = step === "drawing" ? Math.min(100, Math.max(0, progress ?? 0)) / 100 : 0.5;
+  const percent = Math.round(((active + (step === "pending" ? 0.1 : within)) / steps.length) * 100);
   return (
     <div className="flex flex-col items-center gap-4 py-10 text-center" role="status" aria-live="polite">
       <Loader2 className="text-primary size-10 animate-spin" aria-hidden />
       <p className="font-display text-lg font-semibold">{t("explainer.preparing")}</p>
+      {drawn && (
+        <progress className="h-2 w-full max-w-xs [accent-color:var(--primary)]" value={percent} max={100} aria-label={t("explainer.preparing")} />
+      )}
       <ul className="flex flex-col gap-1.5 text-sm">
         {steps.map((s, i) => (
           <li key={s.key} className={cn("flex items-center justify-center gap-2", i === active ? "text-foreground font-medium" : "text-muted-foreground")}>
@@ -95,11 +104,19 @@ function Ready({ video }: { video: ExplainerVideo }) {
   return (
     <div className="flex flex-col gap-4">
       {/* Vertical : la hauteur de l'écran limite la largeur, jamais l'inverse. */}
-      <div className="mx-auto w-full" style={wide ? undefined : { maxWidth: "calc(64vh * 9 / 16)" }}>
-        <Suspense fallback={<Spinner />}>
-          <ExplainerPlayer video={video} orientation={wide ? "landscape" : "portrait"} />
-        </Suspense>
-      </div>
+      {video.videoUrl ? (
+        // La vidéo dessinée : un vrai fichier MP4 (16:9), sous-titres dans le fichier.
+        <video key={video.id} src={video.videoUrl} controls autoPlay playsInline preload="metadata" className="border-border mx-auto aspect-video w-full rounded-xl border bg-black" data-slot="drawn-video">
+          {/* Sous-titres désactivables : les mots horodatés de la voix, servis en WebVTT. */}
+          <track kind="captions" src={`/api/video/${video.id}/captions`} srcLang={video.language} label={video.language.toUpperCase()} />
+        </video>
+      ) : (
+        <div className="mx-auto w-full" style={wide ? undefined : { maxWidth: "calc(64vh * 9 / 16)" }}>
+          <Suspense fallback={<Spinner />}>
+            <ExplainerPlayer video={video} orientation={wide ? "landscape" : "portrait"} />
+          </Suspense>
+        </div>
+      )}
       <div className="flex justify-center">
         <Button onClick={toggle} disabled={busy} variant={saved ? "outline" : "default"} title={saved ? t("explainer.remove") : undefined}>
           {saved ? <BookmarkCheck className="size-4" aria-hidden /> : <BookmarkPlus className="size-4" aria-hidden />}
@@ -110,21 +127,57 @@ function Ready({ video }: { video: ExplainerVideo }) {
   );
 }
 
+/** Avant la génération : tableau blanc ou cinématique ? */
+function StyleChoice({ onChoose }: { onChoose: (style: DrawStyle) => void }) {
+  const { t } = useT();
+  const options: { style: DrawStyle; icon: typeof PenLine; label: string; hint: string; swatch: string }[] = [
+    { style: "whiteboard", icon: PenLine, label: t("explainer.styleWhiteboard"), hint: t("explainer.styleWhiteboardHint"), swatch: "bg-[#FDFBF7] text-[#1A1A1A]" },
+    { style: "cinematic", icon: Sparkles, label: t("explainer.styleCinematic"), hint: t("explainer.styleCinematicHint"), swatch: "bg-[#0F172A] text-[#EAB308]" },
+  ];
+  return (
+    <div className="flex flex-col gap-4 py-4">
+      <p className="text-center text-base font-medium">{t("explainer.styleTitle")}</p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {options.map((o) => (
+          <button
+            key={o.style}
+            type="button"
+            onClick={() => onChoose(o.style)}
+            data-slot={`style-${o.style}`}
+            className="border-border hover:border-primary focus-visible:ring-ring/50 flex flex-col items-start gap-3 rounded-2xl border p-4 text-left transition-colors focus-visible:ring-[3px] focus-visible:outline-none"
+          >
+            <span className={cn("border-border grid aspect-video w-full place-items-center rounded-xl border", o.swatch)}>
+              <o.icon className="size-9" aria-hidden />
+            </span>
+            <span className="font-display text-lg font-semibold">{o.label}</span>
+            <span className="text-muted-foreground text-sm">{o.hint}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function ExplainerVideoDialog({
   state,
   onClose,
   onRetry,
+  onChooseStyle,
 }: {
   /** null = fermée. */
   state: ExplainerState | null;
   onClose: () => void;
   onRetry?: () => void;
+  /** Le style choisi par l'étudiant (phase « chooseStyle »). */
+  onChooseStyle?: (style: DrawStyle) => void;
 }) {
   const { t } = useT();
   const title = state?.phase === "done" && state.video.title ? state.video.title : t("video.title");
   return (
     <Modal open={state !== null} onClose={onClose} title={title} className="max-h-[94vh] max-w-3xl overflow-y-auto p-4 sm:p-6">
-      {state?.phase === "working" && <Preparing step={state.step} />}
+      {state?.phase === "chooseStyle" && onChooseStyle && <StyleChoice onChoose={onChooseStyle} />}
+
+      {state?.phase === "working" && <Preparing step={state.step} drawn={state.drawn} progress={state.progress} />}
 
       {state?.phase === "done" && <Ready video={state.video} />}
 

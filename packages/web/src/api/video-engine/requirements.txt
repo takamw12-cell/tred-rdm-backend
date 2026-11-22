@@ -1,0 +1,15 @@
+# Moteur de dessin de « Als Video erklären » (api/video-engine/). Versions exactes.
+#
+# handanim 1.0.0 date du 11 nov. 2026 : il passe la règle des 14 jours le 25 nov. 2026.
+# buttery 0.3.2 (9 sept. 2026) tire `mcp` et un serveur web dont le moteur ne se sert pas.
+# pycairo n'a pas de roue Linux : l'image doit avoir libcairo2-dev, pkg-config et un
+# compilateur C au moment du `pip install` (voir GUIDE_FOUNDER.md, « Vidéos dessinées »).
+handanim==1.0.0
+buttery==0.3.2
+edge-tts==7.3.1
+imageio-ffmpeg==0.8.1
+matplotlib==3.11.2
+numpy==2.5.5
+pycairo==1.29.2
+skia-python==144.1
+fonttools==4.68.0

@@ -24,7 +24,13 @@ export interface ExplainerVideo {
   beam?: BeamDiagramPayload | null;
   /** Mot-clé de l'image de contexte (tribunal, bloc opératoire, pont…). */
   backdrop?: string | null;
+  /** La vidéo dessinée (MP4), quand le serveur en a rendu une : le navigateur la joue telle quelle. */
+  videoUrl?: string | null;
+  style?: DrawStyle | null;
 }
+
+/** Les deux styles de vidéo dessinée : tracé à la main, ou traits nets sur fond nuit. */
+export type DrawStyle = "whiteboard" | "cinematic";
 
 export interface ExplainerRequest {
   question: string;
@@ -35,13 +41,22 @@ export interface ExplainerRequest {
   messageId?: string | null;
   docId?: string | null;
   semesterId?: string | null;
+  /** Vidéo dessinée : le style choisi. Absent : la vidéo jouée dans le navigateur. */
+  style?: DrawStyle | null;
 }
 
-/** Les étapes affichées pendant la préparation. */
-export type ExplainerStep = "pending" | "script" | "voice";
+/** Les étapes affichées pendant la préparation. « drawing » et « assembly » : vidéo dessinée seulement. */
+export type ExplainerStep = "pending" | "script" | "voice" | "drawing" | "assembly";
+
+const STEPS: readonly string[] = ["script", "voice", "drawing", "assembly"];
+/** L'étape annoncée par le serveur → celle qu'on affiche (inconnue : « pending »). */
+export const stepOf = (status: string | undefined): ExplainerStep => (STEPS.includes(status ?? "") ? (status as ExplainerStep) : "pending");
 
 export type ExplainerState =
-  | { phase: "working"; step: ExplainerStep }
+  /** Avant de lancer : tableau blanc ou cinématique ? (seulement si le serveur sait dessiner) */
+  | { phase: "chooseStyle" }
+  /** `drawn` : les quatre étapes sont affichées ; `progress` : part du dessin déjà faite (0 à 100). */
+  | { phase: "working"; step: ExplainerStep; drawn?: boolean; progress?: number }
   | { phase: "done"; video: ExplainerVideo }
   /** Ni cours ni calcul : la vidéo est refusée, on invite à déposer le cours. */
   | { phase: "needDocs" }
@@ -77,7 +92,8 @@ const wait = (ms: number, signal: AbortSignal) =>
  * continue côté serveur.
  */
 export async function runExplainerVideo(req: ExplainerRequest, onState: (s: ExplainerState) => void, signal: AbortSignal): Promise<void> {
-  onState({ phase: "working", step: "pending" });
+  const drawn = Boolean(req.style);
+  onState({ phase: "working", step: "pending", drawn });
   let id: string;
   try {
     const res = await fetch("/api/video/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(req), signal });
@@ -100,10 +116,10 @@ export async function runExplainerVideo(req: ExplainerRequest, onState: (s: Expl
     try {
       const res = await fetch(`/api/video/${id}`, { signal });
       if (!res.ok) continue;
-      const data = (await res.json()) as { status: string; error?: string } & Partial<ExplainerVideo>;
+      const data = (await res.json()) as { status: string; error?: string; progress?: number } & Partial<ExplainerVideo>;
       if (data.status === "done") return onState({ phase: "done", video: data as ExplainerVideo });
       if (data.status === "failed") return onState({ phase: "error", code: errorCodeOf(data.error) });
-      onState({ phase: "working", step: data.status === "voice" ? "voice" : data.status === "script" ? "script" : "pending" });
+      onState({ phase: "working", step: stepOf(data.status), drawn, ...(typeof data.progress === "number" ? { progress: data.progress } : {}) });
     } catch {
       /* coupure réseau passagère : on réessaie au prochain tour */
     }

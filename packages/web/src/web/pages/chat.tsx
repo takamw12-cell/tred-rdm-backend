@@ -78,7 +78,7 @@ import { useProfessorChoreography } from "@/components/hologram-professor";
 import { spokenAnswer } from "@/lib/professor-choreography";
 import { VideoExplainer, type VideoScript } from "@/components/video-explainer";
 import { ExplainerVideoDialog } from "@/components/explainer-video";
-import { runExplainerVideo, type ExplainerState } from "@/lib/explainer-video";
+import { runExplainerVideo, type DrawStyle, type ExplainerState } from "@/lib/explainer-video";
 import { UnderstandingQuiz } from "@/components/understanding-quiz";
 import { useGenerateFlashcards } from "@/lib/flashcards-api";
 import {
@@ -1443,6 +1443,7 @@ export default function ChatPage() {
   const [explainer, setExplainer] = useState<ExplainerState | null>(null);
   const explainerAbort = useRef<AbortController | null>(null);
   const lastExplainerMessage = useRef<string>("");
+  const lastExplainerStyle = useRef<DrawStyle | null>(null);
 
   // Videosuche (YouTube) — unabhängig vom generierten Erklärvideo.
   // « Prüfe mein Verständnis » : la réponse dont on vérifie la compréhension.
@@ -1580,10 +1581,17 @@ export default function ChatPage() {
    * et sur les calculs des solveurs de la conversation. Si la fonction n'est
    * pas configurée sur le serveur, l'ancien diaporama prend le relais.
    */
-  function runExplainer(messageId: string) {
+  function runExplainer(messageId: string, style?: DrawStyle | null) {
     const msg = messages.find((m) => m.id === messageId);
     const answer = displayText(msg ?? ({} as UIMessage));
     lastExplainerMessage.current = messageId;
+    // Le serveur sait dessiner : on demande d'abord le style (tableau blanc ou cinématique).
+    if (features.drawnVideo && style === undefined) {
+      explainerAbort.current?.abort();
+      setExplainer({ phase: "chooseStyle" });
+      return;
+    }
+    lastExplainerStyle.current = style ?? null;
     // Tunnel d'activation, étape 5 : « Als Video erklären » demandé.
     funnel.videoGenerated({ with_document: Boolean(activeDoc) });
     explainerAbort.current?.abort();
@@ -1598,6 +1606,7 @@ export default function ChatPage() {
         messageId,
         docId: activeDoc?.id ?? null,
         semesterId,
+        style: style ?? null,
       },
       (state) => {
         if (state.phase === "unavailable") {
@@ -2749,7 +2758,7 @@ export default function ChatPage() {
         page={sourceView?.page ?? null}
         onClose={() => setSourceView(null)}
       />
-      <ExplainerVideoDialog state={explainer} onClose={closeExplainer} onRetry={() => runExplainer(lastExplainerMessage.current)} />
+      <ExplainerVideoDialog state={explainer} onClose={closeExplainer} onRetry={() => runExplainer(lastExplainerMessage.current, lastExplainerStyle.current)} onChooseStyle={(style) => runExplainer(lastExplainerMessage.current, style)} />
       <AnimatePresence>
         {videoOpen && (
           <ErrorBoundary area="video" variant="inline" label="Das Erklärvideo konnte nicht angezeigt werden.">

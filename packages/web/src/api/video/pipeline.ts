@@ -1,6 +1,7 @@
 import { captureServerError } from "../lib/sentry";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { generateObject } from "ai";
+import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { gateway } from "../agent/gateway";
 import { db } from "../database";
@@ -13,24 +14,36 @@ import { addOutputTokens } from "../lib/plan";
 import type { VideoJobData } from "../lib/queue";
 import {
   alignmentToWords,
+  allowedNumbers,
   buildVideoPrompt,
+  countWords,
   resolveBeam,
   sceneStartsMs,
   scriptVoiceText,
   solverSource,
   validateVideoScript,
   videoDurationMs,
+  videoSceneSchema,
   videoScriptSchema,
   type ValidatedScene,
   type VoiceWord,
 } from "../lib/video-script";
+import { drawnVideoReady, renderDrawnVideo, synthesizeEdge, voiceProvider } from "../lib/video-engine";
+import { buildSrt, buildStoryboard, layoutScene, sketchField, sketchPromptBlock, type DrawStyle, type PlacedElement, type SketchElement, type WordRange } from "../lib/video-storyboard";
 import { isRealImageKey } from "../lib/video-visuals";
 import { reserveChars } from "../tts/budget";
 
 /**
  * Le pipeline de « Als Video erklären » : script (Claude) → contrôle par du
  * code → voix (ElevenLabs, horodatée) → stockage. Le lecteur joue ensuite la
- * composition avec le script et l'audio ; il n'y a pas de MP4.
+ * composition avec le script et l'audio.
+ *
+ * Vidéo DESSINÉE (`req.style`, seulement si le moteur est installé —
+ * lib/video-engine.ts) : le même script porte en plus un croquis par scène ;
+ * après la voix, le moteur trace chaque élément à l'instant où la voix en
+ * parle et FFmpeg assemble un MP4 (sous-titres en piste séparée). Si le dessin
+ * échoue, la vidéo reste disponible dans le lecteur classique : l'étudiant ne
+ * perd jamais sa vidéo pour une panne de rendu.
  *
  * Deux façons de le lancer, même code :
  *   · dans la file (REDIS_URL) : le worker l'exécute, BullMQ reprend un échec
@@ -41,7 +54,10 @@ import { reserveChars } from "../tts/budget";
  * charge sans démarrer le service web.
  */
 
-export type StoredScript = { scenes: ValidatedScene[]; words: VoiceWord[]; sceneStartsMs: number[]; professor?: string; beam?: BeamDiagramPayload | null; backdrop?: string | null };
+export type StoredScript = { scenes: ValidatedScene[]; words: VoiceWord[]; sceneStartsMs: number[]; professor?: string; beam?: BeamDiagramPayload | null; backdrop?: string | null; style?: DrawStyle | null };
+
+/** Le script quand la vidéo est dessinée : chaque scène porte en plus son croquis. */
+const drawnScriptSchema = videoScriptSchema.extend({ scenes: z.array(videoSceneSchema.extend({ sketch: sketchField })) });
 
 /** Code d'erreur stable, lu par le navigateur pour choisir son message. */
 export const VIDEO_ERRORS = ["not_grounded", "script_failed", "daily_limit", "voice_failed", "storage_failed", "timeout"] as const;
@@ -89,6 +105,9 @@ interface Draft {
   beam: BeamDiagramPayload | null;
   backdrop: string | null;
   charsReserved: boolean;
+  /** Vidéo dessinée : le style, et ce qui se trace pendant chaque scène (déjà contrôlé). */
+  style?: DrawStyle | null;
+  drawing?: PlacedElement[][];
 }
 
 async function readDraft(id: string): Promise<Draft | null> {
@@ -134,11 +153,13 @@ async function writeScript(job: VideoJobData): Promise<Draft> {
   const { id, userId, req, sources } = job;
   const language = LANGUAGES[req.language]!;
   await setVideoStatus(id, { status: "script" });
+  // Le style n'est suivi que si le moteur de dessin est là : sinon la vidéo classique, sans rien dire de plus au modèle.
+  const style: DrawStyle | null = req.style && drawnVideoReady() ? req.style : null;
   try {
-    const { system, prompt } = buildVideoPrompt({ language, sources, question: req.question, answer: req.answer });
+    const { system, prompt } = buildVideoPrompt({ language, sources, question: req.question, answer: req.answer, extra: style ? sketchPromptBlock(style, req.language) : undefined });
     const { object, usage } = await generateObject({
       model: gateway(PRIMARY_MODEL),
-      schema: videoScriptSchema,
+      schema: style ? drawnScriptSchema : videoScriptSchema,
       system,
       prompt,
       abortSignal: AbortSignal.timeout(90_000),
@@ -160,7 +181,18 @@ async function writeScript(job: VideoJobData): Promise<Draft> {
       console.warn(`[video] ${id} : script refusé (${checked.error}, ${checked.words} mots, ${object.scenes.length} scènes écrites, ${sources.length} sources dont ${sources.filter((x) => x.solver).length} solveur)`);
       throw new PipelineError("not_grounded");
     }
-    return { draft: true, scenes: checked.scenes, title: checked.title, beam, backdrop, charsReserved: false };
+    if (!style) return { draft: true, scenes: checked.scenes, title: checked.title, beam, backdrop, charsReserved: false };
+    // Le croquis de chaque scène gardée, contrôlé et mis en page ; le croquis brut ne quitte pas ce fichier.
+    const allowed = allowedNumbers(allSources, req.question);
+    let removed = 0;
+    const drawing = checked.scenes.map((scene) => {
+      const laid = layoutScene(scene as ValidatedScene & { sketch?: SketchElement[] }, allowed);
+      removed += laid.sketchDropped.length;
+      delete (scene as { sketch?: unknown }).sketch;
+      return laid.placed;
+    });
+    if (removed > 0) console.warn(`[video] ${id} : ${removed} tracé(s) du croquis retiré(s) par le contrôle`);
+    return { draft: true, scenes: checked.scenes, title: checked.title, beam, backdrop, charsReserved: false, style, drawing };
   } catch (err) {
     if (err instanceof PipelineError) throw err;
     console.error(`[video] ${id} : script`, (err as Error).message?.slice(0, 300));
@@ -188,8 +220,19 @@ export async function runPipeline(job: VideoJobData): Promise<void> {
   await setVideoStatus(id, { status: "voice", title: title.slice(0, 200), script: JSON.stringify(draft) });
   let audio: Uint8Array;
   let words: VoiceWord[];
+  let starts: number[];
+  let ranges: WordRange[];
   try {
-    ({ audio, words } = await synthesize(text, voiceId, req.language));
+    if (voiceProvider() === "edge") {
+      // Une synthèse par scène : le début de chacune est connu exactement, dans toutes les langues.
+      ({ audio, words, ranges, sceneStartsMs: starts } = await synthesizeEdge(scenes.map((s) => s.voiceover.trim()), req.language));
+    } else {
+      ({ audio, words } = await synthesize(text, voiceId, req.language));
+      starts = sceneStartsMs(scenes, words);
+      // La voix a lu exactement le texte envoyé : les mots se comptent.
+      let k = 0;
+      ranges = scenes.map((s) => ({ from: Math.min(k, words.length), to: Math.min((k += countWords(s.voiceover)), words.length) }));
+    }
     if (audio.byteLength === 0 || words.length === 0) throw new Error("audio vide");
   } catch (err) {
     console.error(`[video] ${id} : voix`, (err as Error).message?.slice(0, 300));
@@ -204,10 +247,49 @@ export async function runPipeline(job: VideoJobData): Promise<void> {
     console.error(`[video] ${id} : stockage`, (err as Error).message?.slice(0, 300));
     throw new PipelineError("storage_failed");
   }
-  const stored: StoredScript = { scenes, words, sceneStartsMs: sceneStartsMs(scenes, words), professor, beam, backdrop };
-  await setVideoStatus(id, { status: "done", script: JSON.stringify(stored), audioKey, durationMs: videoDurationMs(words) });
+  // 4. Vidéo dessinée : le dessin calé sur la voix, puis l'assemblage en MP4.
+  const durationMs = videoDurationMs(words);
+  let videoKey: string | null = null;
+  if (draft.style && draft.drawing && drawnVideoReady()) {
+    try {
+      await setVideoStatus(id, { status: "drawing" });
+      const storyboard = buildStoryboard({
+        style: draft.style,
+        scenes: draft.drawing.map((placed, i) => ({ placed, wordCount: countWords(scenes[i]?.voiceover ?? "") })),
+        words,
+        ranges,
+        sceneStartsMs: starts,
+        durationMs,
+      });
+      let shown = 0;
+      const drawn = await renderDrawnVideo({
+        storyboard,
+        audio,
+        srt: buildSrt(words),
+        language: req.language,
+        onProgress: (p) => {
+          // Un écrit en base par tranche de 10 % : assez pour la barre, sans bavarder avec Turso.
+          const pct = Math.floor(p * 10) * 10;
+          if (pct <= shown) return;
+          shown = pct;
+          void setVideoStatus(id, { status: pct >= 100 ? "assembly" : `drawing:${pct}` }).catch(() => {});
+        },
+      });
+      await setVideoStatus(id, { status: "assembly" });
+      const key = `media/generated/${userId}/${id}.mp4`;
+      await mediaClient.send(new PutObjectCommand({ Bucket: MEDIA_BUCKET, Key: key, Body: drawn.video, ContentType: "video/mp4" }));
+      videoKey = key;
+      console.log(`[video] ${id} : dessinée (${draft.style}), ${storyboard.elements.length} tracés, ${drawn.video.byteLength} octets, rendu ${drawn.seconds} s${drawn.dropped.length ? `, ${drawn.dropped.length} tracé(s) sauté(s)` : ""}`);
+    } catch (err) {
+      // Le dessin a échoué : la vidéo reste jouable dans le lecteur classique (script + voix).
+      console.error(`[video] ${id} : dessin`, (err as Error).message?.slice(0, 300));
+      captureServerError(err, { feature: "video_generation", userId, action: "video drawing", tags: { style: draft.style } });
+    }
+  }
+  const stored: StoredScript = { scenes, words, sceneStartsMs: starts, professor, beam, backdrop, style: videoKey ? draft.style : null };
+  await setVideoStatus(id, { status: "done", script: JSON.stringify(stored), audioKey, ...(videoKey ? { videoKey } : {}), durationMs });
   console.log(`[video] ${id} : visuels ${scenes.map((sc) => sc.visual).join(",")}${beam ? " · poutre calculée" : ""}`);
-  console.log(`[video] ${id} : prête, ${scenes.length} scènes, ${Math.round(videoDurationMs(words) / 1000)} s, ${text.length} caractères, langue ${req.language}`);
+  console.log(`[video] ${id} : prête, ${scenes.length} scènes, ${Math.round(durationMs / 1000)} s, ${text.length} caractères, langue ${req.language}`);
 }
 
 /** Sans file : le pipeline tourne dans le service web, un seul essai. */

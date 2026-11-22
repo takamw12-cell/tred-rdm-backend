@@ -1628,3 +1628,23 @@ Le serveur vérifie que les requêtes de l'app viennent d'une app non modifiée 
   - compter d'abord : `await (await fetch("/api/emails/discovery", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ campaign: "arcade-did-you-know" }) })).json()`
   - envoyer : même commande avec `dryRun: false` dans le corps. 200 adresses au plus par appel ; un compte ne reçoit jamais deux fois la même campagne.
 - Le domaine de `MAIL_FROM` doit être vérifié chez Resend (sinon seuls les envois à ton propre compte Resend passent).
+
+## Vidéos dessinées (22 nov. 2026)
+
+« Als Video erklären » peut maintenant produire un **vrai MP4** où le schéma se trace pendant que la voix parle, en deux styles : **tableau blanc** (tracé à la main) et **cinématique** (traits lumineux, flou de mouvement). **En production, rien n'a changé** : le moteur n'est pas dans l'image Docker, donc le choix du style n'apparaît pas et la vidéo reste celle d'avant.
+
+**Comment ça marche.** Claude écrit le même script contrôlé qu'avant (citations et nombres vérifiés par du code) et y ajoute un croquis par scène. `api/lib/video-storyboard.ts` contrôle ce croquis (bornes, nombres autorisés) et cale chaque trait sur le mot que la voix prononce. `api/video-engine/render_video.py` dessine et FFmpeg assemble (voix + sous-titres en piste séparée). Si le dessin échoue, l'étudiant garde sa vidéo dans le lecteur classique.
+
+**Essayer en local (Windows).** Environnement Python 3.12 à part, puis `pip install -r packages/web/src/api/video-engine/requirements.txt`, et lancer le serveur avec `VIDEO_ENGINE_PYTHON=<chemin de python.exe>`. Essai sans modèle ni base : `tred-perf/video-engine/e2e.ts`.
+
+**Décisions à prendre avant la mise en production** (rien n'est activé sans toi) :
+
+| Sujet | Constat vérifié le 22 nov. 2026 | Ce que je recommande |
+|---|---|---|
+| **Edge-TTS** | Gratuit, mais ce n'est **pas** une API officielle : la bibliothèque (`edge-tts` 7.3.1) imite le navigateur Edge. Pas de contrat, pas de garantie, Microsoft peut couper ; le texte du script part chez Microsoft sans accord de sous-traitance (RGPD). | Garder **ElevenLabs** (déjà en place, horodaté, validé) en production. Edge-TTS seulement en local (`VIDEO_VOICE_PROVIDER=edge`). L'équivalent officiel serait Azure AI Speech (compte à créer par toi). |
+| **Handanim** | 1.0.0 publié le 11 nov. 2026 (règle des 14 jours remplie le 25 nov.), un seul auteur, 52 étoiles, MIT. | Acceptable après le 25 nov., version figée. |
+| **Buttery** | 0.3.2 du 9 sept. 2026, un seul auteur, **1 étoile**, MIT ; tire `mcp` et un serveur web inutiles ; pas de courbes ni de formules (ajoutées par notre code). Rendu lent : ~5× la durée de la vidéo. | À confirmer : le style cinématique est joli mais repose sur un paquet très jeune. |
+| **Image Docker** | Il faut ajouter `libcairo2-dev pkg-config gcc python3-dev` + un venv `/opt/video-engine` (pycairo n'a pas de roue Linux). **Non fait** : je n'ai pas Docker ici pour vérifier que l'image se construit, et une image cassée bloquerait tous les déploiements. | Me laisser le faire sur une branche avec un build Railway de test. |
+| **Charge** | Le rendu occupe un cœur : ~1× la durée (tableau blanc) à ~5× (cinématique). `WORKER_VIDEO_CONCURRENCY=3` = trois rendus en même temps. | Rendu dans le worker seulement, concurrence 1 pour commencer. |
+
+**Limites connues.** Les étiquettes du schéma s'écrivent en lettres latines, grecques et cyrilliques ; en arabe, hindi, bengali, chinois et japonais le schéma ne porte que des symboles (la voix et les sous-titres, eux, sont dans la langue de l'étudiant). Le croquis libre est placé par le modèle sur une grille : enchaînements, formules et récapitulatifs sont mis en page par du code, donc toujours droits ; un croquis libre peut être maladroit. Aucun essai avec le vrai modèle n'a été fait (coût).

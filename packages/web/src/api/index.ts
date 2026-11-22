@@ -100,6 +100,7 @@ import { selectRelevantContext } from "./lib/retrieval";
 import { chercherDansDocuments } from "./lib/document-search";
 import { searchYoutube, youtubeConfigured } from "./lib/youtube";
 import { writeVideoQuery } from "./lib/video-query";
+import { drawnVideoReady } from "./lib/video-engine";
 import { finalizeQuiz, quizContext, quizModelSchema, quizRequestSchema, quizSystemPrompt } from "./lib/quiz";
 import { challengeModelSchema, challengePrompt, challengeRequestSchema, challengeSystemPrompt, excerptFor, groundChallenge, type ChallengeMode, type ChallengeQuestion } from "./lib/doc-challenge";
 import { registerArcadeRoutes } from "./arcade/routes";
@@ -624,6 +625,8 @@ app.get("/api/config", (c) =>
     features: {
       videoSearch: youtubeConfigured(),
       explainerVideo: Boolean(process.env.ANTHROPIC_API_KEY),
+      /** Le moteur de dessin est installé : l'interface propose « tableau blanc » ou « cinématique ». */
+      drawnVideo: drawnVideoReady(),
       quiz: Boolean(process.env.ANTHROPIC_API_KEY),
       /** Génération de Karteikarten par l'IA (la révision marche sans clé). */
       flashcards: Boolean(process.env.ANTHROPIC_API_KEY),

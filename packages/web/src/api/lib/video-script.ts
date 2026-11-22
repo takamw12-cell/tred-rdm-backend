@@ -290,12 +290,19 @@ export function quoteSupport(quote: string, source: ReturnType<typeof indexSourc
  * Garde les scènes prouvées par les extraits, supprime les autres.
  * `question` : les nombres de l'énoncé de l'étudiant sont permis (il les a donnés).
  */
-export function validateVideoScript(script: Pick<VideoScript, "title" | "scenes">, sources: VideoSource[], question = "", has: { beam: boolean } = { beam: false }): ValidationResult {
-  const indexed = sources.map((s) => (s.solver ? null : indexSource(s.content)));
-  // Les nombres permis : ceux du cours, ceux de la question, et ceux que les
-  // solveurs ont calculés (avec leurs arrondis et conversions d'unité).
+/**
+ * Les nombres permis : ceux du cours, ceux de la question, et ceux que les
+ * solveurs ont calculés (avec leurs arrondis et conversions d'unité).
+ */
+export function allowedNumbers(sources: VideoSource[], question = ""): Set<string> {
   const allowed = new Set<string>([...sources.filter((s) => !s.solver).flatMap((s) => extractNumbers(s.content)), ...extractNumbers(question)]);
   for (const s of sources) if (s.solver) collectNumbers([s.solver.input, s.solver.output], extractNumbers, allowed);
+  return allowed;
+}
+
+export function validateVideoScript(script: Pick<VideoScript, "title" | "scenes">, sources: VideoSource[], question = "", has: { beam: boolean } = { beam: false }): ValidationResult {
+  const indexed = sources.map((s) => (s.solver ? null : indexSource(s.content)));
+  const allowed = allowedNumbers(sources, question);
   const dropped: { index: number; reason: DropReason; detail?: string }[] = [];
   const scenes: ValidatedScene[] = [];
 
@@ -437,8 +444,8 @@ export function resolveBeam(
 
 /* ── Prompt ────────────────────────────────────────────────────────────── */
 
-export function buildVideoPrompt(input: { language: Language; sources: VideoSource[]; question: string; answer: string }): { system: string; prompt: string } {
-  const { language, sources, question, answer } = input;
+export function buildVideoPrompt(input: { language: Language; sources: VideoSource[]; question: string; answer: string; extra?: string }): { system: string; prompt: string } {
+  const { language, sources, question, answer, extra } = input;
   const hasSolver = sources.some((s) => s.solver);
   const system = `${language.top}
 
@@ -502,7 +509,7 @@ Elle dépend de la difficulté : de ${MIN_VOICE_WORDS} mots de voix (30 secondes
 
 PÉDAGOGIE
 Pars de ce que l'étudiant n'a pas compris et fais-en la question mystère. Montre avant d'expliquer, avance pas à pas, relie la théorie à un exemple concret, et termine par le récapitulatif qui répond à la question du début. Ton de professeur qui explique à UN étudiant : phrases courtes, tutoiement, pas de jargon inutile.
-
+${extra ? `\n${extra}\n` : ""}
 ${language.bottom}`;
 
   const block = sources.map((s, i) => `[S${i + 1}] ${s.title}${s.kind ? ` (${s.kind})` : ""}\n${s.content}`).join("\n\n");
@@ -523,6 +530,11 @@ export const videoRequestSchema = z.object({
   semesterId: z.string().max(100).nullish(),
   /** Le professeur choisi (sa voix). */
   professor: z.string().max(40).nullish(),
+  /**
+   * Vidéo dessinée (MP4) : « whiteboard » (tracé à la main) ou « cinematic »
+   * (traits nets, flou de mouvement). Absent : la vidéo jouée dans le navigateur.
+   */
+  style: z.enum(["whiteboard", "cinematic"]).nullish(),
 });
 
 export type VideoRequest = z.infer<typeof videoRequestSchema>;

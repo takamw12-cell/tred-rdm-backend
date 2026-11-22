@@ -248,5 +248,8 @@ export function videoJobView(rowStatus: string): { status: JobStatus; progress: 
   if (rowStatus === "failed") return { status: "failed", progress: 0 };
   if (rowStatus === "script") return { status: "processing", progress: 35 };
   if (rowStatus === "voice") return { status: "processing", progress: 70 };
+  // Vidéo dessinée : le dessin (« drawing:42 » = 42 % des images), puis l'assemblage.
+  if (rowStatus.startsWith("drawing")) return { status: "processing", progress: 75 + Math.round((Number(rowStatus.split(":")[1]) || 0) * 0.2) };
+  if (rowStatus === "assembly") return { status: "processing", progress: 97 };
   return { status: "pending", progress: 5 };
 }

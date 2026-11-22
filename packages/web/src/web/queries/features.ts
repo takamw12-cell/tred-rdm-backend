@@ -11,6 +11,8 @@ import { useQuery } from "@tanstack/react-query";
 export interface Features {
   videoSearch: boolean;
   explainerVideo: boolean;
+  /** Le moteur de dessin est installé sur le serveur : on propose le choix du style. */
+  drawnVideo?: boolean;
   /** « Prüfe mein Verständnis » (mini-quiz, même clé IA). */
   quiz: boolean;
   /** Génération de Karteikarten par l'IA. */
