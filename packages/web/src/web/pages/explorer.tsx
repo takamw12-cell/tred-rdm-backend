@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { safeLazy } from "@/lib/lazy-import";
 import { deviceTier } from "@/lib/device-tier";
 import { report as reportClientError } from "@/components/error-boundary";
+import { Atelier } from "@/components/atelier";
 import { ExplorerLibrary } from "@/components/explorer-library";
 import { guessDetective, startDetective } from "@/lib/detective";
 import { useQueryClient } from "@tanstack/react-query";
@@ -35,11 +36,13 @@ export const ASK_DRAFT_KEY = "tred.askDraft";
 const SPRING = { type: "spring", stiffness: 320, damping: 28 } as const;
 
 /**
- * /explorer : la bibliothèque (grille des scènes) ; /explorer?model=… ou ?glb=… : la scène.
+ * /explorer : la bibliothèque (grille des scènes) ; /explorer?model=… ou ?glb=… : la scène ;
+ * /explorer?atelier=… : un simulateur interactif (components/atelier.tsx).
  */
 export default function ExplorerPage() {
   const search = useSearch();
   const params = new URLSearchParams(search);
+  if (params.get("atelier")) return <Atelier />;
   return params.get("model") || params.get("glb") ? <ExplorerViewer /> : <ExplorerLibrary />;
 }
 

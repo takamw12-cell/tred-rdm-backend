@@ -5,6 +5,8 @@ import { useToastStore } from "@/stores/toast";
 import { formatCredits } from "@/lib/credit-format";
 import { CalendarDays, FileText, Loader2, MessagesSquare, RotateCcw, Target } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import { ArrowRight, SlidersHorizontal } from "lucide-react";
+import { simulatorFor, studyTaskHref } from "@/lib/atelier";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -412,7 +414,15 @@ function StudyPlanBlock({ uid, canPlan }: { uid: string; canPlan: boolean }) {
                         >
                           <Checkbox className="mt-0.5" checked={checked} onCheckedChange={() => toggle(task)} aria-label={t("lernprofil.done", { task: title(task) })} />
                           <div className="min-w-0 space-y-1">
-                            <p className={cn("text-sm font-medium", checked && "line-through decoration-1")}>{title(task)}</p>
+                            {/* La tâche MÈNE au travail : son simulateur s'il existe, sinon les exercices du thème ; l'auto-test ouvre la simulation d'examen. */}
+                            <Link
+                              to={task.kind === "selftest" ? "/exam" : studyTaskHref(task.concept ?? task.topic, task.topic)}
+                              className={cn("hover:text-primary inline-flex max-w-full items-center gap-1.5 text-sm font-medium underline-offset-2 hover:underline", checked && "line-through decoration-1")}
+                              data-testid="plan-open"
+                            >
+                              <span className="min-w-0">{title(task)}</span>
+                              {task.kind !== "selftest" && simulatorFor(task.concept, task.topic) ? <SlidersHorizontal className="size-3.5 shrink-0" aria-label="Simulator" /> : <ArrowRight className="size-3.5 shrink-0" aria-hidden />}
+                            </Link>
                             {task.kind === "selftest" && <p className="text-muted-foreground text-xs">{task.concepts.join(" · ")}</p>}
                             {task.kind === "learn" &&
                               (task.refs.length === 0 ? (

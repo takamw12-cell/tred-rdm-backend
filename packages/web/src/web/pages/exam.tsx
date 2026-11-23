@@ -14,6 +14,7 @@ import { de } from "@/i18n/messages/de";
 import { examQuestions, examDurationSeconds } from "@/data/exam";
 import { generateExercise } from "@/lib/exercise-api";
 import { splitTasks, type ExamSheet } from "@/lib/exam-sheet";
+import { germanGrade } from "../../api/lib/exam-grade";
 import { useReconciledSemester } from "@/hooks/use-reconciled-semester";
 import { cn } from "@/lib/utils";
 import { InterstitialHost } from "@/components/InterstitialAdScreen";
@@ -55,8 +56,39 @@ export default function ExamPage() {
   const [sheet, setSheet] = useState<ExamSheet>(FALLBACK_SHEET);
   /** Points que l'étudiant s'attribue, tâche par tâche, barème en main. */
   const [selfScore, setSelfScore] = useState<Record<string, number>>({});
+  /** La correction par l'IA (POST /api/agent/exam-grade) : points proposés et remarque par tâche. */
+  const [grading, setGrading] = useState<"idle" | "running" | "done" | "failed">("idle");
+  const [feedback, setFeedback] = useState<Record<string, string>>({});
   const semesterId = useReconciledSemester();
   const timerRef = useRef<number | null>(null);
+
+  // Klausur rendue : l'IA la corrige d'après la Musterlösung et le Bewertungsschema.
+  // Ses points REMPLISSENT les cases ; l'étudiant peut les corriger (une IA se trompe aussi).
+  const gradedFor = useRef<ExamSheet | null>(null);
+  useEffect(() => {
+    if (phase !== "result" || gradedFor.current === sheet) return;
+    gradedFor.current = sheet;
+    setGrading("running");
+    void fetch("/api/agent/exam-grade", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tasks: sheet.tasks.map((q) => ({ id: q.id, title: q.title, points: q.points, prompt: q.prompt.slice(0, 12_000), answer: (answers[q.id] ?? "").slice(0, 12_000), solution: q.solution?.slice(0, 12_000) })),
+        solution: (sheet.solution ?? "").slice(0, 40_000),
+        scale: (sheet.scale ?? "").slice(0, 8000),
+      }),
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(String(res.status));
+        const data = (await res.json()) as { grades: { id: string; points: number; feedback: string; graded: boolean }[] };
+        setSelfScore(Object.fromEntries(data.grades.map((g) => [g.id, g.points])));
+        setFeedback(Object.fromEntries(data.grades.filter((g) => g.graded && g.feedback).map((g) => [g.id, g.feedback])));
+        setGrading("done");
+      })
+      .catch(() => setGrading("failed"));
+    // `answers` est figé une fois la Klausur rendue : la correction part une seule fois par Klausur.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, sheet]);
 
   // Examen rendu (bouton ou fin du temps) = fin de session : l'écran de fin
   // peut s'afficher AVANT le résultat — jamais pendant l'examen.
@@ -91,7 +123,12 @@ export default function ExamPage() {
     [sheet, selfScore],
   );
 
+  const note = useMemo(() => germanGrade(score, totalPoints), [score, totalPoints]);
+
   async function start() {
+    gradedFor.current = null;
+    setGrading("idle");
+    setFeedback({});
     setAnswers({});
     setSelfScore({});
     setRemaining(examDurationSeconds);
@@ -116,6 +153,9 @@ export default function ExamPage() {
     setPhase("active");
   }
   function retry() {
+    gradedFor.current = null;
+    setGrading("idle");
+    setFeedback({});
     setAnswers({});
     setSelfScore({});
     setRemaining(examDurationSeconds);
@@ -265,7 +305,7 @@ export default function ExamPage() {
                 <Card className="brand-gradient mb-6 border-0 text-white">
                   <CardContent className="pt-0 text-center">
                     <p className="text-sm font-semibold text-white/80 uppercase tracking-wide">
-                      {m.score} · Selbstbewertung
+                      {m.score} · {grading === "done" ? "KI-Korrektur" : grading === "running" ? "wird korrigiert …" : "Selbstbewertung"}
                     </p>
                     <p className="font-display mt-2 text-5xl font-extrabold tabular-nums">
                       {score}
@@ -274,12 +314,24 @@ export default function ExamPage() {
                     <div className="mx-auto mt-4 max-w-xs">
                       <Progress value={totalPoints ? (score / totalPoints) * 100 : 0} className="bg-white/25" />
                     </div>
+                    {grading === "done" && (
+                      <p className="mt-3 text-sm text-white/85" data-testid="exam-note">
+                        Note (Richtwert): <strong className="tabular-nums">{note.note}</strong> · {note.percent} % · {note.passed ? "bestanden" : "nicht bestanden"}
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
 
-                <p className="text-muted-foreground mb-5 text-sm">
-                  Vergleiche jede Antwort mit der Musterlösung und dem Bewertungsschema und trage
-                  deine Punkte ein — so, wie es die Korrektur in der echten Klausur tun würde.
+                <p className="text-muted-foreground mb-5 text-sm" data-testid="exam-grading" data-state={grading}>
+                  {grading === "running" ? (
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 className="size-4 animate-spin" /> TRED korrigiert deine Klausur nach Musterlösung und Bewertungsschema …
+                    </span>
+                  ) : grading === "done" ? (
+                    "TRED hat jede Aufgabe nach Musterlösung und Bewertungsschema bepunktet. Das ist ein Vorschlag: Vergleiche selbst und passe die Punkte an, wenn du es anders siehst. Die Note folgt einem üblichen Schema (bestanden ab 50 %); dein Lehrstuhl kann ein anderes haben."
+                  ) : (
+                    "Vergleiche jede Antwort mit der Musterlösung und dem Bewertungsschema und trage deine Punkte ein — so, wie es die Korrektur in der echten Klausur tun würde."
+                  )}
                 </p>
 
                 {sheet.generated && (sheet.scale || sheet.solution) && (
@@ -341,6 +393,12 @@ export default function ExamPage() {
                             {(answers[q.id] ?? "").trim() || "—"}
                           </p>
                         </div>
+                        {feedback[q.id] && (
+                          <div className="border-primary/30 bg-primary/5 mb-3 rounded-lg border p-3" data-testid="exam-feedback">
+                            <p className="text-primary mb-1 text-xs font-semibold tracking-wide uppercase">KI-Korrektur</p>
+                            <p className="text-sm">{feedback[q.id]}</p>
+                          </div>
+                        )}
                         {q.solution && (
                           <div className="border-mastered/30 bg-mastered/5 rounded-lg border p-3">
                             <p className="text-mastered mb-1.5 flex items-center gap-1.5 text-xs font-semibold tracking-wide uppercase">

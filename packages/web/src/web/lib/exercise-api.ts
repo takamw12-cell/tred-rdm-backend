@@ -16,6 +16,12 @@ export interface GeneratedExercise {
    * Absent sur les exercices d'avant cette fonction (historique).
    */
   styleSource?: { id: string; title: string; kind: string } | null;
+  /**
+   * Les passages des documents de l'étudiant sur lesquels la solution s'appuie,
+   * VÉRIFIÉS par le serveur (la phrase est dans le document, à cette page).
+   * Absent sur un exercice rouvert depuis l'historique (ils sont alors écrits à la fin de la solution).
+   */
+  citations?: { documentId: string; title: string; page: number | null; quote: string; use: string }[];
 }
 
 export async function generateExercise(body: Record<string, unknown>): Promise<GeneratedExercise> {
@@ -26,6 +32,8 @@ export async function generateExercise(body: Record<string, unknown>): Promise<G
   });
   // Limite du mois : la fenêtre de limite s'ouvre à la place d'une erreur muette.
   await paywallFromResponse(res, "exercise");
+  // Aucun document : le serveur refuse d'inventer un exercice générique.
+  if (res.status === 422) throw new Error("no_documents");
   if (!res.ok || !res.body) throw new Error("generation_failed");
 
   // The server streams NDJSON: repeated {"type":"ping"} heartbeats to keep the
@@ -61,6 +69,7 @@ export async function generateExercise(body: Record<string, unknown>): Promise<G
           solution: String(msg.solution ?? ""),
           scale: String(msg.scale ?? ""),
           styleSource: msg.styleSource ?? null,
+          citations: Array.isArray(msg.citations) ? msg.citations : [],
         };
       }
     }

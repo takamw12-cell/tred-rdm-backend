@@ -1648,3 +1648,21 @@ Le serveur vérifie que les requêtes de l'app viennent d'une app non modifiée 
 | **Charge** | Le rendu occupe un cœur : ~1× la durée (tableau blanc) à ~5× (cinématique). `WORKER_VIDEO_CONCURRENCY=3` = trois rendus en même temps. | Rendu dans le worker seulement, concurrence 1 pour commencer. |
 
 **Limites connues.** Les étiquettes du schéma s'écrivent en lettres latines, grecques et cyrilliques ; en arabe, hindi, bengali, chinois et japonais le schéma ne porte que des symboles (la voix et les sous-titres, eux, sont dans la langue de l'étudiant). Le croquis libre est placé par le modèle sur une grille : enchaînements, formules et récapitulatifs sont mis en page par du code, donc toujours droits ; un croquis libre peut être maladroit. Aucun essai avec le vrai modèle n'a été fait (coût).
+
+## Tuteur interactif : Atelier, exercices ancrés, plan relié, correction d'examen (23 nov. 2026)
+
+**1. Atelier — simulateur à curseurs.** `/explorer?atelier=spannungsteiler` (carte en haut de l'Explorateur). `components/InteractiveCircuit.tsx` : un diviseur de tension en SVG, trois curseurs (U, R₁, R₂). Le courant (des charges qui tournent, plus vite quand I monte), les flèches de tension, la barre de partage et les trois formules se recalculent à chaque mouvement. Aucune IA : ce sont les lois d'Ohm et des mailles (`web/lib/voltage-divider.ts`, testé). Un seul simulateur existe aujourd'hui.
+
+**2. Exercices ancrés dans les documents.** `POST /api/agent/exercise` :
+
+- **Sans document, pas d'exercice.** Le serveur répond 422 `NO_DOCUMENTS` (avant de compter le quota) et la page invite à déposer ses feuilles. Avant, le modèle inventait un exercice « sensé ».
+- **Le style du prof** : inchangé (le serveur choisit lui-même une Altklausur ou un Übungsblatt comme Stilvorlage).
+- **Les pages citées** : le modèle doit donner 2 à 5 sources (document, page, citation mot pour mot). Le serveur vérifie chaque citation dans le texte du document (`lib/citations.ts`) et garde seulement celles qu'il retrouve, avec la VRAIE page. Elles sont écrites à la fin de la solution (« Quellen (geprüft) ») et un bouton ouvre le PDF à la page.
+- Essai réel du 23 nov. (une feuille de test de 3 pages) : 4 citations vérifiées sur 4, pages 1, 2 et 3.
+
+**3. Plan d'étude relié.** Dans « Mein Lernprofil », le titre de chaque tâche du plan est un lien : vers le simulateur quand le thème en a un (`web/lib/atelier.ts`, mots-clés d'électrotechnique), sinon vers les exercices préremplis sur ce thème (`/exercises?subject=…&chapter=…`). L'auto-test ouvre le Prüfungsmodus. Le bouton « demander au tuteur » reste.
+
+**4. Klausur-Simulation — correction par l'IA.** Le Prüfungsmodus existait (Klausur écrite dans le style de l'Altklausur, 2 heures, auto-notation). Nouveau : à la remise, `POST /api/agent/exam-grade` propose des points par tâche d'après la Musterlösung et le Bewertungsschema, avec une remarque. Le code borne le modèle (`lib/exam-grade.ts`) : réponse vide = 0 sans appel, points entre 0 et le maximum, demi-points. L'étudiant peut corriger les points. La note (1,0 à 5,0) suit un barème courant, réussite à 50 %, affiché comme indicatif.
+
+**Limites :** la Klausur est une VARIATION des Altklausuren, pas une copie de leurs exercices. Le barème de chaque université n'est pas connu de TRED. Les réponses sont du texte tapé (pas de photo de copie). La correction n'a pas été essayée avec le vrai modèle (seulement les tests du code).
+
