@@ -1703,3 +1703,27 @@ La génération vidéo par code est arrêtée. Les vidéos sont faites avec HeyG
 - **Commande :** `node scripts-video/generer-kit.mjs` écrit les textes et les voix dans `C:\dev\tred-rdm\video-production\` (hors du dépôt : `scripts/`, `voix/`, `assets/`). `--textes` n'appelle pas ElevenLabs. `--force` refait toutes les voix.
 - **Variantes sûres :** EN2, DE1 et DE2 ont un second texte (`*-variante-sure`). Il respecte le tableau « Ce que TRED peut affirmer dans une publicité » : pas de « jede Antwort wird bewiesen », et le Labo transforme des formules du cours (7 lois), pas tout le cours.
 - Les fichiers audio et les captures ne sont pas dans git.
+
+## Labo universel : simulations générées à la volée — 2026-11-23, branche `feat/labo-generatif` (NON fusionnée)
+
+**Le besoin :** hors des 7 lois du catalogue, le Labo refusait (« Normalspannung », médecine…). Maintenant il répond à tout concept, avec ou sans document.
+
+**Trois réponses possibles, et la pastille dit laquelle :**
+
+| Cas | Ce que l'étudiant voit | Ce qui est vérifié |
+|---|---|---|
+| Concept du catalogue (7 lois) | Simulation 3D, pastille verte « Mit SymPy bewiesen » | Égalité avec une loi de référence (SymPy), unités, citation. Inchangé. |
+| Concept hors catalogue avec une formule | Simulation 3D générée + courbe, pastille orange « Von der KI gebaut · Einheiten geprüft » | Syntaxe, unités (analyse dimensionnelle), facteur d'unités calculé par le code, résultat fini, citation retrouvée dans le document. **Pas** de preuve SymPy. |
+| Concept sans formule (ADN, droit…) | Explication Markdown + KaTeX, pastille orange « Erklärung von der KI » | Seules les citations retrouvées dans le document sont affichées. |
+
+**Écart au brief, à connaître :**
+
+- **Le modèle n'écrit pas de code React.** Il décrit la simulation en données (grandeurs, formules, formes 3D), et notre code la dessine. Raison : du code écrit par un modèle et exécuté dans le navigateur d'un étudiant connecté peut lire sa session. Avec des données, il n'y a rien à isoler, aucune erreur de syntaxe possible à l'écran, et chaque formule passe par le contrôle.
+- **Pas de pastille « Vérifié par SymPy » sur une simulation générée.** SymPy prouve qu'une formule est égale à une loi de référence. Hors catalogue, il n'y a pas de loi de référence : la pastille serait fausse. Une formule fausse mais homogène (σ = 2·F/A) passerait le contrôle des unités. Le texte de la pastille le dit.
+- **Modèle :** le modèle principal de l'app (`PRIMARY_MODEL`), pas « Sonnet 3.5 » qui est ancien.
+
+**Défaut trouvé à l'essai réel et corrigé :** pour « Herzzeitvolumen », le modèle écrivait `HF · SV / 1000` alors que le code convertit déjà ml → l. Résultat affiché : 0,006 l/min. Depuis : une formule qui porte un facteur de conversion (1000, 60, 3600) alors que le code convertit est refusée, et le modèle reçoit un second essai avec la raison.
+
+**Fichiers :** `web/lib/sim-generated.ts` (types, évaluateur, courbe), `api/lib/simulation-gen.ts` (schéma, contrôle, consigne), `api/simulate/routes.ts` (branche « hors catalogue », document facultatif), `components/SimulationScene.tsx` (`Generated`), `components/labo.tsx` (barre de recherche, suggestions par filière). Tests : `tests/simulation-gen.test.ts`.
+
+**Coût :** un appel au modèle par simulation générée (deux si le contrôle refuse une formule), compté dans le plafond de tokens du compte. Sans document, la simulation n'est pas gardée.

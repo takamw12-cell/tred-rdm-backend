@@ -1,5 +1,5 @@
 {
-  "note": "Source unique des scripts HeyGen. `node scripts-video/generer-kit.mjs` écrit les .txt et les voix dans ../video-production/.",
+  "note": "Source unique des scripts vidéo. Textes conformes à la règle publicité (GUIDE_FOUNDER.md, « Ce que TRED peut affirmer »). `node scripts-video/generer-kit.mjs` écrit les .txt et les voix dans ../video-production/.",
   "scripts": [
     {
       "id": "EN1",
@@ -19,9 +19,7 @@
       "voiceName": "Daniel",
       "tone": "Energetic and curious. Speed up on \"move the sliders\", slow down on \"understand the physics\".",
       "canvaTitle": "Your course as a 3D lab",
-      "text": "Stop reading boring PDFs. TRED turns your course into an interactive 3D lab. Move the sliders, see the formulas update in real-time, and understand the physics behind it. Link in bio.",
-      "safeText": "Stop reading boring PDFs. TRED turns formulas from your course into an interactive 3D lab. Move the sliders, see the formulas update in real-time, and understand the physics behind it. Link in bio.",
-      "safeWhy": "Le Labo couvre 7 lois de physique, pas tout un cours. « formulas from your course » reste vrai."
+      "text": "Stop reading boring PDFs. TRED turns formulas from your course into an interactive 3D lab. Move the sliders, see the formulas update in real-time, and understand the physics behind it. Link in bio."
     },
     {
       "id": "DE1",
@@ -31,9 +29,7 @@
       "voiceName": "Matilda",
       "tone": "Ruhig und beruhigend am Anfang, dann klar und motivierend. Kurze Pause nach \"Keine Panik vor der Klausur.\"",
       "canvaTitle": "Dein 7-Tage-Plan zur Klausur",
-      "text": "Keine Panik vor der Klausur. Lade dein Skript hoch, und TRED erstellt dir einen 7-Tage-Plan. Jede Antwort wird durch deine eigenen Dokumente bewiesen. Jetzt kostenlos testen.",
-      "safeText": "Keine Panik vor der Klausur. Lade dein Skript hoch, und TRED erstellt dir einen 7-Tage-Plan. Jedes Zitat wird gegen dein eigenes Skript geprüft. Jetzt kostenlos testen.",
-      "safeWhy": "Ta règle publicité du 16 nov. (GUIDE_FOUNDER.md) interdit « chaque réponse est prouvée » : une réponse sans document n'a pas de citation. « Jedes Zitat wird geprüft » est vrai."
+      "text": "Keine Panik vor der Klausur. Lade dein Skript hoch, und TRED erstellt dir einen 7-Tage-Plan. Jedes Zitat wird gegen dein eigenes Skript geprüft. Jetzt kostenlos testen."
     },
     {
       "id": "DE2",
@@ -43,9 +39,7 @@
       "voiceName": "Bill",
       "tone": "Dynamisch und neugierig. Betonung auf \"3D-Labor\" und \"in Echtzeit\".",
       "canvaTitle": "Dein Stoff als 3D-Labor",
-      "text": "Schluss mit langweiligen Skripten. TRED verwandelt deinen Stoff in ein interaktives 3D-Labor. Bewege die Regler und sieh, wie sich die Formeln in Echtzeit ändern. Jetzt ausprobieren.",
-      "safeText": "Schluss mit langweiligen Skripten. TRED verwandelt Formeln aus deinem Stoff in ein interaktives 3D-Labor. Bewege die Regler und sieh, wie sich die Formeln in Echtzeit ändern. Jetzt ausprobieren.",
-      "safeWhy": "Même raison que EN2 : 7 lois de physique aujourd'hui."
+      "text": "Schluss mit langweiligen Skripten. TRED verwandelt Formeln aus deinem Stoff in ein interaktives 3D-Labor. Bewege die Regler und sieh, wie sich die Formeln in Echtzeit ändern. Jetzt ausprobieren."
     }
   ]
 }
