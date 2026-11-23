@@ -1727,3 +1727,25 @@ La génération vidéo par code est arrêtée. Les vidéos sont faites avec HeyG
 **Fichiers :** `web/lib/sim-generated.ts` (types, évaluateur, courbe), `api/lib/simulation-gen.ts` (schéma, contrôle, consigne), `api/simulate/routes.ts` (branche « hors catalogue », document facultatif), `components/SimulationScene.tsx` (`Generated`), `components/labo.tsx` (barre de recherche, suggestions par filière). Tests : `tests/simulation-gen.test.ts`.
 
 **Coût :** un appel au modèle par simulation générée (deux si le contrôle refuse une formule), compté dans le plafond de tokens du compte. Sans document, la simulation n'est pas gardée.
+
+## Vidéo : règle UWG dans le prompt, et ferme de rendu GitHub Actions — 2026-11-24
+
+**Règle UWG.** Tout script vidéo reçoit maintenant le bloc « Ce que tu dis de TRED » (`api/lib/ad-claims.ts`) : aucune promesse absolue, et les formulations validées à employer telles quelles. Une consigne ne garantit rien : le contrôle du script supprime aussi toute scène qui porte une promesse absolue (raison `absolute_claim`), question mystère comprise, et remplace un titre fautif. Le contrôle ne vise que les phrases qui parlent de TRED, du tuteur ou de l'IA : une leçon peut dire « l'énergie est toujours conservée ».
+
+**Ferme de rendu.** Le rendu MP4 ne tourne pas sur Railway. Il tourne dans GitHub Actions : `.github/workflows/render-video.yml`.
+
+| Pour… | Fais |
+|---|---|
+| lancer un rendu à la main | GitHub → Actions → « Rendu vidéo » → Run workflow (brief `en1`) |
+| le lancer en ligne de commande | `gh workflow run render-video.yml -f brief=en1 -f avatar=heygen` |
+| le lancer depuis l'app | `POST /api/admin/video-render` avec `{ "brief": "en1" }` (compte admin) ; `GET` rend l'état des derniers rendus |
+| essayer la ferme sans aucun appel payant | `-f avatar=fixture` (script et voix déjà dans le dépôt, avatar de remplacement) |
+
+**Secrets à poser dans GitHub** (Settings → Secrets and variables → Actions) : `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY`, `HEYGEN_VIDEO_API_KEY`, `HEYGEN_VIDEO_AVATAR_ID`, et pour le dépôt du MP4 `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` (bucket `videos`, à créer). Les variables posées sur Railway ne sont pas visibles par GitHub Actions : ce sont deux coffres séparés.
+
+**Variables à poser sur Railway** pour que l'app déclenche un rendu : `GITHUB_TOKEN` (jeton à portée fine : ce dépôt, « Actions : Read and write », rien d'autre) et `GITHUB_RENDER_REPO` (`propriétaire/dépôt`).
+
+**À savoir :**
+- Le dépôt GitHub est PUBLIC : les journaux et les artefacts d'un rendu sont lisibles par tous. C'est aussi ce qui rend les minutes d'Actions gratuites.
+- L'app n'a pas encore d'écran « Vidéo en cours de création » pour l'étudiant : la route est réservée à l'administration, car chaque rendu coûte des appels payants (modèle, ElevenLabs, HeyGen).
+- Sans les secrets Supabase, le MP4 reste 14 jours dans les artefacts du rendu.

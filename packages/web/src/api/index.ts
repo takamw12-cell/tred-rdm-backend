@@ -1,3 +1,4 @@
+import { dispatchRender, listRenders, renderFarmConfigured } from "./lib/render-farm";
 import type { RouterClient } from "@orpc/server";
 import { createAgentUIStream, createUIMessageStreamResponse, generateText, generateObject } from "ai";
 import { stream } from "hono/streaming";
@@ -692,6 +693,26 @@ app.get("/api/admin/queues", async (c) => {
   } catch (error) {
     return c.json({ configured: true, ready: false, queues: {}, error: (error as Error).message?.slice(0, 160) });
   }
+});
+
+// La ferme de rendu vidéo (GitHub Actions). Réservée à l'administration : un rendu coûte des appels payants.
+app.get("/api/admin/video-render", async (c) => {
+  const guard = await requireAdmin(c);
+  if (!guard.ok) return c.json(ADMIN_DENIED, guard.status);
+  return c.json({ configured: renderFarmConfigured(), runs: await listRenders().catch(() => []) });
+});
+app.post("/api/admin/video-render", async (c) => {
+  const guard = await requireAdmin(c);
+  if (!guard.ok) return c.json(ADMIN_DENIED, guard.status);
+  const body = (await c.req.json().catch(() => null)) as { brief?: unknown; avatar?: unknown; layout?: unknown } | null;
+  const out = await dispatchRender({ brief: String(body?.brief ?? ""), avatar: body?.avatar === "placeholder" ? "placeholder" : "heygen", layout: body?.layout === "standing" ? "standing" : "bubble" }).catch(() => ({ ok: false as const, reason: "github_error" as const }));
+  if (out.ok) {
+    console.log(`[render-farm] rendu demandé brief=${String(body?.brief).slice(0, 40)}`);
+    // GitHub ne rend pas l'identifiant du rendu : l'état se lit par GET, quelques secondes plus tard.
+    return c.json({ status: "queued", message: "Video wird erstellt …" }, 202);
+  }
+  console.warn(`[render-farm] refus reason=${out.reason} status=${"status" in out ? out.status : "-"}`);
+  return c.json({ error: out.reason.toUpperCase() }, out.reason === "bad_request" ? 400 : out.reason === "not_configured" ? 503 : 502);
 });
 
 app.get("/api/admin/users", async (c) => {

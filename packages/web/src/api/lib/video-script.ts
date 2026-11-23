@@ -1,3 +1,4 @@
+import { AD_CLAIMS_PROMPT, absoluteClaims } from "./ad-claims";
 import { z } from "zod";
 import type { Language } from "./languages";
 import { runBalkenstatik, type BalkenstatikInput, type BeamDiagramPayload } from "./beam-tool";
@@ -138,7 +139,8 @@ export type DropReason =
   | "number_not_in_sources"
   | "empty_voiceover"
   | "number_in_analogy"
-  | "too_many_analogies";
+  | "too_many_analogies"
+  | "absolute_claim";
 
 export type ValidationResult =
   | { ok: true; title: string; scenes: ValidatedScene[]; words: number; dropped: { index: number; reason: DropReason; detail?: string }[] }
@@ -311,6 +313,11 @@ export function validateVideoScript(script: Pick<VideoScript, "title" | "scenes"
     if (!scene.voiceover.trim()) return void dropped.push({ index, reason: "empty_voiceover" });
     const shown = resolveVisual(scene, has);
 
+    // Une promesse absolue sur TRED (« every answer is proved ») ne sort pas, quoi que dise la consigne.
+    // Contrôle fait avant tout le reste : la question mystère et les exemples y passent aussi.
+    const claims = absoluteClaims([scene.heading, ...scene.bullets, ...(scene.steps ?? []), scene.voiceover].join(". "));
+    if (claims.length > 0) return void dropped.push({ index, reason: "absolute_claim", detail: claims.join(", ") });
+
     // Un exemple du quotidien ne cite rien — donc il n'affirme rien de chiffré :
     // aucun nombre, aucune formule. Il éclaire, il ne remplace pas le cours.
     if (scene.kind === "analogy") {
@@ -392,7 +399,9 @@ export function validateVideoScript(script: Pick<VideoScript, "title" | "scenes"
   if (scenes.filter((sc) => sc.sourceKind !== "analogy").length < MIN_SCENES) return { ok: false, error: "no_valid_scene", words, dropped };
   if (words < MIN_VALID_WORDS) return { ok: false, error: "too_short", words, dropped };
   if (words > MAX_VOICE_WORDS) return { ok: false, error: "too_long", words, dropped };
-  return { ok: true, title: script.title.trim(), scenes, words, dropped };
+  // Un titre qui promet trop est remplacé par le titre de la première scène gardée.
+  const title = absoluteClaims(script.title).length > 0 ? (scenes.find((sc) => sc.stage !== "hook")?.heading ?? scenes[0]!.heading) : script.title.trim();
+  return { ok: true, title, scenes, words, dropped };
 }
 
 /* ── La poutre de la vidéo ─────────────────────────────────────────────── */
@@ -497,6 +506,8 @@ SELON LA MATIÈRE
 - Informatique, programmation : surtout "write_code" (le code du cours) et "draw_flowchart" (l'algorithme).
 - Économie, gestion : surtout "draw_chart", "write_equation" et "draw_flowchart".
 Tu ne décris jamais un schéma d'anatomie ni un dessin que TRED ne sait pas tracer : choisis dans la bibliothèque.
+
+${AD_CLAIMS_PROMPT}
 
 EXEMPLES DU QUOTIDIEN ("kind": "analogy", ${MAX_ANALOGIES} au plus)
 Une comparaison avec la vie courante aide à comprendre (« comme un pont qui porte les voitures »). Dans une scène "analogy" : aucune citation, mais AUCUN chiffre et AUCUNE formule, et rien qui prétende venir du cours. La question mystère ("hook") ne compte pas dans cette limite. Toutes les autres scènes sont "explanation" et citent leur source.

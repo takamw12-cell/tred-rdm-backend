@@ -1,0 +1,149 @@
+# La ferme de rendu des vidéos « Auto-Explain » : modèle → ElevenLabs → HeyGen
+# → Remotion → FFmpeg, puis dépôt du MP4.
+#
+# Déclenchement : à la main (onglet Actions → « Rendu vidéo » → Run workflow),
+# par `gh workflow run render-video.yml -f brief=en1`, ou par l'application
+# (POST /api/admin/video-render, lib/render-farm.ts).
+#
+# Secrets du dépôt (Settings → Secrets and variables → Actions) :
+#   ANTHROPIC_API_KEY, ELEVENLABS_API_KEY      le script et la voix
+#   HEYGEN_VIDEO_API_KEY, HEYGEN_VIDEO_AVATAR_ID   l'avatar (inutile avec avatar = placeholder)
+#   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY    le dépôt du MP4 (facultatif)
+# Variable du dépôt (facultative) : SUPABASE_BUCKET (défaut « videos »).
+# Sans les secrets Supabase, le MP4 reste disponible 14 jours comme artefact du rendu.
+#
+# Ce dépôt est PUBLIC : les journaux et les artefacts d'un rendu sont lisibles
+# par tous. Aucune clé n'est affichée ; ne mets pas de contenu privé dans un brief.
+#
+# Le pipeline lui-même vit sur la branche de l'entrée `ref` : ce fichier ne fait
+# que l'installer et le lancer.
+name: Rendu vidéo
+
+on:
+  workflow_dispatch:
+    inputs:
+      brief:
+        description: "Nom du brief (packages/video/scripts/auto-explain-briefs/<nom>.json)"
+        required: true
+        default: en1
+      avatar:
+        description: "heygen = le vrai avatar · placeholder = avatar de remplacement, sans HeyGen · fixture = script et voix déjà dans le dépôt, aucun appel payant"
+        type: choice
+        options: [heygen, placeholder, fixture]
+        default: heygen
+      layout:
+        description: "bubble = pastille ronde · standing = avatar en pied"
+        type: choice
+        options: [bubble, standing]
+        default: bubble
+      ref:
+        description: "Branche qui porte le pipeline"
+        required: true
+        default: feat/auto-explain-video
+
+run-name: "Rendu vidéo · ${{ inputs.brief }} · ${{ inputs.avatar }}"
+
+concurrency:
+  group: render-video-${{ inputs.brief }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    name: script · voix · avatar · rendu · incrustation
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      BRIEF: ${{ inputs.brief }}
+      AVATAR: ${{ inputs.avatar }}
+      LAYOUT: ${{ inputs.layout }}
+    steps:
+      # Les entrées viennent d'un formulaire ou d'une API : contrôlées avant tout usage, lues par variable et jamais collées dans une commande.
+      - name: Contrôler les entrées
+        env:
+          REF: ${{ inputs.ref }}
+        run: |
+          [[ "$BRIEF" =~ ^[a-z0-9][a-z0-9_-]{0,40}$ ]] || { echo "::error::nom de brief refusé"; exit 1; }
+          [[ "$REF" =~ ^[A-Za-z0-9._/-]{1,100}$ ]] || { echo "::error::branche refusée"; exit 1; }
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # L'étape 1 du pipeline importe les modules de l'application (contrôle du script, HeyGen, incrustation).
+      - name: Dépendances de l'application (lockfile figé)
+        run: bun install --frozen-lockfile
+
+      - name: Dépendances du moteur vidéo (lockfile figé)
+        working-directory: packages/video
+        run: npm ci
+
+      # FFmpeg complet (filtres chromakey et geq) et les bibliothèques du navigateur sans écran de Remotion.
+      - name: FFmpeg et navigateur de rendu
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends ffmpeg libnss3 libdbus-1-3 libatk1.0-0 libatk-bridge2.0-0 libgbm1 libasound2t64 libxrandr2 libxkbcommon0 libxfixes3 libxcomposite1 libxdamage1 libpango-1.0-0 libcairo2 libcups2
+          cd packages/video && npx remotion browser ensure
+
+      - name: Rendu
+        working-directory: packages/video
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          HEYGEN_VIDEO_API_KEY: ${{ secrets.HEYGEN_VIDEO_API_KEY }}
+          HEYGEN_VIDEO_AVATAR_ID: ${{ secrets.HEYGEN_VIDEO_AVATAR_ID }}
+          RENDER_CONCURRENCY: "2"
+        run: |
+          flags=()
+          [ "$AVATAR" = "placeholder" ] && flags+=(--placeholder)
+          [ "$AVATAR" = "fixture" ] && flags+=(--fixture --placeholder)
+          start=$(date +%s)
+          node scripts/auto-explain.mjs "$BRIEF" "--layout=$LAYOUT" "${flags[@]}"
+          file=$(ls out/auto-explain/"$BRIEF"/"$BRIEF"*-"$LAYOUT".mp4 | head -1)
+          echo "MP4=packages/video/$file" >> "$GITHUB_ENV"
+          echo "NAME=$(basename "$file" .mp4)-$(date -u +%Y%m%d-%H%M%S).mp4" >> "$GITHUB_ENV"
+          {
+            echo "### Rendu « $BRIEF » ($AVATAR, $LAYOUT)"
+            echo "- Durée du pipeline : $(( $(date +%s) - start )) s"
+            echo "- Fichier : $(basename "$file"), $(du -h "$file" | cut -f1)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Garder le MP4 comme artefact (14 jours)
+        uses: actions/upload-artifact@v4
+        with:
+          name: video-${{ inputs.brief }}
+          path: ${{ env.MP4 }}
+          retention-days: 14
+          if-no-files-found: error
+
+      # Supabase Storage, API REST : POST /storage/v1/object/<bucket>/<chemin>. Le bucket doit exister.
+      - name: Déposer sur Supabase Storage
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_BUCKET: ${{ vars.SUPABASE_BUCKET || 'videos' }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "- Supabase : secrets absents, dépôt sauté (le MP4 est dans les artefacts)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          path="auto-explain/$BRIEF/$NAME"
+          code=$(curl -sS -o /tmp/supabase.json -w "%{http_code}" -X POST "${SUPABASE_URL%/}/storage/v1/object/$SUPABASE_BUCKET/$path" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" -H "Content-Type: video/mp4" -H "x-upsert: true" --data-binary "@$MP4")
+          if [ "$code" != "200" ]; then
+            echo "::error::Supabase a répondu $code"
+            head -c 300 /tmp/supabase.json
+            exit 1
+          fi
+          echo "- Supabase : \`$SUPABASE_BUCKET/$path\` (lien public si le bucket est public : ${SUPABASE_URL%/}/storage/v1/object/public/$SUPABASE_BUCKET/$path)" >> "$GITHUB_STEP_SUMMARY"
