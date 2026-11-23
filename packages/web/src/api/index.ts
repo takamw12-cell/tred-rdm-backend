@@ -38,6 +38,7 @@ import { auth } from "./auth";
 import { rateLimitMiddleware, userRateBump, userRateLimit, USER_LIMITS } from "./middleware/rate-limit";
 import { BATCH_MAX_BYTES, BATCH_MAX_FILES, checkBatch, declaredBatchTooLarge, runBatch } from "./lib/import-batch";
 import { docsByTitle, verifyCitation } from "./lib/citations";
+import { buildGradePrompt, clampGrades, germanGrade, gradeModelSchema, gradeRequestSchema, tasksToGrade } from "./lib/exam-grade";
 import { ownedDocumentFile } from "./lib/document-owner";
 import { streamDocument } from "./lib/document-stream";
 import { contentMatchesExtension, declaredTooLarge, MAX_UPLOAD_BYTES } from "./lib/upload-guard";
@@ -105,6 +106,7 @@ import { finalizeQuiz, quizContext, quizModelSchema, quizRequestSchema, quizSyst
 import { challengeModelSchema, challengePrompt, challengeRequestSchema, challengeSystemPrompt, excerptFor, groundChallenge, type ChallengeMode, type ChallengeQuestion } from "./lib/doc-challenge";
 import { registerArcadeRoutes } from "./arcade/routes";
 import { registerExplorerRoutes } from "./explorer/routes";
+import { registerSimulateRoutes } from "./simulate/routes";
 import { registerEmailRoutes } from "./emails/routes";
 import {
   getAccess,
@@ -1324,6 +1326,36 @@ app.post("/api/agent/translate", async (c) => {
   return c.json({ results });
 });
 
+// Klausur-Simulation : la correction d'une Klausur rendue. Le modèle propose des
+// points par tâche d'après la Musterlösung et le Bewertungsschema ; le code les
+// borne (lib/exam-grade.ts). Pas de quota « exercice » en plus : la Klausur a
+// déjà été comptée à sa génération ; seul le plafond de tokens s'applique.
+app.post("/api/agent/exam-grade", async (c) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);
+  const parsed = gradeRequestSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: "BAD_REQUEST" }, 400);
+  const { tasks, solution, scale } = parsed.data;
+  const total = tasks.reduce((n, t) => n + t.points, 0);
+  const toGrade = tasksToGrade(tasks);
+  // Copie blanche : 0 partout, sans appel au modèle.
+  if (toGrade.length === 0) return c.json({ grades: clampGrades(tasks, []), total, ...germanGrade(0, total) });
+
+  const cap = await withinTokenCap(session.user.id);
+  if (!cap.ok) return c.json(tokenCapError(cap.used, cap.cap), 402);
+  try {
+    const { system, prompt } = buildGradePrompt({ tasks: toGrade, solution, scale });
+    const { object, usage } = await generateObject({ model: gateway(PRIMARY_MODEL), schema: gradeModelSchema, system, prompt, abortSignal: AbortSignal.timeout(120_000) });
+    void addOutputTokens(session.user.id, usage?.outputTokens ?? 0);
+    const grades = clampGrades(tasks, object.grades);
+    const points = grades.reduce((n, g) => n + g.points, 0);
+    return c.json({ grades, total, ...germanGrade(points, total) });
+  } catch (err) {
+    console.error("[exam-grade] failed", (err as Error).message?.slice(0, 200));
+    return c.json({ error: "GRADING_FAILED" }, 502);
+  }
+});
+
 // Generate a course-styled exercise (or a full practice Klausur) grounded in
 // the student's documents. Returns structured JSON so the UI can show the
 // statement, an answer space, points, and a hideable model solution.
@@ -1331,12 +1363,6 @@ app.post("/api/agent/translate", async (c) => {
 app.post("/api/agent/exercise", async (c) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   if (!session) return c.json({ error: "UNAUTHORIZED" }, 401);
-
-  const quota = await consume(session.user.id, "exercise");
-  if (!quota.ok) return c.json(quotaError(quota), 402);
-
-  const cap = await withinTokenCap(session.user.id);
-  if (!cap.ok) return c.json(tokenCapError(cap.used, cap.cap), 402);
 
   const body = (await c.req.json()) as {
     mode?: "exercise" | "klausur";
@@ -1385,6 +1411,18 @@ app.post("/api/agent/exercise", async (c) => {
   } else {
     rows = await db.select().from(document).where(lisibleEx);
   }
+
+  // ZÉRO EXERCICE GÉNÉRIQUE (23 nov. 2026) : sans aucun document lisible, on ne
+  // demande rien au modèle — il inventerait un exercice qui ne ressemble à
+  // aucun cours. L'étudiant est invité à déposer ses Übungsblätter / Altklausuren.
+  // Vérifié AVANT le quota : un refus ne coûte rien à l'étudiant.
+  if (!rows.some((d) => d.textContent.trim().length > 0)) return c.json({ error: "NO_DOCUMENTS" }, 422);
+
+  const quota = await consume(session.user.id, "exercise");
+  if (!quota.ok) return c.json(quotaError(quota), 402);
+
+  const cap = await withinTokenCap(session.user.id);
+  if (!cap.ok) return c.json(tokenCapError(cap.used, cap.cap), 402);
 
   const { sources: exSources } = selectRelevantContext(
     rows.map((d) => ({ title: d.title, kind: d.kind, content: d.textContent })),
@@ -1470,6 +1508,7 @@ ANFORDERUNGEN:
 - Verwende NUR Methoden und Notation, die zum Kurs passen.
 - Formeln als LaTeX zwischen $...$ bzw. $...$.
 - RECHENPROBE: Bevor du eine Aussage der Form \"wenn X steigt, dann steigt/sinkt Y\" oder eine Schaltbedingung formulierst, setze zwei Zahlenwerte beiderseits des Umschaltpunkts ein und rechne beide Fälle aus. Beim Spannungsteiler U = U₀·R_unten/(R_oben+R_unten) gilt: steigt R_oben, so SINKT U. Angabe, Rechenweg und Ergebnis müssen dieselbe Richtung haben.
+- QUELLEN (PFLICHT): Die Aufgabe und jeder Lösungsschritt stützen sich auf die Unterlagen unten. Gib im Feld "sources" 2 bis 5 Belege an — für die Formeln und Methoden der Musterlösung UND für die Aufgabe, die als Vorbild diente: den Dokumenttitel exakt wie in der Überschrift "-- Titel (Art) --", die Seite laut der letzten Marke [[SEITE n]] vor der Stelle, und ein WÖRTLICHES Zitat (6 bis 25 Wörter, Fließtext, keine Formel) von genau dieser Stelle. Ein Programm prüft jedes Zitat gegen das Dokument: ein erfundenes Zitat wird gestrichen. Erfinde nie eine Seite.
 - Liegt in den Unterlagen eine Musterlösung vor, ist sie maßgeblich; weiche nur ab, wenn du den Widerspruch ausdrücklich benennst.
 - SCHALTPLÄNE: als \`\`\`circuitikz-Block, mit europäischen Symbolen (DIN/EN) — so, wie ein Professor sie ins Skript setzt. NIE als handgezeichnetes SVG: ein von Hand gesetzter Operationsverstärker steht schief. Beispiel: \`\\begin{circuitikz} \\draw (0,0) to[V=$U_q$] (0,3) to[R=$R_1$, i>^=$I$] (3,3) to[R=$R_2$, v=$U_2$] (3,0) -- (0,0); \\end{circuitikz}\`. Spannungen mit v=, Ströme mit i=, Werte mit Einheit.
 - MECHANIK-SKIZZEN (Balken, Querschnitt, Freikörperbild): füge einen \`\`\`svg-Codeblock mit reinem, nativem SVG ein — EXAKT im selben Klausur-Stil wie im Tutor-Chat. KEIN TikZ, KEIN mermaid. Regeln:
@@ -1519,7 +1558,27 @@ Die Felder title/points/statement/solution/scale werden strukturiert zurückgege
       .string()
       .describe("Vollständige Musterlösung Schritt für Schritt, Markdown mit LaTeX"),
     scale: z.string().describe("Kurzes Punkte-/Bewertungsschema"),
+    sources: z
+      .array(z.object({ document: z.string().describe("Dokumenttitel, exakt"), page: z.number().describe("Seite laut [[SEITE n]]; 0 wenn unbekannt"), quote: z.string().describe("Wörtliches Zitat, 6 bis 25 Wörter"), use: z.string().describe("Wofür: z. B. 'Formel in b)' oder 'Vorbild der Aufgabe'") }))
+      .describe("2 bis 5 Belege aus den Unterlagen"),
   });
+
+  // Les documents contre lesquels chaque citation est vérifiée : ceux donnés au modèle, pas d'autres.
+  const citedDocs = [...rows, ...(styleDoc && !rows.some((d) => d.id === styleDoc.id) ? [styleDoc] : [])].map((d) => ({ id: d.id, title: d.title, pageCount: d.pageCount, textContent: d.textContent }));
+  type ExerciseCitation = { documentId: string; title: string; page: number | null; quote: string; use: string };
+  /** Seules les citations RETROUVÉES mot pour mot sont gardées, avec la vraie page (celle du document, pas celle annoncée). */
+  const verifySources = (sources: { document: string; page: number; quote: string; use: string }[] | undefined): ExerciseCitation[] => {
+    const kept: ExerciseCitation[] = [];
+    for (const src of (sources ?? []).slice(0, 8)) {
+      const quote = String(src.quote ?? "").trim();
+      if (quote.length < 12) continue;
+      const verdict = verifyCitation({ doc: src.document || null, page: src.page > 0 ? Math.round(src.page) : null, excerpt: quote }, citedDocs);
+      if ((verdict.status !== "verified" && verdict.status !== "page_corrected") || !verdict.documentId) continue;
+      if (kept.some((k) => k.documentId === verdict.documentId && k.page === verdict.page && k.quote === quote)) continue;
+      kept.push({ documentId: verdict.documentId, title: verdict.title ?? src.document, page: verdict.page, quote: quote.slice(0, 300), use: String(src.use ?? "").slice(0, 80) });
+    }
+    return kept;
+  };
 
   // Generation runs the structured-output path (SDK guarantees valid JSON,
   // removing the class of parse failures caused by LaTeX backslashes) with a
@@ -1541,6 +1600,7 @@ Die Felder title/points/statement/solution/scale werden strukturiert zurückgege
         statement: String(object.statement ?? ""),
         solution: String(object.solution ?? ""),
         scale: String(object.scale ?? ""),
+        citations: verifySources(object.sources),
       };
     } catch (objErr) {
       // Fallback: some gateway models occasionally reject strict object mode.
@@ -1572,6 +1632,7 @@ Die Felder title/points/statement/solution/scale werden strukturiert zurückgege
         statement: String(parsed.statement ?? ""),
         solution: String(parsed.solution ?? ""),
         scale: String(parsed.scale ?? ""),
+        citations: [] as ExerciseCitation[],
       };
     }
   }
@@ -1589,8 +1650,13 @@ Die Felder title/points/statement/solution/scale werden strukturiert zurückgege
       }
     })();
     try {
-      const result = await runExercise();
+      const { citations, ...result } = await runExercise();
       done = true;
+      // Les sources vérifiées sont écrites DANS la solution : elles restent dans l'historique, le PDF et l'examen.
+      if (citations.length > 0) {
+        result.solution += `\n\n---\n**Quellen (geprüft)**\n${citations.map((ct) => `- ${ct.use ? `${ct.use}: ` : ""}*${ct.title}*${ct.page !== null ? `, S. ${ct.page}` : ""} — „${ct.quote.replace(/\s+/g, " ")}“`).join("\n")}`;
+      }
+      console.log(`[exercise] ${mode} : ${citations.length} citation(s) vérifiée(s), Stilvorlage ${styleDoc ? styleDoc.kind : "keine"}, ${rows.length} document(s)`);
       // Auto-save every successful generation so it shows up in the history and
       // can be reopened / exported later. The user can delete it afterwards.
       let savedId: string | null = null;
@@ -1623,7 +1689,7 @@ Die Felder title/points/statement/solution/scale werden strukturiert zurückgege
         ? { id: styleDoc.id, title: styleDoc.title, kind: styleDoc.kind }
         : null;
       await s.write(
-        JSON.stringify({ type: "result", savedId, styleSource, ...result }) + "\n",
+        JSON.stringify({ type: "result", savedId, styleSource, citations, ...result }) + "\n",
       );
 
       // Push erst NACH dem Schreiben des Ergebnisses und ohne await: der
@@ -2118,6 +2184,8 @@ app.post("/api/agent/doc-challenge", async (c) => {
 registerArcadeRoutes(app, { buildChallenge });
 // Les modèles livrés ont leurs scènes ; le catalogue liste seulement les .glb DÉPOSÉS en plus.
 registerExplorerRoutes(app, new Set(["engineering/turbofan", "medicine/heart"]));
+// Le Labo : simulations 3D vérifiées, construites à partir d'un document (simulate/routes.ts).
+registerSimulateRoutes(app);
 registerEmailRoutes(app);
 
 // ── « Panik-Modus » : la feuille de secours de la veille d'examen ──────────

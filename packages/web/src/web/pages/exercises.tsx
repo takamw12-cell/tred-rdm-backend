@@ -29,6 +29,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { MarkdownContent } from "@/components/markdown-content";
+import { DocumentViewer } from "@/components/document-viewer";
 import { ExamPredictionTab } from "@/components/exam-prediction-tab";
 import { documentsListOptions } from "@/queries/documents";
 import {
@@ -42,6 +43,27 @@ import { useReconciledSemester } from "@/hooks/use-reconciled-semester";
 import { printElement } from "@/lib/pdf-print";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
+
+/** Sans document, TRED n'invente pas d'exercice générique : il le dit, et montre où déposer ses feuilles. */
+const NO_DOCUMENTS = {
+  de: "Noch keine Unterlagen: Lade zuerst deine Übungsblätter oder Altklausuren unter „Meine Kurse“ hoch. TRED erstellt Aufgaben nur aus deinen eigenen Dokumenten.",
+  en: "No documents yet: first upload your exercise sheets or past exams under “My courses”. TRED only builds exercises from your own documents.",
+  fr: "Aucun document : dépose d'abord tes feuilles d'exercices ou tes anciens examens dans « Mes cours ». TRED ne crée des exercices qu'à partir de tes propres documents.",
+} as const;
+const SOURCES_LABEL = { de: "Im Dokument öffnen", en: "Open in the document", fr: "Ouvrir dans le document" } as const;
+
+function GenerationError({ kind }: { kind: "error" | "no_documents" }) {
+  const { t, locale } = useT();
+  if (kind === "error") return <p className="text-destructive text-sm">{t("exercises.error")}</p>;
+  return (
+    <p className="border-border bg-secondary/50 rounded-xl border p-3 text-sm" data-testid="exercise-no-documents">
+      {NO_DOCUMENTS[locale as keyof typeof NO_DOCUMENTS] ?? NO_DOCUMENTS.en}{" "}
+      <a href="/dashboard" className="text-primary font-semibold underline underline-offset-2">
+        →
+      </a>
+    </p>
+  );
+}
 
 type Difficulty = "easy" | "medium" | "hard";
 type ExType = "application" | "proof" | "analysis";
@@ -127,12 +149,14 @@ function GeneratorTab({
 }) {
   const { t } = useT();
   const queryClient = useQueryClient();
-  const [subject, setSubject] = useState("");
-  const [chapter, setChapter] = useState("");
+  // Une tâche du plan d'étude ou l'Atelier arrive avec son thème : /exercises?subject=…&chapter=…
+  const fromUrl = useMemo(() => new URLSearchParams(window.location.search), []);
+  const [subject, setSubject] = useState(() => fromUrl.get("subject")?.slice(0, 120) ?? "");
+  const [chapter, setChapter] = useState(() => fromUrl.get("chapter")?.slice(0, 120) ?? "");
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [type, setType] = useState<ExType>("application");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<false | "error" | "no_documents">(false);
   const [result, setResult] = useState<GeneratedExercise | null>(null);
 
   async function run() {
@@ -151,8 +175,8 @@ function GeneratorTab({
       setResult(r);
       // Auto-saved server-side — refresh the history list so it shows up.
       void queryClient.invalidateQueries({ queryKey: savedExercisesListKey() });
-    } catch {
-      setError(true);
+    } catch (err) {
+      setError((err as Error)?.message === "no_documents" ? "no_documents" : "error");
     } finally {
       setLoading(false);
     }
@@ -221,7 +245,7 @@ function GeneratorTab({
         </Card>
       </Reveal>
 
-      {error && <p className="text-destructive text-sm">{t("exercises.error")}</p>}
+      {error && <GenerationError kind={error} />}
 
       {result ? (
         <ExerciseResult
@@ -251,7 +275,7 @@ function KlausurenTab({
   const { t } = useT();
   const queryClient = useQueryClient();
   const [loadingId, setLoadingId] = useState<string | null>(null);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<false | "error" | "no_documents">(false);
   const [result, setResult] = useState<GeneratedExercise | null>(null);
   const [basedOn, setBasedOn] = useState<string>("");
 
@@ -263,8 +287,8 @@ function KlausurenTab({
       const r = await generate({ mode: "klausur", basedOnId, semesterId, locale });
       setResult(r);
       void queryClient.invalidateQueries({ queryKey: savedExercisesListKey() });
-    } catch {
-      setError(true);
+    } catch (err) {
+      setError((err as Error)?.message === "no_documents" ? "no_documents" : "error");
     } finally {
       setLoadingId(null);
     }
@@ -313,7 +337,7 @@ function KlausurenTab({
         </div>
       )}
 
-      {error && <p className="text-destructive text-sm">{t("exercises.error")}</p>}
+      {error && <GenerationError kind={error} />}
 
       {result && (
         <ExerciseResult
@@ -461,7 +485,8 @@ function ExerciseResult({
   onRegenerate?: () => void;
   regenerating?: boolean;
 }) {
-  const { t } = useT();
+  const { t, locale } = useT();
+  const [viewer, setViewer] = useState<{ documentId: string; page: number | null; quote: string } | null>(null);
   const [showSolution, setShowSolution] = useState(false);
   const [copied, setCopied] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
@@ -542,6 +567,25 @@ function ExerciseResult({
                 {t("exercises.solution")}
               </p>
               <MarkdownContent content={result.solution} />
+              {/* Les sources vérifiées par le serveur : un clic ouvre le PDF de l'étudiant à la page citée. */}
+              {result.citations && result.citations.length > 0 && (
+                <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs" data-testid="exercise-citations">
+                  <span className="text-muted-foreground">{SOURCES_LABEL[locale as keyof typeof SOURCES_LABEL] ?? SOURCES_LABEL.en}:</span>
+                  {result.citations.map((ct) => (
+                    <button
+                      key={`${ct.documentId}-${ct.page ?? "x"}-${ct.quote.slice(0, 12)}`}
+                      type="button"
+                      onClick={() => setViewer({ documentId: ct.documentId, page: ct.page, quote: ct.quote })}
+                      className="border-border hover:bg-accent/60 inline-flex min-h-7 max-w-full items-center gap-1 rounded-full border px-2 py-0.5"
+                      title={ct.quote}
+                    >
+                      <FileCheck className="size-3 shrink-0" aria-hidden />
+                      <span className="max-w-[14rem] truncate">{ct.title}</span>
+                      {ct.page !== null && <span className="shrink-0 tabular-nums">· S. {ct.page}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
               {result.scale && (
                 <>
                   <p className="text-muted-foreground mt-4 mb-1 text-xs font-semibold uppercase">
@@ -564,6 +608,7 @@ function ExerciseResult({
           </div>
         </CardContent>
       </Card>
+    <DocumentViewer docId={viewer?.documentId ?? null} page={viewer?.page ?? null} highlight={viewer?.quote ?? null} onClose={() => setViewer(null)} />
     </Reveal>
   );
 }
