@@ -185,7 +185,7 @@ function Bubble({ text, age, style, narrow }: { text: string; age: number; style
 
 /* ── La formule sur une note manuscrite ────────────────────────────────── */
 
-function FormulaNote({ tex, age, style }: { tex: string; age: number; style: CSSProperties }) {
+export function FormulaNote({ tex, age, style }: { tex: string; age: number; style: CSSProperties }) {
   const parsed = useMemo(() => {
     try {
       const html = katex.renderToString(tex, { displayMode: true, throwOnError: true, output: "html", strict: false });

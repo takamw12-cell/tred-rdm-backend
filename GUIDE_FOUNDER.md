@@ -1629,7 +1629,18 @@ Le serveur vérifie que les requêtes de l'app viennent d'une app non modifiée 
   - envoyer : même commande avec `dryRun: false` dans le corps. 200 adresses au plus par appel ; un compte ne reçoit jamais deux fois la même campagne.
 - Le domaine de `MAIL_FROM` doit être vérifié chez Resend (sinon seuls les envois à ton propre compte Resend passent).
 
-## Vidéos en style anime (23 nov. 2026, essai — éteint par défaut)
+## Vidéos assemblées à partir de tes clips (23 nov. 2026)
+
+Décision du fondateur (23 nov., soir) : l'essai « anime » est arrêté (« un assemblage d'images fixes »). Les vraies animations viennent d'une IA vidéo externe (Luma Dream Machine, Runway…) que tu pilotes toi-même. TRED fait l'assemblage.
+
+- Tu déposes tes `.mp4` dans `packages/web/public/video-clips/<nom>/`, avec un `project.json` (texte de la voix et formule de chaque scène). Mode d'emploi : `public/video-clips/README.md`.
+- `npm run clips -- <nom> --voice` (dans `packages/video`, depuis WSL) : la voix ElevenLabs, et la durée que chaque clip doit couvrir.
+- `npm run clips -- <nom>` : le MP4 dans `packages/video/out/clips/`. Clips en plein écran, formule qui s'écrit dans le coin que tu choisis, sous-titres mot par mot, voix, musique sous la voix.
+- Tout reste sur ta machine : les clips et la voix sont ignorés par git, rien n'est déployé. Ce pipeline est sur la branche `feat/video-engine`, qui n'est PAS fusionnée.
+
+## Vidéos en style anime (23 nov. 2026) — ARRÊTÉ, éteint par défaut
+
+> Arrêté par le fondateur le 23 nov. au soir. Le code reste sur la branche `feat/video-engine` (non fusionnée) : il fournit la note de formule et les sous-titres au pipeline de clips ci-dessus.
 
 Le rendu « motion design » a été refusé le 23 nov. (« trop PowerPoint »). L'essai suivant est un **dessin animé éducatif** : l'image occupe tout l'écran, le texte est l'exception.
 

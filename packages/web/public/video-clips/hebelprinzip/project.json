@@ -1,0 +1,9 @@
+{
+  "title": "Das Hebelprinzip",
+  "language": "de",
+  "scenes": [
+    { "clip": "01.mp4", "voiceover": "Warum löst ein langer Schlüssel die Mutter so leicht?", "formula": "", "formulaPosition": "top-left" },
+    { "clip": "02.mp4", "voiceover": "Ein Hebel dreht sich um einen Punkt. Je länger der Arm, desto kleiner die Kraft.", "formula": "", "formulaPosition": "top-left" },
+    { "clip": "03.mp4", "voiceover": "Das Moment ist Kraft mal Hebelarm.", "formula": "M = F \\cdot l", "formulaPosition": "top-left" }
+  ]
+}

@@ -1,0 +1,8 @@
+# Les clips, la voix et les fichiers calculés restent sur la machine du fondateur :
+# ils ne partent ni sur GitHub ni dans l'image de déploiement.
+*.mp4
+*.mov
+*.webm
+*.mp3
+voice.json
+props.json

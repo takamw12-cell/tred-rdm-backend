@@ -9,6 +9,7 @@
     "render:de": "remotion render src/index.ts DE-Elektro-Informatik out/tred-de-elektro-informatik-30s.mp4 --scale=2 --codec=h264 --crf=18",
     "render:en": "remotion render src/index.ts EN-Mechanik-Aerospace out/tred-en-mechanik-aerospace-30s.mp4 --scale=2 --codec=h264 --crf=18",
     "voiceover": "node scripts/voiceover.mjs",
+    "clips": "node scripts/clips.mjs",
     "audio": "uvx --with numpy python -I scripts/audio.py",
     "circuit": "uvx --with schemdraw python -I scripts/circuit.py",
     "typecheck": "tsc -p tsconfig.json",
