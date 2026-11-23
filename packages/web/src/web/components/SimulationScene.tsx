@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import type { SceneId } from "@/lib/sim-catalog";
+import { GEN_COLORS, normalized, type GenShape, type GeneratedSim } from "@/lib/sim-generated";
 
 /**
  * Les scènes 3D du Labo — chargées À LA DEMANDE (React.lazy dans labo.tsx).
@@ -305,6 +306,60 @@ function CircularMotion({ v, out }: { v: Values; out: Values }) {
   );
 }
 
+/* ── Simulation générée : des primitives bornées, décrites par le modèle et contrôlées par le serveur ── */
+
+const DIRS: Record<GenShape["dir"], { axis: [number, number, number]; rot: [number, number, number] }> = {
+  "-y": { axis: [0, 1, 0], rot: [Math.PI, 0, 0] },
+  "+y": { axis: [0, -1, 0], rot: [0, 0, 0] },
+  "+x": { axis: [-1, 0, 0], rot: [0, 0, -Math.PI / 2] },
+  "-x": { axis: [1, 0, 0], rot: [0, 0, Math.PI / 2] },
+};
+
+function Generated({ sim, v, out }: { sim: GeneratedSim; v: Values; out: Values }) {
+  // Chaque dimension liée à une grandeur va de 35 % à 165 % de sa taille de base.
+  const grow = (base: number, symbol: string) => (symbol ? base * (0.35 + 1.3 * normalized(sim, symbol, v, out)) : base);
+  // Sans forme valable : une colonne par grandeur calculée.
+  const shapes: GenShape[] =
+    sim.shapes.length > 0
+      ? sim.shapes
+      : sim.outputs.map((o, i) => ({ kind: "box", x: (i - (sim.outputs.length - 1) / 2) * 1.2, y: -0.6, z: 0, w: 0.7, h: 1.6, d: 0.7, growW: "", growH: o.symbol, growD: "", dir: "-y", color: ["amber", "sky", "violet", "green"][i % 4]!, glow: o.symbol }));
+  return (
+    <group>
+      {shapes.map((s, i) => {
+        const color = GEN_COLORS[s.color] ?? GEN_COLORS.slate!;
+        const w = grow(s.w, s.growW);
+        const h = grow(s.h, s.growH);
+        const d = grow(s.d, s.growD);
+        const glow = s.glow ? 0.1 + 0.9 * normalized(sim, s.glow, v, out) : 0.12;
+        const material = <meshStandardMaterial color={color} emissive={color} emissiveIntensity={glow} metalness={0.3} roughness={0.4} />;
+        if (s.kind === "arrow") {
+          const { axis, rot } = DIRS[s.dir];
+          // (x, y, z) est la pointe : le fût part vers l'arrière.
+          const at = (k: number): [number, number, number] => [s.x + axis[0] * k, s.y + axis[1] * k, s.z + axis[2] * k];
+          return (
+            <group key={i}>
+              <mesh position={at(0.11)} rotation={rot}>
+                <coneGeometry args={[0.12, 0.22, 16]} />
+                {material}
+              </mesh>
+              <mesh position={at(0.22 + h / 2)} rotation={rot}>
+                <cylinderGeometry args={[0.04, 0.04, h, 12]} />
+                {material}
+              </mesh>
+            </group>
+          );
+        }
+        return (
+          <mesh key={i} position={[s.x, s.y, s.z]}>
+            {s.kind === "box" ? <boxGeometry args={[w, h, d]} /> : s.kind === "cylinder" ? <cylinderGeometry args={[w / 2, w / 2, h, 40]} /> : <sphereGeometry args={[w / 2, 32, 32]} />}
+            {material}
+          </mesh>
+        );
+      })}
+    </group>
+  );
+}
+
 const SCENES: Record<SceneId, (p: { v: Values; out: Values }) => React.ReactNode> = {
   voltage_divider: Divider,
   lever: Lever,
@@ -315,8 +370,8 @@ const SCENES: Record<SceneId, (p: { v: Values; out: Values }) => React.ReactNode
   circular_motion: CircularMotion,
 };
 
-export default function SimulationScene({ scene, values, outputs, label }: { scene: SceneId; values: Values; outputs: Values; label: string }) {
-  const Scene = SCENES[scene];
+export default function SimulationScene({ scene, generated, values, outputs, label }: { scene: SceneId | "generated"; generated?: GeneratedSim; values: Values; outputs: Values; label: string }) {
+  const Scene = scene === "generated" ? null : SCENES[scene];
   const grid = useMemo(() => new THREE.GridHelper(12, 24, "#334155", "#1E293B"), []);
   return (
     <figure className="m-0 aspect-[4/3] w-full overflow-hidden rounded-xl" style={{ background: C.bg }} aria-label={label} data-testid="simulation-canvas">
@@ -326,7 +381,7 @@ export default function SimulationScene({ scene, values, outputs, label }: { sce
         <directionalLight position={[4, 6, 5]} intensity={1.6} />
         <directionalLight position={[-5, 2, -3]} intensity={0.5} />
         <primitive object={grid} position={[0, -1.9, 0]} />
-        <Scene v={values} out={outputs} />
+        {Scene ? <Scene v={values} out={outputs} /> : generated ? <Generated sim={generated} v={values} out={outputs} /> : null}
         <OrbitControls enablePan={false} minDistance={4} maxDistance={11} target={[0, 0, 0]} />
       </Canvas>
     </figure>

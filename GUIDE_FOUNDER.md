@@ -1793,3 +1793,48 @@ BUN=/mnt/c/Users/HP/.bun/bin/bun.exe FFMPEG=<chemin de ffmpeg.exe> node scripts/
 | Production | Rien n'est branché dans l'app. En production la vidéo est jouée par le navigateur, sans rendu MP4 sur le serveur. Brancher l'avatar demande une décision : où faire le rendu. |
 
 **Modules :** `packages/web/src/api/lib/heygen-video.ts` (client, `fetch` injectable), `lib/avatar-composite.ts` (commande FFmpeg), `tests/heygen-video.test.ts` (13 tests contre un faux HeyGen). Aucun appel réel à HeyGen n'a été fait : pas de clé sur la machine de développement.
+## Labo universel : simulations générées à la volée — 2026-11-23, branche `feat/labo-generatif` (NON fusionnée)
+
+**Le besoin :** hors des 7 lois du catalogue, le Labo refusait (« Normalspannung », médecine…). Maintenant il répond à tout concept, avec ou sans document.
+
+**Trois réponses possibles, et la pastille dit laquelle :**
+
+| Cas | Ce que l'étudiant voit | Ce qui est vérifié |
+|---|---|---|
+| Concept du catalogue (7 lois) | Simulation 3D, pastille verte « Mit SymPy bewiesen » | Égalité avec une loi de référence (SymPy), unités, citation. Inchangé. |
+| Concept hors catalogue avec une formule | Simulation 3D générée + courbe, pastille orange « Von der KI gebaut · Einheiten geprüft » | Syntaxe, unités (analyse dimensionnelle), facteur d'unités calculé par le code, résultat fini, citation retrouvée dans le document. **Pas** de preuve SymPy. |
+| Concept sans formule (ADN, droit…) | Explication Markdown + KaTeX, pastille orange « Erklärung von der KI » | Seules les citations retrouvées dans le document sont affichées. |
+
+**Écart au brief, à connaître :**
+
+- **Le modèle n'écrit pas de code React.** Il décrit la simulation en données (grandeurs, formules, formes 3D), et notre code la dessine. Raison : du code écrit par un modèle et exécuté dans le navigateur d'un étudiant connecté peut lire sa session. Avec des données, il n'y a rien à isoler, aucune erreur de syntaxe possible à l'écran, et chaque formule passe par le contrôle.
+- **Pas de pastille « Vérifié par SymPy » sur une simulation générée.** SymPy prouve qu'une formule est égale à une loi de référence. Hors catalogue, il n'y a pas de loi de référence : la pastille serait fausse. Une formule fausse mais homogène (σ = 2·F/A) passerait le contrôle des unités. Le texte de la pastille le dit.
+- **Modèle :** le modèle principal de l'app (`PRIMARY_MODEL`), pas « Sonnet 3.5 » qui est ancien.
+
+**Défaut trouvé à l'essai réel et corrigé :** pour « Herzzeitvolumen », le modèle écrivait `HF · SV / 1000` alors que le code convertit déjà ml → l. Résultat affiché : 0,006 l/min. Depuis : une formule qui porte un facteur de conversion (1000, 60, 3600) alors que le code convertit est refusée, et le modèle reçoit un second essai avec la raison.
+
+**Fichiers :** `web/lib/sim-generated.ts` (types, évaluateur, courbe), `api/lib/simulation-gen.ts` (schéma, contrôle, consigne), `api/simulate/routes.ts` (branche « hors catalogue », document facultatif), `components/SimulationScene.tsx` (`Generated`), `components/labo.tsx` (barre de recherche, suggestions par filière). Tests : `tests/simulation-gen.test.ts`.
+
+**Coût :** un appel au modèle par simulation générée (deux si le contrôle refuse une formule), compté dans le plafond de tokens du compte. Sans document, la simulation n'est pas gardée.
+
+## Vidéo : règle UWG dans le prompt, et ferme de rendu GitHub Actions — 2026-11-24
+
+**Règle UWG.** Tout script vidéo reçoit maintenant le bloc « Ce que tu dis de TRED » (`api/lib/ad-claims.ts`) : aucune promesse absolue, et les formulations validées à employer telles quelles. Une consigne ne garantit rien : le contrôle du script supprime aussi toute scène qui porte une promesse absolue (raison `absolute_claim`), question mystère comprise, et remplace un titre fautif. Le contrôle ne vise que les phrases qui parlent de TRED, du tuteur ou de l'IA : une leçon peut dire « l'énergie est toujours conservée ».
+
+**Ferme de rendu.** Le rendu MP4 ne tourne pas sur Railway. Il tourne dans GitHub Actions : `.github/workflows/render-video.yml`.
+
+| Pour… | Fais |
+|---|---|
+| lancer un rendu à la main | GitHub → Actions → « Rendu vidéo » → Run workflow (brief `en1`) |
+| le lancer en ligne de commande | `gh workflow run render-video.yml -f brief=en1 -f avatar=heygen` |
+| le lancer depuis l'app | `POST /api/admin/video-render` avec `{ "brief": "en1" }` (compte admin) ; `GET` rend l'état des derniers rendus |
+| essayer la ferme sans aucun appel payant | `-f avatar=fixture` (script et voix déjà dans le dépôt, avatar de remplacement) |
+
+**Secrets à poser dans GitHub** (Settings → Secrets and variables → Actions) : `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY`, `HEYGEN_VIDEO_API_KEY`, `HEYGEN_VIDEO_AVATAR_ID`, et pour le dépôt du MP4 `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` (bucket `videos`, à créer). Les variables posées sur Railway ne sont pas visibles par GitHub Actions : ce sont deux coffres séparés.
+
+**Variables à poser sur Railway** pour que l'app déclenche un rendu : `GITHUB_TOKEN` (jeton à portée fine : ce dépôt, « Actions : Read and write », rien d'autre) et `GITHUB_RENDER_REPO` (`propriétaire/dépôt`).
+
+**À savoir :**
+- Le dépôt GitHub est PUBLIC : les journaux et les artefacts d'un rendu sont lisibles par tous. C'est aussi ce qui rend les minutes d'Actions gratuites.
+- L'app n'a pas encore d'écran « Vidéo en cours de création » pour l'étudiant : la route est réservée à l'administration, car chaque rendu coûte des appels payants (modèle, ElevenLabs, HeyGen).
+- Sans les secrets Supabase, le MP4 reste 14 jours dans les artefacts du rendu.

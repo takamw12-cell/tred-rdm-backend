@@ -241,7 +241,9 @@ describe("requête et consigne", () => {
   test("le corps de la requête est borné", () => {
     expect(simulateRequestSchema.safeParse({ documentId: "d1", concept: "  Spannungsteiler " }).success).toBe(true);
     expect(simulateRequestSchema.safeParse({ documentId: "d1", concept: "x" }).success).toBe(false);
-    expect(simulateRequestSchema.safeParse({ documentId: "", concept: "Pendel" }).success).toBe(false);
+    // Sans document : accepté depuis le Labo universel (la route exige un document pour une loi du catalogue).
+    expect(simulateRequestSchema.safeParse({ documentId: "", concept: "Pendel" }).success).toBe(true);
+    expect(simulateRequestSchema.safeParse({ documentId: "d".repeat(101), concept: "Pendel" }).success).toBe(false);
     expect(simulateRequestSchema.safeParse({ documentId: "d1", concept: "x".repeat(200) }).success).toBe(false);
   });
 

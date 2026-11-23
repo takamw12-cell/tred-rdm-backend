@@ -1,6 +1,7 @@
 import { all, create, type MathNode } from "mathjs";
 import { z } from "zod";
 import { SIM_SCENES, clampInput, sceneById, type SceneId, type SimScene } from "../../web/lib/sim-catalog";
+import type { GeneratedExplanation, GeneratedSim } from "../../web/lib/sim-generated";
 import { findQuote, pagesOf } from "./citations";
 import type { SympyVerdict } from "./sympy-verify";
 
@@ -47,7 +48,8 @@ const OPERATORS = new Set(["+", "-", "*", "/", "^"]);
 const SCENE_IDS = SIM_SCENES.map((s) => s.id) as [SceneId, ...SceneId[]];
 
 export const simulateRequestSchema = z.object({
-  documentId: z.string().min(1).max(100),
+  /** Vide : aucun document. Possible seulement pour un concept hors catalogue (simulation générée, non gardée). */
+  documentId: z.string().max(100).default(""),
   concept: z.string().trim().min(2).max(MAX_CONCEPT),
 });
 
@@ -67,7 +69,7 @@ export const simulationModelSchema = z.object({
 });
 export type SimulationDraft = z.infer<typeof simulationModelSchema>;
 
-export type CheckStatus = "ok" | "syntax" | "unknown_output" | "units" | "not_reference" | "disproved" | "no_source";
+export type CheckStatus = "ok" | "syntax" | "unknown_output" | "units" | "not_reference" | "disproved" | "no_source" | "conversion";
 
 export interface FormulaCheck {
   output: string;
@@ -88,10 +90,13 @@ export interface VerifiedFormula {
 }
 
 export interface SimulationSpec {
-  scene: SceneId;
+  /** Une loi du catalogue, ou ce que le Labo universel a construit pour un concept hors catalogue (lib/simulation-gen.ts). */
+  scene: SceneId | "generated" | "explanation";
   concept: string;
   values: Record<string, number>;
   formulas: VerifiedFormula[];
+  generated?: GeneratedSim;
+  explanation?: GeneratedExplanation;
 }
 
 export interface SimulationDto {
@@ -101,8 +106,11 @@ export interface SimulationDto {
   createdAt: number;
   spec: SimulationSpec;
   checks: FormulaCheck[];
-  /** Le moteur de preuve qui a répondu pour cette simulation. */
-  engine: "sympy" | "numeric";
+  /**
+   * Ce qui a vérifié cette simulation. « sympy » / « numeric » : égale à une loi de référence du catalogue.
+   * « units » : générée, syntaxe et unités contrôlées, AUCUNE loi de référence. « none » : une explication.
+   */
+  engine: "sympy" | "numeric" | "units" | "none";
 }
 
 export type RejectReason = "no_model" | "no_formula" | "formula_rejected";
@@ -278,7 +286,7 @@ export async function verifySimulation(draft: SimulationDraft, input: { concept:
 
 /* ── La consigne ───────────────────────────────────────────────────────── */
 
-const WHY: Record<CheckStatus, string> = {
+export const WHY: Record<CheckStatus, string> = {
   ok: "in Ordnung",
   syntax: "Ausdruck nicht lesbar oder unerlaubtes Zeichen/Symbol",
   unknown_output: "Größe gehört nicht zu dieser Simulation oder ist doppelt",
@@ -286,6 +294,7 @@ const WHY: Record<CheckStatus, string> = {
   not_reference: "Formel weicht vom geprüften Gesetz ab",
   disproved: "SymPy widerlegt die Formel",
   no_source: "Das Zitat steht nicht wörtlich im Dokument",
+  conversion: "Die Formel enthält einen Umrechnungsfaktor (1000, 60 …), obwohl TRED die Einheiten selbst umrechnet: Faktor weglassen",
 };
 
 export function buildSimulationPrompt(input: { concept: string; title: string; documentText: string; scene?: SceneId; rejected?: FormulaCheck[] }): { system: string; prompt: string } {
