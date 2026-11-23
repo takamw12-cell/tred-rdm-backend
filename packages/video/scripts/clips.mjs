@@ -159,5 +159,5 @@ mkdirSync(dirname(out), { recursive: true });
 const bundle = join(VIDEO, "out", ".bundle-clips");
 execFileSync("npx", ["remotion", "bundle", "src/index.ts", `--out-dir=${bundle}`], { cwd: VIDEO, stdio: ["ignore", "ignore", "inherit"] });
 console.log("bundle : prêt");
-execFileSync("npx", ["remotion", "render", bundle, flag("portrait") ? "ClipsVideo-Portrait" : "ClipsVideo", out, `--props=${join(dir, "props.json")}`, "--scale=2", "--codec=h264", "--crf=18"], { cwd: VIDEO, stdio: "inherit" });
+execFileSync("npx", ["remotion", "render", bundle, flag("portrait") ? "ClipsVideo-Portrait" : "ClipsVideo", out, `--props=${join(dir, "props.json")}`, "--scale=2", "--codec=h264", "--crf=18", `--concurrency=${process.env.CLIPS_CONCURRENCY || "1"}`], { cwd: VIDEO, stdio: "inherit" });
 console.log(`ok  ${out}`);
