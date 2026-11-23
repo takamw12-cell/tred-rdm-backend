@@ -8,6 +8,8 @@
 //   node scripts/auto-explain.mjs <nom> --placeholder   sans HeyGen : un avatar de REMPLACEMENT fabriqué sur place
 //   node scripts/auto-explain.mjs <nom> --layout=standing --corner=bottom-left --size=0.26
 //   node scripts/auto-explain.mjs <nom> --compose       refait seulement l'incrustation
+//   node scripts/auto-explain.mjs <nom> --fixture --placeholder   script et voix repris de scripts/auto-explain-briefs/<nom>.fixture/ :
+//                                                       aucun appel payant (sert à éprouver la ferme de rendu)
 //
 // <nom> = un dossier out/auto-explain/<nom>/ qui contient brief.json (exemples : scripts/auto-explain-briefs/).
 // À lancer depuis WSL (moteur de rendu de Remotion). Variables : BUN (défaut « bun »), FFMPEG (défaut « ffmpeg » ;
@@ -46,8 +48,13 @@ const ffmpeg = (list) => execFileSync(FFMPEG, ["-hide_banner", "-loglevel", "err
 const toRel = (from, to) => execFileSync("realpath", ["--relative-to", from, to], { encoding: "utf8" }).trim();
 
 /* ── 1. Script, voix, avatar ───────────────────────────────────────────── */
-if (!flag("compose")) execFileSync(BUN, [toRel(VIDEO, join(here, "auto-explain-prepare.ts")), toRel(VIDEO, dir), ...(flag("placeholder") ? ["--no-avatar"] : [])], { cwd: VIDEO, stdio: "inherit" });
+if (flag("fixture")) {
+  const fixture = join(here, "auto-explain-briefs", `${name}.fixture`);
+  for (const file of ["props.json", "voice.mp3", "meta.json"]) copyFileSync(join(fixture, file), join(dir, file));
+  console.log("script et voix : repris du dépôt (aucun appel payant)");
+} else if (!flag("compose")) execFileSync(BUN, [toRel(VIDEO, join(here, "auto-explain-prepare.ts")), toRel(VIDEO, dir), ...(flag("placeholder") ? ["--no-avatar"] : [])], { cwd: VIDEO, stdio: "inherit" });
 const meta = JSON.parse(readFileSync(join(dir, "meta.json"), "utf8"));
+if (flag("placeholder")) meta.avatar = null;
 const seconds = meta.durationMs / 1000;
 
 /* ── 2. Les schémas animés (Remotion) ──────────────────────────────────── */

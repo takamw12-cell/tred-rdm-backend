@@ -16,10 +16,13 @@ const dir = process.argv[2];
 if (!dir || !existsSync(join(dir, "brief.json"))) throw new Error("usage : bun auto-explain-prepare.ts <dossier avec brief.json>");
 const skipAvatar = process.argv.includes("--no-avatar");
 
-for (const line of readFileSync(join(ROOT, ".env"), "utf8").split(/\r?\n/)) {
-  const m = /^(ANTHROPIC_API_KEY|ELEVENLABS_API_KEY|HEYGEN_VIDEO_API_KEY|HEYGEN_VIDEO_AVATAR_ID)=(.*)$/.exec(line.trim());
-  if (m && m[2]) process.env[m[1]!] = m[2]!.replace(/^["']|["']$/g, "");
-}
+// Sur la machine du fondateur les clés sont dans le .env de la racine ; dans GitHub Actions ce sont des secrets,
+// déjà présents dans l'environnement. Une clé de l'environnement n'est jamais remplacée par le fichier.
+if (existsSync(join(ROOT, ".env")))
+  for (const line of readFileSync(join(ROOT, ".env"), "utf8").split(/\r?\n/)) {
+    const m = /^(ANTHROPIC_API_KEY|ELEVENLABS_API_KEY|HEYGEN_VIDEO_API_KEY|HEYGEN_VIDEO_AVATAR_ID)=(.*)$/.exec(line.trim());
+    if (m && m[2] && !process.env[m[1]!]) process.env[m[1]!] = m[2]!.replace(/^["']|["']$/g, "");
+  }
 // Un module importé ouvre la base au chargement : une base locale vide, jamais celle de production.
 process.env.DATABASE_URL = `file:${join(dir, "unused.db").replaceAll("\\", "/")}`;
 delete process.env.DATABASE_AUTH_TOKEN;
@@ -33,6 +36,7 @@ const { LANGUAGES } = await load("lib/languages.ts");
 const vs = await load("lib/video-script.ts");
 const mo = await load("lib/video-motion.ts");
 const hg = await load("lib/heygen-video.ts");
+const ads = await load("lib/ad-claims.ts");
 
 const read = (file: string) => {
   try {
@@ -47,17 +51,28 @@ const briefKey = JSON.stringify([brief.question, brief.source, brief.language]);
 
 /* ── 1. Le script et la mise en scène (modèle) ─────────────────────────── */
 let script = read("script.json");
-if (script?.briefKey === briefKey) console.log("script : repris (aucun appel au modèle)");
-else {
-  if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY absente du .env de la racine");
-  const { system, prompt } = vs.buildVideoPrompt({ language: LANGUAGES[brief.language], sources, question: brief.question, answer: "", extra: mo.motionPromptBlock() });
-  const t0 = Date.now();
-  const { object, usage } = await generateObject({ model: gateway(PRIMARY_MODEL), schema: vs.motionScriptSchema, system, prompt, abortSignal: AbortSignal.timeout(150_000) });
-  console.log(`script : modèle ${PRIMARY_MODEL}, ${Date.now() - t0} ms, tokens entrée ${usage?.inputTokens} sortie ${usage?.outputTokens}`);
-  script = { briefKey, raw: vs.fromMotionScript(object) };
+let checked: any = null;
+if (script?.briefKey === briefKey) {
+  console.log("script : repris (aucun appel au modèle)");
+  checked = vs.validateVideoScript(script.raw, sources, brief.question, { beam: false });
+} else {
+  if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY absente (.env de la racine, ou secret du dépôt)");
+  // Deux essais au plus : si le contrôle retire une scène pour promesse absolue (règle UWG), le modèle le sait au second.
+  let note = "";
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const { system, prompt } = vs.buildVideoPrompt({ language: LANGUAGES[brief.language], sources, question: brief.question, answer: "", extra: mo.motionPromptBlock() + note });
+    const t0 = Date.now();
+    const { object, usage } = await generateObject({ model: gateway(PRIMARY_MODEL), schema: vs.motionScriptSchema, system, prompt, abortSignal: AbortSignal.timeout(150_000) });
+    console.log(`script : modèle ${PRIMARY_MODEL}, essai ${attempt}, ${Date.now() - t0} ms, tokens entrée ${usage?.inputTokens} sortie ${usage?.outputTokens}`);
+    script = { briefKey, raw: vs.fromMotionScript(object) };
+    checked = vs.validateVideoScript(script.raw, sources, brief.question, { beam: false });
+    const claims = (checked.dropped ?? []).filter((d: any) => d.reason === "absolute_claim");
+    if (claims.length === 0 && checked.ok) break;
+    console.log(`  contrôle, essai ${attempt} : ${checked.ok ? "" : `refusé (${checked.error}) · `}${claims.length} scène(s) retirée(s) pour promesse absolue${claims.length ? ` (${claims.map((d: any) => d.detail).join(" ; ")})` : ""}`);
+    note = `\n\nATTENTION — ton premier script a été refusé par le contrôle : ${claims.length ? `promesse absolue sur TRED (${claims.map((d: any) => d.detail).join(" ; ")}). ` : ""}Récris-le en respectant le bloc « CE QUE TU DIS DE TRED » : dis ce que TRED vérifie, avec les formulations validées.`;
+  }
   writeFileSync(join(dir, "script.json"), JSON.stringify(script, null, 1));
 }
-const checked = vs.validateVideoScript(script.raw, sources, brief.question, { beam: false });
 console.log(`contrôle : ${checked.ok ? `${checked.scenes.length} scènes gardées sur ${script.raw.scenes.length}` : `REFUSÉ (${checked.error})`}, ${checked.words} mots${checked.dropped?.length ? `, retirées : ${JSON.stringify(checked.dropped)}` : ""}`);
 if (!checked.ok) process.exit(2);
 const allowed = vs.allowedNumbers(sources, brief.question);
@@ -69,6 +84,13 @@ checked.scenes.forEach((scene: any, i: number) => {
 
 /* ── 2. La voix (ElevenLabs, mots horodatés) ───────────────────────────── */
 const text = vs.scriptVoiceText(checked.scenes);
+// Dernier filet avant toute dépense de voix et d'avatar : le texte lu, le titre et les titres de scène.
+const claims = ads.absoluteClaims([checked.title, text, ...checked.scenes.flatMap((sc: any) => [sc.heading, ...sc.bullets])].join(". "));
+if (claims.length > 0) {
+  console.error(`x  le script garde une promesse absolue (${claims.join(", ")}) : arrêt avant la voix`);
+  process.exit(4);
+}
+console.log("règle UWG : aucune promesse absolue dans le titre, la voix et les titres de scène");
 let voice = read("voice.json");
 if (voice?.text === text && voice.voiceId === brief.voiceId && existsSync(join(dir, "voice.mp3"))) console.log("voix : reprise (aucun appel à ElevenLabs)");
 else {
