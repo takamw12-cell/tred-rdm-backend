@@ -13,7 +13,7 @@
  * Ajouter une simulation : une entrée ici, puis une scène dans
  * components/SimulationScene.tsx (sans scène propre, des colonnes 3D servent).
  */
-export type SceneId = "voltage_divider" | "lever" | "pendulum" | "rc_circuit";
+export type SceneId = "voltage_divider" | "lever" | "pendulum" | "rc_circuit" | "spring_mass" | "free_fall" | "circular_motion";
 
 export interface SimVariable {
   /** Le nom dans les expressions (lettres et chiffres seulement). */
@@ -86,7 +86,7 @@ export const SIM_SCENES: SimScene[] = [
   {
     id: "pendulum",
     label: { de: "Fadenpendel", en: "Simple pendulum", fr: "Pendule simple" },
-    keywords: ["pendel", "fadenpendel", "pendulum", "pendule", "schwingungsdauer", "periodendauer"],
+    keywords: ["pendel", "fadenpendel", "mathematisches pendel", "pendulum", "pendule"],
     inputs: [
       { symbol: "l", tex: "l", unit: "m", unitLabel: "m", label: { de: "Fadenlänge", en: "Length", fr: "Longueur du fil" }, min: 0.1, max: 5, value: 1 },
       { symbol: "g", tex: "g", unit: "m / s^2", unitLabel: "m/s²", label: { de: "Fallbeschleunigung", en: "Gravity", fr: "Pesanteur" }, min: 1.6, max: 25, value: 9.81 },
@@ -113,16 +113,71 @@ export const SIM_SCENES: SimScene[] = [
     laws: { tau: "R * C", fg: "1 / (2 * pi * R * C)" },
     compute: ({ R, C }) => ({ tau: R! * C!, fg: 1 / (2 * Math.PI * R! * C!) }),
   },
+  {
+    id: "spring_mass",
+    label: { de: "Federpendel", en: "Mass on a spring", fr: "Masse-ressort" },
+    keywords: ["federpendel", "federschwinger", "feder-masse", "feder masse", "federkonstante", "mass on a spring", "spring-mass", "spring mass", "masse-ressort", "masse ressort", "ressort"],
+    inputs: [
+      { symbol: "m", tex: "m", unit: "kg", unitLabel: "kg", label: { de: "Masse", en: "Mass", fr: "Masse" }, min: 0.05, max: 5, value: 0.5, color: "#F59E0B" },
+      { symbol: "k", tex: "k", unit: "N / m", unitLabel: "N/m", label: { de: "Federkonstante", en: "Spring constant", fr: "Raideur du ressort" }, min: 1, max: 200, value: 20, color: "#38BDF8" },
+    ],
+    outputs: [
+      { symbol: "T", tex: "T", unit: "s", unitLabel: "s", label: { de: "Periodendauer", en: "Period", fr: "Période" } },
+      { symbol: "f", tex: "f", unit: "Hz", unitLabel: "Hz", label: { de: "Frequenz", en: "Frequency", fr: "Fréquence" } },
+    ],
+    laws: { T: "2 * pi * sqrt(m / k)", f: "1 / (2 * pi) * sqrt(k / m)" },
+    compute: ({ m, k }) => ({ T: 2 * Math.PI * Math.sqrt(m! / k!), f: Math.sqrt(k! / m!) / (2 * Math.PI) }),
+  },
+  {
+    id: "free_fall",
+    label: { de: "Freier Fall", en: "Free fall", fr: "Chute libre" },
+    keywords: ["freier fall", "freien fall", "free fall", "chute libre", "fallzeit", "fallhohe", "aufprallgeschwindigkeit"],
+    inputs: [
+      { symbol: "h", tex: "h", unit: "m", unitLabel: "m", label: { de: "Fallhöhe", en: "Drop height", fr: "Hauteur de chute" }, min: 0.5, max: 100, value: 20, color: "#38BDF8" },
+      { symbol: "g", tex: "g", unit: "m / s^2", unitLabel: "m/s²", label: { de: "Fallbeschleunigung", en: "Gravity", fr: "Pesanteur" }, min: 1.6, max: 25, value: 9.81, color: "#F59E0B" },
+    ],
+    outputs: [
+      { symbol: "t", tex: "t", unit: "s", unitLabel: "s", label: { de: "Fallzeit", en: "Fall time", fr: "Durée de chute" } },
+      { symbol: "v", tex: "v", unit: "m / s", unitLabel: "m/s", label: { de: "Aufprallgeschwindigkeit", en: "Impact speed", fr: "Vitesse à l'arrivée" } },
+    ],
+    laws: { t: "sqrt(2 * h / g)", v: "sqrt(2 * g * h)" },
+    compute: ({ h, g }) => ({ t: Math.sqrt((2 * h!) / g!), v: Math.sqrt(2 * g! * h!) }),
+  },
+  {
+    id: "circular_motion",
+    label: { de: "Kreisbewegung", en: "Circular motion", fr: "Mouvement circulaire" },
+    keywords: ["kreisbewegung", "zentripetal", "centripetal", "centripete", "circular motion", "mouvement circulaire", "radialkraft", "radialbeschleunigung"],
+    inputs: [
+      { symbol: "m", tex: "m", unit: "kg", unitLabel: "kg", label: { de: "Masse", en: "Mass", fr: "Masse" }, min: 0.1, max: 10, value: 1, color: "#F59E0B" },
+      { symbol: "v", tex: "v", unit: "m / s", unitLabel: "m/s", label: { de: "Bahngeschwindigkeit", en: "Speed", fr: "Vitesse" }, min: 0.5, max: 20, value: 4, color: "#FDE047" },
+      { symbol: "r", tex: "r", unit: "m", unitLabel: "m", label: { de: "Radius", en: "Radius", fr: "Rayon" }, min: 0.2, max: 5, value: 2, color: "#94A3B8" },
+    ],
+    outputs: [
+      { symbol: "a", tex: "a", unit: "m / s^2", unitLabel: "m/s²", label: { de: "Zentripetalbeschleunigung", en: "Centripetal acceleration", fr: "Accélération centripète" } },
+      { symbol: "F", tex: "F", unit: "N", unitLabel: "N", label: { de: "Zentripetalkraft", en: "Centripetal force", fr: "Force centripète" } },
+    ],
+    laws: { a: "v^2 / r", F: "m * v^2 / r" },
+    compute: ({ m, v, r }) => ({ a: v! ** 2 / r!, F: (m! * v! ** 2) / r! }),
+  },
 ];
 
 export const sceneById = (id: unknown): SimScene | null => SIM_SCENES.find((s) => s.id === id) ?? null;
 
 const plain = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
-/** La simulation que désigne un concept écrit par l'étudiant (« Spannungsteiler »), ou null. */
+/**
+ * La simulation que désigne un concept écrit par l'étudiant (« Spannungsteiler »), ou null.
+ * Le mot-clé le plus long gagne : « Federpendel » désigne le ressort, pas le pendule à fil.
+ */
 export function sceneForConcept(concept: string): SimScene | null {
   const hay = plain(concept);
-  return SIM_SCENES.find((s) => s.keywords.some((k) => hay.includes(plain(k)))) ?? null;
+  let best: { scene: SimScene; length: number } | null = null;
+  for (const scene of SIM_SCENES)
+    for (const k of scene.keywords) {
+      const key = plain(k);
+      if (hay.includes(key) && (!best || key.length > best.length)) best = { scene, length: key.length };
+    }
+  return best?.scene ?? null;
 }
 
 /** Borne une valeur d'entrée à sa plage ; hors nombre → la valeur par défaut. */
@@ -151,10 +206,10 @@ const PREFIXES: Array<[number, string]> = [
   [1e-9, "n"],
 ];
 
-/** 0,004 A → « 4 mA ». Trois chiffres significatifs. Les unités composées (« N·m », « m/s² ») restent sans préfixe. */
+/** 0,004 A → « 4 mA ». Trois chiffres significatifs. Les unités composées (« N·m », « m/s² »), le mètre et le kilogramme restent sans préfixe. */
 export function formatQuantity(value: number, unitLabel: string): string {
   if (!Number.isFinite(value)) return "–";
-  const simple = /^[A-Za-zΩ]+$/.test(unitLabel) && unitLabel !== "m";
+  const simple = /^[A-Za-zΩ]+$/.test(unitLabel) && unitLabel !== "m" && unitLabel !== "kg";
   const abs = Math.abs(value);
   const [factor, prefix] = simple && abs !== 0 ? (PREFIXES.find(([f]) => abs >= f) ?? PREFIXES[PREFIXES.length - 1]!) : [1, ""];
   const n = Number((value / factor).toPrecision(3));

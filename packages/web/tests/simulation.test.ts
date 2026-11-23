@@ -59,6 +59,7 @@ describe("catalogue des simulations", () => {
     expect(formatQuantity(0.004, "A")).toBe("4 mA");
     expect(formatQuantity(2000, "Ω")).toBe("2 kΩ");
     expect(formatQuantity(0.5, "m")).toBe("0.5 m");
+    expect(formatQuantity(0.5, "kg")).toBe("0.5 kg");
     expect(formatQuantity(50, "N·m")).toBe("50 N·m");
   });
 });
@@ -195,8 +196,33 @@ describe("verifySimulation", () => {
     expect(sceneForConcept("Hebelgesetz")?.id).toBe("lever");
     expect(sceneForConcept("Fadenpendel")?.id).toBe("pendulum");
     expect(sceneForConcept("Zeitkonstante RC-Glied")?.id).toBe("rc_circuit");
+    // Le mot-clé le plus long gagne : « Federpendel » contient « pendel ».
+    expect(sceneForConcept("Federpendel")?.id).toBe("spring_mass");
+    expect(sceneForConcept("Schwingungsdauer eines Federpendels")?.id).toBe("spring_mass");
+    expect(sceneForConcept("Freier Fall")?.id).toBe("free_fall");
+    expect(sceneForConcept("Fallhöhe und Fallzeit")?.id).toBe("free_fall");
+    expect(sceneForConcept("Zentripetalkraft")?.id).toBe("circular_motion");
+    expect(sceneForConcept("gleichförmige Kreisbewegung")?.id).toBe("circular_motion");
     expect(sceneForConcept("Transistor als Schalter")).toBeNull();
     expect(sceneForConcept("Herzzyklus")).toBeNull();
+  });
+
+  test("mécanique : la loi juste passe, la loi fausse de bonne dimension est rejetée", async () => {
+    const doc = "[[SEITE 1]]\nMechanik.\n[[SEITE 2]]\nDie Periodendauer des Federpendels ist T gleich zwei Pi mal Wurzel aus m durch k.\nBeim freien Fall aus der Höhe h gilt für die Fallzeit t gleich Wurzel aus zwei h durch g.\nDie Zentripetalkraft ist F gleich m mal v Quadrat durch r.";
+    const cases = [
+      { scene: "spring_mass", concept: "Federpendel", output: "T", good: "2 * pi * sqrt(m / k)", bad: "2 * pi * sqrt(m / k) / 2", excerpt: "Die Periodendauer des Federpendels ist T gleich zwei Pi mal Wurzel aus m durch k." },
+      { scene: "free_fall", concept: "Freier Fall", output: "t", good: "sqrt(2 * h / g)", bad: "sqrt(h / g)", excerpt: "Beim freien Fall aus der Höhe h gilt für die Fallzeit t gleich Wurzel aus zwei h durch g." },
+      { scene: "circular_motion", concept: "Zentripetalkraft", output: "F", good: "m * v^2 / r", bad: "m * v^2 / (2 * r)", excerpt: "Die Zentripetalkraft ist F gleich m mal v Quadrat durch r." },
+    ] as const;
+    for (const c of cases) {
+      const make = (expr: string) => ({ scene: c.scene, values: [], formulas: [{ output: c.output, expr, excerpt: c.excerpt }] });
+      const ok = await verifySimulation(make(c.good), { concept: c.concept, documentText: doc, scene: c.scene });
+      expect(ok.ok).toBe(true);
+      if (ok.ok) expect(ok.spec.formulas[0]!.page).toBe(2);
+      const ko = await verifySimulation(make(c.bad), { concept: c.concept, documentText: doc, scene: c.scene });
+      expect(ko.ok).toBe(false);
+      expect(ko.checks[0]!.status).toBe("not_reference");
+    }
   });
 
   test("les valeurs du modèle sont bornées aux plages de la simulation", async () => {

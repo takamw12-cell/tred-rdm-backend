@@ -192,11 +192,127 @@ function RcCircuit({ out }: { out: Values }) {
   );
 }
 
+/* ── Masse-ressort : la masse monte et descend avec la période calculée ── */
+
+const COILS = 9;
+
+function SpringMass({ v, out }: { v: Values; out: Values }) {
+  const coils = useRef<THREE.Group>(null);
+  const mass = useRef<THREE.Mesh>(null);
+  const side = 0.3 + 0.35 * Math.cbrt(v.m! / 5);
+  // Ressort raide : fil épais. Ressort mou : fil fin.
+  const wire = 0.02 + 0.03 * Math.min(1, Math.log10(v.k!) / Math.log10(200));
+  useFrame(({ clock }) => {
+    const length = 1.5 + 0.5 * Math.cos((2 * Math.PI * clock.elapsedTime) / out.T!);
+    coils.current?.children.forEach((ring, i) => ring.position.set(0, (-length * (i + 0.5)) / COILS, 0));
+    mass.current?.position.set(0, -length - side / 2, 0);
+  });
+  return (
+    <group position={[0, 1.7, 0]}>
+      <mesh>
+        <boxGeometry args={[1.6, 0.08, 0.5]} />
+        <meshStandardMaterial color={C.dim} />
+      </mesh>
+      <group ref={coils}>
+        {Array.from({ length: COILS }, (_, i) => (
+          <mesh key={i} rotation={[Math.PI / 2 - 0.12, 0, 0]}>
+            <torusGeometry args={[0.18, wire, 10, 32]} />
+            <meshStandardMaterial color={C.b} metalness={0.5} roughness={0.3} />
+          </mesh>
+        ))}
+      </group>
+      <mesh ref={mass}>
+        <boxGeometry args={[side, side, side]} />
+        <meshStandardMaterial color={C.a} metalness={0.4} roughness={0.3} />
+      </mesh>
+    </group>
+  );
+}
+
+/* ── Chute libre : la bille tombe pendant la durée calculée, puis repart ── */
+
+function FreeFall({ v, out }: { v: Values; out: Values }) {
+  const ball = useRef<THREE.Mesh>(null);
+  // 0,5 m … 100 m : à l'écran, une tour de 0,8 à 3,2 (échelle logarithmique).
+  const height = 0.8 + 2.4 * Math.min(1, Math.log10(v.h! / 0.5) / Math.log10(200));
+  const floor = -1.8;
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime % (out.t! + 0.8);
+    const done = Math.min(1, t / out.t!);
+    ball.current?.position.set(0.25, floor + 0.16 + height * (1 - done * done), 0);
+  });
+  return (
+    <group>
+      <mesh position={[-0.6, floor + height / 2, 0]}>
+        <boxGeometry args={[0.5, height, 0.5]} />
+        <meshStandardMaterial color={C.b} transparent opacity={0.35} />
+      </mesh>
+      <mesh position={[-0.45, floor + height, 0]}>
+        <boxGeometry args={[0.9, 0.05, 0.5]} />
+        <meshStandardMaterial color={C.b} />
+      </mesh>
+      <mesh position={[0, floor + 0.02, 0]}>
+        <boxGeometry args={[2.4, 0.04, 1.2]} />
+        <meshStandardMaterial color={C.dim} />
+      </mesh>
+      <mesh ref={ball}>
+        <sphereGeometry args={[0.16, 32, 32]} />
+        <meshStandardMaterial color={C.a} metalness={0.5} roughness={0.25} />
+      </mesh>
+    </group>
+  );
+}
+
+/* ── Mouvement circulaire : la bille tourne à v / r, la force pointe vers le centre ── */
+
+function CircularMotion({ v, out }: { v: Values; out: Values }) {
+  const spin = useRef<THREE.Group>(null);
+  const angle = useRef(0);
+  const radius = 0.7 + 1.5 * Math.min(1, v.r! / 5);
+  const size = 0.12 + 0.14 * Math.cbrt(v.m! / 10);
+  // Force de 0,01 N à 20 kN : la flèche prend de 15 % à 85 % du rayon (échelle logarithmique).
+  const pull = radius * (0.15 + 0.7 * Math.min(1, Math.max(0, (Math.log10(out.F!) + 2) / 6.3)));
+  useFrame((_, dt) => {
+    angle.current += (dt * v.v!) / v.r!;
+    if (spin.current) spin.current.rotation.y = angle.current;
+  });
+  return (
+    <group position={[0, -0.6, 0]}>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[radius, 0.015, 8, 96]} />
+        <meshStandardMaterial color={C.wire} />
+      </mesh>
+      <mesh>
+        <cylinderGeometry args={[0.05, 0.05, 0.5, 16]} />
+        <meshStandardMaterial color={C.dim} />
+      </mesh>
+      <group ref={spin}>
+        <mesh position={[radius, 0, 0]}>
+          <sphereGeometry args={[size, 32, 32]} />
+          <meshStandardMaterial color={C.a} metalness={0.5} roughness={0.25} />
+        </mesh>
+        {/* La force centripète : de la bille vers le centre. */}
+        <mesh position={[radius - size - pull / 2, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.035, 0.035, pull, 12]} />
+          <meshStandardMaterial color={C.ok} emissive={C.ok} emissiveIntensity={0.5} />
+        </mesh>
+        <mesh position={[radius - size - pull - 0.1, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <coneGeometry args={[0.1, 0.22, 16]} />
+          <meshStandardMaterial color={C.ok} emissive={C.ok} emissiveIntensity={0.5} />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
 const SCENES: Record<SceneId, (p: { v: Values; out: Values }) => React.ReactNode> = {
   voltage_divider: Divider,
   lever: Lever,
   pendulum: Pendulum,
   rc_circuit: RcCircuit,
+  spring_mass: SpringMass,
+  free_fall: FreeFall,
+  circular_motion: CircularMotion,
 };
 
 export default function SimulationScene({ scene, values, outputs, label }: { scene: SceneId; values: Values; outputs: Values; label: string }) {

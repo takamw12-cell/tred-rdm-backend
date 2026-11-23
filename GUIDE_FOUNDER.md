@@ -1684,13 +1684,22 @@ Le serveur vérifie que les requêtes de l'app viennent d'une app non modifiée 
 
 Une seule formule refusée : toute la simulation est rejetée (deux essais au plus, puis 422). Le LaTeX affiché est écrit par le code à partir de l'expression vérifiée.
 
-**Catalogue actuel (4 lois) :** diviseur de tension, loi du levier, pendule simple, circuit RC. Ajouter une loi = une entrée dans `sim-catalog.ts` + une scène dans `components/SimulationScene.tsx`. Un test vérifie chaque loi (unités, et calcul du navigateur égal à la loi).
+**Catalogue actuel (7 lois) :** diviseur de tension, loi du levier, pendule simple, circuit RC, masse-ressort (Federpendel), chute libre, mouvement circulaire (les trois dernières ajoutées le 23 nov. 2026). Quand deux mots-clés conviennent, le plus long gagne (« Federpendel » → ressort, pas pendule). Ajouter une loi = une entrée dans `sim-catalog.ts` + une scène dans `components/SimulationScene.tsx`. Un test vérifie chaque loi (unités, et calcul du navigateur égal à la loi).
 
 **Avant la mise en production :** lancer `node migre-simulation.mjs` (table `simulation` sur Turso). Sans elle, la simulation s'affiche mais n'est pas gardée.
 
 **Limites, dites clairement.**
-- « Universel » n'est pas vrai aujourd'hui : hors des 4 lois, le Labo refuse. C'est le prix du « zéro hallucination ». Médecine et droit n'ont pas de formule à prouver : il faudra un autre type de preuve (citation mot pour mot, comme Fall-Check).
+- « Universel » n'est pas vrai aujourd'hui : hors des 7 lois, le Labo refuse. C'est le prix du « zéro hallucination ». Médecine et droit n'ont pas de formule à prouver : il faudra un autre type de preuve (citation mot pour mot, comme Fall-Check).
 - Le contrôle « source » prouve que la phrase est dans le document. Il ne prouve pas que cette phrase énonce la formule (essai réel : U₁ cité par la phrase « les tensions se répartissent comme les résistances »).
 - « 99 % » n'est pas mesuré. Ce qui est garanti : aucune formule affichée ne diffère d'une loi relue à la main.
 - Lean 4, SymKit, edulab, teardown, threejs-skills : non installés (voir le compte rendu). Ce sont des outils de développement ; le serveur de production ne peut pas les appeler.
 - Essai réel du 23 nov. (feuille de test de 3 pages, vrai modèle, SymPy 1.14.0) : 3 formules prouvées, page 3, 6 à 8 s, simulation relue après rechargement. Pas essayé en production.
+
+## Kit de production vidéo (HeyGen + Canva) — 2026-11-23
+
+La génération vidéo par code est arrêtée. Les vidéos sont faites avec HeyGen (avatar) et Canva (montage).
+
+- **Source des scripts :** `scripts-video/scripts.json` (4 scripts : EN1, EN2, DE1, DE2 ; texte, ton, titre Canva, voix).
+- **Commande :** `node scripts-video/generer-kit.mjs` écrit les textes et les voix dans `C:\dev\tred-rdm\video-production\` (hors du dépôt : `scripts/`, `voix/`, `assets/`). `--textes` n'appelle pas ElevenLabs. `--force` refait toutes les voix.
+- **Variantes sûres :** EN2, DE1 et DE2 ont un second texte (`*-variante-sure`). Il respecte le tableau « Ce que TRED peut affirmer dans une publicité » : pas de « jede Antwort wird bewiesen », et le Labo transforme des formules du cours (7 lois), pas tout le cours.
+- Les fichiers audio et les captures ne sont pas dans git.
