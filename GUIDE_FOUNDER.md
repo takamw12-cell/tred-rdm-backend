@@ -1666,3 +1666,31 @@ Le serveur vérifie que les requêtes de l'app viennent d'une app non modifiée 
 
 **Limites :** la Klausur est une VARIATION des Altklausuren, pas une copie de leurs exercices. Le barème de chaque université n'est pas connu de TRED. Les réponses sont du texte tapé (pas de photo de copie). La correction n'a pas été essayée avec le vrai modèle (seulement les tests du code).
 
+
+## Labo : simulations 3D vérifiées à partir d'un document (23 nov. 2026, branche `feat/simulateur-universel`)
+
+**Ce que c'est.** `/explorer?labo=1` (carte « Labo » en haut de l'Explorateur). L'étudiant choisit un de ses documents et écrit un concept. `POST /api/simulate` rend une simulation 3D à curseurs, ou un refus. Les simulations gardées se relisent par `GET /api/simulate?documentId=…`.
+
+**Qui fait quoi.** Le modèle ne fabrique ni la scène 3D ni les nombres. Il recopie les formules du document et cite la phrase. Le code fait le reste (`api/lib/simulation.ts`) :
+
+| Contrôle | Ce qui est vérifié | Refus |
+|---|---|---|
+| Concept | Le concept désigne une simulation du catalogue (`web/lib/sim-catalog.ts`). Sinon : refus immédiat, sans appel au modèle. | `NO_VERIFIED_MODEL` |
+| Syntaxe | Seulement + − · / ^, `sqrt`, π et les grandeurs d'entrée. | `syntax` |
+| Unités | Analyse dimensionnelle (mathjs) : l'expression a la dimension de la grandeur. | `units` |
+| Référence | Mêmes nombres que la loi du catalogue sur 40 jeux de valeurs. | `not_reference` |
+| Preuve | SymPy démontre l'égalité avec la loi du catalogue (même programme que la pastille du tuteur). | `disproved` |
+| Source | La phrase citée est dans le document ; la page affichée est celle où le code l'a retrouvée. | `no_source` |
+
+Une seule formule refusée : toute la simulation est rejetée (deux essais au plus, puis 422). Le LaTeX affiché est écrit par le code à partir de l'expression vérifiée.
+
+**Catalogue actuel (4 lois) :** diviseur de tension, loi du levier, pendule simple, circuit RC. Ajouter une loi = une entrée dans `sim-catalog.ts` + une scène dans `components/SimulationScene.tsx`. Un test vérifie chaque loi (unités, et calcul du navigateur égal à la loi).
+
+**Avant la mise en production :** lancer `node migre-simulation.mjs` (table `simulation` sur Turso). Sans elle, la simulation s'affiche mais n'est pas gardée.
+
+**Limites, dites clairement.**
+- « Universel » n'est pas vrai aujourd'hui : hors des 4 lois, le Labo refuse. C'est le prix du « zéro hallucination ». Médecine et droit n'ont pas de formule à prouver : il faudra un autre type de preuve (citation mot pour mot, comme Fall-Check).
+- Le contrôle « source » prouve que la phrase est dans le document. Il ne prouve pas que cette phrase énonce la formule (essai réel : U₁ cité par la phrase « les tensions se répartissent comme les résistances »).
+- « 99 % » n'est pas mesuré. Ce qui est garanti : aucune formule affichée ne diffère d'une loi relue à la main.
+- Lean 4, SymKit, edulab, teardown, threejs-skills : non installés (voir le compte rendu). Ce sont des outils de développement ; le serveur de production ne peut pas les appeler.
+- Essai réel du 23 nov. (feuille de test de 3 pages, vrai modèle, SymPy 1.14.0) : 3 formules prouvées, page 3, 6 à 8 s, simulation relue après rechargement. Pas essayé en production.

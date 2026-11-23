@@ -25,6 +25,7 @@ import {
   savedExercise,
   semester,
   semesterShare,
+  simulation,
   solverResult,
   subject,
   usageCounter,
@@ -77,6 +78,8 @@ export const PERSONAL_DATA_TABLES = [
   // « Als Video erklären » : les vidéos explicatives et les calculs des solveurs.
   "generated_video",
   "solver_result",
+  // Labo (2026-11-23) : les simulations construites à partir des documents du compte.
+  "simulation",
   // Modèle de l'apprenant (2026-11-15) : score de maîtrise et types d'erreur
   // par concept — aussi personnel que les lacunes.
   "concept_mastery",
@@ -140,7 +143,7 @@ export async function exportUserData(userId: string) {
   // Tables créées par un script migre-*.mjs : si l'une manque encore sur une
   // base, l'export ne doit pas échouer pour autant.
   const optional = <T>(query: Promise<T[]>): Promise<T[]> => query.catch(() => []);
-  const [karteikarten, erklaervideos, solverErgebnisse, lernstand, briefings, klausurtermine, lerntage, einladungscode, einladungen, meinProfessor, emailEinwilligung, emailVersand] = await Promise.all([
+  const [karteikarten, erklaervideos, solverErgebnisse, lernstand, briefings, klausurtermine, lerntage, einladungscode, einladungen, meinProfessor, emailEinwilligung, emailVersand, simulationen] = await Promise.all([
     optional(db.select().from(flashcard).where(eq(flashcard.userId, userId))),
     optional(db.select().from(generatedVideo).where(eq(generatedVideo.userId, userId))),
     optional(db.select().from(solverResult).where(eq(solverResult.userId, userId))),
@@ -154,6 +157,7 @@ export async function exportUserData(userId: string) {
     optional(db.select().from(professorCustom).where(eq(professorCustom.userId, userId))),
     optional(db.select().from(marketingConsent).where(eq(marketingConsent.userId, userId))),
     optional(db.select().from(marketingEmailLog).where(eq(marketingEmailLog.userId, userId))),
+    optional(db.select().from(simulation).where(eq(simulation.userId, userId))),
   ]);
 
   const nebentabellen = await exportAncillaryData(db, userId);
@@ -220,6 +224,7 @@ export async function exportUserData(userId: string) {
     karteikarten,
     erklaervideos,
     solverErgebnisse,
+    simulationen,
     ...nebentabellen,
     semester: semesters,
     dokumente: documents.map((d) => ({
@@ -333,6 +338,7 @@ export async function deleteUserData(userId: string): Promise<DeletionReport> {
   await step("solver_result", () =>
     db.delete(solverResult).where(eq(solverResult.userId, userId)),
   );
+  await step("simulation", () => db.delete(simulation).where(eq(simulation.userId, userId)));
   await step("concept_mastery", () =>
     db.delete(conceptMastery).where(eq(conceptMastery.userId, userId)),
   );

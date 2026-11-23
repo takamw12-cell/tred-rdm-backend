@@ -940,6 +940,35 @@ export const solverResult = sqliteTable(
 
 export type SolverResult = typeof solverResult.$inferSelect;
 
+// ── Labo : simulations 3D vérifiées (2026-11-23) ─────────────────────────
+//
+// Une simulation construite à partir d'un document de l'étudiant
+// (POST /api/simulate). Une ligne n'est écrite QUE si chaque formule a passé
+// la vérification (lib/simulation.ts) : `spec` porte la scène, les valeurs de
+// départ et les formules vérifiées avec leur page ; `verification` porte le
+// résultat de chaque contrôle (unités, loi de référence, SymPy, source).
+// Table créée sur Turso par migre-simulation.mjs (racine du dépôt). Sans
+// elle, la simulation s'affiche mais n'est pas gardée.
+// Données personnelles : exportées et effacées avec le compte (lib/gdpr.ts).
+export const simulation = sqliteTable(
+  "simulation",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    documentId: text("document_id").notNull(),
+    concept: text("concept").notNull(),
+    scene: text("scene").notNull(),
+    spec: text("spec").notNull(),
+    verification: text("verification").notNull().default("[]"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [index("simulation_user_doc_idx").on(t.userId, t.documentId, t.createdAt)],
+);
+
+export type Simulation = typeof simulation.$inferSelect;
+
 // ── « Dein Briefing » (2026-11-18) ────────────────────────────────────────
 //
 // Le briefing du jour, gardé : UNE ligne par compte, remplacée chaque matin

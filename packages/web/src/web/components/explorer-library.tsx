@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { motion, useReducedMotion } from "framer-motion";
-import { Box, Gamepad2, Layers, SlidersHorizontal } from "lucide-react";
+import { Box, FlaskConical, Gamepad2, Layers, SlidersHorizontal } from "lucide-react";
 import { atelierHref } from "@/lib/atelier";
 import { PageContainer, PageHeader } from "@/components/page";
 import { useT } from "@/i18n";
@@ -18,6 +18,12 @@ const ATELIER = {
   de: { title: "Atelier · Spannungsteiler", text: "Interaktiver Simulator: Regler bewegen, Strom und Formeln ändern sich sofort." },
   en: { title: "Workshop · Voltage divider", text: "Interactive simulator: move the sliders, current and formulas change at once." },
   fr: { title: "Atelier · Diviseur de tension", text: "Simulateur interactif : bouge les curseurs, le courant et les formules changent tout de suite." },
+} as const;
+
+const LABO = {
+  de: { title: "Labo · Simulationen aus deinen Unterlagen", text: "Wähle ein Dokument und ein Konzept: TRED baut eine 3D-Simulation und prüft jede Formel." },
+  en: { title: "Lab · Simulations from your documents", text: "Pick a document and a concept: TRED builds a 3D simulation and checks every formula." },
+  fr: { title: "Labo · Simulations tirées de tes documents", text: "Choisis un document et un concept : TRED construit une simulation 3D et vérifie chaque formule." },
 } as const;
 
 type Card = { key: string; href: string; discipline: Discipline; name: string; intro: string; parts: number; poster: string | null; game: boolean };
@@ -62,6 +68,16 @@ export function ExplorerLibrary() {
         <span className="min-w-0">
           <span className="block font-bold">{ATELIER[locale as keyof typeof ATELIER]?.title ?? ATELIER.en.title}</span>
           <span className="text-muted-foreground block text-sm">{ATELIER[locale as keyof typeof ATELIER]?.text ?? ATELIER.en.text}</span>
+        </span>
+      </Link>
+      {/* Le Labo : les simulations 3D vérifiées, construites à partir d'un document (components/labo.tsx). */}
+      <Link to="/explorer?labo=1" data-testid="labo-card" className="bg-card hover:border-primary/60 mb-4 flex items-center gap-4 rounded-2xl border p-4 transition-colors focus-visible:ring-2 focus-visible:outline-none">
+        <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-[#34D399]/15 text-[#047857]">
+          <FlaskConical className="size-6" />
+        </span>
+        <span className="min-w-0">
+          <span className="block font-bold">{LABO[locale as keyof typeof LABO]?.title ?? LABO.en.title}</span>
+          <span className="text-muted-foreground block text-sm">{LABO[locale as keyof typeof LABO]?.text ?? LABO.en.text}</span>
         </span>
       </Link>
       <div className="rounded-3xl bg-[#0B0F19] p-4 text-white shadow-[0_30px_80px_-40px_rgba(124,58,237,0.6)] ring-1 ring-white/10 sm:p-6" data-testid="explorer-library">

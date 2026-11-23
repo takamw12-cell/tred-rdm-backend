@@ -106,6 +106,7 @@ import { finalizeQuiz, quizContext, quizModelSchema, quizRequestSchema, quizSyst
 import { challengeModelSchema, challengePrompt, challengeRequestSchema, challengeSystemPrompt, excerptFor, groundChallenge, type ChallengeMode, type ChallengeQuestion } from "./lib/doc-challenge";
 import { registerArcadeRoutes } from "./arcade/routes";
 import { registerExplorerRoutes } from "./explorer/routes";
+import { registerSimulateRoutes } from "./simulate/routes";
 import { registerEmailRoutes } from "./emails/routes";
 import {
   getAccess,
@@ -2183,6 +2184,8 @@ app.post("/api/agent/doc-challenge", async (c) => {
 registerArcadeRoutes(app, { buildChallenge });
 // Les modèles livrés ont leurs scènes ; le catalogue liste seulement les .glb DÉPOSÉS en plus.
 registerExplorerRoutes(app, new Set(["engineering/turbofan", "medicine/heart"]));
+// Le Labo : simulations 3D vérifiées, construites à partir d'un document (simulate/routes.ts).
+registerSimulateRoutes(app);
 registerEmailRoutes(app);
 
 // ── « Panik-Modus » : la feuille de secours de la veille d'examen ──────────

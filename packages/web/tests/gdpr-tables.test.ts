@@ -17,6 +17,7 @@ describe("RGPD — tables personnelles", () => {
     ["flashcard", "flashcard"],
     ["generated_video", "generatedVideo"],
     ["solver_result", "solverResult"],
+    ["simulation", "simulation"],
     ["concept_mastery", "conceptMastery"],
     ["daily_briefing", "dailyBriefing"],
     ["exam_date", "examDate"],
