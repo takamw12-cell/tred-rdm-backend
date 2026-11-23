@@ -1629,7 +1629,32 @@ Le serveur vérifie que les requêtes de l'app viennent d'une app non modifiée 
   - envoyer : même commande avec `dryRun: false` dans le corps. 200 adresses au plus par appel ; un compte ne reçoit jamais deux fois la même campagne.
 - Le domaine de `MAIL_FROM` doit être vérifié chez Resend (sinon seuls les envois à ton propre compte Resend passent).
 
-## Vidéos en motion design (23 nov. 2026)
+## Vidéos en style anime (23 nov. 2026, essai — éteint par défaut)
+
+Le rendu « motion design » a été refusé le 23 nov. (« trop PowerPoint »). L'essai suivant est un **dessin animé éducatif** : l'image occupe tout l'écran, le texte est l'exception.
+
+**Le modèle est réalisateur** (`api/lib/video-anime.ts`). Il écrit des scènes de 12 à 22 mots de voix. Pour chacune il choisit un décor, UNE action, et décrit l'image en anglais (`image_prompt`) :
+
+- `show_tool` (un objet apparaît), `use_tool` (le personnage PREND l'objet et s'en sert), `panoramique`, `zoom_sur_prof`, `personnage_pointe_du_doigt`, `fleche_pointe_objet`, `formule_s_ecrit`, `bulle_de_texte`. Les noms anglais `zoom_on_formula` et `character_point` sont compris.
+
+**Les objets** (`tool` : `wrench` ou `lever`) sont des images détourées (`public/video-props/`, `scripts/generate-video-props.mjs`). Leur MOUVEMENT est calculé par le code (`toolAngle`) : la clé tourne autour de l'écrou, la planche bascule sur son appui et soulève le rocher. Le poing du personnage suit le bout du manche. Le mouvement est donc juste, ce qu'une image générée ne garantit pas. Deux objets existent ; chaque nouvel objet demande une image et sa géométrie.
+
+**Les décors** sont générés par Replicate (Flux Schnell, 16:9), une image par scène, après la voix. Le style et les interdits (« no text, no numbers ») viennent du code, pas du modèle. Les images sont recopiées dans notre stockage.
+
+**Le personnage** est incrusté en bas à droite (`web/video/anime-explanation.tsx`). Il a six images au même cadrage : il attend, il montre du doigt, il tient un manche — chacune bouche fermée et bouche ouverte. La bouche suit les mots de la voix ElevenLabs (horodatage de chaque mot). Elles sont fabriquées par `scripts/generate-professor-sprites.mjs` (~0,25 $ par personnage). Deux personnages existent : `mentor` (dessiné d'après la photo fournie par le fondateur, utilisé par défaut) et `kenta`.
+
+**Ce n'est pas Rive.** Un fichier `.riv` se dessine à la main dans l'éditeur Rive : aucun programme ne peut le fabriquer. De plus `@rive-app/react-canvas` joue en temps réel et ne suit pas l'image exacte de Remotion (il faudrait `@remotion/rive`). Les trois états demandés existent donc avec des images. Si un `.riv` est livré un jour, seul le composant `Professor` change.
+
+**Limites à connaître avant d'allumer :**
+
+- **L'image n'est pas une source.** Un modèle d'image dessine un levier « à peu près ». Le schéma peut être faux (essai du 23 nov. : un tableau avec des flèches sans sens). La voix, la bulle et la formule restent contrôlées ; l'image ne l'est pas.
+- **La flèche vise une zone, pas l'objet.** Le sujet est demandé « à gauche » ou « au centre » ; le code ne voit pas l'image.
+- **Coût et délai** : une image par scène (~0,003 $), 14 scènes au plus ; quelques secondes de plus par vidéo.
+- **Activation** : `VIDEO_ANIME=on` et `REPLICATE_API_TOKEN` sur Railway. Sans eux, rien ne change (motion design). Si aucune image n'est générée, la vidéo repasse en motion design.
+
+## Vidéos en motion design (23 nov. 2026) — refusé, éteint par défaut
+
+> Rendu refusé par le fondateur le 23 nov. (« un diaporama PowerPoint animé »). Le code reste, éteint : `VIDEO_MOTION=on` le rallume. Sans variable, les vidéos gardent la composition classique de la production.
 
 « Als Video erklären » est maintenant un film de **motion design** : fond sombre, typographie nette, éléments qui glissent, rebondissent et se répondent, calés sur la voix. C'est le rendu normal de toute nouvelle vidéo. Les anciennes vidéos gardent l'ancienne composition.
 

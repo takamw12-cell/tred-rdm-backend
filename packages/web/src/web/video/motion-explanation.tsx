@@ -765,7 +765,7 @@ function captionChunks(words: ExplainerWord[]): ExplainerWord[][] {
   return chunks;
 }
 
-function Captions({ words }: { words: ExplainerWord[] }) {
+export function Captions({ words }: { words: ExplainerWord[] }) {
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
   const narrow = height > width;

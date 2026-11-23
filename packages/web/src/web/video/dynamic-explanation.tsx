@@ -12,6 +12,7 @@ import { solveMechanicsSafe } from "../../api/lib/mechanics-solver";
 import { BEAM_VISUALS, tiePunctuation, type ChartKey, type RealImageKey, type Stage, type Visual, type VisualCue } from "../../api/lib/video-visuals";
 import type { Professor } from "../../api/lib/professors";
 import type { MotionScene } from "../../api/lib/video-motion";
+import type { AnimeScene } from "../../api/lib/video-anime";
 import { beamPen, loadCueFrame, type PenPoint } from "./marker-hand";
 
 /**
@@ -92,6 +93,8 @@ export interface ExplainerScene {
   visual_cues?: VisualCue[];
   /** La mise en scène en motion design (web/video/motion-explanation.tsx). Absent : la composition classique. */
   motion?: MotionScene;
+  /** La mise en scène « anime » (web/video/anime-explanation.tsx) : décor généré, action, bulle. */
+  anime?: AnimeScene;
 }
 
 export interface ExplainerWord {

@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { Language } from "./languages";
 import { runBalkenstatik, type BalkenstatikInput, type BeamDiagramPayload } from "./beam-tool";
 import { collectNumbers, type SolverRun } from "./solver-results";
+import { animeField } from "./video-anime";
 import { motionField } from "./video-motion";
 import { cueOf } from "./video-visuals";
 import { CHARTS, MAX_FLOW_STEPS, MAX_KEYWORDS, REAL_IMAGE_KEYS, STAGES, VISUALS, VISUAL_CUES, lessonStages, resolveVisual, type ChartKey, type RealImageKey, type Stage, type Visual, type VisualCue } from "./video-visuals";
@@ -127,6 +128,20 @@ export const motionScriptSchema = videoScriptSchema.extend({
 /** Le script en motion design, remis à la forme que le contrôle attend (anciens champs vides). */
 export function fromMotionScript(script: z.infer<typeof motionScriptSchema>): VideoScript {
   return { ...script, scenes: script.scenes.map((s) => ({ keywords: [], chart: "", image: "", code: "", code_language: "", ...s })) };
+}
+
+/**
+ * Le script en style anime (lib/video-anime.ts) : des scènes très courtes, et
+ * pour chacune un décor, une action et la description de l'image de fond.
+ * Ni points ni étapes : l'image parle, le texte reste l'exception.
+ */
+export const animeScriptSchema = videoScriptSchema.extend({
+  scenes: z.array(videoSceneSchema.omit({ visual: true, visual_cues: true, steps: true, bullets: true, keywords: true, chart: true, image: true, code: true, code_language: true }).extend({ anime: animeField })),
+});
+
+/** Le script anime, remis à la forme que le contrôle attend. La question du début garde son ordre « ask_question ». */
+export function fromAnimeScript(script: z.infer<typeof animeScriptSchema>): VideoScript {
+  return { ...script, scenes: script.scenes.map((s) => ({ visual_cues: s.stage === "hook" ? ["ask_question" as const] : s.stage === "recap" ? ["check_recap" as const] : [], steps: [], bullets: [], keywords: [], chart: "", image: "", code: "", code_language: "", ...s })) };
 }
 
 export type VideoScene = z.infer<typeof videoSceneSchema>;

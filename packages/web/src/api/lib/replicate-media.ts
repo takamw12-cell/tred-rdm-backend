@@ -158,3 +158,39 @@ export async function generateMedia(req: MediaRequest): Promise<MediaResult> {
     return { ok: false, fehler: "generation_failed" };
   }
 }
+
+/**
+ * Le décor d'une scène de vidéo « anime » (api/lib/video-anime.ts) : une image
+ * 16:9 en WebP, recopiée dans notre stockage. Pas de plafond quotidien d'images
+ * ici : c'est le plafond de vidéos de l'étudiant qui borne la dépense
+ * (une image par scène, ~0,003 $ avec Flux Schnell). `null` en cas d'échec :
+ * la vidéo continue avec les images des scènes voisines.
+ */
+export async function generateSceneImage(userId: string, prompt: string): Promise<string | null> {
+  if (!replicateConfigured()) return null;
+  try {
+    const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN, useFileOutput: false });
+    const model = process.env.REPLICATE_SCENE_MODEL || "black-forest-labs/flux-schnell";
+    const output = await replicate.run(model as `${string}/${string}`, {
+      input: { prompt: prompt.slice(0, 1500), aspect_ratio: "16:9", output_format: "webp", num_outputs: 1 },
+      signal: AbortSignal.timeout(60_000),
+    });
+    const src = firstUrl(output);
+    if (!src) throw new Error("keine URL in der Ausgabe");
+    const host = new URL(src).hostname;
+    if (!/(^|\.)replicate\.(delivery|com)$/.test(host)) throw new Error(`unerwarteter Host ${host}`);
+    const res = await fetch(src, { signal: AbortSignal.timeout(60_000) });
+    if (!res.ok) throw new Error(`Download ${res.status}`);
+    const contentType = (res.headers.get("content-type") ?? "").split(";")[0]!.trim();
+    const ext = EXT[contentType];
+    if (!ext || !contentType.startsWith("image/")) throw new Error(`Unerwarteter Inhaltstyp ${contentType || "?"}`);
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    if (bytes.byteLength === 0 || bytes.byteLength > MAX_BYTES) throw new Error("Dateigröße ungültig");
+    const file = `${crypto.randomUUID()}.${ext}`;
+    await mediaClient.send(new PutObjectCommand({ Bucket: MEDIA_BUCKET, Key: `media/generated/${userId}/${file}`, Body: bytes, ContentType: contentType }));
+    return `/api/media/generated/${userId}/${file}`;
+  } catch (err) {
+    console.error("[media] scene image failed", (err as Error).message?.slice(0, 200));
+    return null;
+  }
+}

@@ -31,8 +31,11 @@ import iconLibrary from "../video-engine/icons.json";
  * fabriqué par du code à partir des champs déjà contrôlés de la scène.
  */
 
-/** Le motion design est le rendu normal ; `VIDEO_MOTION=off` revient à la composition classique. */
-export const motionEnabled = (env: Record<string, string | undefined> = process.env): boolean => env.VIDEO_MOTION?.trim().toLowerCase() !== "off";
+/**
+ * Le motion design a été REFUSÉ par le fondateur le 23 nov. 2026 (« un diaporama animé ») :
+ * il est éteint par défaut. `VIDEO_MOTION=on` le rallume ; sans cela, la composition classique.
+ */
+export const motionEnabled = (env: Record<string, string | undefined> = process.env): boolean => env.VIDEO_MOTION?.trim().toLowerCase() === "on";
 
 /* ── La bibliothèque ───────────────────────────────────────────────────── */
 
@@ -179,7 +182,7 @@ function numbersOf(text: string): string[] {
 }
 
 /** Un chiffre seul (0 à 9) est structurel : exposant, indice, « étape 2 ». */
-const invented = (text: string, allowed: ReadonlySet<string>): boolean => numbersOf(text).some((n) => !/^\d$/.test(n) && !allowed.has(n));
+export const invented = (text: string, allowed: ReadonlySet<string>): boolean => numbersOf(text).some((n) => !/^\d$/.test(n) && !allowed.has(n));
 
 /** La formule est-elle lisible par KaTeX ? (le navigateur n'affiche jamais une formule cassée) */
 export function texOk(tex: string): boolean {

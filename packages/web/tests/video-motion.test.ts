@@ -172,6 +172,7 @@ test("la consigne nomme toutes les icônes ; l'interrupteur VIDEO_MOTION", () =>
   const prompt = motionPromptBlock();
   for (const name of MOTION_ICON_NAMES) expect(prompt).toContain(name);
   expect(MOTION_ICON_NAMES.length).toBe(84);
-  expect(motionEnabled({})).toBe(true);
+  expect(motionEnabled({})).toBe(false);
   expect(motionEnabled({ VIDEO_MOTION: "Off" })).toBe(false);
+  expect(motionEnabled({ VIDEO_MOTION: " On " })).toBe(true);
 });

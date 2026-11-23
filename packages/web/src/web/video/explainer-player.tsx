@@ -6,6 +6,7 @@ import { useT } from "@/i18n";
 import { useUserStore } from "@/stores/user";
 import { backgroundsFor, categoryForProgram, portraitOf, shuffled } from "@/lib/background-sets";
 import type { ExplainerVideo } from "@/lib/explainer-video";
+import { AnimeExplanation, professorSprites, type AnimeProps } from "./anime-explanation";
 import { MotionExplanation, type MotionProps } from "./motion-explanation";
 import { DynamicExplanation, EXPLAINER_FPS, EXPLAINER_SIZE, explainerFrames, type ExplainerOrientation, type ExplainerProps } from "./dynamic-explanation";
 
@@ -79,7 +80,43 @@ export default function ExplainerPlayer({ video, orientation, autoPlay = true, i
     [video, inputProps, t],
   );
 
+  // Style anime : les scènes portent leur décor généré et leur action (api/lib/video-anime.ts).
+  const animeProps: AnimeProps | null = useMemo(
+    () =>
+      video.scenes.some((s) => s.anime?.image)
+        ? {
+            audioUrl: video.audioUrl,
+            musicUrl: video.music === false ? null : MUSIC_BED,
+            durationMs: video.durationMs,
+            title: video.title,
+            scenes: video.scenes,
+            words: video.words,
+            sceneStartsMs: video.sceneStartsMs,
+            sprites: professorSprites(video.professor),
+          }
+        : null,
+    [video],
+  );
+
   const playerStyle = { width: "100%", aspectRatio: `${size.width} / ${size.height}`, borderRadius: 16, overflow: "hidden", background: "#070B14" } as const;
+  if (animeProps) {
+    return (
+      <Player
+        component={AnimeExplanation}
+        inputProps={animeProps}
+        durationInFrames={explainerFrames(video.durationMs)}
+        fps={EXPLAINER_FPS}
+        compositionWidth={size.width}
+        compositionHeight={size.height}
+        controls
+        autoPlay={autoPlay}
+        initialFrame={initialFrame}
+        clickToPlay
+        acknowledgeRemotionLicense
+        style={playerStyle}
+      />
+    );
+  }
   if (motionProps) {
     return (
       <Player

@@ -17,6 +17,8 @@ import {
   allowedNumbers,
   buildVideoPrompt,
   countWords,
+  animeScriptSchema,
+  fromAnimeScript,
   fromMotionScript,
   motionScriptSchema,
   resolveBeam,
@@ -33,6 +35,8 @@ import {
 } from "../lib/video-script";
 import { drawnVideoReady, renderDrawnVideo, synthesizeEdge, voiceProvider } from "../lib/video-engine";
 import { buildSrt, buildStoryboard, layoutScene, sketchField, sketchPromptBlock, type DrawStyle, type PlacedElement, type SketchElement, type WordRange } from "../lib/video-storyboard";
+import { animeEnabled, animePromptBlock, cleanAnime, defaultAnime, fillMissingImages, type AnimeScene, type RawAnime } from "../lib/video-anime";
+import { generateSceneImage } from "../lib/replicate-media";
 import { cleanMotion, defaultMotion, motionEnabled, motionPromptBlock, type MotionScene, type RawMotion } from "../lib/video-motion";
 import { isRealImageKey } from "../lib/video-visuals";
 import { reserveChars } from "../tts/budget";
@@ -161,12 +165,18 @@ async function writeScript(job: VideoJobData): Promise<Draft> {
   const style: DrawStyle | null = req.style && drawnVideoReady() ? req.style : null;
   try {
     // Motion design (le rendu normal) : le modèle choisit des blocs et des actions, il ne dessine rien.
-    const motion = !style && motionEnabled();
-    const { system, prompt } = buildVideoPrompt({ language, sources, question: req.question, answer: req.answer, extra: style ? sketchPromptBlock(style, req.language) : motion ? motionPromptBlock() : undefined });
-    const request = { model: gateway(PRIMARY_MODEL), system, prompt, abortSignal: AbortSignal.timeout(motion ? 150_000 : 90_000) };
+    // Style anime (VIDEO_ANIME=on + Replicate) : le modèle est réalisateur — décor, action, image de chaque scène.
+    const anime = !style && animeEnabled();
+    const motion = !style && !anime && motionEnabled();
+    const { system, prompt } = buildVideoPrompt({ language, sources, question: req.question, answer: req.answer, extra: style ? sketchPromptBlock(style, req.language) : anime ? animePromptBlock() : motion ? motionPromptBlock() : undefined });
+    const request = { model: gateway(PRIMARY_MODEL), system, prompt, abortSignal: AbortSignal.timeout(motion || anime ? 150_000 : 90_000) };
     let object: VideoScript;
     let usage: { outputTokens?: number } | undefined;
-    if (motion) {
+    if (anime) {
+      const out = await generateObject({ ...request, schema: animeScriptSchema });
+      object = fromAnimeScript(out.object);
+      usage = out.usage;
+    } else if (motion) {
       const out = await generateObject({ ...request, schema: motionScriptSchema });
       object = fromMotionScript(out.object);
       usage = out.usage;
@@ -189,6 +199,17 @@ async function writeScript(job: VideoJobData): Promise<Draft> {
     if (!checked.ok) {
       console.warn(`[video] ${id} : script refusé (${checked.error}, ${checked.words} mots, ${object.scenes.length} scènes écrites, ${sources.length} sources dont ${sources.filter((x) => x.solver).length} solveur)`);
       throw new PipelineError("not_grounded");
+    }
+    if (anime) {
+      // Décor, action et bulle de chaque scène gardée, contrôlés ; les images sont générées après la voix (runPipeline).
+      const allowed = allowedNumbers(allSources, req.question);
+      let fallback = 0;
+      checked.scenes.forEach((scene, i) => {
+        const staged = cleanAnime((scene as { anime?: RawAnime }).anime, scene, allowed);
+        if (!staged) fallback++;
+        (scene as { anime?: AnimeScene }).anime = staged ?? defaultAnime(scene, i);
+      });
+      if (fallback > 0) console.warn(`[video] ${id} : anime — ${fallback} scène(s) mises en scène par le code`);
     }
     if (motion) {
       // La mise en scène de chaque scène gardée, contrôlée (nombres, icônes, formules) ; sinon celle du code.
@@ -269,6 +290,31 @@ export async function runPipeline(job: VideoJobData): Promise<void> {
     console.error(`[video] ${id} : stockage`, (err as Error).message?.slice(0, 300));
     throw new PipelineError("storage_failed");
   }
+  // 3 bis. Style anime : le décor de chaque scène, généré en parallèle. La voix est déjà payée :
+  // une image manquante prend celle d'une scène voisine ; sans aucune image, la vidéo repasse en motion design.
+  const staged = scenes as (ValidatedScene & { anime?: AnimeScene; motion?: MotionScene })[];
+  if (staged.some((s) => s.anime && !s.anime.image)) {
+    // Deux scènes qui montrent la même chose partagent leur image.
+    const byPrompt = new Map<string, Promise<string | null>>();
+    await Promise.all(
+      staged.map(async (s) => {
+        if (!s.anime || s.anime.image) return;
+        const key = s.anime.prompt;
+        if (!byPrompt.has(key)) byPrompt.set(key, generateSceneImage(userId, key));
+        const url = await byPrompt.get(key)!;
+        if (url) s.anime.image = url;
+      }),
+    );
+    const made = staged.filter((s) => s.anime?.image).length;
+    if (!fillMissingImages(staged)) {
+      console.warn(`[video] ${id} : anime — aucune image générée, la vidéo passe en motion design`);
+      staged.forEach((s, i) => {
+        delete s.anime;
+        s.motion = defaultMotion(s, i);
+      });
+    } else console.log(`[video] ${id} : anime — ${byPrompt.size} image(s) demandée(s), ${made}/${staged.length} scènes servies`);
+  }
+
   // 4. Vidéo dessinée : le dessin calé sur la voix, puis l'assemblage en MP4.
   const durationMs = videoDurationMs(words);
   let videoKey: string | null = null;

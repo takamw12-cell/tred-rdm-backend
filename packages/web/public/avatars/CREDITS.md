@@ -24,3 +24,15 @@ chaque image a été regardée avant d'être gardée.
 | shun.png / .webp | Prof. Shun — Der Analytiker | .webp (512 px) |
 
 Les .png (512 px) sont gardés comme sources ; l'interface sert les .webp.
+
+## Poses pour les vidéos (dossier `video/`)
+
+Fabriquées le 2026-11-23 par `scripts/generate-professor-sprites.mjs` avec Replicate
+(black-forest-labs/flux-kontext-pro pour les poses, 851-labs/background-remover pour le détourage).
+Images par personnage : `idle`, `talk`, `point`, `point-talk`, et pour `mentor` `hold`, `hold-talk`.
+Les objets animés (`public/video-props/` : clé, planche, rocher, appui) viennent de
+`scripts/generate-video-props.mjs` (black-forest-labs/flux-schnell, Apache-2.0, puis détourage).
+
+- `kenta-*` : d'après `kenta.png`.
+- `mentor-*` et `mentor.png` : personnage dessiné d'après une photo fournie par le fondateur
+  (personne réelle : à utiliser seulement avec son accord ; la photo n'est pas dans le dépôt).
