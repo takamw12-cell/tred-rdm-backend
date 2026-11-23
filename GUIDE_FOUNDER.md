@@ -1763,5 +1763,33 @@ La génération vidéo par code est arrêtée. Les vidéos sont faites avec HeyG
 
 - **Source des scripts :** `scripts-video/scripts.json` (4 scripts : EN1, EN2, DE1, DE2 ; texte, ton, titre Canva, voix).
 - **Commande :** `node scripts-video/generer-kit.mjs` écrit les textes et les voix dans `C:\dev\tred-rdm\video-production\` (hors du dépôt : `scripts/`, `voix/`, `assets/`). `--textes` n'appelle pas ElevenLabs. `--force` refait toutes les voix.
-- **Variantes sûres :** EN2, DE1 et DE2 ont un second texte (`*-variante-sure`). Il respecte le tableau « Ce que TRED peut affirmer dans une publicité » : pas de « jede Antwort wird bewiesen », et le Labo transforme des formules du cours (7 lois), pas tout le cours.
+- **Textes conformes (décision du 23 nov.) :** les scripts portent directement « Jedes Zitat wird gegen dein eigenes Skript geprüft » et « turns formulas from your course into an interactive 3D lab » / « verwandelt Formeln aus deinem Stoff in ein interaktives 3D-Labor ». Les anciennes phrases ne sont plus dans le dépôt.
 - Les fichiers audio et les captures ne sont pas dans git.
+
+## « Auto-Explain Video » : avatar HeyGen incrusté dans les schémas animés — 2026-11-23, branche `feat/auto-explain-video`
+
+**Le pipeline :** modèle (script + mise en scène) → ElevenLabs (voix, mots horodatés) → HeyGen (avatar qui parle sur CETTE voix) → Remotion (schémas animés, composition `MotionExplanation`) → FFmpeg (avatar incrusté, son de la vidéo de fond).
+
+**Commande (depuis WSL, dans `packages/video`) :**
+
+```
+BUN=/mnt/c/Users/HP/.bun/bin/bun.exe FFMPEG=<chemin de ffmpeg.exe> node scripts/auto-explain.mjs en1
+```
+
+- Le brief est `scripts/auto-explain-briefs/en1.json` (question, source, voix). Le résultat est dans `out/auto-explain/en1/`.
+- `--placeholder` : sans HeyGen, avec un avatar de remplacement fabriqué sur place (pour éprouver l'incrustation).
+- `--layout=bubble` (pastille ronde, défaut) ou `--layout=standing` (avatar détouré en pied). `--corner=`, `--size=`.
+- `--compose` : refait seulement l'incrustation. Chaque étape payante est reprise si son entrée n'a pas changé.
+
+**Variables à poser (dans le `.env` de la racine pour le test) :** `HEYGEN_VIDEO_API_KEY` et `HEYGEN_VIDEO_AVATAR_ID`.
+
+| Point | À savoir |
+|---|---|
+| Nom des variables | PAS `HEYGEN_API_KEY` : ce nom appartient déjà à l'avatar temps réel LiveAvatar (`api/avatar/heygen.ts`), dont la clé vient d'une autre console. |
+| Version de l'API | v3 (`POST /v3/assets`, `POST /v3/videos`, `GET /v3/videos/{id}`). Les API v1/v2 sont retirées depuis le 31 octobre 2026. |
+| Avatar | `HEYGEN_VIDEO_AVATAR_ID` est l'identifiant d'un « look » de ton compte, pas d'un groupe. |
+| Fond | Par défaut MP4 sur fond vert, détouré par FFmpeg. `"output": "alpha"` dans le brief demande un WebM transparent ; HeyGen le refuse pour un avatar sans détourage. |
+| Prix | HeyGen ne publie pas le prix de l'API dans sa documentation (page tarifs derrière la connexion). À lire avant le premier appel. |
+| Production | Rien n'est branché dans l'app. En production la vidéo est jouée par le navigateur, sans rendu MP4 sur le serveur. Brancher l'avatar demande une décision : où faire le rendu. |
+
+**Modules :** `packages/web/src/api/lib/heygen-video.ts` (client, `fetch` injectable), `lib/avatar-composite.ts` (commande FFmpeg), `tests/heygen-video.test.ts` (13 tests contre un faux HeyGen). Aucun appel réel à HeyGen n'a été fait : pas de clé sur la machine de développement.

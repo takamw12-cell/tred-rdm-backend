@@ -1,0 +1,11 @@
+{
+  "title": "EN1 — The AI that shows you the page",
+  "language": "en",
+  "voiceId": "EXAVITQu4vr4xnSDxMaL",
+  "question": "Explain in about 30 seconds how TRED proves an answer with my own PDF. Follow this storyline: Most AI tutors guess. TRED proves. Upload your lecture notes, ask a question, and TRED shows you the exact page in your PDF. Every citation is checked. Try it free at tred-tutor.de.",
+  "source": {
+    "title": "TRED — how citations work",
+    "content": "Most AI tutors answer from memory, so they can guess.\nTRED answers from the lecture notes that the student uploads.\nWhen TRED quotes a sentence from your notes, the server checks that the sentence is really written in your PDF.\nA checked citation shows the file name and the exact page number of the sentence.\nOne click on the citation opens your PDF at that page, with the sentence highlighted.\nIf a quoted sentence is not found in the document, the citation is marked as not verified.\nThe three steps are: upload your lecture notes, ask a question, open the cited page.\nYou can try TRED for free at tred-tutor.de."
+  },
+  "avatar": { "output": "green", "aspectRatio": "1:1" }
+}

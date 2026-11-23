@@ -15,14 +15,13 @@ const { scripts } = JSON.parse(readFileSync(join(here, "scripts.json"), "utf8"))
 const flags = new Set(process.argv.slice(2));
 for (const d of ["scripts", "voix", "assets"]) mkdirSync(join(kit, d), { recursive: true });
 
-const takes = scripts.flatMap((s) => [{ ...s, file: s.id, body: s.text }, ...(s.safeText ? [{ ...s, file: `${s.id}-variante-sure`, body: s.safeText }] : [])]);
+const takes = scripts.map((s) => ({ ...s, file: s.id, body: s.text }));
 for (const t of takes) writeFileSync(join(kit, "scripts", `${t.file}.txt`), t.body + "\n");
 
 const seconds = (text) => Math.round((text.split(/\s+/).length / 2.6) * 10) / 10;
 const sheet = ["# Scripts HeyGen — TRED", "", "Le texte à coller dans HeyGen est dans le fichier `.txt` du même nom (les mots seuls).", ""];
 for (const s of scripts) {
   sheet.push(`## ${s.id} — ${s.focus} (${s.lang.toUpperCase()})`, "", `- **Texte HeyGen :** ${s.text}`, `- **Ton :** ${s.tone}`, `- **Titre Canva :** ${s.canvaTitle}`, `- **Voix ElevenLabs :** ${s.voiceName} → \`voix/${s.id}.mp3\``, `- **Durée estimée :** ${seconds(s.text)} s`);
-  if (s.safeText) sheet.push(`- **Variante sûre :** ${s.safeText}`, `- **Pourquoi une variante :** ${s.safeWhy} Fichiers \`${s.id}-variante-sure.txt\` et \`.mp3\`.`);
   sheet.push("");
 }
 writeFileSync(join(kit, "scripts", "LISEZMOI.md"), sheet.join("\n"));
