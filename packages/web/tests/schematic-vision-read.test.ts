@@ -18,6 +18,7 @@ const reading = (elemente: [string, string, string, string, string][], more: Par
   frequency: null,
   source_type: "unbekannt",
   given_values: [],
+  uncertain_directions: [],
   andere: [],
   unklar: [],
   ...more,
@@ -161,8 +162,26 @@ describe("ce que le tuteur reçoit", () => {
     expect(contextNote({})).toBe("");
   });
 
+  test("sens d'une flèche incertain : jamais deviné en silence, l'étudiant est interrogé", async () => {
+    // Une seule des deux lectures doute de I1 : cela suffit.
+    const both = [A13, { ...A13_RENAMED, uncertain_directions: ["I1", "Ix"] }];
+    const v = await readSchematic(img, "image/jpeg", { read: async () => both.shift()! });
+    expect(v?.kind).toBe("agreed");
+    if (v?.kind !== "agreed") return;
+    expect(v.reading.uncertain_directions).toEqual(["I1"]);
+    expect(v.reading.unklar[0]).toContain("I1: Pfeilrichtung nicht sicher lesbar");
+    expect(v.reading.unklar[0]).toContain("von F nach E");
+    expect(schematicNote(v)).toContain("RICHTUNG UNSICHER bei I1");
+    // La question arrive sur la carte, et la réponse de l'étudiant (« I1 ») peut retourner le composant.
+    const lock = { elemente: v.reading.elemente.map((e) => ({ ...e, a: e.a === "B" ? "0" : e.a, b: e.b === "B" ? "0" : e.b })), unklar: v.reading.unklar, userText: "" };
+    const card = checkNetlist(lockedNetlistInput(lock, { quelle: "bild", elemente: [] as never }));
+    expect(card.ok && card.unklar.some((u) => u.startsWith("I1: Pfeilrichtung"))).toBe(true);
+    const flipped = lockedNetlistInput({ ...lock, userText: "I1 zeigt nach links" }, { quelle: "bild", elemente: [{ typ: "I", name: "I1", a: "F", b: "E", wert: "1" }] });
+    expect(flipped.elemente.find((e) => e.name === "I1")).toMatchObject({ a: "F", b: "E" });
+  });
+
   test("pas un schéma, ou une lecture en échec : rien — le tuteur fait comme avant", async () => {
-    const none: SchematicReading = { istSchaltplan: false, elemente: [], lage: [], schalter: [], frequency: null, source_type: "unbekannt", given_values: [], andere: [], unklar: [] };
+    const none: SchematicReading = { istSchaltplan: false, elemente: [], lage: [], schalter: [], frequency: null, source_type: "unbekannt", given_values: [], uncertain_directions: [], andere: [], unklar: [] };
     expect(await readSchematic(img, "image/jpeg", { read: async () => none })).toBeNull();
     let n = 0;
     expect(

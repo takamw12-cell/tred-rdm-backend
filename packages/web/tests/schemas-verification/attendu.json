@@ -113,12 +113,9 @@
         ["V", "Ue", "K1", "0", "10"],
         ["R", "R", "K1", "K2", ""],
         ["C", "C", "K2", "0", ""]
-      ],
-      [
-        ["R", "R", "K1", "K2", ""],
-        ["C", "C", "K2", "0", ""]
       ]
-    ]
+    ],
+    "grund": "Ue ist im Bild beschriftet und im Text gegeben (Ue = 10V): die Quelle muss gelesen werden."
   },
   "aufgabe22": {
     "art": "ausserhalb",

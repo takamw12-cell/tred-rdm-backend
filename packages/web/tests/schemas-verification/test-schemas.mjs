@@ -43,6 +43,7 @@ const asReading = (rows, schalter = []) => ({
   frequency: null,
   source_type: "unbekannt",
   given_values: [],
+  uncertain_directions: [],
   andere: [],
   unklar: [],
 });
@@ -118,9 +119,10 @@ for (const file of photos) {
     n: seen ? seen.elemente.length + seen.schalter.length : "—",
     f: seen ? (seen.frequency === null ? "—" : `${seen.frequency} Hz`) : "—",
     ac: seen ? (seen.source_type === "unbekannt" ? "—" : seen.source_type) : "—",
+    doubt: seen?.uncertain_directions?.length ? seen.uncertain_directions.join(", ") : "—",
     given: seen?.given_values.length ? seen.given_values.map((g) => `${g.name} = ${g.wert}${g.einheit ? ` ${g.einheit}` : ""}`).join(", ") : "—",
   });
-  console.log(`${verdict.padEnd(9)} ${key}  ${rows.at(-1).s} s  f=${rows.at(-1).f} ${rows.at(-1).ac}  [${rows.at(-1).given}]  ${detail}`);
+  console.log(`${verdict.padEnd(9)} ${key}  ${rows.at(-1).s} s  f=${rows.at(-1).f} ${rows.at(-1).ac}  [${rows.at(-1).given}]  doute=${rows.at(-1).doubt}  ${detail}`);
 }
 
 const count = (x) => rows.filter((r) => r.verdict === x).length;
@@ -129,9 +131,9 @@ const table = [
   "",
   `**${count("JUSTE")}/${rows.length} justes · ${count("PRUDENT")} prudents · ${count("INCOMPLET")} incomplets · ${count("FAUX")} faux**`,
   "",
-  "| Photo | Type attendu | Composants | Fréquence | AC/DC | Valeurs données | Verdict | Temps | Détail |",
-  "|---|---|---|---|---|---|---|---|---|",
-  ...rows.map((r) => `| ${r.key} | ${r.art} | ${r.n} | ${r.f} | ${r.ac} | ${r.given} | ${r.verdict} | ${r.s} s | ${r.detail.replaceAll("|", "/")} |`),
+  "| Photo | Type attendu | Composants | Fréquence | AC/DC | Valeurs données | Sens à confirmer | Verdict | Temps | Détail |",
+  "|---|---|---|---|---|---|---|---|---|---|",
+  ...rows.map((r) => `| ${r.key} | ${r.art} | ${r.n} | ${r.f} | ${r.ac} | ${r.given} | ${r.doubt} | ${r.verdict} | ${r.s} s | ${r.detail.replaceAll("|", "/")} |`),
 ].join("\n");
 writeFileSync(join(here, "dernier-resultat.md"), `${table}\n`);
 console.log(`\n${count("JUSTE")}/${rows.length} justes · ${count("PRUDENT")} prudents · ${count("INCOMPLET")} incomplets · ${count("FAUX")} faux  →  tests/schemas-verification/dernier-resultat.md`);

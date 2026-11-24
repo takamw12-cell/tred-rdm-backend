@@ -91,6 +91,12 @@ export const schematicReadingSchema = z.object({
     .array(z.object({ name: z.string().min(1).max(20).describe("Formelzeichen wie in der Aufgabe: Uc, n1, cosφ"), wert: z.string().min(1).max(40).describe('Zahl mit Präfix, ohne Einheit: "5", "10m", "300"'), einheit: z.string().max(12).describe('"V", "H", "" …') }))
     .max(20)
     .describe("Zahlenwerte aus dem Aufgabentext, die KEIN Wert eines Bauteils in elemente sind: Uc = 5V, n1 = 300, L1 = 10mH. Keine Frequenz (steht in frequency), keine Zeitpunkte."),
+  // Dans le doute, ne pas deviner (demande du fondateur, 24 nov. 2026) : une
+  // flèche petite ou floue est nommée ici, et l'étudiant confirme son sens.
+  uncertain_directions: z
+    .array(z.string().min(1).max(20))
+    .max(20)
+    .describe("Namen der Quellen (V, I), deren Pfeil- bzw. Polrichtung im Bild NICHT sicher erkennbar ist (klein, unscharf, verdeckt). Sicher erkennbar: leer."),
   // Bornes larges : une remarque trop longue ne doit pas faire rejeter une lecture juste.
   unklar: z.array(z.string().min(1).max(400)).max(20).describe("Was nicht sicher lesbar ist, je ein kurzer Stichpunkt. Lieber nennen als raten."),
 });
@@ -113,6 +119,8 @@ export const READ_PROMPT =
   "source_type: \"~\" im Quellensymbol → AC, \"=\" oder Batterie → DC, keine Quelle gezeichnet → unbekannt.\n" +
   "- given_values: JEDER Zahlenwert aus der Zeile \"Werte:\" und dem Aufgabentext, der nicht schon wert eines Bauteils ist " +
   "(\"Uc = 5V\" → name Uc, wert 5, einheit V; Windungszahlen n1, n2; L1 eines Transformators). Keine Frequenz, keine Zeitpunkte (t0, t1).\n" +
+  "- uncertain_directions: Ist bei einer Quelle die Pfeilspitze oder der Pluspol nicht EINDEUTIG zu erkennen (zu klein, unscharf, verdeckt), " +
+  "trag ihren Namen hier ein und gib in elemente die wahrscheinlichste Richtung an. Rate nie stillschweigend.\n" +
   "- Kein Schaltplan im Bild: istSchaltplan = false, elemente leer.\n" +
   "- Schalter: nicht in elemente, sondern in schalter. Gemeinsamer Anschluss und jeder Kontakt sind EIGENE Knoten; " +
   "die Stellung heißt wie im Plan beschriftet (1, 2 …). Lies genau ab, welcher Kontakt welche Nummer trägt. " +
@@ -362,6 +370,11 @@ export function schematicNote(v: SchematicVerdict): string {
       "Steht bei einem Bauteil \"kein Wert angegeben\": frag die Person NICHT danach und erfinde keinen Wert. " +
       "Der Code prüft beim Rechnen, ob dieser Wert das Gesuchte überhaupt beeinflusst — deine Aufgabe ist, das zu begründen. " +
       "V: a = Pluspol. I: Strom fließt in Knoten a.\n" +
+      (v.reading.uncertain_directions?.length
+        ? `RICHTUNG UNSICHER bei ${v.reading.uncertain_directions.join(", ")}: frag die Person ausdrücklich und in einem eigenen Satz nach der Richtung ` +
+          "(\"Ich sehe die Ströme, bin mir aber bei der Richtung nicht sicher: zeigt … nach … oder nach …?\"), bevor irgendetwas gerechnet wird. " +
+          "Nennt sie eine andere Richtung, ruf schaltplan_erfassen mit vertauschten Knoten a und b für GENAU dieses Bauteil erneut auf.\n"
+        : "") +
       `${lines(v.reading)}${extras(v.reading)}\n` +
       "Die Person bestätigt die Netzliste wie immer, bevor gerechnet wird."
     );
@@ -428,6 +441,19 @@ export function judgeReading(r: SchematicReading): string[] {
   return problems;
 }
 
+/**
+ * La question posée à l'étudiant pour une source au sens incertain. Elle part
+ * dans `unklar` : la carte l'affiche, et rien n'est calculé avant la
+ * confirmation de la netlist (lib/circuit/netlist.ts).
+ */
+export function directionQuestion(r: Pick<SchematicReading, "elemente">, name: string): string {
+  const e = r.elemente.find((x) => x.name === name);
+  if (!e) return `${name}: Richtung nicht sicher lesbar — bitte bestätigen.`;
+  return e.typ === "I"
+    ? `${name}: Pfeilrichtung nicht sicher lesbar. Gelesen: Strom von ${e.b} nach ${e.a}. Stimmt das, oder andersherum?`
+    : `${name}: Polung nicht sicher lesbar. Gelesen: Pluspol an ${e.a}. Stimmt das, oder andersherum?`;
+}
+
 /** Délai des deux lectures ; au-delà, le tuteur lit l'image lui-même. */
 export const SCHEMATIC_READ_TIMEOUT_MS = 40_000;
 
@@ -458,7 +484,11 @@ export async function readSchematic(
   const cmp = compareReadings(a, b);
   const merged = (x: SchematicReading, y: SchematicReading): SchematicVerdict => {
     const ctx = mergeContext(x, y);
-    return { kind: "agreed", reading: { ...x, ...ctx.context, unklar: [...new Set([...ctx.unklar, ...x.unklar, ...y.unklar])].slice(0, 10) } };
+    // Un sens jugé incertain par UNE des deux lectures suffit : l'étudiant le confirme.
+    const names = new Set(x.elemente.map((e) => e.name));
+    const uncertain_directions = [...new Set([...(x.uncertain_directions ?? []), ...(y.uncertain_directions ?? [])])].filter((n) => names.has(n));
+    const ask = uncertain_directions.map((n) => directionQuestion(x, n));
+    return { kind: "agreed", reading: { ...x, ...ctx.context, uncertain_directions, unklar: [...new Set([...ask, ...ctx.unklar, ...x.unklar, ...y.unklar])].slice(0, 10) } };
   };
   const sound = (x: SchematicReading) => judgeReading(x).length === 0;
   if (cmp.agree && sound(a)) return merged(a, b);
@@ -597,7 +627,10 @@ export function lockedNetlistInput(lock: NetlistLock, model: SchaltplanInput): S
   // Les remarques sur une valeur manquante sont remplacées par une ligne exacte.
   const free = [...frei].map((n) => `${n}: kein Wert in der Aufgabe. Beim Rechnen wird geprüft, ob er das Ergebnis beeinflusst.`);
   const rest = lock.unklar.filter((t) => !/\b(wert|value|valeur)\b/i.test(t));
-  const unklar = [...free, ...rest.slice(0, 2)].map((t) => t.slice(0, 120)).slice(0, 10);
+  // Les questions de sens ne sont jamais coupées : sans elles, un sens deviné passerait pour sûr.
+  const directions = rest.filter((t) => /nicht sicher lesbar\. Gelesen:/.test(t));
+  const others = rest.filter((t) => !directions.includes(t));
+  const unklar = [...directions, ...free, ...others.slice(0, 2)].map((t) => t.slice(0, 120)).slice(0, 10);
   const nodes = new Set(elemente.flatMap((e) => ("a" in e ? [e.a, e.b] : [e.plus, e.minus, e.aus])));
   return {
     quelle: "bild",
