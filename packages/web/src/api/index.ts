@@ -143,6 +143,7 @@ import { PANIC_EXCERPT_CHARS, groundCheatSheet, panicModelSchema, panicPrompt, p
 import { sympyIsReady, sympyReady, verdictForTutor, verifyMath } from "./lib/sympy-verify";
 import { HTTPException } from "hono/http-exception";
 import { reasoningMaxMs, reasoningWatchdog } from "./lib/reasoning-watchdog";
+import { firstAttachedImage, readSchematic, schematicNote } from "./lib/circuit/vision-read";
 import { SOLVER_RETRY_NOTE, firstCallForce, retryForce, solverGateEnabled, solverGateStream } from "./lib/solver-gate";
 import { applySubscription, endSubscription, grantPass, grantRenewalCredits, markPaymentFailed } from "./lib/billing";
 import { isPassKind } from "./lib/passes";
@@ -1017,9 +1018,25 @@ app.post("/api/agent/messages", async (c) => {
   const turnTools: string[] = [];
   let turnText = "";
 
+  // ── Schéma photographié : deux lectures comparées (lib/circuit/vision-read.ts)
+  // D'accord → le tuteur reporte cette netlist ; pas d'accord → il fait
+  // vérifier les connexions en litige. Échec ou autre image : rien ne change.
+  const image = fast ? null : firstAttachedImage(pruneHistoryFiles(messages));
+  const readStarted = Date.now();
+  const schematic = image
+    ? await readSchematic(image.bytes, image.mediaType, { signal: c.req.raw.signal }).catch(() => null)
+    : null;
+  if (image) {
+    console.log(
+      `[schaltplan] user=${session.user.id.slice(0, 8)} lecture=${schematic?.kind ?? "aucune"}` +
+        (schematic?.kind === "disputed" ? ` litige=${schematic.disputed.length}` : "") +
+        ` ${Date.now() - readStarted}ms`,
+    );
+  }
+
   const agentOptions: Parameters<typeof buildTutorAgent>[0] = {
     route,
-    precomputedNote: fast?.modelNote ?? null,
+    precomputedNote: [fast?.modelNote, schematic ? schematicNote(schematic) : null].filter(Boolean).join("\n\n") || null,
     // Rigueur en sciences (lib/precision.ts) : température 0 sans
     // raisonnement, et le solveur à appeler pour CETTE question.
     temperature: samplingTemperature({ domain: fach.domain, thinking: route.thinking, text: lastUserText }),
@@ -1060,6 +1077,8 @@ app.post("/api/agent/messages", async (c) => {
     // Schaltplan als Bild/PDF : rechnen nur mit einer bestätigten Netzliste
     // (lib/circuit/netlist.ts). Gelesen aus dem Verlauf, den der Browser schickt.
     netlistGate: netlistGate(Array.isArray(messages) ? messages : []),
+    // Deux lectures concordantes : la netlist affichée est celle-là, pas celle du tuteur.
+    lockedSchematic: schematic?.kind === "agreed" ? schematic.reading : null,
     // Premier pas imposé : un solveur, ou la sortie honnête « kein_loeser_vorhanden ».
     forceTools: forceFirst ? firstCallForce() : undefined,
     memory: {

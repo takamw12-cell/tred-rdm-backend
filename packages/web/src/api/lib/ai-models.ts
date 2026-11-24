@@ -23,6 +23,8 @@
 
 export const DEFAULT_PRIMARY_MODEL = "anthropic/claude-sonnet-4.6";
 export const DEFAULT_FAST_MODEL = "anthropic/claude-haiku-4.5";
+/** Lecture des schémas photographiés (lib/circuit/vision-read.ts). */
+export const DEFAULT_VISION_MODEL = "anthropic/claude-opus-5.5";
 
 /** « fournisseur/modèle » : lettres, chiffres, tirets, points, deux-points. */
 const MODEL_ID = /^[a-z0-9][a-z0-9-]*\/[a-z0-9][a-z0-9.:-]*$/i;
@@ -50,3 +52,9 @@ export function resolveModel(name: string, fallback: string, env: Env = process.
 export const PRIMARY_MODEL = resolveModel("PRIMARY_AI_MODEL", DEFAULT_PRIMARY_MODEL);
 /** Le modèle rapide et bon marché (Haiku par défaut). */
 export const FAST_MODEL = resolveModel("FAST_AI_MODEL", DEFAULT_FAST_MODEL);
+/**
+ * Le modèle qui LIT les schémas (VISION_AI_MODEL). Mesuré le 24 nov. 2026 :
+ * le modèle principal a mal lu une photo de schéma, celui-ci l'a lue juste.
+ * Il ne sert qu'à cela : deux lectures courtes par image jointe.
+ */
+export const VISION_MODEL = resolveModel("VISION_AI_MODEL", DEFAULT_VISION_MODEL);
