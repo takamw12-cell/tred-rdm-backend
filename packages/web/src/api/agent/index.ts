@@ -9,7 +9,7 @@ import { calculate } from "../lib/calc";
 import { runBalkenstatik } from "../lib/beam-tool";
 import { runCircuitPipeline, schaltungBerechnenSchema } from "../lib/circuit/pipeline";
 import { checkNetlist, schaltplanInputSchema, type NetlistGate } from "../lib/circuit/netlist";
-import { lockedNetlistInput, type SchematicReading } from "../lib/circuit/vision-read";
+import { LOCK_FLAG, lockedNetlistInput, missingValueInstruction, missingValues, type NetlistLock } from "../lib/circuit/vision-read";
 import { mathInputSchema, solveMath } from "../lib/solvers/solveMath";
 import { solveThermo, thermoInputSchema } from "../lib/solvers/solveThermo";
 import { physicsInputSchema, solvePhysics } from "../lib/physics-solver";
@@ -300,10 +300,11 @@ export function buildTutorAgent(opts: {
   netlistGate?: NetlistGate;
   /**
    * Schaltplan, den zwei unabhängige Lesungen gleich gelesen haben
-   * (lib/circuit/vision-read.ts). schaltplan_erfassen trägt dann DIESE
-   * Bauteile und Knoten ein, nicht die des Modells.
+   * (lib/circuit/vision-read.ts) — auch in den Folgenachrichten ohne Bild.
+   * schaltplan_erfassen trägt dann DIESE Bauteile und Knoten ein; das Modell
+   * ändert nur, was die Person nennt.
    */
-  lockedSchematic?: SchematicReading | null;
+  lockedSchematic?: NetlistLock | null;
   /**
    * Appel d'outil imposé (lib/solver-gate.ts) : `toolChoice: "required"`,
    * outils limités à `tools`, tant qu'aucun outil de `until` n'a été appelé.
@@ -2363,7 +2364,17 @@ export function buildTutorAgent(opts: {
           "(doppelte Namen, getrennte Teilnetze, offene Enden) und zeigt die Liste auf der Tafel zur Bestätigung. " +
           "Rechnet nichts. Pflicht vor schaltung_berechnen, sobald ein Schaltplan als Bild oder PDF vorliegt.",
         inputSchema: schaltplanInputSchema,
-        execute: async (input) => checkNetlist(opts.lockedSchematic ? lockedNetlistInput(opts.lockedSchematic, input) : input),
+        execute: async (input) => {
+          if (!opts.lockedSchematic) return checkNetlist(input);
+          const locked = lockedNetlistInput(opts.lockedSchematic, input);
+          const check = checkNetlist(locked);
+          // La marque suit la carte dans le fil : le verrou tient aux tours suivants.
+          if (check.ok) return { ...check, [LOCK_FLAG]: true };
+          // Refus (valeur absente de l'énoncé) : la référence reste dans le fil,
+          // et le tuteur demande la valeur au lieu de rappeler l'outil en boucle.
+          const missing = missingValues(locked);
+          return { ...check, [LOCK_FLAG]: true, elemente: locked.elemente, ...(missing.length ? { anweisung: missingValueInstruction(missing) } : {}) };
+        },
       }),
 
       thermo_berechnen: tool({

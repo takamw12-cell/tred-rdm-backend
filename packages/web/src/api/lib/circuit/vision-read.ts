@@ -133,7 +133,7 @@ export type SchematicVerdict =
   | { kind: "agreed"; reading: SchematicReading }
   | { kind: "disputed"; first: SchematicReading; second: SchematicReading; disputed: string[] };
 
-const lines = (r: SchematicReading) => r.elemente.map((e) => `  ${e.typ} ${e.name}: a=${e.a} b=${e.b} wert=${e.wert || "?"}`).join("\n");
+const lines = (r: SchematicReading) => r.elemente.map((e) => `  ${e.typ} ${e.name}: a=${e.a} b=${e.b} wert=${e.wert || "(kein Wert angegeben)"}`).join("\n");
 const short = (list: string[]) => list.slice(0, 8).map((t) => t.slice(0, 160)).join("; ");
 const extras = (r: SchematicReading) =>
   (r.andere.length ? `\nWeitere Bauteile (nicht im Löser): ${short(r.andere)}` : "") + (r.unklar.length ? `\nUnklar: ${short(r.unklar)}` : "");
@@ -145,7 +145,8 @@ export function schematicNote(v: SchematicVerdict): string {
       "SCHALTPLAN-LESUNG (vom Code vorbereitet): Zwei unabhängige Lesungen des Bildes ergeben DIESELBE Schaltung.\n" +
       "Diese Netzliste steht FEST: ruf sofort schaltplan_erfassen auf (quelle \"bild\") — der Code trägt genau diese Bauteile und Knoten ein, " +
       "auch wenn du andere angibst. Lies das Bild NICHT neu, lass kein Bauteil weg, deute keines um (kein \"R4 ist ein Voltmeter\"). " +
-      "Schreib KEINE eigene Verbindungstabelle: verweise auf die Netzliste auf der Tafel. Fehlt ein Wert (wert=?), frag danach. " +
+      "Schreib KEINE eigene Verbindungstabelle: verweise auf die Netzliste auf der Tafel. " +
+      "Steht bei einem Bauteil \"kein Wert angegeben\": lass dessen wert leer und frag die Person danach; erfinde keinen. " +
       "V: a = Pluspol. I: Strom fließt in Knoten a.\n" +
       `${lines(v.reading)}${extras(v.reading)}\n` +
       "Die Person bestätigt die Netzliste wie immer, bevor gerechnet wird."
@@ -222,23 +223,131 @@ export function firstAttachedImage(messages: unknown[]): { bytes: Uint8Array; me
   return null;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Le verrou : la netlist lue deux fois ne se réécrit pas                     */
+/* -------------------------------------------------------------------------- */
+
+type AnyElement = SchaltplanInput["elemente"][number];
+
+export interface NetlistLock {
+  /** La netlist de référence : la double lecture, ou la dernière carte verrouillée du fil. */
+  elemente: (AnyElement | ReadElement)[];
+  unklar: string[];
+  /**
+   * La dernière question de l'étudiant. Le tuteur ne peut modifier QUE les
+   * composants qu'elle nomme (« R4 = 2 Ω », « I2 zeigt nach unten »).
+   * Vide au tour de la photo : rien n'est modifiable.
+   */
+  userText: string;
+}
+
+/** « R4 », « R_4 », « R 4 », « r4 » : le composant est-il nommé dans la question ? */
+export function mentions(text: string, name: string): boolean {
+  const m = /^([A-Za-zÀ-ÿ]+)[ _]?(\d+)?$/.exec(name.trim());
+  if (!m) return text.toLowerCase().includes(name.toLowerCase());
+  const pattern = `(?<![\\p{L}\\d])${m[1]}${m[2] ? `[ _{]*${m[2]}(?!\\d)` : "(?![\\p{L}\\d])"}`;
+  return new RegExp(pattern, "iu").test(text);
+}
+
+/** Une vraie valeur : « ? », « unbekannt » ou une chaîne vide n'en sont pas. */
+function hasValue(v: unknown): boolean {
+  if (typeof v === "number") return Number.isFinite(v);
+  if (typeof v !== "string" || v.trim() === "") return false;
+  try {
+    return Number.isFinite(parseSi(v));
+  } catch {
+    return false;
+  }
+}
+
+/** Les composants de la référence dont l'énoncé ne donne pas la valeur. */
+export const missingValues = (input: SchaltplanInput): string[] =>
+  input.elemente.filter((e) => "wert" in e && !hasValue(e.wert)).map((e) => e.name);
+
+export const missingValueInstruction = (names: string[]) =>
+  `In der Aufgabe steht kein Wert für ${names.join(", ")}. Die Verbindungen stehen fest und sind richtig gelesen. ` +
+  `Ruf schaltplan_erfassen NICHT noch einmal auf. Frag die Person in einem Satz nach dem Wert von ${names.join(", ")} ` +
+  "(oder ob er laut Aufgabe keine Rolle spielt) und warte auf die Antwort.";
+
 /**
- * L'entrée de `schaltplan_erfassen` quand les deux lectures concordent : les
- * composants et les nœuds viennent de la lecture, pas du tuteur. Essai du
- * 24 nov. 2026 : avec la bonne netlist sous les yeux, le tuteur a quand même
- * retiré R4 et déplacé R2. Une consigne ne suffit pas ; le code tranche.
+ * L'entrée de `schaltplan_erfassen` sous verrou : composants et nœuds viennent
+ * de la référence, pas du tuteur.
  *
- * Seule une VALEUR absente de la lecture (non donnée dans l'énoncé) peut venir
- * du tuteur ; sans elle, `checkNetlist` refuse et le tuteur la demande.
+ * Essais du 24 nov. 2026 : avec la bonne netlist sous les yeux, le tuteur a
+ * retiré R4 et déplacé R2 ; au message suivant (la photo n'y est plus), il a
+ * redessiné tout le circuit de mémoire. Une consigne ne suffit pas : le code
+ * tranche.
+ *
+ *   - composant nommé par l'étudiant → la version du tuteur (correction) ;
+ *   - valeur absente de l'énoncé → celle du tuteur, signalée comme supposée ;
+ *   - tout le reste → la référence, inchangée.
  */
-export function lockedNetlistInput(reading: SchematicReading, model: SchaltplanInput): SchaltplanInput {
-  const given = new Map<string, string | number>();
-  for (const el of model.elemente ?? []) if ("wert" in el) given.set(el.name, el.wert);
-  const unklar = [...new Set([...reading.unklar, ...(model.unklar ?? [])])].map((t) => t.slice(0, 120)).slice(0, 10);
+export function lockedNetlistInput(lock: NetlistLock, model: SchaltplanInput): SchaltplanInput {
+  const proposed = new Map<string, AnyElement>();
+  for (const el of model.elemente ?? []) proposed.set(el.name, el);
+  const named = (name: string) => lock.userText.trim() !== "" && mentions(lock.userText, name);
+
+  const assumed: string[] = [];
+  const elemente: AnyElement[] = [];
+  const known = new Set<string>();
+  for (const base of lock.elemente) {
+    known.add(base.name);
+    const theirs = proposed.get(base.name);
+    if (named(base.name)) {
+      // Nommé et absent de la proposition : l'étudiant l'a fait retirer.
+      if (theirs) elemente.push(theirs);
+      continue;
+    }
+    if ("wert" in base && !hasValue(base.wert)) {
+      const value = theirs && "wert" in theirs && hasValue(theirs.wert) ? theirs.wert : "";
+      if (value !== "") assumed.push(`${base.name}: kein Wert in der Aufgabe, ${value} angenommen. Bitte prüfen.`);
+      elemente.push({ ...base, wert: value } as AnyElement);
+      continue;
+    }
+    elemente.push(base as AnyElement);
+  }
+  // Un composant ajouté n'entre que si l'étudiant le nomme.
+  for (const el of model.elemente ?? []) if (!known.has(el.name) && named(el.name)) elemente.push(el);
+
+  // Les remarques sur une valeur manquante sont remplacées par la ligne exacte ci-dessus.
+  const rest = lock.unklar.filter((t) => !/\b(wert|value|valeur)\b/i.test(t));
+  const unklar = [...assumed, ...rest.slice(0, 2)].map((t) => t.slice(0, 120)).slice(0, 10);
+  const nodes = new Set(elemente.flatMap((e) => ("a" in e ? [e.a, e.b] : [e.plus, e.minus, e.aus])));
   return {
     quelle: "bild",
-    masse: "0",
-    elemente: reading.elemente.map((e) => ({ typ: e.typ, name: e.name, a: e.a, b: e.b, wert: e.wert.trim() || given.get(e.name) || "" })),
+    masse: nodes.has("0") ? "0" : (model.masse ?? "0"),
+    elemente,
     ...(unklar.length ? { unklar } : {}),
   };
 }
+
+/** Marque d'une carte produite sous verrou : le fil la retrouve aux tours suivants. */
+export const LOCK_FLAG = "fest";
+
+/**
+ * La dernière netlist verrouillée du fil. Aux tours sans photo, elle reste la
+ * référence : le tuteur n'a plus l'image et ne doit pas la reconstruire de mémoire.
+ */
+export function lockFromHistory(messages: unknown[], userText: string): NetlistLock | null {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const m = messages[i] as { role?: string; parts?: { type?: string; toolName?: string; state?: string; output?: unknown }[] };
+    if (m?.role !== "assistant" || !Array.isArray(m.parts)) continue;
+    for (let j = m.parts.length - 1; j >= 0; j -= 1) {
+      const p = m.parts[j];
+      const isCard = (p?.type === "tool-schaltplan_erfassen" || (p?.type === "dynamic-tool" && p.toolName === "schaltplan_erfassen")) && p.state === "output-available";
+      if (!isCard) continue;
+      const out = p.output as { ok?: boolean; elemente?: AnyElement[]; [LOCK_FLAG]?: boolean } | null;
+      // Une carte refusée (valeur manquante) garde quand même la référence.
+      if (!out || out[LOCK_FLAG] !== true || !Array.isArray(out.elemente)) continue;
+      return { elemente: out.elemente, unklar: [], userText };
+    }
+  }
+  return null;
+}
+
+/** Consigne des tours suivants, sans photo. */
+export const LOCK_FOLLOWUP_NOTE =
+  "SCHALTPLAN STEHT FEST: Die Netzliste dieses Gesprächs wurde zweimal unabhängig aus dem Bild gelesen. " +
+  "Du hast das Bild NICHT mehr vor dir: zeichne oder lies die Schaltung nicht neu. " +
+  "Ändert die Person etwas (Wert, Richtung, Verbindung), ruf schaltplan_erfassen auf und ändere NUR die Bauteile, die sie nennt — " +
+  "alle anderen übernimmt der Code unverändert. Zum Rechnen gilt die bestätigte Netzliste.";

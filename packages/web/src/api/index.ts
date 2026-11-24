@@ -143,7 +143,7 @@ import { PANIC_EXCERPT_CHARS, groundCheatSheet, panicModelSchema, panicPrompt, p
 import { sympyIsReady, sympyReady, verdictForTutor, verifyMath } from "./lib/sympy-verify";
 import { HTTPException } from "hono/http-exception";
 import { reasoningMaxMs, reasoningWatchdog } from "./lib/reasoning-watchdog";
-import { firstAttachedImage, readSchematic, schematicNote } from "./lib/circuit/vision-read";
+import { LOCK_FOLLOWUP_NOTE, firstAttachedImage, lockFromHistory, readSchematic, schematicNote, type NetlistLock } from "./lib/circuit/vision-read";
 import { SOLVER_RETRY_NOTE, firstCallForce, retryForce, solverGateEnabled, solverGateStream } from "./lib/solver-gate";
 import { applySubscription, endSubscription, grantPass, grantRenewalCredits, markPaymentFailed } from "./lib/billing";
 import { isPassKind } from "./lib/passes";
@@ -1034,9 +1034,19 @@ app.post("/api/agent/messages", async (c) => {
     );
   }
 
+  // Le verrou : la double lecture au tour de la photo, puis la dernière carte
+  // verrouillée du fil aux tours suivants (la photo n'y est plus jointe).
+  const netlistLock: NetlistLock | null =
+    schematic?.kind === "agreed"
+      ? { elemente: schematic.reading.elemente, unklar: schematic.reading.unklar, userText: "" }
+      : image
+        ? null
+        : lockFromHistory(Array.isArray(messages) ? messages : [], lastUserText);
+  const lockNote = schematic ? schematicNote(schematic) : netlistLock ? LOCK_FOLLOWUP_NOTE : null;
+
   const agentOptions: Parameters<typeof buildTutorAgent>[0] = {
     route,
-    precomputedNote: [fast?.modelNote, schematic ? schematicNote(schematic) : null].filter(Boolean).join("\n\n") || null,
+    precomputedNote: [fast?.modelNote, lockNote].filter(Boolean).join("\n\n") || null,
     // Rigueur en sciences (lib/precision.ts) : température 0 sans
     // raisonnement, et le solveur à appeler pour CETTE question.
     temperature: samplingTemperature({ domain: fach.domain, thinking: route.thinking, text: lastUserText }),
@@ -1078,9 +1088,16 @@ app.post("/api/agent/messages", async (c) => {
     // (lib/circuit/netlist.ts). Gelesen aus dem Verlauf, den der Browser schickt.
     netlistGate: netlistGate(Array.isArray(messages) ? messages : []),
     // Deux lectures concordantes : la netlist affichée est celle-là, pas celle du tuteur.
-    lockedSchematic: schematic?.kind === "agreed" ? schematic.reading : null,
+    lockedSchematic: netlistLock,
     // Premier pas imposé : un solveur, ou la sortie honnête « kein_loeser_vorhanden ».
-    forceTools: forceFirst ? firstCallForce() : undefined,
+    // Deux lectures concordantes : le premier pas EST la carte de la netlist.
+    // Sans elle, rien n'est verrouillé pour les messages suivants (essai du
+    // 24 nov. : une fois sur deux, le tuteur ne l'affichait pas).
+    forceTools: forceFirst
+      ? firstCallForce()
+      : schematic?.kind === "agreed"
+        ? { tools: ["schaltplan_erfassen"], until: ["schaltplan_erfassen"] }
+        : undefined,
     memory: {
       open: gaps,
       note: (input) => noteGap(uid, { ...input, semesterId: semesterId ?? null }),

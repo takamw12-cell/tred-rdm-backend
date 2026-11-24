@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { compareReadings, lockedNetlistInput, readSchematic, schematicNote, type SchematicReading } from "../src/api/lib/circuit/vision-read";
+import { LOCK_FLAG, compareReadings, lockFromHistory, lockedNetlistInput, mentions, missingValues, readSchematic, schematicNote, type SchematicReading } from "../src/api/lib/circuit/vision-read";
 import { checkNetlist } from "../src/api/lib/circuit/netlist";
 
 /**
@@ -119,21 +119,72 @@ describe("ce que le tuteur reçoit", () => {
 });
 
 describe("lectures concordantes : la netlist affichée vient du code, pas du tuteur", () => {
-  const ZERO = reading(A13.elemente.map((e) => [e.typ, e.name, e.a === "B" ? "0" : e.a, e.b === "B" ? "0" : e.b, e.wert] as [string, string, string, string, string]));
+  type El = [string, string, string, string, string];
+  const ZERO = reading(A13.elemente.map((e) => [e.typ, e.name, e.a === "B" ? "0" : e.a, e.b === "B" ? "0" : e.b, e.wert] as El));
+  const lock = (userText = "") => ({ elemente: ZERO.elemente, unklar: ["Wert von R4 ist im Aufgabentext nicht angegeben", "Pfeilrichtung von I1 schwer lesbar", "x", "y"], userText });
+  /** Ce que le tuteur a proposé le 24 nov. : R2 déplacé, R4 ailleurs avec une valeur inventée. */
+  const tutor = { quelle: "bild" as const, unklar: ["bitte bestätigen lassen"], elemente: [{ typ: "R" as const, name: "R2", a: "K2", b: "0", wert: 1 }, { typ: "R" as const, name: "R4", a: "X", b: "Y", wert: "1" }, { typ: "R" as const, name: "R9", a: "X", b: "0", wert: 5 }] };
 
-  test("le tuteur retire R4 et déplace R2 (essai du 24 nov.) : la netlist garde R4 et la vraie place de R2", () => {
-    const tutor = { quelle: "bild" as const, elemente: [{ typ: "R" as const, name: "R2", a: "K2", b: "0", wert: 1 }, { typ: "R" as const, name: "R4", a: "X", b: "Y", wert: "1k" }] };
-    const locked = lockedNetlistInput(ZERO, tutor);
+  test("tour de la photo : la netlist garde R4 et la vraie place de R2, rien n'est ajouté", () => {
+    const locked = lockedNetlistInput(lock(), tutor);
     expect(locked.elemente.map((e) => e.name)).toEqual(ZERO.elemente.map((e) => e.name));
     expect(locked.elemente.find((e) => e.name === "R2")).toMatchObject({ a: "0", b: "F" });
     // Seule la valeur absente de l'énoncé vient du tuteur ; les nœuds, jamais.
-    expect(locked.elemente.find((e) => e.name === "R4")).toMatchObject({ a: "C", b: "D", wert: "1k" });
+    expect(locked.elemente.find((e) => e.name === "R4")).toMatchObject({ a: "C", b: "D", wert: "1" });
     expect(checkNetlist(locked).ok).toBe(true);
   });
 
+  test("valeur supposée : UNE ligne claire, pas sept avertissements", () => {
+    const locked = lockedNetlistInput(lock(), tutor);
+    expect(locked.unklar).toEqual(["R4: kein Wert in der Aufgabe, 1 angenommen. Bitte prüfen.", "Pfeilrichtung von I1 schwer lesbar", "x"]);
+  });
+
   test("valeur absente partout : la netlist est refusée, le tuteur doit la demander", () => {
-    const check = checkNetlist(lockedNetlistInput(ZERO, { quelle: "bild", elemente: [{ typ: "R", name: "R1", a: "a", b: "b", wert: 1 }] }));
+    const check = checkNetlist(lockedNetlistInput(lock(), { quelle: "bild", elemente: [{ typ: "R", name: "R1", a: "a", b: "b", wert: 1 }] }));
     expect(check.ok).toBe(false);
     expect(JSON.stringify(check)).toContain("R4");
+  });
+
+  test("« ? » n'est pas une valeur : refus, mais la référence reste dans le fil pour le message suivant", () => {
+    const locked = lockedNetlistInput(lock(), { quelle: "bild", elemente: [{ typ: "R", name: "R4", a: "C", b: "D", wert: "?" }] });
+    expect(missingValues(locked)).toEqual(["R4"]);
+    const refused = { ...checkNetlist(locked), [LOCK_FLAG]: true, elemente: locked.elemente };
+    expect(refused.ok).toBe(false);
+    const thread = [{ role: "assistant", parts: [{ type: "tool-schaltplan_erfassen", state: "output-available", output: refused }] }];
+    const next = lockFromHistory(thread, "R4 = 2 Ω");
+    const fixed = lockedNetlistInput(next!, { quelle: "bild", elemente: [{ typ: "R", name: "R4", a: "C", b: "D", wert: "2" }, { typ: "R", name: "R2", a: "X", b: "0", wert: 9 }] });
+    expect(checkNetlist(fixed).ok).toBe(true);
+    expect(fixed.elemente.find((e) => e.name === "R2")).toMatchObject({ a: "0", b: "F", wert: "1" });
+  });
+
+  test("message suivant, sans photo : le verrou vient de la dernière carte du fil", () => {
+    const card = { ...checkNetlist(lockedNetlistInput(lock(), tutor)), [LOCK_FLAG]: true };
+    const thread = [
+      { role: "user", parts: [{ type: "text", text: "[Anhang aus einer früheren Nachricht]" }] },
+      { role: "assistant", parts: [{ type: "tool-schaltplan_erfassen", state: "output-available", output: card }] },
+      { role: "user", parts: [{ type: "text", text: "Corriger la netlist : R4 = 2 Ω" }] },
+    ];
+    const next = lockFromHistory(thread, "Corriger la netlist : R4 = 2 Ω");
+    expect(next?.elemente).toHaveLength(8);
+
+    // Le tuteur redessine tout de mémoire (carte fausse de 14 h 18) : seul R4, nommé, change.
+    const redrawn = { quelle: "bild" as const, elemente: [{ typ: "R" as const, name: "R2", a: "K2", b: "0", wert: 1 }, { typ: "R" as const, name: "R4", a: "C", b: "D", wert: "2" }, { typ: "I" as const, name: "I3", a: "K5", b: "0", wert: 1 }] };
+    const locked = lockedNetlistInput(next!, redrawn);
+    expect(locked.elemente).toHaveLength(8);
+    expect(locked.elemente.find((e) => e.name === "R4")).toMatchObject({ wert: "2" });
+    expect(locked.elemente.find((e) => e.name === "R2")).toMatchObject({ a: "0", b: "F" });
+    expect(locked.elemente.find((e) => e.name === "I3")).toMatchObject({ a: "E", b: "D" });
+  });
+
+  test("une carte sans la marque (lecture du tuteur seul) ne verrouille rien", () => {
+    const card = checkNetlist({ quelle: "bild", elemente: [{ typ: "V", name: "U", a: "1", b: "0", wert: 5 }, { typ: "R", name: "R", a: "1", b: "0", wert: 10 }] });
+    expect(lockFromHistory([{ role: "assistant", parts: [{ type: "tool-schaltplan_erfassen", state: "output-available", output: card }] }], "ja")).toBeNull();
+  });
+
+  test("« R4 » nommé : R4, R_4, r 4 — mais pas R40 ni un mot qui contient r4", () => {
+    for (const t of ["R4 = 2 Ω", "der R_4 fehlt", "r 4 ist falsch", "$R_{4}$"]) expect(mentions(t, "R4")).toBe(true);
+    for (const t of ["R40 = 2", "R1 und R3", "Wert4"]) expect(mentions(t, "R4")).toBe(false);
+    expect(mentions("C ist zu groß", "C")).toBe(true);
+    expect(mentions("Calcule", "C")).toBe(false);
   });
 });

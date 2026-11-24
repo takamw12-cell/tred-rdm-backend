@@ -92,9 +92,10 @@ describe("un raisonnement qui ne conclut pas est coupé et relancé sans raisonn
 
   test("après le premier mot ou le premier outil, le délai ne s'applique plus", async () => {
     let built = false;
-    const slow: Chunk[] = [{ type: "start" }, { type: "start-step" }, { type: "tool-input-start", toolName: "schaltplan_erfassen" }, ...Array.from({ length: 12 }, () => ({ type: "reasoning-delta", id: "0", delta: "x" })), { type: "finish-step" }, { type: "finish" }];
+    const slow: Chunk[] = [{ type: "start" }, { type: "start-step" }, { type: "tool-input-start", toolName: "schaltplan_erfassen" }, ...Array.from({ length: 40 }, () => ({ type: "reasoning-delta", id: "0", delta: "x" })), { type: "finish-step" }, { type: "finish" }];
+    // L'outil arrive vers 30 ms, bien avant le délai ; le flux dure ensuite ~400 ms, bien après.
     const stream = reasoningWatchdog<Chunk>({
-      maxMs: 40,
+      maxMs: 250,
       first: fake(slow, { gapMs: 10 }),
       fallback: (signal) => {
         built = true;
