@@ -1,0 +1,104 @@
+TRED — 6 UGC-Videos (3 EN, 3 DE), 9:16, 1080 × 1920, 20–30 s
+Sechs verschiedene Videos, keine Übersetzungen: jedes zeigt eine andere Funktion.
+Aufbau: Hook (0–3 s) · Problem · Lösung mit echter TRED-Oberfläche · CTA.
+
+Regeln (UWG): keine absoluten Versprechen ("bestehen", "keine Fehler", "keine
+Halluzination"), kein namentlich genannter Wettbewerber, nur Funktionen, die es
+in der App gibt. Jede Aussage unten ist am Code geprüft (Stand 24.11.2026);
+die Zeile "Beleg" nennt die Stelle.
+
+──────────────────────────────────────────────────────────────────────────────
+EN 1 — "The 11 PM Panic"                                   Feature: Panic Mode
+──────────────────────────────────────────────────────────────────────────────
+HOOK (0–3 s)      It's 11 PM. Your exam is tomorrow. You have 80 pages left.
+PROBLEM (3–7 s)   You can't read all of it tonight. And you don't know which
+                  pages matter.
+SOLUTION (7–20 s) Open TRED and hit Panic Mode. Pick your script. TRED pulls
+                  the 3 hardest concepts and the 3 key formulas out of YOUR
+                  PDF — each one with the page it comes from. Tap one, and it
+                  explains it with an example from your own notes.
+CTA (20–25 s)     Start free. Link in bio.
+SCREEN            Dashboard → button "Panic mode: exam tomorrow?" → cheat
+                  sheet with 3 concepts, 3 formulas, page numbers.
+Beleg             web/components/panic-card.tsx; i18n "panic.intro".
+Geändert          "the 3 exact formulas you need to pass" and "Save your grade"
+                  removed: both promise an exam result.
+
+──────────────────────────────────────────────────────────────────────────────
+EN 2 — "Show Me the Page"                        Feature: PDF source + SymPy
+──────────────────────────────────────────────────────────────────────────────
+HOOK (0–3 s)      Your AI chatbot just handed you a formula. Where is it from?
+PROBLEM (3–7 s)   No source. No page. You copy it into your homework and hope.
+SOLUTION (7–20 s) TRED answers from your own course files and shows the page
+                  it used. And when it calculates, a solver does the math and
+                  the result is checked with SymPy — you see the check on
+                  screen.
+CTA (20–25 s)     Proof from your own PDF. Try it free.
+SCREEN            Chat answer with the source chip "Skript · p. 12" → open
+                  the page → solver card with the green check.
+Beleg             Quellenangaben im Chat; lib/sympy-verify.ts; Probe-Karte.
+Geändert          Title "The ChatGPT Lie" and the sentence "ChatGPT just made
+                  up a formula" removed (named competitor, unprovable claim).
+                  "TRED doesn't guess", "every calculation" and "not
+                  hallucinations" removed (absolute promises).
+                  "highlights the exact sentence" removed: TRED shows the
+                  page; sentence highlighting is not verified in the app.
+
+──────────────────────────────────────────────────────────────────────────────
+EN 3 — "The 3D Lab"                                    Feature: Interactive Lab
+──────────────────────────────────────────────────────────────────────────────
+HOOK (0–3 s)      Stop memorizing formulas you can't picture.
+PROBLEM (3–7 s)   F = m·a looks easy on paper. Then the exam changes one
+                  number and you're lost.
+SOLUTION (7–20 s) In TRED's Lab the formula becomes a 3D scene. Drag a slider,
+                  watch the forces change, and see what each symbol really
+                  does.
+CTA (20–25 s)     Learn by doing. Link in bio.
+SCREEN            Labo: a 3D simulation, sliders moving, values updating.
+Beleg             TRED Labo (Simulationen, mit SymPy geprüft).
+Geändert          "understand the concept in seconds" removed (promise).
+
+──────────────────────────────────────────────────────────────────────────────
+DE 1 — "Dein persönlicher Prof"                    Funktion: eigener Professor
+──────────────────────────────────────────────────────────────────────────────
+HOOK (0–3 s)      Keine Lust mehr auf KI-Chatbots, die alle gleich klingen?
+PROBLEM (3–7 s)   Dieselbe Stimme, derselbe Ton, dieselbe Erklärung für alle.
+LÖSUNG (7–20 s)   Bei TRED baust du dir deinen eigenen Professor. Gib ihm
+                  einen Namen, wähl seine Stimme, hör sie dir vorher an – und
+                  lass dir den Stoff in deinem Lernstil erklären.
+CTA (20–25 s)     Dein Prof wartet. Jetzt testen.
+BILD              Einstellungen → "Eigener Professor": Name, Stimme, "Stimme
+                  testen" → Chat mit diesem Namen.
+Beleg             web/components/professor-custom.tsx.
+Geändert          "so erklären, wie du sie verstehst" → "in deinem Lernstil".
+
+──────────────────────────────────────────────────────────────────────────────
+DE 2 — "Lernen wie im Game"                          Funktion: Arcade & Credits
+──────────────────────────────────────────────────────────────────────────────
+HOOK (0–3 s)      Langweilig beim Lernen? Dann mach ein Spiel draus.
+PROBLEM (3–7 s)   Karteikarten zum zehnten Mal. Du liest, aber nichts bleibt.
+LÖSUNG (7–20 s)   In der TRED-Arcade spielst du Quizrunden gegen die Uhr, mit
+                  Fragen aus deinen eigenen Unterlagen. Schaffst du eine Runde
+                  ohne Fehler, gibt es Credits für deinen KI-Tutor.
+CTA (20–25 s)     Mach das Lernen zum Spiel. Link in Bio.
+BILD              Arcade: Countdown, Frage, Konfetti, "+2 Credits".
+Beleg             api/arcade/routes.ts: 2 Credits je perfektem Durchgang,
+                  mit Tageslimit.
+Geändert          "Je mehr du lernst, desto mehr Credits" gestrichen: Credits
+                  gibt es nur für perfekte Runden, und nur bis zum Tageslimit.
+
+──────────────────────────────────────────────────────────────────────────────
+DE 3 — "Der 7-Tage-Plan"                              Funktion: Briefing & Plan
+──────────────────────────────────────────────────────────────────────────────
+HOOK (0–3 s)      Klausur in 7 Tagen und keinen Plan, wo du anfangen sollst?
+PROBLEM (3–7 s)   Du öffnest das Skript, scrollst – und machst es wieder zu.
+LÖSUNG (7–20 s)   Lade dein Skript hoch und trag dein Klausurdatum ein. TRED
+                  zeigt dir jeden Tag ein Briefing: wie viele Tage noch
+                  bleiben und welches Thema heute dran ist.
+CTA (20–25 s)     Dein persönlicher Lernplan. Kostenlos starten.
+BILD              Dashboard: "Dein Briefing – Noch 7 Tage bis zur Klausur in
+                  Elektrotechnik", darunter der Lernplan.
+Beleg             api/lib/briefing.ts (Fall "exam": Countdown + Thema des
+                  Tages, ab 21 Tagen vor der Klausur).
+Geändert          "jeden Morgen" → "jeden Tag"; "um rechtzeitig fertig zu
+                  werden" gestrichen (Erfolgsversprechen).
