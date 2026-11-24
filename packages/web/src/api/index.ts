@@ -143,7 +143,7 @@ import { PANIC_EXCERPT_CHARS, groundCheatSheet, panicModelSchema, panicPrompt, p
 import { sympyIsReady, sympyReady, verdictForTutor, verifyMath } from "./lib/sympy-verify";
 import { HTTPException } from "hono/http-exception";
 import { reasoningMaxMs, reasoningWatchdog } from "./lib/reasoning-watchdog";
-import { LOCK_FOLLOWUP_NOTE, firstAttachedImage, lockFromHistory, readSchematic, schematicNote, type NetlistLock } from "./lib/circuit/vision-read";
+import { LOCK_FOLLOWUP_NOTE, firstAttachedImage, lockFromHistory, planOf, readSchematic, schematicNote, type NetlistLock } from "./lib/circuit/vision-read";
 import { SOLVER_RETRY_NOTE, firstCallForce, retryForce, solverGateEnabled, solverGateStream } from "./lib/solver-gate";
 import { applySubscription, endSubscription, grantPass, grantRenewalCredits, markPaymentFailed } from "./lib/billing";
 import { isPassKind } from "./lib/passes";
@@ -1042,7 +1042,7 @@ app.post("/api/agent/messages", async (c) => {
   // verrouillée du fil aux tours suivants (la photo n'y est plus jointe).
   const netlistLock: NetlistLock | null =
     schematic?.kind === "agreed"
-      ? { elemente: schematic.reading.elemente, unklar: schematic.reading.unklar, userText: "" }
+      ? { elemente: schematic.reading.elemente, unklar: schematic.reading.unklar, userText: "", plan: planOf(schematic.reading) }
       : image
         ? null
         : lockFromHistory(Array.isArray(messages) ? messages : [], lastUserText);

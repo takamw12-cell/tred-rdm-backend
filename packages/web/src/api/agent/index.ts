@@ -2378,7 +2378,7 @@ export function buildTutorAgent(opts: {
           // La marque suit la carte dans le fil : le verrou tient aux tours suivants.
           if (check.ok) return { ...check, [LOCK_FLAG]: true };
           // Refus : la référence reste quand même dans le fil.
-          return { ...check, [LOCK_FLAG]: true, elemente: locked.elemente, ...(locked.frei ? { frei: locked.frei } : {}) };
+          return { ...check, [LOCK_FLAG]: true, elemente: locked.elemente, ...(locked.frei ? { frei: locked.frei } : {}), ...(locked.plan ? { plan: locked.plan } : {}) };
         },
       }),
 

@@ -44,7 +44,14 @@ export const schaltplanInputSchema = z.object({
     .max(20)
     .optional()
     .describe("Bauteile, deren Wert die Aufgabe NICHT angibt. Beim Rechnen prüft der Code, ob sie das Ergebnis beeinflussen."),
+  plan: z
+    .record(z.string().max(20), z.tuple([z.number().int(), z.number().int(), z.number().int(), z.number().int()]))
+    .optional()
+    .describe("Lage im Bild, vom Code gesetzt: Bauteil → [ax, ay, bx, by] auf einem Raster. Nicht selbst ausfüllen."),
 });
+
+/** Lage eines Bauteils im Bild: Rasterpunkte seiner Anschlüsse a und b. */
+export type PlanEntry = [number, number, number, number];
 
 export type SchaltplanInput = z.infer<typeof schaltplanInputSchema>;
 
@@ -58,6 +65,8 @@ export interface NetlistView {
   hinweise: string[];
   /** Bauteile ohne Wert in der Aufgabe (lib/circuit/pipeline.ts prüft ihren Einfluss). */
   frei?: string[];
+  /** Lage der Bauteile im Bild: die Tafel zeichnet den Schaltplan so, wie er auf dem Foto steht. */
+  plan?: Record<string, PlanEntry>;
 }
 
 export type NetlistCheck =
@@ -179,6 +188,7 @@ export function checkNetlist(raw: SchaltplanInput): NetlistCheck {
     unklar,
     hinweise,
     ...(input.frei?.length ? { frei: input.frei.filter((n) => names.has(n)) } : {}),
+    ...(input.plan ? { plan: input.plan } : {}),
     anweisung: ANWEISUNG_OK,
   };
 }

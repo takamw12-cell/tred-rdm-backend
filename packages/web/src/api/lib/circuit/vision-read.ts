@@ -31,7 +31,7 @@ import { gateway } from "../../agent/gateway";
 import { VISION_MODEL } from "../ai-models";
 import { dataUrlBytes } from "../chat-attachments";
 import { parseSi } from "../solvers/solveCircuit";
-import type { SchaltplanInput } from "./netlist";
+import type { PlanEntry, SchaltplanInput } from "./netlist";
 
 const node = z.string().min(1).max(20);
 
@@ -48,6 +48,10 @@ export const schematicReadingSchema = z.object({
       }),
     )
     .max(60),
+  lage: z
+    .array(z.object({ name: z.string().min(1).max(20), ax: z.number().int(), ay: z.number().int(), bx: z.number().int(), by: z.number().int() }))
+    .max(60)
+    .describe("Wo jedes Bauteil im aufgerichteten Bild liegt: Rasterpunkte seiner Anschlüsse a und b"),
   andere: z.array(z.string().min(1).max(300)).max(20).describe("Bauteile außerhalb von R, L, C, V, I: Schalter, Diode, OPV, Messgerät … mit ihren Knoten"),
   // Bornes larges : une remarque trop longue ne doit pas faire rejeter une lecture juste.
   unklar: z.array(z.string().min(1).max(400)).max(20).describe("Was nicht sicher lesbar ist, je ein kurzer Stichpunkt. Lieber nennen als raten."),
@@ -65,7 +69,11 @@ export const READ_PROMPT =
   "- Stromquelle: der Strom fließt von b nach a (a = Knoten an der Pfeilspitze).\n" +
   "- Werte aus dem Aufgabentext übernehmen (\"R1 = R2 = 1Ω\" gilt für beide). Kein Wert angegeben: wert = \"\" und in unklar nennen.\n" +
   "- Rate nichts. Was du nicht sicher siehst, steht in unklar: höchstens drei kurze Stichpunkte.\n" +
-  "- Kein Schaltplan im Bild: istSchaltplan = false, elemente leer.";
+  "- Kein Schaltplan im Bild: istSchaltplan = false, elemente leer.\n" +
+  "- lage: wo jedes Bauteil im AUFGERICHTETEN Bild liegt (Schrift waagerecht lesbar), auf einem groben Raster. " +
+  "x wächst nach rechts, y nach unten, ganze Zahlen 0…12. Für jedes Bauteil die Rasterpunkte seiner beiden Anschlüsse: " +
+  "(ax, ay) = Anschluss a, (bx, by) = Anschluss b. Waagerecht gezeichnet: ay = by; senkrecht: ax = bx; Länge 2 Rastereinheiten. " +
+  "Bauteile auf derselben Leitung haben dieselbe Zeile bzw. Spalte. Zwei Bauteile liegen nie übereinander.";
 
 /* -------------------------------------------------------------------------- */
 /* Comparaison (pure)                                                         */
@@ -242,7 +250,13 @@ export interface NetlistLock {
   userText: string;
   /** Composants dont l'énoncé ne donne pas la valeur (repris de la carte précédente). */
   frei?: string[];
+  /** Position des composants sur la photo : le schéma est redessiné tel qu'il y figure. */
+  plan?: Record<string, PlanEntry>;
 }
+
+/** Les positions lues, par composant. */
+export const planOf = (reading: SchematicReading): Record<string, PlanEntry> =>
+  Object.fromEntries((reading.lage ?? []).map((l) => [l.name, [l.ax, l.ay, l.bx, l.by] as PlanEntry]));
 
 /** « R4 », « R_4 », « R 4 », « r4 » : le composant est-il nommé dans la question ? */
 export function mentions(text: string, name: string): boolean {
@@ -323,6 +337,8 @@ export function lockedNetlistInput(lock: NetlistLock, model: SchaltplanInput): S
     elemente,
     ...(unklar.length ? { unklar } : {}),
     ...(frei.size ? { frei: [...frei] } : {}),
+    // Seuls les composants encore présents gardent leur place.
+    ...(lock.plan ? { plan: Object.fromEntries(Object.entries(lock.plan).filter(([n]) => elemente.some((e) => e.name === n))) } : {}),
   };
 }
 
@@ -341,10 +357,10 @@ export function lockFromHistory(messages: unknown[], userText: string): NetlistL
       const p = m.parts[j];
       const isCard = (p?.type === "tool-schaltplan_erfassen" || (p?.type === "dynamic-tool" && p.toolName === "schaltplan_erfassen")) && p.state === "output-available";
       if (!isCard) continue;
-      const out = p.output as { ok?: boolean; elemente?: AnyElement[]; frei?: string[]; [LOCK_FLAG]?: boolean } | null;
+      const out = p.output as { ok?: boolean; elemente?: AnyElement[]; frei?: string[]; plan?: Record<string, PlanEntry>; [LOCK_FLAG]?: boolean } | null;
       // Une carte refusée (valeur manquante) garde quand même la référence.
       if (!out || out[LOCK_FLAG] !== true || !Array.isArray(out.elemente)) continue;
-      return { elemente: out.elemente, unklar: [], userText, frei: Array.isArray(out.frei) ? out.frei : [] };
+      return { elemente: out.elemente, unklar: [], userText, frei: Array.isArray(out.frei) ? out.frei : [], ...(out.plan ? { plan: out.plan } : {}) };
     }
   }
   return null;

@@ -12,6 +12,7 @@ import { runCircuitPipeline } from "../src/api/lib/circuit/pipeline";
 const reading = (elemente: [string, string, string, string, string][], more: Partial<SchematicReading> = {}): SchematicReading => ({
   istSchaltplan: true,
   elemente: elemente.map(([typ, name, a, b, wert]) => ({ typ: typ as "R", name, a, b, wert })),
+  lage: [],
   andere: [],
   unklar: [],
   ...more,
@@ -105,7 +106,7 @@ describe("ce que le tuteur reçoit", () => {
   });
 
   test("pas un schéma, ou une lecture en échec : rien — le tuteur fait comme avant", async () => {
-    const none: SchematicReading = { istSchaltplan: false, elemente: [], andere: [], unklar: [] };
+    const none: SchematicReading = { istSchaltplan: false, elemente: [], lage: [], andere: [], unklar: [] };
     expect(await readSchematic(img, "image/jpeg", { read: async () => none })).toBeNull();
     let n = 0;
     expect(

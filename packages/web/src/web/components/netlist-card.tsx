@@ -11,6 +11,8 @@ import {
   valueLabel,
   type NetlistEventDetail,
 } from "@/lib/netlist-block";
+import { layoutSchematic } from "@/lib/schematic-layout";
+import { SchematicSvg } from "@/components/schematic-drawing";
 import type { ProofEquation } from "../../api/lib/circuit/proof";
 
 export { NETLIST_LANG, PROOF_LANG, netlistBlockFromPart, proofBlockFromPart } from "@/lib/netlist-block";
@@ -38,6 +40,10 @@ export function NetlistCard({ code }: { code: string }) {
   const { t } = useT();
   const view = useMemo(() => parseNetlistBlock(code), [code]);
   const graph = useMemo(() => (view ? layoutGraph(view) : null), [view]);
+  // Le schéma comme sur la photo, quand la lecture a donné la place des composants.
+  const drawing = useMemo(() => (view ? layoutSchematic(view) : null), [view]);
+  const free = new Set(view?.frei ?? []);
+  const shown = (el: (typeof view & object)["elemente"][number]) => (free.has(el.name) ? "?" : valueLabel(el));
   const [sent, setSent] = useState(false);
   if (!view || !graph) return null;
   const warnings = [...view.unklar, ...view.hinweise];
@@ -67,13 +73,16 @@ export function NetlistCard({ code }: { code: string }) {
               <tr key={el.name} className="border-t border-current/15">
                 <td className="py-1 pr-3 font-semibold">{el.name}</td>
                 <td className="py-1 pr-3 font-mono text-xs">{terminalsOf(el).join(" – ")}</td>
-                <td className="py-1">{valueLabel(el)}</td>
+                <td className="py-1">{shown(el)}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
+      {drawing ? (
+        <SchematicSvg drawing={drawing} label={t("netlist.graph")} valueOf={(name) => { const el = view.elemente.find((e) => e.name === name); return el ? shown(el) : ""; }} />
+      ) : (
       <svg
         role="img"
         aria-label={t("netlist.graph")}
@@ -101,6 +110,7 @@ export function NetlistCard({ code }: { code: string }) {
           </g>
         ))}
       </svg>
+      )}
 
       {warnings.length > 0 && (
         <ul className="mb-3 space-y-1 text-sm">
