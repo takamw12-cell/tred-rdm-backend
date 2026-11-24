@@ -81,6 +81,16 @@ export const schematicReadingSchema = z.object({
       "Bauteile außerhalb von R, L, C, V, I und Schalter — Diode, OPV, Messgerät, Transformator — je ein Eintrag MIT Knoten. " +
         "KEIN Bauteil und deshalb NICHT hier: offene Klemmen, Spannungs- und Strompfeile (Ua, Uc, IG), Beschriftungen.",
     ),
+  // ── Les données de l'énoncé que la netlist ne porte pas ────────────────
+  // Relecture critique du 24 nov. 2026 : « Aufgabe 18 » passait pour juste
+  // sans sa fréquence (50 Hz), sans « ~ » (source alternative) et sans la
+  // donnée de l'exercice (Uc = 5 V). Sans elles, le calcul est impossible.
+  frequency: z.number().nullable().describe("Frequenz in Hz, wenn die Aufgabe eine nennt (50). Sonst null."),
+  source_type: z.enum(["DC", "AC", "unbekannt"]).describe('Quellensymbol: "=" oder Batterie → DC; "~" → AC; keine Quelle gezeichnet → unbekannt'),
+  given_values: z
+    .array(z.object({ name: z.string().min(1).max(20).describe("Formelzeichen wie in der Aufgabe: Uc, n1, cosφ"), wert: z.string().min(1).max(40).describe('Zahl mit Präfix, ohne Einheit: "5", "10m", "300"'), einheit: z.string().max(12).describe('"V", "H", "" …') }))
+    .max(20)
+    .describe("Zahlenwerte aus dem Aufgabentext, die KEIN Wert eines Bauteils in elemente sind: Uc = 5V, n1 = 300, L1 = 10mH. Keine Frequenz (steht in frequency), keine Zeitpunkte."),
   // Bornes larges : une remarque trop longue ne doit pas faire rejeter une lecture juste.
   unklar: z.array(z.string().min(1).max(400)).max(20).describe("Was nicht sicher lesbar ist, je ein kurzer Stichpunkt. Lieber nennen als raten."),
 });
@@ -99,6 +109,10 @@ export const READ_PROMPT =
   "- Rate nichts. Was du nicht sicher siehst, steht in unklar: höchstens drei kurze Stichpunkte.\n" +
   "- Offene Klemmen (kleine Kreise) und Zählpfeile (Ua, Uc, IG …) sind KEINE Bauteile: weder in elemente noch in andere. " +
   "Eine Eingangsspannung an offenen Klemmen MIT Wert im Text (\"Ue = 10V\") ist eine Spannungsquelle zwischen diesen Klemmen.\n" +
+  "- frequency: die Frequenz in Hz, wenn die Aufgabe eine nennt (\"50Hz\", \"f = 50Hz\"), sonst null. " +
+  "source_type: \"~\" im Quellensymbol → AC, \"=\" oder Batterie → DC, keine Quelle gezeichnet → unbekannt.\n" +
+  "- given_values: JEDER Zahlenwert aus der Zeile \"Werte:\" und dem Aufgabentext, der nicht schon wert eines Bauteils ist " +
+  "(\"Uc = 5V\" → name Uc, wert 5, einheit V; Windungszahlen n1, n2; L1 eines Transformators). Keine Frequenz, keine Zeitpunkte (t0, t1).\n" +
   "- Kein Schaltplan im Bild: istSchaltplan = false, elemente leer.\n" +
   "- Schalter: nicht in elemente, sondern in schalter. Gemeinsamer Anschluss und jeder Kontakt sind EIGENE Knoten; " +
   "die Stellung heißt wie im Plan beschriftet (1, 2 …). Lies genau ab, welcher Kontakt welche Nummer trägt. " +
@@ -186,7 +200,55 @@ export type SchematicVerdict =
 
 const lines = (r: SchematicReading) => r.elemente.map((e) => `  ${e.typ} ${e.name}: a=${e.a} b=${e.b} wert=${e.wert || "(kein Wert angegeben)"}`).join("\n");
 const short = (list: string[]) => list.slice(0, 8).map((t) => t.slice(0, 160)).join("; ");
+/** Nom d'une grandeur, sans mise en forme : « U_C », « Uc », « u c » → « uc ». */
+export const givenKey = (name: string) => name.normalize("NFKC").toLowerCase().replace(/[^\p{L}\d]/gu, "");
+
+/** Fréquence, nature de la source, grandeurs données : ce que le tuteur doit avoir pour calculer. */
+export interface ReadingContext {
+  frequency: number | null;
+  source_type: "DC" | "AC" | "unbekannt";
+  given_values: { name: string; wert: string; einheit: string }[];
+}
+export const contextOf = (r: Partial<ReadingContext>): ReadingContext => ({ frequency: r.frequency ?? null, source_type: r.source_type ?? "unbekannt", given_values: r.given_values ?? [] });
+const hasContext = (c: ReadingContext) => c.frequency !== null || c.source_type !== "unbekannt" || c.given_values.length > 0;
+
+/** Les lignes « données de l'énoncé » de la consigne. */
+export function contextNote(raw: Partial<ReadingContext>): string {
+  const c = contextOf(raw);
+  if (!hasContext(c)) return "";
+  const parts = [
+    c.source_type === "AC" ? "Wechselspannungsquelle (~)" : c.source_type === "DC" ? "Gleichspannungsquelle (=)" : "",
+    c.frequency !== null ? `Frequenz ${c.frequency} Hz — bei schaltung_berechnen frequenz: ${c.frequency} angeben` : "",
+    c.given_values.length ? `gegeben: ${c.given_values.map((g) => `${g.name} = ${g.wert}${g.einheit ? ` ${g.einheit}` : ""}`).join(", ")}` : "",
+  ].filter(Boolean);
+  return `\nAus der Aufgabe gelesen (zweimal, übereinstimmend): ${parts.join("; ")}.`;
+}
+
+/**
+ * Les données sur lesquelles les deux lectures s'accordent. Un désaccord ici
+ * ne bloque pas la netlist (la topologie, elle, concorde) : la donnée en
+ * litige est retirée et signalée, le tuteur la fait confirmer.
+ */
+export function mergeContext(a: Partial<ReadingContext>, b: Partial<ReadingContext>): { context: ReadingContext; unklar: string[] } {
+  const [x, y] = [contextOf(a), contextOf(b)];
+  const unklar: string[] = [];
+  const frequency = x.frequency === y.frequency ? x.frequency : null;
+  if (x.frequency !== y.frequency) unklar.push(`Frequenz: die Lesungen sind uneinig (${x.frequency ?? "keine"} / ${y.frequency ?? "keine"} Hz) — bitte bestätigen.`);
+  const source_type = x.source_type === y.source_type ? x.source_type : "unbekannt";
+  if (x.source_type !== y.source_type) unklar.push("Quellenart (Gleich- oder Wechselspannung): die Lesungen sind uneinig — bitte bestätigen.");
+  const other = new Map(y.given_values.map((g) => [givenKey(g.name), g]));
+  const given_values: ReadingContext["given_values"] = [];
+  for (const g of x.given_values) {
+    const twin = other.get(givenKey(g.name));
+    if (!twin) continue; // vue par une seule lecture : pas retenue
+    if (valueKey(g.wert) === valueKey(twin.wert)) given_values.push(g);
+    else unklar.push(`${g.name}: die Lesungen sind uneinig (${g.wert} / ${twin.wert}) — bitte bestätigen.`);
+  }
+  return { context: { frequency, source_type, given_values }, unklar };
+}
+
 const extras = (r: SchematicReading) =>
+  contextNote(r) +
   (r.andere.length ? `\nWeitere Bauteile (nicht im Löser): ${short(r.andere)}` : "") + (r.unklar.length ? `\nUnklar: ${short(r.unklar)}` : "");
 
 /**
@@ -280,7 +342,7 @@ export function schematicNote(v: SchematicVerdict): string {
         : "Sie enthält einen Schalter. Ruf sofort schaltplan_erfassen auf (quelle \"bild\"): der Code zeichnet genau diese Schaltung MIT Schalter auf die Tafel. " +
           "Die Person bestätigt nichts; schaltung_berechnen rufst du NICHT auf.\n") +
       `${[lines(v.reading), ...switchLines(v.reading)].join("\n")}${v.reading.andere.length ? `\nWeitere Bauteile: ${v.reading.andere.slice(0, 8).join("; ")}` : ""}` +
-      `${v.reading.unklar.length ? `\nUnklar: ${short(v.reading.unklar)}` : ""}\n` +
+      `${contextNote(v.reading)}${v.reading.unklar.length ? `\nUnklar: ${short(v.reading.unklar)}` : ""}\n` +
       solved(v.reading) +
       "So gehst du vor:\n" +
       "1. Beschreib der Person in zwei, drei Sätzen genau DIESE Schaltung (welches Bauteil hängt woran) und arbeite mit ihr weiter. Lies das Bild nicht neu.\n" +
@@ -394,7 +456,10 @@ export async function readSchematic(
   if (!a.istSchaltplan && !b.istSchaltplan) return null;
   if (!a.elemente.length || !b.elemente.length) return null;
   const cmp = compareReadings(a, b);
-  const merged = (x: SchematicReading, y: SchematicReading): SchematicVerdict => ({ kind: "agreed", reading: { ...x, unklar: [...new Set([...x.unklar, ...y.unklar])].slice(0, 10) } });
+  const merged = (x: SchematicReading, y: SchematicReading): SchematicVerdict => {
+    const ctx = mergeContext(x, y);
+    return { kind: "agreed", reading: { ...x, ...ctx.context, unklar: [...new Set([...ctx.unklar, ...x.unklar, ...y.unklar])].slice(0, 10) } };
+  };
   const sound = (x: SchematicReading) => judgeReading(x).length === 0;
   if (cmp.agree && sound(a)) return merged(a, b);
 
@@ -453,6 +518,8 @@ export interface NetlistLock {
   plan?: Record<string, PlanEntry>;
   /** Interrupteurs lus sur la photo : dessinés sur la carte, calculés par position. */
   schalter?: SwitchEntry[];
+  /** Fréquence, nature de la source, grandeurs données : redonnées au tuteur à chaque tour. */
+  kontext?: ReadingContext;
 }
 
 /** Les positions lues, par composant. */
@@ -559,10 +626,10 @@ export function lockFromHistory(messages: unknown[], userText: string): NetlistL
       const p = m.parts[j];
       const isCard = (p?.type === "tool-schaltplan_erfassen" || (p?.type === "dynamic-tool" && p.toolName === "schaltplan_erfassen")) && p.state === "output-available";
       if (!isCard) continue;
-      const out = p.output as { ok?: boolean; elemente?: AnyElement[]; frei?: string[]; plan?: Record<string, PlanEntry>; schalter?: SwitchEntry[]; [LOCK_FLAG]?: boolean } | null;
+      const out = p.output as { ok?: boolean; elemente?: AnyElement[]; frei?: string[]; plan?: Record<string, PlanEntry>; schalter?: SwitchEntry[]; kontext?: ReadingContext; [LOCK_FLAG]?: boolean } | null;
       // Une carte refusée (valeur manquante) garde quand même la référence.
       if (!out || out[LOCK_FLAG] !== true || !Array.isArray(out.elemente)) continue;
-      return { elemente: out.elemente, unklar: [], userText, frei: Array.isArray(out.frei) ? out.frei : [], ...(out.plan ? { plan: out.plan } : {}), ...(Array.isArray(out.schalter) && out.schalter.length ? { schalter: out.schalter } : {}) };
+      return { elemente: out.elemente, unklar: [], userText, frei: Array.isArray(out.frei) ? out.frei : [], ...(out.plan ? { plan: out.plan } : {}), ...(Array.isArray(out.schalter) && out.schalter.length ? { schalter: out.schalter } : {}), ...(out.kontext ? { kontext: contextOf(out.kontext) } : {}) };
     }
   }
   return null;

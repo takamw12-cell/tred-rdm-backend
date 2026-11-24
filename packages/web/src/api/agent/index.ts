@@ -2374,7 +2374,9 @@ export function buildTutorAgent(opts: {
         execute: async (input) => {
           if (!opts.lockedSchematic) return checkNetlist(input);
           const locked = lockedNetlistInput(opts.lockedSchematic, input);
-          const check = checkNetlist(locked);
+          // Les données de l'énoncé suivent la carte : le tuteur les retrouve aux tours suivants.
+          const kontext = opts.lockedSchematic.kontext;
+          const check = { ...checkNetlist(locked), ...(kontext ? { kontext } : {}) };
           // La marque suit la carte dans le fil : le verrou tient aux tours suivants.
           // Interrupteur : les valeurs par position, calculées par le solveur, sont
           // redonnées ICI, dans le résultat de l'outil. Données seulement dans la

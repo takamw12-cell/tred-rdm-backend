@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { LOCK_FLAG, beyondNetlist, compareReadings, judgeReading, lockFromHistory, lockedNetlistInput, mentions, planOf, readSchematic, schematicNote, solved, switchAnalysis, type SchematicReading } from "../src/api/lib/circuit/vision-read";
+import { LOCK_FLAG, beyondNetlist, compareReadings, contextNote, judgeReading, lockFromHistory, lockedNetlistInput, mentions, planOf, readSchematic, schematicNote, solved, switchAnalysis, type SchematicReading } from "../src/api/lib/circuit/vision-read";
 import { checkNetlist, netlistGate } from "../src/api/lib/circuit/netlist";
 import { layoutSchematic } from "../src/web/lib/schematic-layout";
 import { runCircuitPipeline } from "../src/api/lib/circuit/pipeline";
@@ -15,6 +15,9 @@ const reading = (elemente: [string, string, string, string, string][], more: Par
   elemente: elemente.map(([typ, name, a, b, wert]) => ({ typ: typ as "R", name, a, b, wert })),
   lage: [],
   schalter: [],
+  frequency: null,
+  source_type: "unbekannt",
+  given_values: [],
   andere: [],
   unklar: [],
   ...more,
@@ -129,8 +132,37 @@ describe("ce que le tuteur reçoit", () => {
     expect(verdict?.kind).toBe("disputed");
   });
 
+  test("données de l'énoncé (Aufgabe 18) : fréquence, source alternative, Uc = 5 V arrivent au tuteur", async () => {
+    const A18 = (more: Partial<SchematicReading> = {}) =>
+      reading([["V", "U0", "K1", "0", ""], ["R", "R1", "K1", "K2", "50"], ["C", "C", "K2", "0", "16u"], ["R", "R2", "K2", "0", "100"]], {
+        frequency: 50,
+        source_type: "AC",
+        given_values: [{ name: "Uc", wert: "5", einheit: "V" }],
+        ...more,
+      });
+    const both = [A18(), A18({ given_values: [{ name: "U_C", wert: "5V", einheit: "V" }, { name: "t1", wert: "5", einheit: "s" }] })];
+    const ok = await readSchematic(img, "image/jpeg", { read: async () => both.shift()! });
+    expect(ok?.kind).toBe("agreed");
+    if (ok?.kind !== "agreed") return;
+    // « U_C » et « Uc » sont la même grandeur ; « t1 », vue une seule fois, n'est pas retenue.
+    expect(ok.reading.given_values.map((g) => g.name)).toEqual(["Uc"]);
+    const note = schematicNote(ok);
+    expect(note).toContain("Wechselspannungsquelle");
+    expect(note).toContain("frequenz: 50");
+    expect(note).toContain("Uc = 5 V");
+
+    // Fréquences différentes : la netlist reste retenue, la fréquence est retirée et signalée.
+    const clash = [A18(), A18({ frequency: 60 })];
+    const v = await readSchematic(img, "image/jpeg", { read: async () => clash.shift()! });
+    expect(v?.kind).toBe("agreed");
+    if (v?.kind !== "agreed") return;
+    expect(v.reading.frequency).toBeNull();
+    expect(v.reading.unklar[0]).toContain("Frequenz");
+    expect(contextNote({})).toBe("");
+  });
+
   test("pas un schéma, ou une lecture en échec : rien — le tuteur fait comme avant", async () => {
-    const none: SchematicReading = { istSchaltplan: false, elemente: [], lage: [], schalter: [], andere: [], unklar: [] };
+    const none: SchematicReading = { istSchaltplan: false, elemente: [], lage: [], schalter: [], frequency: null, source_type: "unbekannt", given_values: [], andere: [], unklar: [] };
     expect(await readSchematic(img, "image/jpeg", { read: async () => none })).toBeNull();
     let n = 0;
     expect(

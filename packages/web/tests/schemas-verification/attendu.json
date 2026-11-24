@@ -1,37 +1,140 @@
 {
-  "_": "Ce que chaque photo contient vraiment, relevé à la main sur la feuille. art: netz = une netlist attendue (varianten = lectures toutes justes) ; ausserhalb = schéma avec un composant hors netlist (transformateur) : aucune carte ne doit sortir ; kein_schaltplan = courbe ou texte. namen : nom lu → nom de référence. Nœuds : les noms sont libres, seules les connexions comptent.",
+  "_": "Ce que chaque photo contient vraiment, relevé à la main sur la feuille. art: netz = une netlist attendue (varianten = lectures toutes justes) ; ausserhalb = schéma avec un composant hors netlist (transformateur) : aucune carte ne doit sortir ; kein_schaltplan = courbe ou texte. namen : nom lu → nom de référence. Nœuds : les noms sont libres, seules les connexions comptent. Données exigées (si présentes dans la référence) : frequency en Hz, source_type DC/AC, gegeben = grandeurs de l'énoncé [nom, valeur] (trouvées dans given_values ou comme composant), bauteile = composants exigés [type, nom, valeur] pour un schéma hors netlist, andere_enthaelt = mot attendu dans la description du composant spécial.",
   "aufgabe13": {
     "art": "netz",
-    "varianten": [[
-      ["V", "U1", "A", "B", "1"], ["R", "R1", "A", "C", "1"], ["R", "R2", "B", "F", "1"], ["I", "I1", "E", "F", "1"],
-      ["R", "R3", "C", "E", "1"], ["R", "R4", "C", "D", ""], ["I", "I2", "D", "E", "1"], ["I", "I3", "E", "D", "1"]
-    ]]
+    "varianten": [
+      [
+        ["V", "U1", "A", "B", "1"],
+        ["R", "R1", "A", "C", "1"],
+        ["R", "R2", "B", "F", "1"],
+        ["I", "I1", "E", "F", "1"],
+        ["R", "R3", "C", "E", "1"],
+        ["R", "R4", "C", "D", ""],
+        ["I", "I2", "D", "E", "1"],
+        ["I", "I3", "E", "D", "1"]
+      ]
+    ],
+    "source_type": "DC"
   },
   "aufgabe14": {
     "art": "netz",
-    "varianten": [[["V", "U", "K1", "0", "10"], ["R", "R1", "K3", "K4", "50k"], ["R", "R2", "K2", "0", "50k"], ["C", "C", "K4", "0", "100u"]]],
-    "schalter": [{ "name": "S", "gemeinsam": "K3", "stellungen": [{ "name": "1", "kontakt": "K2" }, { "name": "2", "kontakt": "K1" }] }]
+    "varianten": [
+      [
+        ["V", "U", "K1", "0", "10"],
+        ["R", "R1", "K3", "K4", "50k"],
+        ["R", "R2", "K2", "0", "50k"],
+        ["C", "C", "K4", "0", "100u"]
+      ]
+    ],
+    "schalter": [
+      {
+        "name": "S",
+        "gemeinsam": "K3",
+        "stellungen": [
+          {
+            "name": "1",
+            "kontakt": "K2"
+          },
+          {
+            "name": "2",
+            "kontakt": "K1"
+          }
+        ]
+      }
+    ],
+    "source_type": "DC"
   },
-  "aufgabe16": { "art": "ausserhalb", "grund": "Transformator mit Schalter" },
-  "aufgabe17": { "art": "kein_schaltplan", "grund": "Liniendiagramm u1(t), u2(t)" },
+  "aufgabe16": {
+    "art": "ausserhalb",
+    "grund": "Transformator mit Schalter",
+    "source_type": "DC",
+    "namen": {
+      "U": "U0",
+      "U_0": "U0"
+    },
+    "bauteile": [
+      ["V", "U0", "10"],
+      ["R", "R1", "10"]
+    ],
+    "gegeben": [
+      ["n1", "300"],
+      ["n2", "150"],
+      ["L1", "10m"]
+    ],
+    "andere_enthaelt": "transformator"
+  },
+  "aufgabe17": {
+    "art": "kein_schaltplan",
+    "grund": "Liniendiagramm u1(t), u2(t)"
+  },
   "aufgabe18": {
     "art": "netz",
-    "namen": { "U": "U0" },
-    "varianten": [[["V", "U0", "K1", "0", ""], ["R", "R1", "K1", "K2", "50"], ["C", "C", "K2", "0", "16u"], ["R", "R2", "K2", "0", "100"]]]
+    "namen": {
+      "U": "U0"
+    },
+    "varianten": [
+      [
+        ["V", "U0", "K1", "0", ""],
+        ["R", "R1", "K1", "K2", "50"],
+        ["C", "C", "K2", "0", "16u"],
+        ["R", "R2", "K2", "0", "100"]
+      ]
+    ],
+    "frequency": 50,
+    "source_type": "AC",
+    "gegeben": [
+      ["Uc", "5"]
+    ]
   },
   "aufgabe19": {
     "art": "netz",
-    "namen": { "U": "U0" },
-    "varianten": [[["V", "U0", "K1", "0", "230"], ["R", "R1", "K1", "K2", "1"], ["L", "L", "K2", "K3", "64m"], ["R", "R2", "K3", "0", "50"]]]
+    "namen": {
+      "U": "U0"
+    },
+    "varianten": [
+      [
+        ["V", "U0", "K1", "0", "230"],
+        ["R", "R1", "K1", "K2", "1"],
+        ["L", "L", "K2", "K3", "64m"],
+        ["R", "R2", "K3", "0", "50"]
+      ]
+    ],
+    "frequency": 50,
+    "source_type": "AC"
   },
   "aufgabe21": {
     "art": "netz",
-    "namen": { "UE": "Ue", "U_e": "Ue" },
+    "namen": {
+      "UE": "Ue",
+      "U_e": "Ue"
+    },
     "varianten": [
-      [["V", "Ue", "K1", "0", "10"], ["R", "R", "K1", "K2", ""], ["C", "C", "K2", "0", ""]],
-      [["R", "R", "K1", "K2", ""], ["C", "C", "K2", "0", ""]]
+      [
+        ["V", "Ue", "K1", "0", "10"],
+        ["R", "R", "K1", "K2", ""],
+        ["C", "C", "K2", "0", ""]
+      ],
+      [
+        ["R", "R", "K1", "K2", ""],
+        ["C", "C", "K2", "0", ""]
+      ]
     ]
   },
-  "aufgabe22": { "art": "ausserhalb", "grund": "Transformator mit drei Wicklungen" },
-  "aufgabe24": { "art": "kein_schaltplan", "grund": "Kennlinie M(n)" }
+  "aufgabe22": {
+    "art": "ausserhalb",
+    "grund": "Transformator mit drei Wicklungen",
+    "bauteile": [
+      ["R", "R", "1k"]
+    ],
+    "gegeben": [
+      ["n1", "100"],
+      ["n2", "200"],
+      ["n3", "300"]
+    ],
+    "andere_enthaelt": "transformator"
+  },
+  "aufgabe24": {
+    "art": "kein_schaltplan",
+    "grund": "Kennlinie M(n)"
+  }
 }
