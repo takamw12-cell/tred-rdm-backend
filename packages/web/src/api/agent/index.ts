@@ -9,7 +9,7 @@ import { calculate } from "../lib/calc";
 import { runBalkenstatik } from "../lib/beam-tool";
 import { runCircuitPipeline, schaltungBerechnenSchema } from "../lib/circuit/pipeline";
 import { checkNetlist, schaltplanInputSchema, type NetlistGate } from "../lib/circuit/netlist";
-import { LOCK_FLAG, lockedNetlistInput, type NetlistLock } from "../lib/circuit/vision-read";
+import { LOCK_FLAG, lockedNetlistInput, solved, switchAnalysis, type NetlistLock } from "../lib/circuit/vision-read";
 import { mathInputSchema, solveMath } from "../lib/solvers/solveMath";
 import { solveThermo, thermoInputSchema } from "../lib/solvers/solveThermo";
 import { physicsInputSchema, solvePhysics } from "../lib/physics-solver";
@@ -2376,9 +2376,17 @@ export function buildTutorAgent(opts: {
           const locked = lockedNetlistInput(opts.lockedSchematic, input);
           const check = checkNetlist(locked);
           // La marque suit la carte dans le fil : le verrou tient aux tours suivants.
+          // Interrupteur : les valeurs par position, calculées par le solveur, sont
+          // redonnées ICI, dans le résultat de l'outil. Données seulement dans la
+          // consigne de départ, le tuteur les a ignorées une fois sur deux
+          // (24 nov. 2026 : τ = R2·C au lieu de (R1 + R2)·C).
+          if (check.ok && locked.schalter?.length) {
+            const facts = switchAnalysis({ elemente: locked.elemente, schalter: locked.schalter });
+            return { ...check, [LOCK_FLAG]: true, ...(facts ? { stellungen_vom_loeser: facts, anweisung: `${check.anweisung}\n${solved({ elemente: locked.elemente, schalter: locked.schalter })}Jede Zeitkonstante und jeder Endwert in deiner Antwort MUSS aus stellungen_vom_loeser stammen.` } : {}) };
+          }
           if (check.ok) return { ...check, [LOCK_FLAG]: true };
           // Refus : la référence reste quand même dans le fil.
-          return { ...check, [LOCK_FLAG]: true, elemente: locked.elemente, ...(locked.frei ? { frei: locked.frei } : {}), ...(locked.plan ? { plan: locked.plan } : {}) };
+          return { ...check, [LOCK_FLAG]: true, elemente: locked.elemente, ...(locked.frei ? { frei: locked.frei } : {}), ...(locked.plan ? { plan: locked.plan } : {}), ...(locked.schalter ? { schalter: locked.schalter } : {}) };
         },
       }),
 

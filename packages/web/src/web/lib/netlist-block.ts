@@ -31,9 +31,9 @@ export function netlistBlockFromPart(part: unknown): string | null {
   if (toolName(p) !== "schaltplan_erfassen" || p.state !== "output-available") return null;
   const o = p.output as (NetlistView & { ok?: boolean }) | undefined;
   if (!o?.ok) return null;
-  const { id, quelle, masse, elemente, knoten, unklar, hinweise, frei, plan } = o;
+  const { id, quelle, masse, elemente, knoten, unklar, hinweise, frei, plan, schalter } = o;
   // `frei` (valeur absente de l'énoncé) et `plan` (place sur la photo) : seulement s'ils existent.
-  return fence(NETLIST_LANG, { id, quelle, masse, elemente, knoten, unklar, hinweise, ...(frei?.length ? { frei } : {}), ...(plan ? { plan } : {}) });
+  return fence(NETLIST_LANG, { id, quelle, masse, elemente, knoten, unklar, hinweise, ...(frei?.length ? { frei } : {}), ...(plan ? { plan } : {}), ...(schalter?.length ? { schalter } : {}) });
 }
 
 export interface ProofPayload {

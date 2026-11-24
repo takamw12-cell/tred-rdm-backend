@@ -76,6 +76,14 @@ export function NetlistCard({ code }: { code: string }) {
                 <td className="py-1">{shown(el)}</td>
               </tr>
             ))}
+            {(view.schalter ?? []).map((s) => (
+              <tr key={`sw-${s.name}`} className="border-t border-current/15">
+                <td className="py-1 pr-3 font-semibold">{s.name}</td>
+                <td className="py-1 pr-3 font-mono text-xs" colSpan={2}>
+                  {s.stellungen.map((p) => `${p.name}: ${s.gemeinsam} – ${p.kontakt}`).join("   ")}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -134,7 +142,8 @@ export function NetlistCard({ code }: { code: string }) {
       )}
 
       <div className="flex flex-wrap gap-2">
-        <button
+        {/* Avec un interrupteur, rien à confirmer : le calcul se fait par position. */}
+        {!view.schalter?.length && <button
           type="button"
           disabled={sent}
           onClick={() => {
@@ -145,7 +154,7 @@ export function NetlistCard({ code }: { code: string }) {
         >
           <Check className="size-4" aria-hidden />
           {sent ? t("netlist.confirmed") : t("netlist.confirm")}
-        </button>
+        </button>}
         <button
           type="button"
           disabled={sent}

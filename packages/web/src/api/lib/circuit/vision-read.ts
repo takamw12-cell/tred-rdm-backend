@@ -31,7 +31,7 @@ import { gateway } from "../../agent/gateway";
 import { VISION_MODEL } from "../ai-models";
 import { dataUrlBytes } from "../chat-attachments";
 import { parseSi, siFormat, solveCircuit, type CircuitElement } from "../solvers/solveCircuit";
-import type { PlanEntry, SchaltplanInput } from "./netlist";
+import type { PlanEntry, SchaltplanInput, SwitchEntry } from "./netlist";
 
 const node = z.string().min(1).max(20);
 
@@ -57,8 +57,17 @@ export const schematicReadingSchema = z.object({
       z.object({
         name: z.string().min(1).max(20).describe("Name wie im Plan, sonst S"),
         gemeinsam: node.describe("Knoten am beweglichen (gemeinsamen) Anschluss"),
+        gx: z.number().int().describe("Rasterpunkt des gemeinsamen Anschlusses (wie lage)"),
+        gy: z.number().int(),
         stellungen: z
-          .array(z.object({ name: z.string().min(1).max(20).describe('Wie im Plan beschriftet: "1", "2", "a" … Ein-/Ausschalter: "zu"'), kontakt: node.describe("Knoten, mit dem der gemeinsame Anschluss in dieser Stellung verbunden ist") }))
+          .array(
+            z.object({
+              name: z.string().min(1).max(20).describe('Wie im Plan beschriftet: "1", "2", "a" … Ein-/Ausschalter: "zu"'),
+              kontakt: node.describe("Knoten, mit dem der gemeinsame Anschluss in dieser Stellung verbunden ist"),
+              x: z.number().int().describe("Rasterpunkt dieses Kontakts (wie lage)"),
+              y: z.number().int(),
+            }),
+          )
           .min(1)
           .max(4),
       }),
@@ -87,7 +96,9 @@ export const READ_PROMPT =
   "- Rate nichts. Was du nicht sicher siehst, steht in unklar: höchstens drei kurze Stichpunkte.\n" +
   "- Kein Schaltplan im Bild: istSchaltplan = false, elemente leer.\n" +
   "- Schalter: nicht in elemente, sondern in schalter. Gemeinsamer Anschluss und jeder Kontakt sind EIGENE Knoten; " +
-  "die Stellung heißt wie im Plan beschriftet (1, 2 …). Lies genau ab, welcher Kontakt welche Nummer trägt.\n" +
+  "die Stellung heißt wie im Plan beschriftet (1, 2 …). Lies genau ab, welcher Kontakt welche Nummer trägt. " +
+  "Gib auch die Rasterpunkte an (selbes Raster wie lage): (gx, gy) für den gemeinsamen Anschluss, (x, y) für jeden Kontakt. " +
+  "Jeder Kontakt liegt 1 Rastereinheit vom gemeinsamen Anschluss entfernt, in der Richtung wie im Bild; kein Punkt liegt auf einem Bauteil.\n" +
   "- lage: wo jedes Bauteil im AUFGERICHTETEN Bild liegt (Schrift waagerecht lesbar), auf einem groben Raster. " +
   "x wächst nach rechts, y nach unten, ganze Zahlen 0…12. Für jedes Bauteil die Rasterpunkte seiner beiden Anschlüsse: " +
   "(ax, ay) = Anschluss a, (bx, by) = Anschluss b. Waagerecht gezeichnet: ay = by; senkrecht: ax = bx; Länge 2 Rastereinheiten. " +
@@ -179,9 +190,12 @@ const extras = (r: SchematicReading) =>
  * carte montrerait un circuit coupé en morceaux (essai « Aufgabe 14 » du
  * 24 nov. 2026 : un interrupteur à deux positions).
  */
-export const beyondNetlist = (r: SchematicReading): boolean => r.andere.length > 0 || (r.schalter ?? []).length > 0;
+export const beyondNetlist = (r: SchematicReading): boolean => r.andere.length > 0;
 
-const switchLines = (r: SchematicReading) =>
+/** Un interrupteur : dessiné sur la carte, calculé par position (switchAnalysis). */
+export const hasSwitch = (r: SchematicReading): boolean => (r.schalter ?? []).length > 0;
+
+const switchLines = (r: Pick<SchematicReading, "schalter">) =>
   (r.schalter ?? []).map((s) => `  Schalter ${s.name}: gemeinsamer Anschluss an ${s.gemeinsam}; ${s.stellungen.map((p) => `Stellung ${p.name} verbindet ${s.gemeinsam} mit ${p.kontakt}`).join("; ")}`);
 
 /**
@@ -197,18 +211,20 @@ const switchLines = (r: SchematicReading) =>
  * `null` : cas non couvert (plusieurs interrupteurs, plusieurs C/L, valeur
  * absente) — le tuteur garde alors la consigne générale.
  */
-export function switchAnalysis(r: SchematicReading): string[] | null {
+export function switchAnalysis(r: { elemente: (AnyElement | ReadElement)[]; schalter?: Pick<SwitchEntry, "name" | "gemeinsam" | "stellungen">[] }): string[] | null {
   const switches = r.schalter ?? [];
-  const storage = r.elemente.filter((e) => e.typ === "C" || e.typ === "L");
+  const twoPoles = r.elemente.filter((e): e is ReadElement => "a" in e && "wert" in e).map((e) => ({ ...e, wert: String(e.wert) }));
+  if (twoPoles.length !== r.elemente.length) return null;
+  const storage = twoPoles.filter((e) => e.typ === "C" || e.typ === "L");
   if (switches.length !== 1 || storage.length !== 1) return null;
-  if (r.elemente.some((e) => !hasValue(e.wert))) return null;
+  if (twoPoles.some((e) => !hasValue(e.wert))) return null;
   const sw = switches[0]!;
   const st = storage[0]!;
   const out: string[] = [];
   for (const pos of sw.stellungen) {
     // Contact fermé : les deux nœuds n'en font qu'un.
     const merge = (n: string) => (n === sw.gemeinsam ? pos.kontakt : n);
-    const rest = r.elemente.filter((e) => e !== st).map((e) => ({ ...e, a: merge(e.a), b: merge(e.b) })).filter((e) => e.a !== e.b);
+    const rest = twoPoles.filter((e) => e !== st).map((e) => ({ ...e, a: merge(e.a), b: merge(e.b) })).filter((e) => e.a !== e.b);
     const a = merge(st.a);
     const b = merge(st.b);
     const head = `Stellung ${pos.name} (${sw.gemeinsam} an ${pos.kontakt})`;
@@ -236,7 +252,7 @@ export function switchAnalysis(r: SchematicReading): string[] | null {
 }
 
 /** Les positions calculées par le solveur, en tête de consigne. */
-function solved(r: SchematicReading): string {
+export function solved(r: Parameters<typeof switchAnalysis>[0]): string {
   const facts = switchAnalysis(r);
   if (!facts?.length) return "";
   return (
@@ -251,10 +267,13 @@ function solved(r: SchematicReading): string {
 
 /** Message système pour le tuteur ; l'étudiant ne le voit pas. */
 export function schematicNote(v: SchematicVerdict): string {
-  if (v.kind === "agreed" && beyondNetlist(v.reading)) {
+  if (v.kind === "agreed" && (beyondNetlist(v.reading) || hasSwitch(v.reading))) {
     return (
       "SCHALTPLAN-LESUNG (vom Code vorbereitet): Zwei unabhängige Lesungen des Bildes ergeben DIESELBE Schaltung. " +
-      "Sie enthält Bauteile, die schaltplan_erfassen NICHT darstellen kann — ruf schaltplan_erfassen deshalb NICHT auf.\n" +
+      (beyondNetlist(v.reading)
+        ? "Sie enthält Bauteile, die schaltplan_erfassen NICHT darstellen kann — ruf schaltplan_erfassen deshalb NICHT auf.\n"
+        : "Sie enthält einen Schalter. Ruf sofort schaltplan_erfassen auf (quelle \"bild\"): der Code zeichnet genau diese Schaltung MIT Schalter auf die Tafel. " +
+          "Die Person bestätigt nichts; schaltung_berechnen rufst du NICHT auf.\n") +
       `${[lines(v.reading), ...switchLines(v.reading)].join("\n")}${v.reading.andere.length ? `\nWeitere Bauteile: ${v.reading.andere.slice(0, 8).join("; ")}` : ""}` +
       `${v.reading.unklar.length ? `\nUnklar: ${short(v.reading.unklar)}` : ""}\n` +
       solved(v.reading) +
@@ -371,6 +390,8 @@ export interface NetlistLock {
   frei?: string[];
   /** Position des composants sur la photo : le schéma est redessiné tel qu'il y figure. */
   plan?: Record<string, PlanEntry>;
+  /** Interrupteurs lus sur la photo : dessinés sur la carte, calculés par position. */
+  schalter?: SwitchEntry[];
 }
 
 /** Les positions lues, par composant. */
@@ -458,6 +479,7 @@ export function lockedNetlistInput(lock: NetlistLock, model: SchaltplanInput): S
     ...(frei.size ? { frei: [...frei] } : {}),
     // Seuls les composants encore présents gardent leur place.
     ...(lock.plan ? { plan: Object.fromEntries(Object.entries(lock.plan).filter(([n]) => elemente.some((e) => e.name === n))) } : {}),
+    ...(lock.schalter?.length ? { schalter: lock.schalter } : {}),
   };
 }
 
@@ -476,10 +498,10 @@ export function lockFromHistory(messages: unknown[], userText: string): NetlistL
       const p = m.parts[j];
       const isCard = (p?.type === "tool-schaltplan_erfassen" || (p?.type === "dynamic-tool" && p.toolName === "schaltplan_erfassen")) && p.state === "output-available";
       if (!isCard) continue;
-      const out = p.output as { ok?: boolean; elemente?: AnyElement[]; frei?: string[]; plan?: Record<string, PlanEntry>; [LOCK_FLAG]?: boolean } | null;
+      const out = p.output as { ok?: boolean; elemente?: AnyElement[]; frei?: string[]; plan?: Record<string, PlanEntry>; schalter?: SwitchEntry[]; [LOCK_FLAG]?: boolean } | null;
       // Une carte refusée (valeur manquante) garde quand même la référence.
       if (!out || out[LOCK_FLAG] !== true || !Array.isArray(out.elemente)) continue;
-      return { elemente: out.elemente, unklar: [], userText, frei: Array.isArray(out.frei) ? out.frei : [], ...(out.plan ? { plan: out.plan } : {}) };
+      return { elemente: out.elemente, unklar: [], userText, frei: Array.isArray(out.frei) ? out.frei : [], ...(out.plan ? { plan: out.plan } : {}), ...(Array.isArray(out.schalter) && out.schalter.length ? { schalter: out.schalter } : {}) };
     }
   }
   return null;

@@ -143,7 +143,7 @@ import { PANIC_EXCERPT_CHARS, groundCheatSheet, panicModelSchema, panicPrompt, p
 import { sympyIsReady, sympyReady, verdictForTutor, verifyMath } from "./lib/sympy-verify";
 import { HTTPException } from "hono/http-exception";
 import { reasoningMaxMs, reasoningWatchdog } from "./lib/reasoning-watchdog";
-import { LOCK_FOLLOWUP_NOTE, beyondNetlist, firstAttachedImage, lockFromHistory, planOf, readSchematic, schematicNote, type NetlistLock } from "./lib/circuit/vision-read";
+import { LOCK_FOLLOWUP_NOTE, beyondNetlist, firstAttachedImage, lockFromHistory, planOf, readSchematic, schematicNote, solved, type NetlistLock } from "./lib/circuit/vision-read";
 import { SOLVER_RETRY_NOTE, firstCallForce, retryForce, solverGateEnabled, solverGateStream } from "./lib/solver-gate";
 import { applySubscription, endSubscription, grantPass, grantRenewalCredits, markPaymentFailed } from "./lib/billing";
 import { isPassKind } from "./lib/passes";
@@ -1044,11 +1044,18 @@ app.post("/api/agent/messages", async (c) => {
   const lockable = schematic?.kind === "agreed" && !beyondNetlist(schematic.reading);
   const netlistLock: NetlistLock | null =
     schematic?.kind === "agreed" && lockable
-      ? { elemente: schematic.reading.elemente, unklar: schematic.reading.unklar, userText: "", plan: planOf(schematic.reading) }
+      ? { elemente: schematic.reading.elemente, unklar: schematic.reading.unklar, userText: "", plan: planOf(schematic.reading), ...(schematic.reading.schalter.length ? { schalter: schematic.reading.schalter } : {}) }
       : image
         ? null
         : lockFromHistory(Array.isArray(messages) ? messages : [], lastUserText);
-  const lockNote = schematic ? schematicNote(schematic) : netlistLock ? LOCK_FOLLOWUP_NOTE : null;
+  // Aux tours suivants d'un schéma à interrupteur, les valeurs par position sont recalculées et redonnées.
+  const lockNote = schematic
+    ? schematicNote(schematic)
+    : netlistLock
+      ? netlistLock.schalter?.length
+        ? `${LOCK_FOLLOWUP_NOTE}\nDie Schaltung enthält einen Schalter: schaltung_berechnen NICHT aufrufen, keine Bestätigung verlangen.\n${solved(netlistLock)}`
+        : LOCK_FOLLOWUP_NOTE
+      : null;
 
   const agentOptions: Parameters<typeof buildTutorAgent>[0] = {
     route,

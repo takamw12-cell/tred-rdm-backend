@@ -48,7 +48,23 @@ export const schaltplanInputSchema = z.object({
     .record(z.string().max(20), z.tuple([z.number().int(), z.number().int(), z.number().int(), z.number().int()]))
     .optional()
     .describe("Lage im Bild, vom Code gesetzt: Bauteil → [ax, ay, bx, by] auf einem Raster. Nicht selbst ausfüllen."),
+  schalter: z
+    .array(
+      z.object({
+        name: z.string().min(1).max(20),
+        gemeinsam: z.string().min(1).max(20),
+        gx: z.number().int(),
+        gy: z.number().int(),
+        stellungen: z.array(z.object({ name: z.string().min(1).max(20), kontakt: z.string().min(1).max(20), x: z.number().int(), y: z.number().int() })).min(1).max(4),
+      }),
+    )
+    .max(6)
+    .optional()
+    .describe("Schalter mit Lage, vom Code gesetzt. Nicht selbst ausfüllen."),
 });
+
+/** Ein Schalter auf der Tafel: gemeinsamer Anschluss und ein Kontakt je Stellung, mit Rasterpunkten. */
+export type SwitchEntry = NonNullable<z.infer<typeof schaltplanInputSchema>["schalter"]>[number];
 
 /** Lage eines Bauteils im Bild: Rasterpunkte seiner Anschlüsse a und b. */
 export type PlanEntry = [number, number, number, number];
@@ -67,6 +83,8 @@ export interface NetlistView {
   frei?: string[];
   /** Lage der Bauteile im Bild: die Tafel zeichnet den Schaltplan so, wie er auf dem Foto steht. */
   plan?: Record<string, PlanEntry>;
+  /** Schalter: gezeichnet, nicht gerechnet — je Stellung rechnet lib/circuit/vision-read.ts. */
+  schalter?: SwitchEntry[];
 }
 
 export type NetlistCheck =
@@ -156,6 +174,9 @@ export function checkNetlist(raw: SchaltplanInput): NetlistCheck {
   // Knoten: wie oft angeschlossen?
   const degree = new Map<string, number>();
   for (const el of input.elemente) for (const n of terminals(el)) degree.set(n, (degree.get(n) ?? 0) + 1);
+  // Ein Schalterkontakt ist ein Anschluss: kein „offenes Ende“, kein getrenntes Teilnetz.
+  const switches = input.schalter ?? [];
+  for (const s of switches) for (const n of [s.gemeinsam, ...s.stellungen.map((p) => p.kontakt)]) degree.set(n, (degree.get(n) ?? 0) + 1);
   const knoten = [...degree.keys()].sort((a, b) => (a === masse ? -1 : b === masse ? 1 : a.localeCompare(b, "de", { numeric: true })));
   if (!degree.has(masse)) probleme.push(`Kein Bauteil ist an der Masse "${masse}" angeschlossen.`);
   for (const [n, d] of degree) {
@@ -173,6 +194,7 @@ export function checkNetlist(raw: SchaltplanInput): NetlistCheck {
     const t = terminals(el);
     for (let i = 1; i < t.length; i++) parent.set(find(t[i]), find(t[0]));
   }
+  for (const s of switches) for (const p of s.stellungen) parent.set(find(p.kontakt), find(s.gemeinsam));
   const roots = new Set([...degree.keys()].map(find));
   if (roots.size > 1) probleme.push(`Die Netzliste zerfällt in ${roots.size} getrennte Teile: eine Verbindung fehlt oder ein Knoten ist falsch benannt.`);
 
@@ -189,7 +211,8 @@ export function checkNetlist(raw: SchaltplanInput): NetlistCheck {
     hinweise,
     ...(input.frei?.length ? { frei: input.frei.filter((n) => names.has(n)) } : {}),
     ...(input.plan ? { plan: input.plan } : {}),
-    anweisung: ANWEISUNG_OK,
+    ...(switches.length ? { schalter: switches } : {}),
+    anweisung: switches.length ? ANWEISUNG_SCHALTER : ANWEISUNG_OK,
   };
 }
 
@@ -198,6 +221,11 @@ const ANWEISUNG_OK =
   "Bitte die Person in IHRER Sprache, sie mit ihrem Schaltplan zu vergleichen (jedes Bauteil: zwischen welchen Knoten, welcher Wert) " +
   "und zu bestätigen oder zu korrigieren. Nenne die Punkte aus `unklar` und `hinweise` ausdrücklich. RECHNE NOCH NICHTS: keine Ströme, " +
   "keine Spannungen, keine Ersatzwiderstände, bis die Bestätigung da ist. Danach schaltung_berechnen mit genau diesen elementen und netzliste_id.";
+
+const ANWEISUNG_SCHALTER =
+  "Der Schaltplan steht jetzt auf der Tafel, mit dem Schalter gezeichnet. Schreib ihn NICHT noch einmal ab und bitte NICHT um eine Bestätigung. " +
+  "Ruf schaltung_berechnen NICHT auf: diese Netzliste enthält den Schalter nicht. Rechne sofort weiter mit den VOM LÖSER BERECHNETEN Werten " +
+  "je Schalterstellung aus der Vorbereitung (Zahlen mit rechnen / elektro_berechnen).";
 
 const ANWEISUNG_FEHLER =
   "Die Netzliste ist so nicht schlüssig. Schau dir den Schaltplan noch einmal an, korrigiere die genannten Punkte und ruf " +
@@ -252,6 +280,8 @@ function asView(output: unknown): NetlistView | null {
   // Die Kennung wird NEU berechnet: eine Liste, deren Inhalt nicht zu ihrer
   // Kennung passt, wird nicht anerkannt.
   if (netlistId({ elemente: o.elemente, masse: o.masse }) !== o.id) return null;
+  // Mit Schalter wird nichts bestätigt und nichts über schaltung_berechnen gerechnet.
+  if (Array.isArray(o.schalter) && o.schalter.length) return null;
   return o as NetlistView;
 }
 

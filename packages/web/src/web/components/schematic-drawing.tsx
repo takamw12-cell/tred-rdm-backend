@@ -120,6 +120,20 @@ export function SchematicSvg({ drawing, label, valueOf }: { drawing: SchematicDr
           </text>
         </g>
       ))}
+      {drawing.switches.map((sw) => (
+        <g key={sw.name} data-slot="schematic-switch">
+          <line x1={sw.lever.from.x} y1={sw.lever.from.y} x2={sw.lever.to.x} y2={sw.lever.to.y} stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" />
+          <circle cx={sw.common.x} cy={sw.common.y} r={3.6} fill="currentColor" />
+          {sw.contacts.map((k) => (
+            <g key={k.name}>
+              <circle cx={k.at.x} cy={k.at.y} r={3.6} fill="currentColor" />
+              <text x={k.label.x} y={k.label.y} textAnchor="middle" fontSize={13} fontWeight={600} fill="currentColor">
+                {k.name}
+              </text>
+            </g>
+          ))}
+        </g>
+      ))}
       {drawing.dots.map((d) => (
         <circle key={`${d.x},${d.y}`} cx={d.x} cy={d.y} r={3.6} fill="currentColor" />
       ))}

@@ -47,6 +47,15 @@ export interface SchematicDrawing {
   dots: Pt[];
   /** Symbole de masse : plus dessiné (il n'est pas sur la feuille). */
   ground: Pt | null;
+  /** Interrupteurs : borne commune, un contact par position, levier vers la première position. */
+  switches: SchematicSwitch[];
+}
+
+export interface SchematicSwitch {
+  name: string;
+  common: Pt;
+  contacts: { name: string; at: Pt; label: Pt }[];
+  lever: { from: Pt; to: Pt };
 }
 
 export const GRID = 52;
@@ -78,7 +87,7 @@ function overlaps(seg: Seg, body: Seg): boolean {
   return onSeg && insideBody;
 }
 
-export function layoutSchematic(view: Pick<NetlistView, "elemente" | "masse" | "plan">): SchematicDrawing | null {
+export function layoutSchematic(view: Pick<NetlistView, "elemente" | "masse" | "plan" | "schalter">): SchematicDrawing | null {
   const plan = view.plan;
   if (!plan || view.elemente.length === 0) return null;
 
@@ -99,6 +108,16 @@ export function layoutSchematic(view: Pick<NetlistView, "elemente" | "masse" | "
   };
   // Deux composants ne se recouvrent pas.
   if (collide(raw)) return null;
+
+  // Interrupteurs : des points sur la même grille. Un point mal placé (sur un
+  // contact voisin, hors grille) → pas de dessin plutôt qu'un dessin faux.
+  const sw = (view.schalter ?? []).map((s) => ({ s, g: { x: s.gx, y: s.gy }, c: s.stellungen.map((p) => ({ p, at: { x: p.x, y: p.y } })) }));
+  for (const { g, c } of sw) {
+    const pts = [g, ...c.map((k) => k.at)];
+    if (!pts.every((q) => Number.isInteger(q.x) && Number.isInteger(q.y))) return null;
+    if (new Set(pts.map(key)).size !== pts.length) return null;
+  }
+  const swPoints = () => sw.flatMap(({ g, c }) => [g, ...c.map((k) => k.at)]);
 
   // ── Mise au carré, comme sur une feuille d'exercices ───────────────────
   // Les composants horizontaux définissent les LIGNES du schéma (celle du
@@ -133,17 +152,23 @@ export function layoutSchematic(view: Pick<NetlistView, "elemente" | "masse" | "
     });
     return map;
   };
-  const xs = squeeze(raw.flatMap((r) => [r.a.x, r.b.x]), 1, 2);
-  const ys = squeeze(raw.flatMap((r) => [r.a.y, r.b.y]), 3, 3);
+  // Avec un interrupteur, les contacts créent des niveaux intermédiaires : pas de ligne forcée à 3.
+  const xs = squeeze([...raw.flatMap((r) => [r.a.x, r.b.x]), ...swPoints().map((q) => q.x)], 1, 2);
+  const ys = squeeze([...raw.flatMap((r) => [r.a.y, r.b.y]), ...swPoints().map((q) => q.y)], sw.length ? 1 : 3, sw.length ? 2 : 3);
   for (const r of raw) {
     r.a = { x: xs.get(r.a.x)!, y: ys.get(r.a.y)! };
     r.b = { x: xs.get(r.b.x)!, y: ys.get(r.b.y)! };
   }
+  for (const one of sw) {
+    one.g = { x: xs.get(one.g.x)!, y: ys.get(one.g.y)! };
+    for (const k of one.c) k.at = { x: xs.get(k.at.x)!, y: ys.get(k.at.y)! };
+  }
 
-  const minX = Math.min(...raw.flatMap((r) => [r.a.x, r.b.x]));
-  const minY = Math.min(...raw.flatMap((r) => [r.a.y, r.b.y]));
-  const maxX = Math.max(...raw.flatMap((r) => [r.a.x, r.b.x]));
-  const maxY = Math.max(...raw.flatMap((r) => [r.a.y, r.b.y]));
+  const all = [...raw.flatMap((r) => [r.a, r.b]), ...swPoints()];
+  const minX = Math.min(...all.map((q) => q.x));
+  const minY = Math.min(...all.map((q) => q.y));
+  const maxX = Math.max(...all.map((q) => q.x));
+  const maxY = Math.max(...all.map((q) => q.y));
   if (maxX - minX > 24 || maxY - minY > 24) return null;
   const px = (p: Pt): Pt => ({ x: MARGIN + (p.x - minX) * GRID, y: MARGIN + (p.y - minY) * GRID });
 
@@ -183,6 +208,24 @@ export function layoutSchematic(view: Pick<NetlistView, "elemente" | "masse" | "
       terminals.set(node, list);
     }
   }
+  // Borne commune et contacts : des bornes de leur nœud, reliées par les mêmes fils.
+  const switches: SchematicSwitch[] = sw.map(({ s, g, c }) => {
+    const common = px(g);
+    const contacts = c.map(({ p, at }) => {
+      const pt = px(at);
+      // Le chiffre au-dessus d'un contact haut, à gauche d'un contact bas (son fil descend).
+      return { name: p.name, node: p.kontakt, at: pt, label: pt.y <= common.y ? { x: pt.x, y: pt.y - 11 } : { x: pt.x - 13, y: pt.y + 5 } };
+    });
+    for (const [node, pt] of [[s.gemeinsam, common] as const, ...contacts.map((k) => [k.node, k.at] as const)]) {
+      const list = terminals.get(node) ?? [];
+      if (!list.some((q) => key(q) === key(pt))) list.push(pt);
+      terminals.set(node, list);
+    }
+    // Levier : de la borne commune vers le contact de la première position, sans le toucher tout à fait.
+    const first = contacts[0].at;
+    const lever = { from: common, to: { x: common.x + (first.x - common.x) * 0.88, y: common.y + (first.y - common.y) * 0.88 } };
+    return { name: s.name, common, contacts: contacts.map(({ name, at, label }) => ({ name, at, label })), lever };
+  });
   const bodies: Seg[] = placed.map((p) => [p.a, p.b]);
   // Un fil quitte une borne dans l'axe de son composant, comme sur le papier.
   const axisAt = new Map<string, Set<"h" | "v">>();
@@ -261,5 +304,6 @@ export function layoutSchematic(view: Pick<NetlistView, "elemente" | "masse" | "
     wires,
     dots,
     ground,
+    switches,
   };
 }

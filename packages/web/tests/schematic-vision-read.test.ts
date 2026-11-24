@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { LOCK_FLAG, beyondNetlist, compareReadings, lockFromHistory, lockedNetlistInput, mentions, readSchematic, schematicNote, switchAnalysis, type SchematicReading } from "../src/api/lib/circuit/vision-read";
-import { checkNetlist } from "../src/api/lib/circuit/netlist";
+import { LOCK_FLAG, beyondNetlist, compareReadings, lockFromHistory, lockedNetlistInput, mentions, planOf, readSchematic, schematicNote, solved, switchAnalysis, type SchematicReading } from "../src/api/lib/circuit/vision-read";
+import { checkNetlist, netlistGate } from "../src/api/lib/circuit/netlist";
+import { layoutSchematic } from "../src/web/lib/schematic-layout";
 import { runCircuitPipeline } from "../src/api/lib/circuit/pipeline";
 
 /**
@@ -212,15 +213,54 @@ describe("schéma avec interrupteur (Aufgabe 14) : la netlist ne sait pas le por
       ["R", "R2", "K2", "0", "50k"],
       ["C", "C", "K4", "0", "100u"],
     ],
-    { schalter: [{ name: "S", gemeinsam: "K3", stellungen: [{ name: "1", kontakt: "K2" }, { name: "2", kontakt: "K1" }] }] },
+    {
+      schalter: [{ name: "S", gemeinsam: "K3", gx: 4, gy: 1, stellungen: [{ name: "1", kontakt: "K2", x: 3, y: 2 }, { name: "2", kontakt: "K1", x: 3, y: 0 }] }],
+      lage: [
+        { name: "U", ax: 0, ay: 1, bx: 0, by: 3 },
+        { name: "R1", ax: 5, ay: 1, bx: 7, by: 1 },
+        { name: "R2", ax: 3, ay: 2, bx: 3, by: 4 },
+        { name: "C", ax: 8, ay: 1, bx: 8, by: 3 },
+      ],
+    },
   );
 
-  test("ni carte ni verrou : la consigne décrit le circuit et interdit la carte", () => {
-    expect(beyondNetlist(A14)).toBe(true);
-    expect(beyondNetlist(A13)).toBe(false);
+  test("la carte dessine l'interrupteur ; rien à confirmer, pas de schaltung_berechnen", () => {
+    expect(beyondNetlist(A14)).toBe(false);
     const note = schematicNote({ kind: "agreed", reading: A14 });
-    expect(note).toContain("ruf schaltplan_erfassen deshalb NICHT auf");
+    expect(note).toContain("Ruf sofort schaltplan_erfassen auf");
     expect(note).toContain("Stellung 1 verbindet K3 mit K2");
+
+    const lock = { elemente: A14.elemente, unklar: [], userText: "", plan: planOf(A14), schalter: A14.schalter };
+    const card = checkNetlist(lockedNetlistInput(lock, { quelle: "bild", elemente: [] as never }));
+    // Sans l'interrupteur, cette netlist tombait en morceaux et la carte était refusée.
+    expect(card.ok).toBe(true);
+    if (!card.ok) return;
+    expect(card.schalter?.[0]?.name).toBe("S");
+    expect(card.hinweise).toEqual([]);
+    expect(card.anweisung).toContain("schaltung_berechnen NICHT");
+    // Une carte à interrupteur ne se confirme pas : jamais de calcul imposé dessus.
+    const history = [
+      { role: "user", parts: [{ type: "file", mediaType: "image/jpeg", url: "data:image/jpeg;base64,AA" }] },
+      { role: "assistant", parts: [{ type: "tool-schaltplan_erfassen", state: "output-available", output: { ...card, [LOCK_FLAG]: true } }] },
+      { role: "user", parts: [{ type: "text", text: "ja" }] },
+    ];
+    expect(netlistGate(history).justConfirmed ?? null).toBeNull();
+    // Tour suivant : le verrou retrouve l'interrupteur, les valeurs par position sont recalculées.
+    const again = lockFromHistory(history, "und bei t = 20 s?")!;
+    expect(again.schalter?.[0]?.gemeinsam).toBe("K3");
+    expect(solved(again)).toContain("= 10 s");
+  });
+
+  test("le dessin : levier, deux contacts numérotés, fils jusqu'aux contacts", () => {
+    const d = layoutSchematic({ elemente: A14.elemente, masse: "0", plan: planOf(A14), schalter: A14.schalter })!;
+    expect(d.switches).toHaveLength(1);
+    expect(d.switches[0]!.contacts.map((k) => k.name)).toEqual(["1", "2"]);
+    // Le levier part de la borne commune vers le contact 1.
+    const { lever, contacts, common } = d.switches[0]!;
+    expect(lever.from).toEqual(common);
+    expect(Math.sign(lever.to.y - common.y)).toBe(Math.sign(contacts[0]!.at.y - common.y));
+    // K1 (source ↔ contact 2), K3 (commun ↔ R1) ont leur fil ; le contact 1 touche R2 directement.
+    for (const node of ["K1", "K3", "K4", "0"]) expect(d.wires.some((w) => w.node === node)).toBe(true);
   });
 
   test("le solveur donne, par position, ce que voit le condensateur", () => {
@@ -237,7 +277,7 @@ describe("schéma avec interrupteur (Aufgabe 14) : la netlist ne sait pas le por
   });
 
   test("deux lectures qui échangent les positions 1 et 2 ne sont pas d'accord", () => {
-    const swapped = { ...A14, schalter: [{ name: "S", gemeinsam: "K3", stellungen: [{ name: "1", kontakt: "K1" }, { name: "2", kontakt: "K2" }] }] };
+    const swapped = { ...A14, schalter: [{ ...A14.schalter[0]!, stellungen: [{ name: "1", kontakt: "K1", x: 3, y: 2 }, { name: "2", kontakt: "K2", x: 3, y: 0 }] }] };
     expect(compareReadings(A14, A14).agree).toBe(true);
     expect(compareReadings(A14, swapped).agree).toBe(false);
   });
