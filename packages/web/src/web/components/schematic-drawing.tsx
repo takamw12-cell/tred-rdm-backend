@@ -86,13 +86,15 @@ function Body({ s }: { s: SchematicSymbol }) {
       </g>
     );
   }
-  // Spannungsquelle : cercle avec un trait dans l'axe, flèche de tension à côté.
+  // Spannungsquelle : cercle avec « = », flèche de tension à côté.
   return (
     <g>
       <line x1={s.bodyA.x} y1={s.bodyA.y} x2={mx - ux * r} y2={my - uy * r} {...INK} />
       <line x1={mx + ux * r} y1={my + uy * r} x2={s.bodyB.x} y2={s.bodyB.y} {...INK} />
       <circle cx={mx} cy={my} r={r} {...INK} />
-      <line x1={mx - ux * r} y1={my - uy * r} x2={mx + ux * r} y2={my + uy * r} stroke="currentColor" strokeWidth={2} />
+      {/* Gleichspannungsquelle wie auf dem Blatt : le signe « = » dans le cercle. */}
+      <line x1={mx - 7} y1={my - 3.5} x2={mx + 7} y2={my - 3.5} stroke="currentColor" strokeWidth={2} />
+      <line x1={mx - 7} y1={my + 3.5} x2={mx + 7} y2={my + 3.5} stroke="currentColor" strokeWidth={2} />
       {s.arrow && <Arrow from={s.arrow.from} to={s.arrow.to} />}
     </g>
   );

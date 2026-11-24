@@ -35,7 +35,8 @@ describe("schéma redessiné comme sur la photo", () => {
     expect(d.wires.map((w) => w.node).sort()).toEqual(["K1", "K2", "K3", "K5"]);
     // R1–R3–R4 en haut, R3–I1–I2–I3 en bas : des points de jonction.
     expect(d.dots.length).toBeGreaterThanOrEqual(2);
-    expect(d.ground).not.toBeNull();
+    // Pas de symbole de masse : il n'est pas sur la feuille.
+    expect(d.ground).toBeNull();
   });
 
   test("aucun fil ne traverse un composant", () => {
@@ -58,6 +59,21 @@ describe("schéma redessiné comme sur la photo", () => {
     expect(u.arrow!.from.x).toBeLessThan(u.a.x);
     expect(u.label.x).toBeGreaterThan(u.a.x);
     expect(sym("R1").arrow).toBeNull();
+  });
+
+  test("mise au carré : une lecture à quatre niveaux redonne les DEUX lignes de la feuille", () => {
+    // Lecture réelle du 24 nov. : U1, R3, I2, I3 placés « au milieu », entre la ligne du haut (y=2) et celle du bas (y=8).
+    const loose = { ...A13, plan: { U1: [1, 4, 1, 6], R1: [2, 2, 4, 2], R4: [8, 2, 10, 2], R3: [7, 4, 7, 6], R2: [2, 8, 4, 8], I1: [7, 8, 5, 8], I2: [10, 4, 10, 6], I3: [12, 6, 12, 4] } as Record<string, [number, number, number, number]> };
+    const q = layoutSchematic(loose)!;
+    const rows = new Set(q.symbols.flatMap((s) => [s.a.y, s.b.y]));
+    expect(rows.size).toBe(2);
+    const [top, bottom] = [...rows].sort((x, y) => x - y);
+    for (const n of ["U1", "R3", "I2", "I3"]) expect([q.symbols.find((s) => s.name === n)!.a.y, q.symbols.find((s) => s.name === n)!.b.y].sort((x, y) => x - y)).toEqual([top, bottom]);
+    // Le sens des sources est gardé : I2 vers le haut (borne a en haut), I3 vers le bas.
+    expect(q.symbols.find((s) => s.name === "I2")!.a.y).toBe(top);
+    expect(q.symbols.find((s) => s.name === "I3")!.a.y).toBe(bottom);
+    // Plus aucun coude : chaque fil est une ligne droite.
+    for (const w of q.wires) for (const seg of w.path.split("M").filter(Boolean)) expect(seg.trim().split(" L").length).toBe(2);
   });
 
   test("plan absent, incomplet, en biais ou superposé : pas de dessin (la carte garde le graphe)", () => {

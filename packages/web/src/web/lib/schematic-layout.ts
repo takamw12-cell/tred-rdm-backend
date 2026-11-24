@@ -45,7 +45,7 @@ export interface SchematicDrawing {
   wires: { node: string; path: string }[];
   /** Points de jonction (trois fils ou plus). */
   dots: Pt[];
-  /** Le symbole de masse, sous un point du nœud de référence. */
+  /** Symbole de masse : plus dessiné (il n'est pas sur la feuille). */
   ground: Pt | null;
 }
 
@@ -93,8 +93,52 @@ export function layoutSchematic(view: Pick<NetlistView, "elemente" | "masse" | "
     if ((a.x === b.x) === (a.y === b.y)) return null;
     raw.push({ el, a, b });
   }
+  const collide = (list: { a: Pt; b: Pt }[]) => {
+    for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) if (overlaps([list[i].a, list[i].b], [list[j].a, list[j].b]) && overlaps([list[j].a, list[j].b], [list[i].a, list[i].b])) return true;
+    return false;
+  };
   // Deux composants ne se recouvrent pas.
-  for (let i = 0; i < raw.length; i++) for (let j = i + 1; j < raw.length; j++) if (overlaps([raw[i].a, raw[i].b], [raw[j].a, raw[j].b]) && overlaps([raw[j].a, raw[j].b], [raw[i].a, raw[i].b])) return null;
+  if (collide(raw)) return null;
+
+  // ── Mise au carré, comme sur une feuille d'exercices ───────────────────
+  // Les composants horizontaux définissent les LIGNES du schéma (celle du
+  // haut, celle du bas). Un composant vertical est tendu entre deux lignes :
+  // ses bornes rejoignent la ligne la plus proche au-dessus et au-dessous.
+  // Sans cela, une lecture qui place U1 « au milieu du côté gauche » donnait
+  // quatre niveaux et des coudes que la feuille n'a pas (retour du fondateur,
+  // 24 nov. 2026 : « ce n'est pas ce que je t'ai envoyé »).
+  const rails = [...new Set(raw.filter((r) => r.a.y === r.b.y).map((r) => r.a.y))].sort((x, y) => x - y);
+  if (rails.length >= 2) {
+    const snapped = raw.map((r) => {
+      if (r.a.y === r.b.y) return r;
+      const top = Math.min(r.a.y, r.b.y);
+      const bottom = Math.max(r.a.y, r.b.y);
+      const last = (list: number[]) => (list.length ? list[list.length - 1] : undefined);
+      const up = last(rails.filter((y) => y <= top)) ?? rails.filter((y) => y < bottom)[0] ?? top;
+      const down = rails.find((y) => y >= bottom) ?? last(rails.filter((y) => y > up)) ?? bottom;
+      if (down <= up) return r;
+      const aTop = r.a.y < r.b.y;
+      return { ...r, a: { x: r.a.x, y: aTop ? up : down }, b: { x: r.b.x, y: aTop ? down : up } };
+    });
+    if (!collide(snapped)) raw.splice(0, raw.length, ...snapped);
+  }
+  // Lignes et colonnes resserrées : l'écart d'origine, borné, pour des proportions de feuille.
+  const squeeze = (values: number[], min: number, max: number) => {
+    const sorted = [...new Set(values)].sort((x, y) => x - y);
+    const map = new Map<number, number>();
+    let at = 0;
+    sorted.forEach((v, i) => {
+      if (i > 0) at += Math.max(min, Math.min(max, v - sorted[i - 1]));
+      map.set(v, at);
+    });
+    return map;
+  };
+  const xs = squeeze(raw.flatMap((r) => [r.a.x, r.b.x]), 1, 2);
+  const ys = squeeze(raw.flatMap((r) => [r.a.y, r.b.y]), 3, 3);
+  for (const r of raw) {
+    r.a = { x: xs.get(r.a.x)!, y: ys.get(r.a.y)! };
+    r.b = { x: xs.get(r.b.x)!, y: ys.get(r.b.y)! };
+  }
 
   const minX = Math.min(...raw.flatMap((r) => [r.a.x, r.b.x]));
   const minY = Math.min(...raw.flatMap((r) => [r.a.y, r.b.y]));
@@ -206,8 +250,9 @@ export function layoutSchematic(view: Pick<NetlistView, "elemente" | "masse" | "
   }
 
   // La masse : sous le point le plus bas du nœud de référence.
-  const groundPts = terminals.get(view.masse ?? "0") ?? [];
-  const ground = groundPts.length ? groundPts.reduce((lo, p) => (p.y > lo.y ? p : lo)) : null;
+  // Pas de symbole de masse : il n'est pas sur la feuille, et le dessin
+  // reproduit la feuille. Le nœud de référence reste dans le tableau.
+  const ground: Pt | null = null;
 
   return {
     width: MARGIN * 2 + (maxX - minX) * GRID,
