@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { LOCK_FLAG, beyondNetlist, compareReadings, lockFromHistory, lockedNetlistInput, mentions, readSchematic, schematicNote, type SchematicReading } from "../src/api/lib/circuit/vision-read";
+import { LOCK_FLAG, beyondNetlist, compareReadings, lockFromHistory, lockedNetlistInput, mentions, readSchematic, schematicNote, switchAnalysis, type SchematicReading } from "../src/api/lib/circuit/vision-read";
 import { checkNetlist } from "../src/api/lib/circuit/netlist";
 import { runCircuitPipeline } from "../src/api/lib/circuit/pipeline";
 
@@ -13,6 +13,7 @@ const reading = (elemente: [string, string, string, string, string][], more: Par
   istSchaltplan: true,
   elemente: elemente.map(([typ, name, a, b, wert]) => ({ typ: typ as "R", name, a, b, wert })),
   lage: [],
+  schalter: [],
   andere: [],
   unklar: [],
   ...more,
@@ -106,7 +107,7 @@ describe("ce que le tuteur reçoit", () => {
   });
 
   test("pas un schéma, ou une lecture en échec : rien — le tuteur fait comme avant", async () => {
-    const none: SchematicReading = { istSchaltplan: false, elemente: [], lage: [], andere: [], unklar: [] };
+    const none: SchematicReading = { istSchaltplan: false, elemente: [], lage: [], schalter: [], andere: [], unklar: [] };
     expect(await readSchematic(img, "image/jpeg", { read: async () => none })).toBeNull();
     let n = 0;
     expect(
@@ -211,17 +212,38 @@ describe("schéma avec interrupteur (Aufgabe 14) : la netlist ne sait pas le por
       ["R", "R2", "K2", "0", "50k"],
       ["C", "C", "K4", "0", "100u"],
     ],
-    { andere: ["Schalter S: gemeinsamer Anschluss an K3; Stellung 1 verbindet K3 mit K2; Stellung 2 verbindet K3 mit K1"] },
+    { schalter: [{ name: "S", gemeinsam: "K3", stellungen: [{ name: "1", kontakt: "K2" }, { name: "2", kontakt: "K1" }] }] },
   );
 
-  test("ni carte ni verrou : la consigne décrit le circuit et impose une étude par position", () => {
+  test("ni carte ni verrou : la consigne décrit le circuit et interdit la carte", () => {
     expect(beyondNetlist(A14)).toBe(true);
     expect(beyondNetlist(A13)).toBe(false);
     const note = schematicNote({ kind: "agreed", reading: A14 });
     expect(note).toContain("ruf schaltplan_erfassen deshalb NICHT auf");
     expect(note).toContain("Stellung 1 verbindet K3 mit K2");
-    expect(note).toContain("jede Stellung ist eine EIGENE Schaltung");
-    // L'erreur vue le 24 nov. : τ = R2·C au lieu de (R1 + R2)·C.
-    expect(note).toContain("Summe der Widerstände im geschlossenen Kreis");
+  });
+
+  test("le solveur donne, par position, ce que voit le condensateur", () => {
+    const facts = switchAnalysis(A14)!;
+    // Position 1 : décharge par R1 + R2 (l'erreur du 24 nov. : τ = R2·C = 5 s).
+    expect(facts[0]).toContain("R_i = 100 kΩ");
+    expect(facts[0]).toContain("U_C(∞) = 0 V");
+    expect(facts[0]).toContain("= 10 s");
+    // Position 2 : charge par R1 seule, vers 10 V.
+    expect(facts[1]).toContain("R_i = 50 kΩ");
+    expect(facts[1]).toContain("U_C(∞) = 10 V");
+    expect(facts[1]).toContain("= 5 s");
+    expect(schematicNote({ kind: "agreed", reading: A14 })).toContain("VOM LÖSER BERECHNET");
+  });
+
+  test("deux lectures qui échangent les positions 1 et 2 ne sont pas d'accord", () => {
+    const swapped = { ...A14, schalter: [{ name: "S", gemeinsam: "K3", stellungen: [{ name: "1", kontakt: "K1" }, { name: "2", kontakt: "K2" }] }] };
+    expect(compareReadings(A14, A14).agree).toBe(true);
+    expect(compareReadings(A14, swapped).agree).toBe(false);
+  });
+
+  test("cas non couvert (deux condensateurs) : pas de chiffres inventés", () => {
+    const two = { ...A14, elemente: [...A14.elemente, { typ: "C" as const, name: "C2", a: "K2", b: "0", wert: "1u" }] };
+    expect(switchAnalysis(two)).toBeNull();
   });
 });

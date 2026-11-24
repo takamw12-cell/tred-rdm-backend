@@ -30,7 +30,7 @@ import { z } from "zod";
 import { gateway } from "../../agent/gateway";
 import { VISION_MODEL } from "../ai-models";
 import { dataUrlBytes } from "../chat-attachments";
-import { parseSi } from "../solvers/solveCircuit";
+import { parseSi, siFormat, solveCircuit, type CircuitElement } from "../solvers/solveCircuit";
 import type { PlanEntry, SchaltplanInput } from "./netlist";
 
 const node = z.string().min(1).max(20);
@@ -52,13 +52,23 @@ export const schematicReadingSchema = z.object({
     .array(z.object({ name: z.string().min(1).max(20), ax: z.number().int(), ay: z.number().int(), bx: z.number().int(), by: z.number().int() }))
     .max(60)
     .describe("Wo jedes Bauteil im aufgerichteten Bild liegt: Rasterpunkte seiner Anschlüsse a und b"),
+  schalter: z
+    .array(
+      z.object({
+        name: z.string().min(1).max(20).describe("Name wie im Plan, sonst S"),
+        gemeinsam: node.describe("Knoten am beweglichen (gemeinsamen) Anschluss"),
+        stellungen: z
+          .array(z.object({ name: z.string().min(1).max(20).describe('Wie im Plan beschriftet: "1", "2", "a" … Ein-/Ausschalter: "zu"'), kontakt: node.describe("Knoten, mit dem der gemeinsame Anschluss in dieser Stellung verbunden ist") }))
+          .min(1)
+          .max(4),
+      }),
+    )
+    .max(6)
+    .describe("Jeder Schalter mit seinen Stellungen. Ein Schalter verbindet NIE von selbst zwei Knoten: seine Kontakte sind getrennte Knoten."),
   andere: z
     .array(z.string().min(1).max(300))
     .max(20)
-    .describe(
-      "Bauteile außerhalb von R, L, C, V, I — Schalter, Diode, OPV, Messgerät, Transformator — je ein Eintrag MIT Knoten. " +
-        'Schalter genau so: "Schalter S: gemeinsamer Anschluss an K3; Stellung 1 verbindet K3 mit K2; Stellung 2 verbindet K3 mit K1".',
-    ),
+    .describe("Bauteile außerhalb von R, L, C, V, I und Schalter — Diode, OPV, Messgerät, Transformator — je ein Eintrag MIT Knoten."),
   // Bornes larges : une remarque trop longue ne doit pas faire rejeter une lecture juste.
   unklar: z.array(z.string().min(1).max(400)).max(20).describe("Was nicht sicher lesbar ist, je ein kurzer Stichpunkt. Lieber nennen als raten."),
 });
@@ -76,6 +86,8 @@ export const READ_PROMPT =
   "- Werte aus dem Aufgabentext übernehmen (\"R1 = R2 = 1Ω\" gilt für beide). Kein Wert angegeben: wert = \"\" und in unklar nennen.\n" +
   "- Rate nichts. Was du nicht sicher siehst, steht in unklar: höchstens drei kurze Stichpunkte.\n" +
   "- Kein Schaltplan im Bild: istSchaltplan = false, elemente leer.\n" +
+  "- Schalter: nicht in elemente, sondern in schalter. Gemeinsamer Anschluss und jeder Kontakt sind EIGENE Knoten; " +
+  "die Stellung heißt wie im Plan beschriftet (1, 2 …). Lies genau ab, welcher Kontakt welche Nummer trägt.\n" +
   "- lage: wo jedes Bauteil im AUFGERICHTETEN Bild liegt (Schrift waagerecht lesbar), auf einem groben Raster. " +
   "x wächst nach rechts, y nach unten, ganze Zahlen 0…12. Für jedes Bauteil die Rasterpunkte seiner beiden Anschlüsse: " +
   "(ax, ay) = Anschluss a, (bx, by) = Anschluss b. Waagerecht gezeichnet: ay = by; senkrecht: ax = bx; Länge 2 Rastereinheiten. " +
@@ -122,6 +134,15 @@ function connections(elements: ReadElement[]): Map<string, string> {
   return out;
 }
 
+/**
+ * Chaque position d'interrupteur devient une liaison nommée (« S#1 ») : deux
+ * lectures qui échangent les positions 1 et 2 ne sont PAS d'accord.
+ */
+function withSwitches(r: SchematicReading): ReadElement[] {
+  const contacts = (r.schalter ?? []).flatMap((s) => s.stellungen.map((p) => ({ typ: "V" as const, name: `${s.name}#${p.name}`, a: s.gemeinsam, b: p.kontakt, wert: "" })));
+  return [...r.elemente, ...contacts];
+}
+
 export interface ReadingComparison {
   agree: boolean;
   /** Composants lus différemment (présence, type, valeur ou connexions). */
@@ -130,8 +151,8 @@ export interface ReadingComparison {
 
 /** Deux lectures décrivent-elles le même circuit, au nom des nœuds près ? */
 export function compareReadings(a: SchematicReading, b: SchematicReading): ReadingComparison {
-  const ca = connections(a.elemente);
-  const cb = connections(b.elemente);
+  const ca = connections(withSwitches(a));
+  const cb = connections(withSwitches(b));
   const disputed = new Set<string>();
   for (const name of new Set([...ca.keys(), ...cb.keys()])) if (ca.get(name) !== cb.get(name)) disputed.add(name);
   const duplicates = (r: SchematicReading) => r.elemente.length !== new Set(r.elemente.map((e) => e.name)).size;
@@ -158,7 +179,75 @@ const extras = (r: SchematicReading) =>
  * carte montrerait un circuit coupé en morceaux (essai « Aufgabe 14 » du
  * 24 nov. 2026 : un interrupteur à deux positions).
  */
-export const beyondNetlist = (r: SchematicReading): boolean => r.andere.length > 0;
+export const beyondNetlist = (r: SchematicReading): boolean => r.andere.length > 0 || (r.schalter ?? []).length > 0;
+
+const switchLines = (r: SchematicReading) =>
+  (r.schalter ?? []).map((s) => `  Schalter ${s.name}: gemeinsamer Anschluss an ${s.gemeinsam}; ${s.stellungen.map((p) => `Stellung ${p.name} verbindet ${s.gemeinsam} mit ${p.kontakt}`).join("; ")}`);
+
+/**
+ * Un interrupteur, un condensateur (ou une bobine) : pour CHAQUE position, le
+ * solveur donne ce que voit le composant — résistance interne, valeur finale,
+ * constante de temps.
+ *
+ * Essais « Aufgabe 14 » du 24 nov. 2026 : avec la bonne netlist sous les yeux,
+ * le tuteur a suivi les mailles à la main et s'est trompé deux fois (τ = R2·C,
+ * puis source placée dans la maille de décharge). La topologie est un calcul :
+ * le code le fait.
+ *
+ * `null` : cas non couvert (plusieurs interrupteurs, plusieurs C/L, valeur
+ * absente) — le tuteur garde alors la consigne générale.
+ */
+export function switchAnalysis(r: SchematicReading): string[] | null {
+  const switches = r.schalter ?? [];
+  const storage = r.elemente.filter((e) => e.typ === "C" || e.typ === "L");
+  if (switches.length !== 1 || storage.length !== 1) return null;
+  if (r.elemente.some((e) => !hasValue(e.wert))) return null;
+  const sw = switches[0]!;
+  const st = storage[0]!;
+  const out: string[] = [];
+  for (const pos of sw.stellungen) {
+    // Contact fermé : les deux nœuds n'en font qu'un.
+    const merge = (n: string) => (n === sw.gemeinsam ? pos.kontakt : n);
+    const rest = r.elemente.filter((e) => e !== st).map((e) => ({ ...e, a: merge(e.a), b: merge(e.b) })).filter((e) => e.a !== e.b);
+    const a = merge(st.a);
+    const b = merge(st.b);
+    const head = `Stellung ${pos.name} (${sw.gemeinsam} an ${pos.kontakt})`;
+    const nodes = new Set(rest.flatMap((e) => [e.a, e.b]));
+    if (a === b || !nodes.has(a) || !nodes.has(b)) {
+      out.push(`${head}: ${st.name} ist nicht an einen geschlossenen Kreis angeschlossen.`);
+      continue;
+    }
+    const res = solveCircuit({ elemente: rest as CircuitElement[], masse: nodes.has("0") ? "0" : b, thevenin: { a, b } });
+    const th = res.ok ? res.thevenin : undefined;
+    const ri = th?.innenimpedanz?.re;
+    if (!th || ri === undefined || !Number.isFinite(ri) || ri <= 0) {
+      out.push(`${head}: vom Löser nicht bestimmbar — leite diese Stellung Knoten für Knoten her und sag der Person, dass du sie von Hand herleitest.`);
+      continue;
+    }
+    const u0 = th.leerlaufspannung.re;
+    const value = parseSi(st.wert);
+    out.push(
+      st.typ === "C"
+        ? `${head}: ${st.name} sieht den Innenwiderstand R_i = ${siFormat(ri, "Ω")}; Endwert U_${st.name}(∞) = ${siFormat(u0, "V")} (von ${st.a} nach ${st.b}); τ = R_i·${st.name} = ${siFormat(ri * value, "s")}.`
+        : `${head}: ${st.name} sieht den Innenwiderstand R_i = ${siFormat(ri, "Ω")}; Endwert I_${st.name}(∞) = ${siFormat(u0 / ri, "A")} (von ${st.a} nach ${st.b}); τ = ${st.name}/R_i = ${siFormat(value / ri, "s")}.`,
+    );
+  }
+  return out;
+}
+
+/** Les positions calculées par le solveur, en tête de consigne. */
+function solved(r: SchematicReading): string {
+  const facts = switchAnalysis(r);
+  if (!facts?.length) return "";
+  return (
+    "VOM LÖSER BERECHNET, je Schalterstellung (übernimm genau diese Werte; leite die Kreise NICHT selbst neu her, schreib kein lautes Nachdenken):\n" +
+    `${facts.map((f) => `  ${f}`).join("\n")}\n` +
+    "Zeitverlauf in jedem Abschnitt: x(t) = X(∞) + (X_Start − X(∞))·e^(−Δt/τ) mit den Werten DIESER Stellung. " +
+    "X_Start = Wert am Ende des vorigen Abschnitts; \"sehr lange\" in einer Stellung heißt X_Start = ihr Endwert X(∞). " +
+    "Erkläre der Person R_i in EINEM Satz je Stellung, passend zum berechneten Wert. Passt deine Erklärung nicht zum Wert, gilt der Wert: " +
+    "schreib dann nur den Wert hin, ohne \"Nein\", \"Warte\" oder Korrekturen im Text.\n"
+  );
+}
 
 /** Message système pour le tuteur ; l'étudiant ne le voit pas. */
 export function schematicNote(v: SchematicVerdict): string {
@@ -166,7 +255,9 @@ export function schematicNote(v: SchematicVerdict): string {
     return (
       "SCHALTPLAN-LESUNG (vom Code vorbereitet): Zwei unabhängige Lesungen des Bildes ergeben DIESELBE Schaltung. " +
       "Sie enthält Bauteile, die schaltplan_erfassen NICHT darstellen kann — ruf schaltplan_erfassen deshalb NICHT auf.\n" +
-      `${lines(v.reading)}\nWeitere Bauteile: ${v.reading.andere.slice(0, 8).join("; ")}${v.reading.unklar.length ? `\nUnklar: ${short(v.reading.unklar)}` : ""}\n` +
+      `${[lines(v.reading), ...switchLines(v.reading)].join("\n")}${v.reading.andere.length ? `\nWeitere Bauteile: ${v.reading.andere.slice(0, 8).join("; ")}` : ""}` +
+      `${v.reading.unklar.length ? `\nUnklar: ${short(v.reading.unklar)}` : ""}\n` +
+      solved(v.reading) +
       "So gehst du vor:\n" +
       "1. Beschreib der Person in zwei, drei Sätzen genau DIESE Schaltung (welches Bauteil hängt woran) und arbeite mit ihr weiter. Lies das Bild nicht neu.\n" +
       "2. Bei einem Schalter: jede Stellung ist eine EIGENE Schaltung. Schreib für jede Stellung auf, welcher Stromkreis geschlossen ist und " +
