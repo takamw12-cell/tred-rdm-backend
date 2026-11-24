@@ -68,10 +68,13 @@ if (!flag("compose") || !existsSync(join(dir, "base.mp4"))) {
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   const props = JSON.parse(readFileSync(join(dir, "props.json"), "utf8"));
   props.audioUrl = `http://127.0.0.1:${server.address().port}/voice.mp3`;
+  // La bande que l'avatar occupera : les blocs et les sous-titres se rangent à sa gauche (composition en 960 de large).
+  props.reserveRight = Math.round(960 * (Number(opt("size")) || (opt("layout", "bubble") === "standing" ? 0.26 : 0.17)) + 36);
   writeFileSync(join(dir, "render-props.json"), JSON.stringify(props));
   const bundle = join(VIDEO, "out", ".bundle-auto-explain");
   try {
-    if (!existsSync(join(bundle, "index.html")) || flag("rebundle")) {
+    // Le bundle est refait à chaque rendu complet : il porte le code de la composition, qui change avec la branche.
+    if (!flag("keep-bundle") || !existsSync(join(bundle, "index.html"))) {
       execFileSync("npx", ["remotion", "bundle", "src/index.ts", `--out-dir=${bundle}`], { cwd: VIDEO, stdio: ["ignore", "ignore", "inherit"] });
       console.log("bundle : prêt");
     }

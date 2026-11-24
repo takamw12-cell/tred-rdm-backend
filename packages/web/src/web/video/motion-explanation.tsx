@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { createContext, useContext, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import katex from "katex";
 import { AbsoluteFill, Audio, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import {
@@ -59,7 +59,15 @@ export type MotionProps = {
   labels: { source: string; example: string; solver: string; stages?: Record<Stage, string> };
   /** Virgule décimale (allemand, français…) ou point (anglais). */
   decimalComma?: boolean;
+  /**
+   * Bande laissée libre à droite (points de la composition), pour l'avatar incrusté ensuite par FFmpeg
+   * (packages/video/scripts/auto-explain.mjs). Les blocs et les sous-titres se rangent à gauche de cette bande.
+   */
+  reserveRight?: number;
 };
+
+/** La bande réservée à l'avatar : lue par la mise en page des blocs et par les sous-titres. */
+const ReserveRight = createContext(0);
 
 const FONT = "Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif";
 const INK = "#F8FAFC";
@@ -599,7 +607,8 @@ function edgePoint(from: Rect, to: Rect, margin: number): [number, number] {
 function SceneContent({ scene, motion, local, frames, words, labels, index, decimalComma }: SceneProps) {
   const { width, height } = useVideoConfig();
   const narrow = height > width;
-  const area = useMemo(() => (narrow ? { x: 30, y: 150, w: width - 60, h: height - 150 - 230 } : { x: 44, y: 86, w: width - 88, h: height - 86 - 108 }), [narrow, width, height]);
+  const reserve = useContext(ReserveRight);
+  const area = useMemo(() => (narrow ? { x: 30, y: 150, w: width - 60, h: height - 150 - 230 } : { x: 44, y: 86, w: width - 88 - reserve, h: height - 86 - 108 }), [narrow, width, height, reserve]);
   const timeline = useMemo(() => resolveTimeline(motion, words, frames, MOTION_FPS), [motion, words, frames]);
   const hasArrows = timeline.actions.some((a) => a.action === "pointTo");
   const placeOf = usePlacement(motion, timeline.blocks, area, narrow, hasArrows ? 64 : 30);
@@ -769,6 +778,7 @@ export function Captions({ words }: { words: ExplainerWord[] }) {
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
   const narrow = height > width;
+  const reserve = useContext(ReserveRight);
   const chunks = useMemo(() => captionChunks(words), [words]);
   const ms = (frame / MOTION_FPS) * 1000;
   const chunk = chunks.find((c) => ms >= c[0]!.startMs - 120 && ms <= c[c.length - 1]!.endMs + 380);
@@ -776,7 +786,7 @@ export function Captions({ words }: { words: ExplainerWord[] }) {
   const inFrame = Math.round(((chunk[0]!.startMs - 120) / 1000) * MOTION_FPS);
   const s = sp(frame, inFrame);
   return (
-    <div style={{ position: "absolute", left: 0, right: 0, bottom: narrow ? 92 : 34, display: "flex", justifyContent: "center", padding: "0 28px", opacity: Math.min(1, s * 1.5), transform: `translateY(${(1 - s) * 10}px)` }}>
+    <div style={{ position: "absolute", left: 0, right: 0, bottom: narrow ? 92 : 34, display: "flex", justifyContent: "center", padding: narrow ? "0 28px" : `0 ${28 + reserve}px 0 28px`, opacity: Math.min(1, s * 1.5), transform: `translateY(${(1 - s) * 10}px)` }}>
       <div style={{ maxWidth: narrow ? "100%" : "78%", padding: "9px 18px", borderRadius: 14, background: "rgb(4 8 18 / 0.62)", boxShadow: "inset 0 0 0 1px rgb(255 255 255 / 0.08)", fontFamily: FONT, fontWeight: 600, fontSize: narrow ? 21 : 22, lineHeight: 1.3, letterSpacing: "-0.012em", textAlign: "center" }}>
         {chunk.map((w, i) => {
           const said = ms >= w.startMs;
@@ -795,7 +805,7 @@ export function Captions({ words }: { words: ExplainerWord[] }) {
 
 /* ── La composition ────────────────────────────────────────────────────── */
 
-export function MotionExplanation({ audioUrl, musicUrl, durationMs, scenes, words, sceneStartsMs, labels, decimalComma = false }: MotionProps) {
+export function MotionExplanation({ audioUrl, musicUrl, durationMs, scenes, words, sceneStartsMs, labels, decimalComma = false, reserveRight = 0 }: MotionProps) {
   const frame = useCurrentFrame();
   const { width } = useVideoConfig();
   const total = Math.max(MOTION_FPS, Math.ceil((durationMs / 1000) * MOTION_FPS));
@@ -818,6 +828,7 @@ export function MotionExplanation({ audioUrl, musicUrl, durationMs, scenes, word
   const stepIndex = scenes.map((s) => (s.stage === "step" ? ++stepNo : 0));
 
   return (
+    <ReserveRight.Provider value={Math.max(0, reserveRight)}>
     <AbsoluteFill style={{ background: "#060A16", overflow: "hidden" }}>
       {scenes.map((scene, i) => {
         const from = starts[i]!;
@@ -841,5 +852,6 @@ export function MotionExplanation({ audioUrl, musicUrl, durationMs, scenes, word
       {audioUrl && <Audio src={audioUrl} />}
       {musicUrl && <Audio src={musicUrl} loop volume={(f) => musicGain(f / MOTION_FPS, spans, total / MOTION_FPS)} />}
     </AbsoluteFill>
+    </ReserveRight.Provider>
   );
 }
