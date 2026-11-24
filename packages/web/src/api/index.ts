@@ -142,6 +142,7 @@ import { referralRoutes } from "./routes/referral";
 import { PANIC_EXCERPT_CHARS, groundCheatSheet, panicModelSchema, panicPrompt, panicRequestSchema, panicSystemPrompt } from "./lib/panic";
 import { sympyIsReady, sympyReady, verdictForTutor, verifyMath } from "./lib/sympy-verify";
 import { HTTPException } from "hono/http-exception";
+import { reasoningMaxMs, reasoningWatchdog } from "./lib/reasoning-watchdog";
 import { SOLVER_RETRY_NOTE, firstCallForce, retryForce, solverGateEnabled, solverGateStream } from "./lib/solver-gate";
 import { applySubscription, endSubscription, grantPass, grantRenewalCredits, markPaymentFailed } from "./lib/billing";
 import { isPassKind } from "./lib/passes";
@@ -1206,12 +1207,38 @@ app.post("/api/agent/messages", async (c) => {
   // d'un solveur imposé (toolChoice "required", sans raisonnement étendu :
   // l'API refuse les deux ensemble).
   const duty = agentOptions.solverDuty ?? null;
+
+  // ── Garde-fou du raisonnement (lib/reasoning-watchdog.ts) ───────────────
+  // Ni mot ni outil après le délai : le premier essai est coupé et la même
+  // question repart sans raisonnement étendu, dans le même flux.
+  const firstAttempt = async (signal: AbortSignal) => {
+    if (route.thinking !== "adaptive") return runAgent(agent, signal);
+    return reasoningWatchdog({
+      maxMs: reasoningMaxMs(),
+      signal,
+      first: (s) => runAgent(agent, s),
+      fallback: (s) => {
+        turnTools.length = 0;
+        turnText = "";
+        const direct = buildTutorAgent({
+          ...agentOptions,
+          route: { ...route, thinking: "off" },
+          temperature: samplingTemperature({ domain: fach.domain, thinking: "off", text: lastUserText }),
+        });
+        return runAgent(direct, s);
+      },
+      onTimeout: ({ ms }) => {
+        console.warn(`[garde] user=${session.user.id.slice(0, 8)} raisonnement sans réponse après ${Math.round(ms / 1000)} s — relancé sans raisonnement étendu`);
+      },
+    });
+  };
+
   const gate = solverGateStream({
     question: lastUserText,
     enabled: solverGateEnabled(lastUserText, Boolean(fast)),
     locale: locale ?? storedLocale,
     signal: c.req.raw.signal,
-    first: (signal) => runAgent(agent, signal),
+    first: (signal) => firstAttempt(signal),
     retry: (signal) => {
       // Le premier essai est jeté : le garde d'après coup ne lit que le second.
       turnTools.length = 0;

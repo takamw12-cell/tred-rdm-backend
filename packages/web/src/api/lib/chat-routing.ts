@@ -102,6 +102,10 @@ export function complexityReason(input: RouteInput): string | null {
 
 export function routeChat(input: RouteInput): Route {
   const why = complexityReason(input);
+  // Une image ou un PDF joint se LIT, il ne se raisonne pas : le raisonnement
+  // étendu sur une photo d'exercice n'a jamais conclu (840 s et 899 s sans un
+  // mot, 24 nov. 2026 — lib/reasoning-watchdog.ts). Les solveurs calculent.
+  if (input.hasAttachments) return { tier: "complex", modelId: SONNET, thinking: "off", reason: "pièce jointe" };
   if (why) return { tier: "complex", modelId: SONNET, thinking: "adaptive", reason: why };
   const t = (input.text ?? "").trim();
   if ((input.domain ?? "unbekannt") === "unbekannt" && wordCount(t) <= 8 && SMALLTALK.test(t)) {
