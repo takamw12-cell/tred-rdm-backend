@@ -52,7 +52,13 @@ export const schematicReadingSchema = z.object({
     .array(z.object({ name: z.string().min(1).max(20), ax: z.number().int(), ay: z.number().int(), bx: z.number().int(), by: z.number().int() }))
     .max(60)
     .describe("Wo jedes Bauteil im aufgerichteten Bild liegt: Rasterpunkte seiner Anschlüsse a und b"),
-  andere: z.array(z.string().min(1).max(300)).max(20).describe("Bauteile außerhalb von R, L, C, V, I: Schalter, Diode, OPV, Messgerät … mit ihren Knoten"),
+  andere: z
+    .array(z.string().min(1).max(300))
+    .max(20)
+    .describe(
+      "Bauteile außerhalb von R, L, C, V, I — Schalter, Diode, OPV, Messgerät, Transformator — je ein Eintrag MIT Knoten. " +
+        'Schalter genau so: "Schalter S: gemeinsamer Anschluss an K3; Stellung 1 verbindet K3 mit K2; Stellung 2 verbindet K3 mit K1".',
+    ),
   // Bornes larges : une remarque trop longue ne doit pas faire rejeter une lecture juste.
   unklar: z.array(z.string().min(1).max(400)).max(20).describe("Was nicht sicher lesbar ist, je ein kurzer Stichpunkt. Lieber nennen als raten."),
 });
@@ -146,8 +152,30 @@ const short = (list: string[]) => list.slice(0, 8).map((t) => t.slice(0, 160)).j
 const extras = (r: SchematicReading) =>
   (r.andere.length ? `\nWeitere Bauteile (nicht im Löser): ${short(r.andere)}` : "") + (r.unklar.length ? `\nUnklar: ${short(r.unklar)}` : "");
 
+/**
+ * Le schéma contient-il un composant que la netlist ne sait pas porter
+ * (interrupteur, diode, transformateur…) ? Alors ni carte ni verrou : la
+ * carte montrerait un circuit coupé en morceaux (essai « Aufgabe 14 » du
+ * 24 nov. 2026 : un interrupteur à deux positions).
+ */
+export const beyondNetlist = (r: SchematicReading): boolean => r.andere.length > 0;
+
 /** Message système pour le tuteur ; l'étudiant ne le voit pas. */
 export function schematicNote(v: SchematicVerdict): string {
+  if (v.kind === "agreed" && beyondNetlist(v.reading)) {
+    return (
+      "SCHALTPLAN-LESUNG (vom Code vorbereitet): Zwei unabhängige Lesungen des Bildes ergeben DIESELBE Schaltung. " +
+      "Sie enthält Bauteile, die schaltplan_erfassen NICHT darstellen kann — ruf schaltplan_erfassen deshalb NICHT auf.\n" +
+      `${lines(v.reading)}\nWeitere Bauteile: ${v.reading.andere.slice(0, 8).join("; ")}${v.reading.unklar.length ? `\nUnklar: ${short(v.reading.unklar)}` : ""}\n` +
+      "So gehst du vor:\n" +
+      "1. Beschreib der Person in zwei, drei Sätzen genau DIESE Schaltung (welches Bauteil hängt woran) und arbeite mit ihr weiter. Lies das Bild nicht neu.\n" +
+      "2. Bei einem Schalter: jede Stellung ist eine EIGENE Schaltung. Schreib für jede Stellung auf, welcher Stromkreis geschlossen ist und " +
+      "welche Bauteile darin IN REIHE liegen — verfolge den Weg Knoten für Knoten in der Liste oben. Ein Bauteil zwischen Schalter und Kondensator " +
+      "liegt in JEDER Stellung im Kreis.\n" +
+      "3. Zeitkonstanten erst danach: τ = (Summe der Widerstände im geschlossenen Kreis) · C bzw. L / R. Nenne, welche Widerstände du addierst.\n" +
+      "4. Zahlenwerte mit dem Werkzeug rechnen (rechnen / elektro_berechnen), nie im Kopf."
+    );
+  }
   if (v.kind === "agreed") {
     return (
       "SCHALTPLAN-LESUNG (vom Code vorbereitet): Zwei unabhängige Lesungen des Bildes ergeben DIESELBE Schaltung.\n" +

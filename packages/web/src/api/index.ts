@@ -143,7 +143,7 @@ import { PANIC_EXCERPT_CHARS, groundCheatSheet, panicModelSchema, panicPrompt, p
 import { sympyIsReady, sympyReady, verdictForTutor, verifyMath } from "./lib/sympy-verify";
 import { HTTPException } from "hono/http-exception";
 import { reasoningMaxMs, reasoningWatchdog } from "./lib/reasoning-watchdog";
-import { LOCK_FOLLOWUP_NOTE, firstAttachedImage, lockFromHistory, planOf, readSchematic, schematicNote, type NetlistLock } from "./lib/circuit/vision-read";
+import { LOCK_FOLLOWUP_NOTE, beyondNetlist, firstAttachedImage, lockFromHistory, planOf, readSchematic, schematicNote, type NetlistLock } from "./lib/circuit/vision-read";
 import { SOLVER_RETRY_NOTE, firstCallForce, retryForce, solverGateEnabled, solverGateStream } from "./lib/solver-gate";
 import { applySubscription, endSubscription, grantPass, grantRenewalCredits, markPaymentFailed } from "./lib/billing";
 import { isPassKind } from "./lib/passes";
@@ -1040,8 +1040,10 @@ app.post("/api/agent/messages", async (c) => {
 
   // Le verrou : la double lecture au tour de la photo, puis la dernière carte
   // verrouillée du fil aux tours suivants (la photo n'y est plus jointe).
+  // Interrupteur, diode… : la netlist ne sait pas les porter, donc ni carte ni verrou.
+  const lockable = schematic?.kind === "agreed" && !beyondNetlist(schematic.reading);
   const netlistLock: NetlistLock | null =
-    schematic?.kind === "agreed"
+    schematic?.kind === "agreed" && lockable
       ? { elemente: schematic.reading.elemente, unklar: schematic.reading.unklar, userText: "", plan: planOf(schematic.reading) }
       : image
         ? null
@@ -1102,7 +1104,7 @@ app.post("/api/agent/messages", async (c) => {
     // disponible » au lieu de calculer).
     forceTools: forceFirst
       ? firstCallForce()
-      : schematic?.kind === "agreed"
+      : lockable
         ? { tools: ["schaltplan_erfassen"], until: ["schaltplan_erfassen"] }
         : circuitGate.justConfirmed
           ? { tools: ["schaltung_berechnen"], until: ["schaltung_berechnen"] }

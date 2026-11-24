@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { LOCK_FLAG, compareReadings, lockFromHistory, lockedNetlistInput, mentions, readSchematic, schematicNote, type SchematicReading } from "../src/api/lib/circuit/vision-read";
+import { LOCK_FLAG, beyondNetlist, compareReadings, lockFromHistory, lockedNetlistInput, mentions, readSchematic, schematicNote, type SchematicReading } from "../src/api/lib/circuit/vision-read";
 import { checkNetlist } from "../src/api/lib/circuit/netlist";
 import { runCircuitPipeline } from "../src/api/lib/circuit/pipeline";
 
@@ -200,5 +200,28 @@ describe("lectures concordantes : la netlist affichée vient du code, pas du tut
     for (const t of ["R40 = 2", "R1 und R3", "Wert4"]) expect(mentions(t, "R4")).toBe(false);
     expect(mentions("C ist zu groß", "C")).toBe(true);
     expect(mentions("Calcule", "C")).toBe(false);
+  });
+});
+
+describe("schéma avec interrupteur (Aufgabe 14) : la netlist ne sait pas le porter", () => {
+  const A14 = reading(
+    [
+      ["V", "U", "K1", "0", "10"],
+      ["R", "R1", "K3", "K4", "50k"],
+      ["R", "R2", "K2", "0", "50k"],
+      ["C", "C", "K4", "0", "100u"],
+    ],
+    { andere: ["Schalter S: gemeinsamer Anschluss an K3; Stellung 1 verbindet K3 mit K2; Stellung 2 verbindet K3 mit K1"] },
+  );
+
+  test("ni carte ni verrou : la consigne décrit le circuit et impose une étude par position", () => {
+    expect(beyondNetlist(A14)).toBe(true);
+    expect(beyondNetlist(A13)).toBe(false);
+    const note = schematicNote({ kind: "agreed", reading: A14 });
+    expect(note).toContain("ruf schaltplan_erfassen deshalb NICHT auf");
+    expect(note).toContain("Stellung 1 verbindet K3 mit K2");
+    expect(note).toContain("jede Stellung ist eine EIGENE Schaltung");
+    // L'erreur vue le 24 nov. : τ = R2·C au lieu de (R1 + R2)·C.
+    expect(note).toContain("Summe der Widerstände im geschlossenen Kreis");
   });
 });
