@@ -77,7 +77,10 @@ export const schematicReadingSchema = z.object({
   andere: z
     .array(z.string().min(1).max(300))
     .max(20)
-    .describe("Bauteile außerhalb von R, L, C, V, I und Schalter — Diode, OPV, Messgerät, Transformator — je ein Eintrag MIT Knoten."),
+    .describe(
+      "Bauteile außerhalb von R, L, C, V, I und Schalter — Diode, OPV, Messgerät, Transformator — je ein Eintrag MIT Knoten. " +
+        "KEIN Bauteil und deshalb NICHT hier: offene Klemmen, Spannungs- und Strompfeile (Ua, Uc, IG), Beschriftungen.",
+    ),
   // Bornes larges : une remarque trop longue ne doit pas faire rejeter une lecture juste.
   unklar: z.array(z.string().min(1).max(400)).max(20).describe("Was nicht sicher lesbar ist, je ein kurzer Stichpunkt. Lieber nennen als raten."),
 });
@@ -94,6 +97,8 @@ export const READ_PROMPT =
   "- Stromquelle: der Strom fließt von b nach a (a = Knoten an der Pfeilspitze).\n" +
   "- Werte aus dem Aufgabentext übernehmen (\"R1 = R2 = 1Ω\" gilt für beide). Kein Wert angegeben: wert = \"\" und in unklar nennen.\n" +
   "- Rate nichts. Was du nicht sicher siehst, steht in unklar: höchstens drei kurze Stichpunkte.\n" +
+  "- Offene Klemmen (kleine Kreise) und Zählpfeile (Ua, Uc, IG …) sind KEINE Bauteile: weder in elemente noch in andere. " +
+  "Eine Eingangsspannung an offenen Klemmen MIT Wert im Text (\"Ue = 10V\") ist eine Spannungsquelle zwischen diesen Klemmen.\n" +
   "- Kein Schaltplan im Bild: istSchaltplan = false, elemente leer.\n" +
   "- Schalter: nicht in elemente, sondern in schalter. Gemeinsamer Anschluss und jeder Kontakt sind EIGENE Knoten; " +
   "die Stellung heißt wie im Plan beschriftet (1, 2 …). Lies genau ab, welcher Kontakt welche Nummer trägt. " +
@@ -323,6 +328,44 @@ const readOnce: SchematicReader = async (image, mediaType, signal) => {
   return object;
 };
 
+/* -------------------------------------------------------------------------- */
+/* Le juge : une lecture physiquement impossible est rejetée                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Ce que le code peut prouver FAUX dans une lecture, sans voir la photo :
+ * composant en court-circuit sur lui-même, circuit en morceaux, système sans
+ * solution (deux sources de tension en parallèle, source de courant sans
+ * retour…). Une lecture qui passe n'est pas prouvée juste — un composant
+ * placé au mauvais nœud donne un circuit tout à fait calculable ; c'est la
+ * comparaison des lectures qui couvre ce cas.
+ */
+export function judgeReading(r: SchematicReading): string[] {
+  const problems: string[] = [];
+  for (const e of r.elemente) if (e.a === e.b) problems.push(`${e.name}: beide Anschlüsse am selben Knoten`);
+  const parent = new Map<string, string>();
+  const find = (x: string): string => {
+    while (parent.has(x) && parent.get(x) !== x) x = parent.get(x)!;
+    return x;
+  };
+  const join = (a: string, b: string) => {
+    for (const n of [a, b]) if (!parent.has(n)) parent.set(n, n);
+    parent.set(find(a), find(b));
+  };
+  for (const e of r.elemente) join(e.a, e.b);
+  for (const s of r.schalter ?? []) for (const p of s.stellungen) join(s.gemeinsam, p.kontakt);
+  // Un composant hors netlist (transformateur…) relie des parties que la netlist ne voit pas.
+  if (!r.andere.length && new Set([...parent.keys()].map(find)).size > 1) problems.push("die Schaltung zerfällt in getrennte Teile");
+  // Calculable ? Seulement sans interrupteur ni composant spécial, et avec une source.
+  const plain = !r.andere.length && !(r.schalter ?? []).length && r.elemente.some((e) => e.typ === "V" || e.typ === "I");
+  if (plain && !problems.length) {
+    const nodes = new Set(r.elemente.flatMap((e) => [e.a, e.b]));
+    const res = solveCircuit({ elemente: r.elemente.map((e) => ({ ...e, wert: hasValue(e.wert) ? e.wert : FREE_VALUE })) as CircuitElement[], masse: nodes.has("0") ? "0" : r.elemente[0]!.b });
+    if (!res.ok) problems.push(`nicht berechenbar (${res.fehler})`);
+  }
+  return problems;
+}
+
 /** Délai des deux lectures ; au-delà, le tuteur lit l'image lui-même. */
 export const SCHEMATIC_READ_TIMEOUT_MS = 40_000;
 
@@ -351,8 +394,26 @@ export async function readSchematic(
   if (!a.istSchaltplan && !b.istSchaltplan) return null;
   if (!a.elemente.length || !b.elemente.length) return null;
   const cmp = compareReadings(a, b);
-  if (cmp.agree) return { kind: "agreed", reading: { ...a, unklar: [...new Set([...a.unklar, ...b.unklar])].slice(0, 10) } };
-  return { kind: "disputed", first: a, second: b, disputed: cmp.disputed };
+  const merged = (x: SchematicReading, y: SchematicReading): SchematicVerdict => ({ kind: "agreed", reading: { ...x, unklar: [...new Set([...x.unklar, ...y.unklar])].slice(0, 10) } });
+  const sound = (x: SchematicReading) => judgeReading(x).length === 0;
+  if (cmp.agree && sound(a)) return merged(a, b);
+
+  // Désaccord, ou accord sur un circuit impossible : UNE troisième lecture
+  // départage. Deux lectures sur trois d'accord ET un circuit possible →
+  // retenu. Sinon TRED ne calcule rien et fait vérifier l'étudiant.
+  const all = [...new Set([...a.elemente, ...b.elemente].map((e) => e.name))].sort();
+  try {
+    const c = await read(image, mediaType, signal);
+    for (const x of [a, b]) {
+      if (c?.elemente?.length && compareReadings(x, c).agree && sound(x)) {
+        console.log("[schaltplan] troisième lecture : départage");
+        return merged(x, c);
+      }
+    }
+  } catch {
+    // La troisième lecture a échoué : on reste sur le désaccord.
+  }
+  return { kind: "disputed", first: a, second: b, disputed: cmp.disputed.length ? cmp.disputed : all };
 }
 
 /** La première image jointe à la DERNIÈRE question (les PDF ne passent pas ici). */

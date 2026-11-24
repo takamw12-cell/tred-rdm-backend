@@ -1,0 +1,37 @@
+{
+  "_": "Ce que chaque photo contient vraiment, relevé à la main sur la feuille. art: netz = une netlist attendue (varianten = lectures toutes justes) ; ausserhalb = schéma avec un composant hors netlist (transformateur) : aucune carte ne doit sortir ; kein_schaltplan = courbe ou texte. namen : nom lu → nom de référence. Nœuds : les noms sont libres, seules les connexions comptent.",
+  "aufgabe13": {
+    "art": "netz",
+    "varianten": [[
+      ["V", "U1", "A", "B", "1"], ["R", "R1", "A", "C", "1"], ["R", "R2", "B", "F", "1"], ["I", "I1", "E", "F", "1"],
+      ["R", "R3", "C", "E", "1"], ["R", "R4", "C", "D", ""], ["I", "I2", "D", "E", "1"], ["I", "I3", "E", "D", "1"]
+    ]]
+  },
+  "aufgabe14": {
+    "art": "netz",
+    "varianten": [[["V", "U", "K1", "0", "10"], ["R", "R1", "K3", "K4", "50k"], ["R", "R2", "K2", "0", "50k"], ["C", "C", "K4", "0", "100u"]]],
+    "schalter": [{ "name": "S", "gemeinsam": "K3", "stellungen": [{ "name": "1", "kontakt": "K2" }, { "name": "2", "kontakt": "K1" }] }]
+  },
+  "aufgabe16": { "art": "ausserhalb", "grund": "Transformator mit Schalter" },
+  "aufgabe17": { "art": "kein_schaltplan", "grund": "Liniendiagramm u1(t), u2(t)" },
+  "aufgabe18": {
+    "art": "netz",
+    "namen": { "U": "U0" },
+    "varianten": [[["V", "U0", "K1", "0", ""], ["R", "R1", "K1", "K2", "50"], ["C", "C", "K2", "0", "16u"], ["R", "R2", "K2", "0", "100"]]]
+  },
+  "aufgabe19": {
+    "art": "netz",
+    "namen": { "U": "U0" },
+    "varianten": [[["V", "U0", "K1", "0", "230"], ["R", "R1", "K1", "K2", "1"], ["L", "L", "K2", "K3", "64m"], ["R", "R2", "K3", "0", "50"]]]
+  },
+  "aufgabe21": {
+    "art": "netz",
+    "namen": { "UE": "Ue", "U_e": "Ue" },
+    "varianten": [
+      [["V", "Ue", "K1", "0", "10"], ["R", "R", "K1", "K2", ""], ["C", "C", "K2", "0", ""]],
+      [["R", "R", "K1", "K2", ""], ["C", "C", "K2", "0", ""]]
+    ]
+  },
+  "aufgabe22": { "art": "ausserhalb", "grund": "Transformator mit drei Wicklungen" },
+  "aufgabe24": { "art": "kein_schaltplan", "grund": "Kennlinie M(n)" }
+}

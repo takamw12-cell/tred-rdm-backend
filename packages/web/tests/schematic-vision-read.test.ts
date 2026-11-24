@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { LOCK_FLAG, beyondNetlist, compareReadings, lockFromHistory, lockedNetlistInput, mentions, planOf, readSchematic, schematicNote, solved, switchAnalysis, type SchematicReading } from "../src/api/lib/circuit/vision-read";
+import { LOCK_FLAG, beyondNetlist, compareReadings, judgeReading, lockFromHistory, lockedNetlistInput, mentions, planOf, readSchematic, schematicNote, solved, switchAnalysis, type SchematicReading } from "../src/api/lib/circuit/vision-read";
 import { checkNetlist, netlistGate } from "../src/api/lib/circuit/netlist";
 import { layoutSchematic } from "../src/web/lib/schematic-layout";
 import { runCircuitPipeline } from "../src/api/lib/circuit/pipeline";
@@ -105,6 +105,28 @@ describe("ce que le tuteur reçoit", () => {
     expect(note).toContain("WIDERSPRECHEN");
     expect(note).toContain("Rechne nichts");
     expect(note).toMatch(/I1.*R2|R2.*I1/);
+  });
+
+  test("désaccord : une troisième lecture départage, deux sur trois suffisent", async () => {
+    const answers = [A13, A13_WRONG, A13_RENAMED];
+    const verdict = await readSchematic(img, "image/jpeg", { read: async () => answers.shift()! });
+    expect(verdict?.kind).toBe("agreed");
+    expect(answers).toHaveLength(0);
+    // Trois lectures toutes différentes : toujours pas de calcul.
+    const WRONG2 = reading(A13.elemente.map((e) => [e.typ, e.name, e.a, e.name === "R4" ? "A" : e.b, e.wert] as [string, string, string, string, string]));
+    const three = [A13, A13_WRONG, WRONG2];
+    expect((await readSchematic(img, "image/jpeg", { read: async () => three.shift()! }))?.kind).toBe("disputed");
+  });
+
+  test("le juge : deux lectures d'accord sur un circuit impossible ne passent pas", async () => {
+    // R1 lue avec ses deux bornes au même nœud ; deux sources de tension en parallèle.
+    const SHORT = reading([["V", "U", "A", "0", "10"], ["R", "R1", "A", "A", "50"], ["R", "R2", "A", "0", "100"]]);
+    expect(judgeReading(SHORT)[0]).toContain("R1");
+    const CLASH = reading([["V", "U1", "A", "0", "10"], ["V", "U2", "A", "0", "5"], ["R", "R", "A", "0", "1"]]);
+    expect(judgeReading(CLASH).length).toBeGreaterThan(0);
+    expect(judgeReading(A13)).toEqual([]);
+    const verdict = await readSchematic(img, "image/jpeg", { read: async () => SHORT });
+    expect(verdict?.kind).toBe("disputed");
   });
 
   test("pas un schéma, ou une lecture en échec : rien — le tuteur fait comme avant", async () => {
