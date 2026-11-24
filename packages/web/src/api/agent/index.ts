@@ -9,7 +9,7 @@ import { calculate } from "../lib/calc";
 import { runBalkenstatik } from "../lib/beam-tool";
 import { runCircuitPipeline, schaltungBerechnenSchema } from "../lib/circuit/pipeline";
 import { checkNetlist, schaltplanInputSchema, type NetlistGate } from "../lib/circuit/netlist";
-import { LOCK_FLAG, lockedNetlistInput, missingValueInstruction, missingValues, type NetlistLock } from "../lib/circuit/vision-read";
+import { LOCK_FLAG, lockedNetlistInput, type NetlistLock } from "../lib/circuit/vision-read";
 import { mathInputSchema, solveMath } from "../lib/solvers/solveMath";
 import { solveThermo, thermoInputSchema } from "../lib/solvers/solveThermo";
 import { physicsInputSchema, solvePhysics } from "../lib/physics-solver";
@@ -2325,7 +2325,14 @@ export function buildTutorAgent(opts: {
         inputSchema: schaltungBerechnenSchema,
         // Sperre (bestätigte Netzliste bei Bild/PDF) + exakte Probe in
         // Bruchrechnung : lib/circuit/pipeline.ts.
-        execute: guardSolver("schaltung_berechnen", (input: z.infer<typeof schaltungBerechnenSchema>) => runCircuitPipeline(input, opts.netlistGate), opts.onSolver),
+        // La personne vient de confirmer une netlist : c'est ELLE qui est
+        // calculée, pas la copie que le modèle en fait (un nœud recopié de
+        // travers faisait refuser le calcul, ou pire).
+        execute: guardSolver("schaltung_berechnen", (input: z.infer<typeof schaltungBerechnenSchema>) => {
+          const view = opts.netlistGate?.justConfirmed;
+          const exact = view && !input.thevenin ? { ...input, elemente: view.elemente, masse: view.masse, netzliste_id: view.id } : input;
+          return runCircuitPipeline(exact, opts.netlistGate);
+        }, opts.onSolver),
       }),
 
       // Ausweg bei erzwungenem Werkzeugaufruf (lib/solver-gate.ts) : kein
@@ -2370,10 +2377,8 @@ export function buildTutorAgent(opts: {
           const check = checkNetlist(locked);
           // La marque suit la carte dans le fil : le verrou tient aux tours suivants.
           if (check.ok) return { ...check, [LOCK_FLAG]: true };
-          // Refus (valeur absente de l'énoncé) : la référence reste dans le fil,
-          // et le tuteur demande la valeur au lieu de rappeler l'outil en boucle.
-          const missing = missingValues(locked);
-          return { ...check, [LOCK_FLAG]: true, elemente: locked.elemente, ...(missing.length ? { anweisung: missingValueInstruction(missing) } : {}) };
+          // Refus : la référence reste quand même dans le fil.
+          return { ...check, [LOCK_FLAG]: true, elemente: locked.elemente, ...(locked.frei ? { frei: locked.frei } : {}) };
         },
       }),
 

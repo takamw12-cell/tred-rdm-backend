@@ -39,6 +39,11 @@ export const schaltplanInputSchema = z.object({
     .max(10)
     .optional()
     .describe('Was im Bild nicht sicher lesbar war, z. B. "Wert von R3 verdeckt". Lieber nennen als raten.'),
+  frei: z
+    .array(z.string().min(1).max(20))
+    .max(20)
+    .optional()
+    .describe("Bauteile, deren Wert die Aufgabe NICHT angibt. Beim Rechnen prüft der Code, ob sie das Ergebnis beeinflussen."),
 });
 
 export type SchaltplanInput = z.infer<typeof schaltplanInputSchema>;
@@ -51,6 +56,8 @@ export interface NetlistView {
   knoten: string[];
   unklar: string[];
   hinweise: string[];
+  /** Bauteile ohne Wert in der Aufgabe (lib/circuit/pipeline.ts prüft ihren Einfluss). */
+  frei?: string[];
 }
 
 export type NetlistCheck =
@@ -171,6 +178,7 @@ export function checkNetlist(raw: SchaltplanInput): NetlistCheck {
     knoten,
     unklar,
     hinweise,
+    ...(input.frei?.length ? { frei: input.frei.filter((n) => names.has(n)) } : {}),
     anweisung: ANWEISUNG_OK,
   };
 }
@@ -207,6 +215,8 @@ export interface NetlistGate {
   required: boolean;
   /** Bestätigte Netzlisten, nach Kennung. */
   confirmed: Map<string, NetlistView>;
+  /** Die LETZTE Nachricht der Person bestätigt genau diese Netzliste: jetzt wird gerechnet. */
+  justConfirmed?: NetlistView | null;
 }
 
 /** Der Knopf auf der Tafel schickt „✓ Netzliste n-… stimmt …“. */
@@ -251,6 +261,7 @@ export function netlistGate(messages: unknown[]): NetlistGate {
   const seen = new Map<string, NetlistView>();
   const confirmed = new Map<string, NetlistView>();
   let pending: string | null = null;
+  let justConfirmed: NetlistView | null = null;
 
   for (const raw of messages) {
     const m = raw as MessageLike;
@@ -260,8 +271,10 @@ export function netlistGate(messages: unknown[]): NetlistGate {
       const text = userText(m);
       if (text.includes(OLD_ATTACHMENT)) required = true;
       const explicit = CONFIRM_RE.exec(text)?.[1];
-      if (explicit && seen.has(explicit)) confirmed.set(explicit, seen.get(explicit)!);
-      else if (pending && isShortYes(text)) confirmed.set(pending, seen.get(pending)!);
+      justConfirmed = null;
+      if (explicit && seen.has(explicit)) justConfirmed = seen.get(explicit)!;
+      else if (pending && isShortYes(text)) justConfirmed = seen.get(pending)!;
+      if (justConfirmed) confirmed.set(justConfirmed.id, justConfirmed);
       pending = null;
     } else if (m?.role === "assistant") {
       for (const p of parts) {
@@ -274,7 +287,7 @@ export function netlistGate(messages: unknown[]): NetlistGate {
       }
     }
   }
-  return { required, confirmed };
+  return { required, confirmed, justConfirmed };
 }
 
 export type GateDecision = { ok: true } | { ok: false; fehler: string; anweisung: string };

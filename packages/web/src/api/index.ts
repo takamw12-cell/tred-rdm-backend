@@ -1006,12 +1006,16 @@ app.post("/api/agent/messages", async (c) => {
   // Question technique : le PREMIER pas du modèle est un appel d'outil imposé
   // (lib/solver-gate.ts). L'API le refuse avec le raisonnement étendu, donc
   // ce tour tourne sans lui (et à température 0, lib/precision.ts).
+  // Schaltplan : netlists confirmées dans le fil (lib/circuit/netlist.ts).
+  const circuitGate = netlistGate(Array.isArray(messages) ? messages : []);
   const forceFirst = !fast && mustCallToolFirst({ text: lastUserText, domain: fach.domain, hasAttachments: lastUserHasAttachment(messages) });
   const route = fast
     ? { ...routed, tier: "concept" as const, thinking: "off" as const, reason: `fast-path ${fast.name}` }
     : forceFirst
       ? { ...routed, thinking: "off" as const, reason: `${routed.reason} · outil imposé` }
-      : routed;
+      : circuitGate.justConfirmed
+        ? { ...routed, thinking: "off" as const, reason: `${routed.reason} · netlist confirmée` }
+        : routed;
   const timer = createStreamTimer(requestStarted);
   const usage = { steps: 0, input: 0, cacheRead: 0, cacheWrite: 0, output: 0 };
   // Garde « résultat sans solveur » : outils et texte de toute la réponse.
@@ -1086,18 +1090,23 @@ app.post("/api/agent/messages", async (c) => {
     onSolver: (run) => recordSolverRun(uid, typeof conversationId === "string" ? conversationId.slice(0, 100) : null, run),
     // Schaltplan als Bild/PDF : rechnen nur mit einer bestätigten Netzliste
     // (lib/circuit/netlist.ts). Gelesen aus dem Verlauf, den der Browser schickt.
-    netlistGate: netlistGate(Array.isArray(messages) ? messages : []),
+    netlistGate: circuitGate,
     // Deux lectures concordantes : la netlist affichée est celle-là, pas celle du tuteur.
     lockedSchematic: netlistLock,
     // Premier pas imposé : un solveur, ou la sortie honnête « kein_loeser_vorhanden ».
     // Deux lectures concordantes : le premier pas EST la carte de la netlist.
     // Sans elle, rien n'est verrouillé pour les messages suivants (essai du
     // 24 nov. : une fois sur deux, le tuteur ne l'affichait pas).
+    // Netlist confirmée à l'instant : le premier pas EST le calcul, sur cette
+    // netlist exacte (le 24 nov., le tuteur a répondu « le solveur n'est pas
+    // disponible » au lieu de calculer).
     forceTools: forceFirst
       ? firstCallForce()
       : schematic?.kind === "agreed"
         ? { tools: ["schaltplan_erfassen"], until: ["schaltplan_erfassen"] }
-        : undefined,
+        : circuitGate.justConfirmed
+          ? { tools: ["schaltung_berechnen"], until: ["schaltung_berechnen"] }
+          : undefined,
     memory: {
       open: gaps,
       note: (input) => noteGap(uid, { ...input, semesterId: semesterId ?? null }),

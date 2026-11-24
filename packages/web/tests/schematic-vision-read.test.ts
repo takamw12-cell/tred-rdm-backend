@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { LOCK_FLAG, compareReadings, lockFromHistory, lockedNetlistInput, mentions, missingValues, readSchematic, schematicNote, type SchematicReading } from "../src/api/lib/circuit/vision-read";
+import { LOCK_FLAG, compareReadings, lockFromHistory, lockedNetlistInput, mentions, readSchematic, schematicNote, type SchematicReading } from "../src/api/lib/circuit/vision-read";
 import { checkNetlist } from "../src/api/lib/circuit/netlist";
+import { runCircuitPipeline } from "../src/api/lib/circuit/pipeline";
 
 /**
  * « Aufgabe 13 » (photo du 24 nov. 2026) : U1, R1…R4, I1 en série avec R2,
@@ -129,32 +130,41 @@ describe("lectures concordantes : la netlist affichée vient du code, pas du tut
     const locked = lockedNetlistInput(lock(), tutor);
     expect(locked.elemente.map((e) => e.name)).toEqual(ZERO.elemente.map((e) => e.name));
     expect(locked.elemente.find((e) => e.name === "R2")).toMatchObject({ a: "0", b: "F" });
-    // Seule la valeur absente de l'énoncé vient du tuteur ; les nœuds, jamais.
-    expect(locked.elemente.find((e) => e.name === "R4")).toMatchObject({ a: "C", b: "D", wert: "1" });
+    expect(locked.elemente.find((e) => e.name === "R4")).toMatchObject({ a: "C", b: "D" });
     expect(checkNetlist(locked).ok).toBe(true);
   });
 
-  test("valeur supposée : UNE ligne claire, pas sept avertissements", () => {
+  test("valeur absente de l'énoncé : ni question ni valeur du tuteur — composant « frei », UNE ligne claire", () => {
     const locked = lockedNetlistInput(lock(), tutor);
-    expect(locked.unklar).toEqual(["R4: kein Wert in der Aufgabe, 1 angenommen. Bitte prüfen.", "Pfeilrichtung von I1 schwer lesbar", "x"]);
+    expect(locked.frei).toEqual(["R4"]);
+    expect(locked.unklar).toEqual(["R4: kein Wert in der Aufgabe. Beim Rechnen wird geprüft, ob er das Ergebnis beeinflusst.", "Pfeilrichtung von I1 schwer lesbar", "x"]);
+    // Même si le tuteur écrit « ? » ou rien : la carte existe.
+    const bare = lockedNetlistInput(lock(), { quelle: "bild", elemente: [{ typ: "R", name: "R4", a: "C", b: "D", wert: "?" }] });
+    const card = checkNetlist(bare);
+    expect(card.ok).toBe(true);
+    expect(card.ok && card.frei).toEqual(["R4"]);
   });
 
-  test("valeur absente partout : la netlist est refusée, le tuteur doit la demander", () => {
-    const check = checkNetlist(lockedNetlistInput(lock(), { quelle: "bild", elemente: [{ typ: "R", name: "R1", a: "a", b: "b", wert: 1 }] }));
-    expect(check.ok).toBe(false);
-    expect(JSON.stringify(check)).toContain("R4");
+  test("Aufgabe 13 : R4 n'a pas de valeur — le calcul prouve qu'elle ne compte pas", () => {
+    const card = checkNetlist(lockedNetlistInput(lock(), tutor));
+    if (!card.ok) throw new Error("carte refusée");
+    const gate = { required: true, confirmed: new Map([[card.id, card]]) };
+    const r = runCircuitPipeline({ elemente: card.elemente, netzliste_id: card.id }, gate);
+    if (!r.ok || !("freie_werte" in r) || !r.freie_werte) throw new Error("pas de rapport : " + JSON.stringify(r).slice(0, 200));
+    expect(r.freie_werte.namen).toEqual(["R4"]);
+    // I2 et I3 s'annulent : aucun courant dans R4, rien ne dépend de sa valeur.
+    expect(r.freie_werte.abhaengig).toEqual([]);
+    expect(r.freie_werte.unabhaengig).toContain("R3");
+    expect(r.freie_werte.anweisung).toContain("Frag die Person nicht nach R4");
   });
 
-  test("« ? » n'est pas une valeur : refus, mais la référence reste dans le fil pour le message suivant", () => {
-    const locked = lockedNetlistInput(lock(), { quelle: "bild", elemente: [{ typ: "R", name: "R4", a: "C", b: "D", wert: "?" }] });
-    expect(missingValues(locked)).toEqual(["R4"]);
-    const refused = { ...checkNetlist(locked), [LOCK_FLAG]: true, elemente: locked.elemente };
-    expect(refused.ok).toBe(false);
-    const thread = [{ role: "assistant", parts: [{ type: "tool-schaltplan_erfassen", state: "output-available", output: refused }] }];
-    const next = lockFromHistory(thread, "R4 = 2 Ω");
-    const fixed = lockedNetlistInput(next!, { quelle: "bild", elemente: [{ typ: "R", name: "R4", a: "C", b: "D", wert: "2" }, { typ: "R", name: "R2", a: "X", b: "0", wert: 9 }] });
-    expect(checkNetlist(fixed).ok).toBe(true);
-    expect(fixed.elemente.find((e) => e.name === "R2")).toMatchObject({ a: "0", b: "F", wert: "1" });
+  test("une valeur libre qui compte : ses dépendants sont nommés, leurs chiffres interdits", () => {
+    const card = checkNetlist({ quelle: "bild", frei: ["R2"], elemente: [{ typ: "V", name: "U", a: "1", b: "0", wert: 10 }, { typ: "R", name: "R1", a: "1", b: "2", wert: 1 }, { typ: "R", name: "R2", a: "2", b: "0", wert: 1 }] });
+    if (!card.ok) throw new Error("carte refusée");
+    const r = runCircuitPipeline({ elemente: card.elemente, netzliste_id: card.id }, { required: true, confirmed: new Map([[card.id, card]]) });
+    if (!r.ok || !("freie_werte" in r) || !r.freie_werte) throw new Error("pas de rapport");
+    expect(r.freie_werte.abhaengig).toEqual(expect.arrayContaining(["R1", "R2"]));
+    expect(r.freie_werte.anweisung).toContain("KEINE Zahl");
   });
 
   test("message suivant, sans photo : le verrou vient de la dernière carte du fil", () => {
@@ -172,6 +182,9 @@ describe("lectures concordantes : la netlist affichée vient du code, pas du tut
     const locked = lockedNetlistInput(next!, redrawn);
     expect(locked.elemente).toHaveLength(8);
     expect(locked.elemente.find((e) => e.name === "R4")).toMatchObject({ wert: "2" });
+    // L'étudiant a donné la valeur : R4 n'est plus « frei ».
+    expect(next?.frei).toEqual(["R4"]);
+    expect(locked.frei).toBeUndefined();
     expect(locked.elemente.find((e) => e.name === "R2")).toMatchObject({ a: "0", b: "F" });
     expect(locked.elemente.find((e) => e.name === "I3")).toMatchObject({ a: "E", b: "D" });
   });

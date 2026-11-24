@@ -146,7 +146,8 @@ export function schematicNote(v: SchematicVerdict): string {
       "Diese Netzliste steht FEST: ruf sofort schaltplan_erfassen auf (quelle \"bild\") — der Code trägt genau diese Bauteile und Knoten ein, " +
       "auch wenn du andere angibst. Lies das Bild NICHT neu, lass kein Bauteil weg, deute keines um (kein \"R4 ist ein Voltmeter\"). " +
       "Schreib KEINE eigene Verbindungstabelle: verweise auf die Netzliste auf der Tafel. " +
-      "Steht bei einem Bauteil \"kein Wert angegeben\": lass dessen wert leer und frag die Person danach; erfinde keinen. " +
+      "Steht bei einem Bauteil \"kein Wert angegeben\": frag die Person NICHT danach und erfinde keinen Wert. " +
+      "Der Code prüft beim Rechnen, ob dieser Wert das Gesuchte überhaupt beeinflusst — deine Aufgabe ist, das zu begründen. " +
       "V: a = Pluspol. I: Strom fließt in Knoten a.\n" +
       `${lines(v.reading)}${extras(v.reading)}\n` +
       "Die Person bestätigt die Netzliste wie immer, bevor gerechnet wird."
@@ -239,6 +240,8 @@ export interface NetlistLock {
    * Vide au tour de la photo : rien n'est modifiable.
    */
   userText: string;
+  /** Composants dont l'énoncé ne donne pas la valeur (repris de la carte précédente). */
+  frei?: string[];
 }
 
 /** « R4 », « R_4 », « R 4 », « r4 » : le composant est-il nommé dans la question ? */
@@ -260,14 +263,12 @@ function hasValue(v: unknown): boolean {
   }
 }
 
-/** Les composants de la référence dont l'énoncé ne donne pas la valeur. */
-export const missingValues = (input: SchaltplanInput): string[] =>
-  input.elemente.filter((e) => "wert" in e && !hasValue(e.wert)).map((e) => e.name);
-
-export const missingValueInstruction = (names: string[]) =>
-  `In der Aufgabe steht kein Wert für ${names.join(", ")}. Die Verbindungen stehen fest und sind richtig gelesen. ` +
-  `Ruf schaltplan_erfassen NICHT noch einmal auf. Frag die Person in einem Satz nach dem Wert von ${names.join(", ")} ` +
-  "(oder ob er laut Aufgabe keine Rolle spielt) und warte auf die Antwort.";
+/**
+ * Valeur de calcul d'un composant dont l'énoncé ne donne pas la valeur. Elle
+ * ne sort jamais comme résultat : lib/circuit/pipeline.ts recalcule avec une
+ * autre valeur et ne garde que ce qui n'en dépend pas.
+ */
+export const FREE_VALUE = "1";
 
 /**
  * L'entrée de `schaltplan_erfassen` sous verrou : composants et nœuds viennent
@@ -287,7 +288,7 @@ export function lockedNetlistInput(lock: NetlistLock, model: SchaltplanInput): S
   for (const el of model.elemente ?? []) proposed.set(el.name, el);
   const named = (name: string) => lock.userText.trim() !== "" && mentions(lock.userText, name);
 
-  const assumed: string[] = [];
+  const frei = new Set<string>();
   const elemente: AnyElement[] = [];
   const known = new Set<string>();
   for (const base of lock.elemente) {
@@ -299,25 +300,29 @@ export function lockedNetlistInput(lock: NetlistLock, model: SchaltplanInput): S
       continue;
     }
     if ("wert" in base && !hasValue(base.wert)) {
-      const value = theirs && "wert" in theirs && hasValue(theirs.wert) ? theirs.wert : "";
-      if (value !== "") assumed.push(`${base.name}: kein Wert in der Aufgabe, ${value} angenommen. Bitte prüfen.`);
-      elemente.push({ ...base, wert: value } as AnyElement);
+      // Pas de valeur dans l'énoncé : ni question à l'étudiant, ni valeur
+      // inventée par le tuteur. Le calcul dira si elle compte.
+      frei.add(base.name);
+      elemente.push({ ...base, wert: FREE_VALUE } as AnyElement);
       continue;
     }
+    if (lock.frei?.includes(base.name)) frei.add(base.name);
     elemente.push(base as AnyElement);
   }
   // Un composant ajouté n'entre que si l'étudiant le nomme.
   for (const el of model.elemente ?? []) if (!known.has(el.name) && named(el.name)) elemente.push(el);
 
-  // Les remarques sur une valeur manquante sont remplacées par la ligne exacte ci-dessus.
+  // Les remarques sur une valeur manquante sont remplacées par une ligne exacte.
+  const free = [...frei].map((n) => `${n}: kein Wert in der Aufgabe. Beim Rechnen wird geprüft, ob er das Ergebnis beeinflusst.`);
   const rest = lock.unklar.filter((t) => !/\b(wert|value|valeur)\b/i.test(t));
-  const unklar = [...assumed, ...rest.slice(0, 2)].map((t) => t.slice(0, 120)).slice(0, 10);
+  const unklar = [...free, ...rest.slice(0, 2)].map((t) => t.slice(0, 120)).slice(0, 10);
   const nodes = new Set(elemente.flatMap((e) => ("a" in e ? [e.a, e.b] : [e.plus, e.minus, e.aus])));
   return {
     quelle: "bild",
     masse: nodes.has("0") ? "0" : (model.masse ?? "0"),
     elemente,
     ...(unklar.length ? { unklar } : {}),
+    ...(frei.size ? { frei: [...frei] } : {}),
   };
 }
 
@@ -336,10 +341,10 @@ export function lockFromHistory(messages: unknown[], userText: string): NetlistL
       const p = m.parts[j];
       const isCard = (p?.type === "tool-schaltplan_erfassen" || (p?.type === "dynamic-tool" && p.toolName === "schaltplan_erfassen")) && p.state === "output-available";
       if (!isCard) continue;
-      const out = p.output as { ok?: boolean; elemente?: AnyElement[]; [LOCK_FLAG]?: boolean } | null;
+      const out = p.output as { ok?: boolean; elemente?: AnyElement[]; frei?: string[]; [LOCK_FLAG]?: boolean } | null;
       // Une carte refusée (valeur manquante) garde quand même la référence.
       if (!out || out[LOCK_FLAG] !== true || !Array.isArray(out.elemente)) continue;
-      return { elemente: out.elemente, unklar: [], userText };
+      return { elemente: out.elemente, unklar: [], userText, frei: Array.isArray(out.frei) ? out.frei : [] };
     }
   }
   return null;
