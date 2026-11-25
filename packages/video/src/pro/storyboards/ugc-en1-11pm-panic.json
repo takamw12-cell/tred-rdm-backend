@@ -1,0 +1,89 @@
+{
+ "id": "ugc-en1-11pm-panic",
+ "lang": "en",
+ "voiceId": "onwK4e9ZLuTAKqWW03F9",
+ "title": "The 11 PM Panic",
+ "palette": "night",
+ "layout": "duo",
+ "presenter": {
+  "name": "Prof. Ren · TRED",
+  "image": "avatars/ren.png"
+ },
+ "scenes": [
+  {
+   "part": "hook",
+   "seconds": 4.2,
+   "kind": "statement",
+   "eyebrow": "11 PM",
+   "headline": "Exam tomorrow. 80 pages left.",
+   "voice": "It's eleven PM. Your exam is tomorrow. You have eighty pages left."
+  },
+  {
+   "part": "body",
+   "seconds": 4.6,
+   "kind": "statement",
+   "headline": "Which pages matter?",
+   "voice": "You can't read all of it tonight. And you don't know which pages matter."
+  },
+  {
+   "part": "body",
+   "seconds": 4.0,
+   "kind": "glass",
+   "eyebrow": "Panic Mode",
+   "headline": "Pick your script",
+   "media": "panik-modus",
+   "focus": {
+    "x": 50,
+    "y": 4,
+    "zoom": 1.05
+   },
+   "voice": "Open TRED and hit Panic Mode. Pick your script."
+  },
+  {
+   "part": "body",
+   "seconds": 3.4,
+   "kind": "glass",
+   "eyebrow": "Panic Mode",
+   "headline": "The 3 hardest concepts",
+   "media": "panik-modus",
+   "focus": {
+    "x": 0,
+    "y": 42,
+    "zoom": 1.9
+   },
+   "voice": "TRED pulls the three hardest concepts"
+  },
+  {
+   "part": "body",
+   "seconds": 5.6,
+   "kind": "glass",
+   "eyebrow": "Panic Mode",
+   "headline": "The 3 key formulas, with the page",
+   "media": "panik-modus",
+   "focus": {
+    "x": 100,
+    "y": 40,
+    "zoom": 1.9
+   },
+   "voice": "and the three key formulas out of your PDF, each one with the page it comes from."
+  },
+  {
+   "part": "body",
+   "seconds": 4.6,
+   "kind": "glass",
+   "eyebrow": "From your notes",
+   "headline": "Tap one. Get it explained.",
+   "media": "app-v5-en-steps",
+   "from": 9.0,
+   "voice": "Tap one, and it explains it with an example from your own notes."
+  },
+  {
+   "part": "cta",
+   "seconds": 3.2,
+   "kind": "outro",
+   "headline": "Start free",
+   "sub": "tred-tutor.de",
+   "voice": "Start free. Link in bio."
+  }
+ ]
+}

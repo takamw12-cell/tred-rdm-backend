@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { AbsoluteFill, Audio, Img, interpolate, OffthreadVideo, Sequence, spring, useCurrentFrame, useVideoConfig, type CalculateMetadataFunction } from "remotion";
+import { AbsoluteFill, Audio, Img, interpolate, OffthreadVideo, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig, type CalculateMetadataFunction } from "remotion";
 
 /**
  * « Pro Marketing » (19 nov. 2026) — 6 vidéos de 30 s (3 EN, 3 DE), l'identité
@@ -47,6 +47,17 @@ export interface Storyboard {
   title: string;
   palette: keyof typeof PALETTES;
   scenes: ProScene[];
+  /**
+   * « duo » : écran partagé. En haut, la vraie interface de TRED ; en bas, le
+   * présentateur (voir `presenter`). Sans ce champ : la mise en page d'origine.
+   */
+  layout?: "duo";
+  presenter?: {
+    /** Nom affiché sous le présentateur. */
+    name: string;
+    /** Portrait dans le dossier public de Remotion (packages/web/public), ex. « avatars/ren.png ». */
+    image: string;
+  };
 }
 export interface Word {
   text: string;
@@ -69,7 +80,7 @@ const tiktok = (require as any).context("../assets/tiktok", false, /\.(jpg|mp4)$
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const pro = (require as any).context("../assets/pro", false, /\.(png|jpg)$/) as Ctx;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const dropped = (require as any).context("../../public/pro", false, /\.(mp3|wav|json)$/) as Ctx;
+const dropped = (require as any).context("../../public/pro", false, /\.(mp3|wav|json|mp4)$/) as Ctx;
 const url = (m: unknown) => (typeof m === "string" ? m : (m as { default: string }).default);
 
 export function mediaOf(name: string): { src: string; video: boolean } | null {
@@ -85,6 +96,11 @@ export const voiceOf = (id: string) => {
   const mp3 = droppedFile(`vo-${id}.mp3`);
   const json = droppedFile(`vo-${id}.json`) as { words?: Word[] } | null;
   return mp3 && json?.words?.length ? { src: url(mp3), words: json.words } : null;
+};
+/** L'avatar HeyGen de cette vidéo (scripts/heygen-avatar.mjs), s'il a été généré. */
+export const avatarOf = (id: string) => {
+  const m = droppedFile(`avatar-${id}.mp4`);
+  return m ? url(m) : null;
 };
 export const musicOf = (id: string) => {
   const m = droppedFile(`music-${id}.mp3`) ?? droppedFile(`music-${id}.wav`) ?? droppedFile("music.mp3") ?? droppedFile("music.wav");
@@ -342,7 +358,7 @@ function OutroScene({ scene, local, accent }: { scene: ProScene; local: number; 
 
 /* ── Sous-titres mot par mot ───────────────────────────────────────────── */
 
-function Captions({ words, scene, accent }: { words: Array<Word & { scene: number }>; scene: number; accent: string }) {
+function Captions({ words, scene, accent, bottom = 150, size = 48 }: { words: Array<Word & { scene: number }>; scene: number; accent: string; bottom?: number; size?: number }) {
   const frame = useCurrentFrame();
   const ms = (frame / PRO_FPS) * 1000;
   const own = words.filter((w) => w.scene === scene);
@@ -351,8 +367,8 @@ function Captions({ words, scene, accent }: { words: Array<Word & { scene: numbe
   const fadeOut = interpolate(ms, [end + 250, end + 650], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   if (fadeOut <= 0) return null;
   return (
-    <div style={{ position: "absolute", left: 70, right: 70, bottom: 150, display: "flex", justifyContent: "center", opacity: fadeOut }}>
-      <div style={{ maxWidth: 940, padding: "20px 32px", borderRadius: 30, textAlign: "center", background: "rgba(8,12,26,0.55)", border: "1.5px solid rgba(255,255,255,0.14)", backdropFilter: "blur(18px)", fontFamily: SANS, fontSize: 48, lineHeight: 1.25, fontWeight: 600, letterSpacing: "-0.01em" }}>
+    <div style={{ position: "absolute", left: 70, right: 70, bottom, display: "flex", justifyContent: "center", opacity: fadeOut }}>
+      <div style={{ maxWidth: 940, padding: "20px 32px", borderRadius: 30, textAlign: "center", background: "rgba(8,12,26,0.55)", border: "1.5px solid rgba(255,255,255,0.14)", backdropFilter: "blur(18px)", fontFamily: SANS, fontSize: size, lineHeight: 1.25, fontWeight: 600, letterSpacing: "-0.01em" }}>
         {own.map((w, i) => {
           // Mot par mot : chaque mot arrive sur un petit ressort quand il est prononcé ; le mot en cours prend l'accent.
           const appear = lively(frame, Math.round((w.startMs / 1000) * PRO_FPS) - 2);
@@ -364,6 +380,104 @@ function Captions({ words, scene, accent }: { words: Array<Word & { scene: numbe
             </span>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+/* ── Écran partagé « duo » : l'interface en haut, le présentateur en bas ── */
+
+/** Hauteur de la zone du haut (l'interface de TRED). Le présentateur occupe le reste. */
+const DUO_TOP = 1130;
+
+function DuoScene({ scene, local, dur, accent }: { scene: ProScene; local: number; dur: number; accent: string }) {
+  const m = scene.media ? mediaOf(scene.media) : null;
+  if (scene.kind === "outro") {
+    const t = lively(local, 2);
+    const t2 = soft(local, 14);
+    return (
+      <AbsoluteFill style={{ height: DUO_TOP, alignItems: "center", justifyContent: "center" }}>
+        <div style={{ opacity: Math.min(1, t * 1.3), transform: `scale(${0.9 + 0.1 * t})`, fontFamily: SANS, fontWeight: 800, fontSize: 168, letterSpacing: "0.02em", color: INK }}>TRED</div>
+        <div style={{ height: 8, width: 130 * t2, marginTop: 6, borderRadius: 4, background: accent, boxShadow: `0 0 30px ${accent}` }} />
+        <div style={{ marginTop: 60, opacity: t2, fontFamily: SANS, fontWeight: 600, fontSize: 54, color: INK, padding: "18px 42px", borderRadius: 999, background: "rgba(255,255,255,0.08)", border: "1.5px solid rgba(255,255,255,0.2)" }}>{scene.headline}</div>
+        {scene.sub && <div style={{ marginTop: 24, opacity: t2, fontFamily: SANS, fontSize: 36, color: MUTED }}>{scene.sub}</div>}
+      </AbsoluteFill>
+    );
+  }
+  if (!m) {
+    // Pas de capture : une phrase forte, mot par mot (accroche, problème).
+    const words = scene.headline.split(" ");
+    return (
+      <AbsoluteFill style={{ height: DUO_TOP, alignItems: "center", justifyContent: "center", padding: 80 }}>
+        {scene.eyebrow && <div style={{ marginBottom: 36, fontFamily: SANS, fontSize: 34, fontWeight: 600, color: accent, letterSpacing: "0.08em", textTransform: "uppercase", opacity: soft(local, 0) }}>{scene.eyebrow}</div>}
+        <div style={{ fontFamily: SANS, fontWeight: 800, fontSize: 100, lineHeight: 1.05, letterSpacing: "-0.035em", color: INK, textAlign: "center" }}>
+          {words.map((w, i) => {
+            const t = lively(local, 3 + i * 4);
+            return (
+              <span key={i} style={{ display: "inline-block", marginRight: "0.24em", opacity: Math.min(1, t * 1.3), transform: `translateY(${(1 - t) * 30}px)` }}>
+                {w}
+              </span>
+            );
+          })}
+        </div>
+      </AbsoluteFill>
+    );
+  }
+  // La capture réelle, dans une carte de verre, avec un lent travelling vers le point d'intérêt.
+  const f = scene.focus ?? { x: 50, y: 50, zoom: 1 };
+  const k = interpolate(local, [0, dur], [0.9, 1.04], { extrapolateRight: "clamp" });
+  return (
+    <AbsoluteFill style={{ height: DUO_TOP }}>
+      {scene.eyebrow && (
+        <div style={{ position: "absolute", top: 70, left: 0, right: 0, display: "flex", justifyContent: "center", opacity: soft(local, 0) }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 14, fontFamily: SANS, fontSize: 30, fontWeight: 600, color: INK, padding: "10px 24px", borderRadius: 999, background: "rgba(255,255,255,0.06)", border: "1.5px solid rgba(255,255,255,0.14)" }}>
+            <span style={{ width: 12, height: 12, borderRadius: 6, background: accent, boxShadow: `0 0 18px ${accent}` }} />
+            {scene.eyebrow}
+          </span>
+        </div>
+      )}
+      <Headline text={scene.headline} size={66} top={150} local={local} />
+      <GlassCard local={local} light={!m.video} tilt={-0.8} style={{ left: 44, right: 44, top: 330, height: 740 }}>
+        <Media name={scene.media} from={scene.from} focus={{ ...f, zoom: f.zoom * k }} fit="cover" />
+      </GlassCard>
+    </AbsoluteFill>
+  );
+}
+
+/**
+ * Le présentateur, en buste, dans la moitié basse. L'avatar HeyGen s'il a été
+ * généré ; sinon le portrait du professeur de l'application, qui « parle » :
+ * il respire, un halo et un égaliseur suivent les mots de la voix. Ce n'est
+ * PAS une synchronisation des lèvres — le portrait est une image fixe.
+ */
+function Presenter({ id, presenter, words, accent }: { id: string; presenter: NonNullable<Storyboard["presenter"]>; words: Word[]; accent: string }) {
+  // public/pro/avatar-<id>.mp4 : l'avatar HeyGen, synchronisé sur la voix. Sans lui, le portrait.
+  const avatar = avatarOf(id);
+  const frame = useCurrentFrame();
+  const ms = (frame / PRO_FPS) * 1000;
+  const speaking = words.some((w) => ms >= w.startMs - 40 && ms <= w.endMs + 90);
+  // Niveau sonore simulé : lissé sur quelques images, pour ne pas clignoter entre deux mots.
+  const level = [0, 1, 2, 3].reduce((a, d) => a + (words.some((w) => ms - d * 33 >= w.startMs - 40 && ms - d * 33 <= w.endMs + 90) ? 1 : 0), 0) / 4;
+  const enter = lively(frame, 6);
+  const SIZE = 430;
+  return (
+    <div style={{ position: "absolute", left: 0, right: 0, top: DUO_TOP, bottom: 0 }}>
+      {/* Séparation douce entre l'écran et le présentateur. */}
+      <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 2, background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(4,7,16,0.35), rgba(4,7,16,0.72))" }} />
+      <div style={{ position: "absolute", left: "50%", top: 44, width: SIZE, height: SIZE, marginLeft: -SIZE / 2, opacity: Math.min(1, enter * 1.3), transform: `translateY(${(1 - enter) * 60}px) scale(${1 + 0.012 * Math.sin(frame / 22) + 0.014 * level})` }}>
+        <div style={{ position: "absolute", inset: -14, borderRadius: "50%", border: `4px solid ${accent}`, opacity: 0.25 + 0.65 * level, boxShadow: `0 0 ${30 + 60 * level}px ${accent}` }} />
+        <div style={{ width: "100%", height: "100%", borderRadius: "50%", overflow: "hidden", border: "3px solid rgba(255,255,255,0.35)", background: "#FDF7EC" }}>
+          {avatar ? <OffthreadVideo src={avatar} muted style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Img src={staticFile(presenter.image)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+        </div>
+      </div>
+      <div style={{ position: "absolute", left: 0, right: 0, top: 44 + SIZE + 34, display: "flex", justifyContent: "center", alignItems: "center", gap: 18, opacity: enter }}>
+        <span style={{ fontFamily: SANS, fontSize: 34, fontWeight: 700, color: INK }}>{presenter.name}</span>
+        <span style={{ display: "inline-flex", alignItems: "flex-end", gap: 5, height: 34 }}>
+          {[0, 1, 2, 3, 4].map((i) => (
+            <span key={i} style={{ width: 6, borderRadius: 3, background: accent, height: 6 + (speaking ? 1 : 0) * level * (10 + 18 * Math.abs(Math.sin(frame / (2.3 + i * 0.7) + i * 1.9))) }} />
+          ))}
+        </span>
       </div>
     </div>
   );
@@ -387,11 +501,12 @@ export function ProMarketingVideo({ board, timeline, words }: ProProps) {
         const length = i === board.scenes.length - 1 ? dur : dur + FADE;
         return (
           <Sequence key={i} from={from} durationInFrames={Math.max(1, length)} layout="none">
-            <SceneLayer index={i} scene={scene} dur={dur} accent={palette.accent} />
+            <SceneLayer index={i} scene={scene} dur={dur} accent={palette.accent} duo={board.layout === "duo"} />
           </Sequence>
         );
       })}
-      <Captions words={plan.words} scene={current} accent={palette.accent} />
+      {board.layout === "duo" && board.presenter && <Presenter id={board.id} presenter={board.presenter} words={plan.words} accent={palette.accent} />}
+      <Captions words={plan.words} scene={current} accent={palette.accent} {...(board.layout === "duo" ? { bottom: 70, size: 44 } : {})} />
       <Grain />
       {voice && <Audio src={voice.src} />}
       {/* Musique synthétisée (scripts/lofi-music.mjs), en boucle ; −20 dB = 0,1 en amplitude, fondu à l'entrée et à la sortie. */}
@@ -400,18 +515,19 @@ export function ProMarketingVideo({ board, timeline, words }: ProProps) {
   );
 }
 
-function SceneLayer({ index, scene, dur, accent }: { index: number; scene: ProScene; dur: number; accent: string }) {
+function SceneLayer({ index, scene, dur, accent, duo = false }: { index: number; scene: ProScene; dur: number; accent: string; duo?: boolean }) {
   const local = useCurrentFrame();
   // Fondu enchaîné sur ressort : la scène entre (sauf la première, qui est l'accroche) pendant que la précédente s'efface en reculant.
   const enter = index === 0 ? 1 : soft(local, 0);
   const leave = local > dur ? soft(local - dur, 0) : 0;
   return (
     <AbsoluteFill style={{ opacity: Math.min(enter, 1 - leave), transform: `scale(${1 - 0.04 * leave})`, filter: leave > 0 ? `blur(${leave * 6}px)` : undefined }}>
-      {scene.kind === "broll" && <BrollScene scene={scene} local={local} dur={dur} />}
-      {scene.kind === "glass" && <GlassScene scene={scene} local={local} accent={accent} />}
-      {scene.kind === "split" && <SplitScene scene={scene} local={local} accent={accent} />}
-      {scene.kind === "statement" && <StatementScene scene={scene} local={local} />}
-      {scene.kind === "outro" && <OutroScene scene={scene} local={local} accent={accent} />}
+      {duo && <DuoScene scene={scene} local={local} dur={dur} accent={accent} />}
+      {!duo && scene.kind === "broll" && <BrollScene scene={scene} local={local} dur={dur} />}
+      {!duo && scene.kind === "glass" && <GlassScene scene={scene} local={local} accent={accent} />}
+      {!duo && scene.kind === "split" && <SplitScene scene={scene} local={local} accent={accent} />}
+      {!duo && scene.kind === "statement" && <StatementScene scene={scene} local={local} />}
+      {!duo && scene.kind === "outro" && <OutroScene scene={scene} local={local} accent={accent} />}
     </AbsoluteFill>
   );
 }

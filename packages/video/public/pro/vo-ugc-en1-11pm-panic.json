@@ -1,0 +1,385 @@
+{
+ "id": "ugc-en1-11pm-panic",
+ "words": [
+  {
+   "text": "It's",
+   "startMs": 0,
+   "endMs": 197
+  },
+  {
+   "text": "eleven",
+   "startMs": 244,
+   "endMs": 511
+  },
+  {
+   "text": "PM.",
+   "startMs": 580,
+   "endMs": 1138
+  },
+  {
+   "text": "Your",
+   "startMs": 1556,
+   "endMs": 1753
+  },
+  {
+   "text": "exam",
+   "startMs": 1800,
+   "endMs": 2171
+  },
+  {
+   "text": "is",
+   "startMs": 2252,
+   "endMs": 2403
+  },
+  {
+   "text": "tomorrow.",
+   "startMs": 2461,
+   "endMs": 3053
+  },
+  {
+   "text": "You",
+   "startMs": 3553,
+   "endMs": 3669
+  },
+  {
+   "text": "have",
+   "startMs": 3738,
+   "endMs": 3889
+  },
+  {
+   "text": "eighty",
+   "startMs": 3971,
+   "endMs": 4261
+  },
+  {
+   "text": "pages",
+   "startMs": 4319,
+   "endMs": 4679
+  },
+  {
+   "text": "left.",
+   "startMs": 4748,
+   "endMs": 5201
+  },
+  {
+   "text": "You",
+   "startMs": 5619,
+   "endMs": 5747
+  },
+  {
+   "text": "can't",
+   "startMs": 5817,
+   "endMs": 6072
+  },
+  {
+   "text": "read",
+   "startMs": 6142,
+   "endMs": 6351
+  },
+  {
+   "text": "all",
+   "startMs": 6432,
+   "endMs": 6641
+  },
+  {
+   "text": "of",
+   "startMs": 6687,
+   "endMs": 6745
+  },
+  {
+   "text": "it",
+   "startMs": 6792,
+   "endMs": 6861
+  },
+  {
+   "text": "tonight.",
+   "startMs": 6908,
+   "endMs": 7512
+  },
+  {
+   "text": "And",
+   "startMs": 7941,
+   "endMs": 8069
+  },
+  {
+   "text": "you",
+   "startMs": 8115,
+   "endMs": 8197
+  },
+  {
+   "text": "don't",
+   "startMs": 8255,
+   "endMs": 8452
+  },
+  {
+   "text": "know",
+   "startMs": 8499,
+   "endMs": 8684
+  },
+  {
+   "text": "which",
+   "startMs": 8766,
+   "endMs": 8963
+  },
+  {
+   "text": "pages",
+   "startMs": 9021,
+   "endMs": 9381
+  },
+  {
+   "text": "matter.",
+   "startMs": 9451,
+   "endMs": 9961
+  },
+  {
+   "text": "Open",
+   "startMs": 10635,
+   "endMs": 10971
+  },
+  {
+   "text": "TRED",
+   "startMs": 11041,
+   "endMs": 11401
+  },
+  {
+   "text": "and",
+   "startMs": 11714,
+   "endMs": 11889
+  },
+  {
+   "text": "hit",
+   "startMs": 11958,
+   "endMs": 12109
+  },
+  {
+   "text": "Panic",
+   "startMs": 12179,
+   "endMs": 12469
+  },
+  {
+   "text": "Mode.",
+   "startMs": 12539,
+   "endMs": 13061
+  },
+  {
+   "text": "Pick",
+   "startMs": 13653,
+   "endMs": 13874
+  },
+  {
+   "text": "your",
+   "startMs": 13932,
+   "endMs": 14060
+  },
+  {
+   "text": "script.",
+   "startMs": 14118,
+   "endMs": 14710
+  },
+  {
+   "text": "TRED",
+   "startMs": 15383,
+   "endMs": 15778
+  },
+  {
+   "text": "pulls",
+   "startMs": 15987,
+   "endMs": 16370
+  },
+  {
+   "text": "the",
+   "startMs": 16428,
+   "endMs": 16509
+  },
+  {
+   "text": "three",
+   "startMs": 16591,
+   "endMs": 16916
+  },
+  {
+   "text": "hardest",
+   "startMs": 17032,
+   "endMs": 17427
+  },
+  {
+   "text": "concepts",
+   "startMs": 17473,
+   "endMs": 18134
+  },
+  {
+   "text": "and",
+   "startMs": 18343,
+   "endMs": 18494
+  },
+  {
+   "text": "the",
+   "startMs": 18541,
+   "endMs": 18610
+  },
+  {
+   "text": "three",
+   "startMs": 18669,
+   "endMs": 18947
+  },
+  {
+   "text": "key",
+   "startMs": 19017,
+   "endMs": 19226
+  },
+  {
+   "text": "formulas",
+   "startMs": 19342,
+   "endMs": 19934
+  },
+  {
+   "text": "out",
+   "startMs": 20248,
+   "endMs": 20468
+  },
+  {
+   "text": "of",
+   "startMs": 20503,
+   "endMs": 20561
+  },
+  {
+   "text": "your",
+   "startMs": 20607,
+   "endMs": 20724
+  },
+  {
+   "text": "PDF,",
+   "startMs": 20793,
+   "endMs": 21559
+  },
+  {
+   "text": "each",
+   "startMs": 21943,
+   "endMs": 22163
+  },
+  {
+   "text": "one",
+   "startMs": 22233,
+   "endMs": 22511
+  },
+  {
+   "text": "with",
+   "startMs": 22593,
+   "endMs": 22778
+  },
+  {
+   "text": "the",
+   "startMs": 22813,
+   "endMs": 22883
+  },
+  {
+   "text": "page",
+   "startMs": 22929,
+   "endMs": 23394
+  },
+  {
+   "text": "it",
+   "startMs": 23510,
+   "endMs": 23672
+  },
+  {
+   "text": "comes",
+   "startMs": 23730,
+   "endMs": 23974
+  },
+  {
+   "text": "from.",
+   "startMs": 24032,
+   "endMs": 24462
+  },
+  {
+   "text": "Tap",
+   "startMs": 24973,
+   "endMs": 25263
+  },
+  {
+   "text": "one,",
+   "startMs": 25379,
+   "endMs": 25820
+  },
+  {
+   "text": "and",
+   "startMs": 26203,
+   "endMs": 26354
+  },
+  {
+   "text": "it",
+   "startMs": 26412,
+   "endMs": 26482
+  },
+  {
+   "text": "explains",
+   "startMs": 26540,
+   "endMs": 27063
+  },
+  {
+   "text": "it",
+   "startMs": 27121,
+   "endMs": 27248
+  },
+  {
+   "text": "with",
+   "startMs": 27399,
+   "endMs": 27573
+  },
+  {
+   "text": "an",
+   "startMs": 27608,
+   "endMs": 27666
+  },
+  {
+   "text": "example",
+   "startMs": 27713,
+   "endMs": 28502
+  },
+  {
+   "text": "from",
+   "startMs": 28676,
+   "endMs": 28874
+  },
+  {
+   "text": "your",
+   "startMs": 28932,
+   "endMs": 29094
+  },
+  {
+   "text": "own",
+   "startMs": 29164,
+   "endMs": 29338
+  },
+  {
+   "text": "notes.",
+   "startMs": 29408,
+   "endMs": 30035
+  },
+  {
+   "text": "Start",
+   "startMs": 30546,
+   "endMs": 30964
+  },
+  {
+   "text": "free.",
+   "startMs": 31045,
+   "endMs": 31637
+  },
+  {
+   "text": "Link",
+   "startMs": 32148,
+   "endMs": 32403
+  },
+  {
+   "text": "in",
+   "startMs": 32484,
+   "endMs": 32566
+  },
+  {
+   "text": "bio.",
+   "startMs": 32659,
+   "endMs": 33436
+  }
+ ]
+}
